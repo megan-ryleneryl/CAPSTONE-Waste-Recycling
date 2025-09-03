@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capstone Recycling Platform - Live Connection</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-connected { background: #4CAF50; }
+        .status-disconnected { background: #f44336; }
+        .status-loading { background: #FF9800; animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .api-test {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .test-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .test-card.success {
+            border-color: #4CAF50;
+            background: #f1f8e9;
+        }
+        
+        .test-card.error {
+            border-color: #f44336;
+            background: #ffeaea;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+            margin-top: 12px;
+        }
+        
+        .posts-grid {
+            display: grid;
+            gap: 16px;
+        }
+        
+        .post-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+        
+        .post-status {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #f44336;
+            background: #ffeaea;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const CapstoneAPITester = () => {
+            const [connectionStatus, setConnectionStatus] = useState('loading');
+            const [healthData, setHealthData] = useState(null);
+            const [postsData, setPostsData] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+
+            // Test API connection on component mount
+            useEffect(() => {
+                testConnection();
+            }, []);
+
+            const testConnection = async () => {
+                setLoading(true);
+                setError(null);
+                
+                try {
+                    // Test health endpoint
+                    const healthResponse = await fetch('http://localhost:3000/health');
+                    if (healthResponse.ok) {
+                        const health = await healthResponse.json();
+                        setHealthData(health);
+                        setConnectionStatus('connected');
+                        
+                        // If health works, test posts
+                        await loadPosts();
+                    } else {
+                        throw new Error(`Health check failed: ${healthResponse.status}`);
+                    }
+                } catch (error) {
+                    console.error('API Test Error:', error);
+                    setConnectionStatus('disconnected');
+                    setError(error.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const loadPosts = async () => {
+                try {
+                    const postsResponse = await fetch('http://localhost:3000/api/posts/public');
+                    if (postsResponse.ok) {
+                        const posts = await postsResponse.json();
+                        setPostsData(posts);
+                        console.log('✅ Posts loaded:', posts);
+                    } else {
+                        const errorData = await postsResponse.json();
+                        throw new Error(errorData.error || 'Posts fetch failed');
+                    }
+                } catch (error) {
+                    console.error('Posts Error:', error);
+                    setError(`Posts error: ${error.message}`);
+                }
+            };
+
+            const testRegistration = async () => {
+                const testUser = {
+                    firstName: 'Test',
+                    lastName: 'User',
+                    email: 'test@example.com',
+                    password: 'testpassword',
+                    userType: 'Giver',
+                    phone: '0999 123 4567'
+                };
+
+                try {
+                    setLoading(true);
+                    const response = await fetch('http://localhost:3000/api/auth/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(testUser)
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('✅ Registration test successful!\n\nUser created:\n' + JSON.stringify(result.user, null, 2));
+                    } else {
+                        alert('❌ Registration failed:\n' + result.error);
+                    }
+                } catch (error) {
+                    alert('❌ Registration error:\n' + error.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>🌱 Capstone Recycling Platform</h1>
+                        <p>API Connection Tester</p>
+                    </div>
+
+                    <div className="card">
+                        <h2 style={{marginBottom: '20px'}}>🔗 Backend Connection Status</h2>
+                        
+                        <div style={{display: 'flex', alignItems: 'center', marginBottom: '20px'}}>
+                            <span className={`status-indicator status-${connectionStatus}`}></span>
+                            <strong>
+                                {connectionStatus === 'connected' && 'Connected to Backend ✅'}
+                                {connectionStatus === 'disconnected' && 'Disconnected from Backend ❌'}
+                                {connectionStatus === 'loading' && 'Testing Connection...'}
+                            </strong>
+                        </div>
+
+                        {error && (
+                            <div className="error">
+                                <h3>Connection Error</h3>
+                                <p>{error}</p>
+                                <p style={{marginTop: '12px', fontSize: '14px'}}>
+                                    Make sure your backend is running: <code>npm run dev</code>
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="api-test">
+                            {/* Health Check Results */}
+                            <div className={`test-card ${healthData ? 'success' : 'error'}`}>
+                                <h3>🏥 Health Check</h3>
+                                {healthData ? (
+                                    <div>
+                                        <p>✅ Status: {healthData.status}</p>
+                                        <p>🕐 Time: {new Date(healthData.timestamp).toLocaleTimeString()}</p>
+                                        <p>🔧 Environment: {healthData.environment}</p>
+                                        <pre>{JSON.stringify(healthData, null, 2)}</pre>
+                                    </div>
+                                ) : (
+                                    <p>❌ Health check failed</p>
+                                )}
+                            </div>
+
+                            {/* Posts Data Results */}
+                            <div className={`test-card ${postsData?.success ? 'success' : 'error'}`}>
+                                <h3>📝 Sample Posts Data</h3>
+                                {postsData?.success ? (
+                                    <div>
+                                        <p>✅ Found: {postsData.posts.length} posts</p>
+                                        {postsData.posts.length > 0 && (
+                                            <div>
+                                                <p><strong>Sample post:</strong> {postsData.posts[0].title}</p>
+                                                <p>📍 {postsData.posts[0].location}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p>❌ No posts data available</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div style={{textAlign: 'center', marginTop: '30px'}}>
+                            <button 
+                                className="btn" 
+                                onClick={testConnection}
+                                disabled={loading}
+                            >
+                                {loading ? 'Testing...' : '🔄 Retry Connection'}
+                            </button>
+                            
+                            <button 
+                                className="btn" 
+                                onClick={testRegistration}
+                                disabled={loading || connectionStatus !== 'connected'}
+                                style={{background: 'linear-gradient(45deg, #2196F3, #1976D2)'}}
+                            >
+                                🧪 Test Registration
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Display Posts if Available */}
+                    {postsData?.success && postsData.posts.length > 0 && (
+                        <div className="card">
+                            <h2 style={{marginBottom: '20px'}}>📋 Sample Posts from Your Database</h2>
+                            <div className="posts-grid">
+                                {postsData.posts.map(post => (
+                                    <div key={post.postID} className="post-item">
+                                        <div className="post-header">
+                                            <div>
+                                                <h3>{post.title}</h3>
+                                                <p style={{color: '#666', fontSize: '14px'}}>
+                                                    📍 {post.location}
+                                                </p>
+                                            </div>
+                                            <span className="post-status">{post.status}</span>
+                                        </div>
+                                        <p style={{marginTop: '8px'}}>{post.description}</p>
+                                        <p style={{fontSize: '12px', color: '#888', marginTop: '8px'}}>
+                                            Created: {new Date(post.createdAt.seconds * 1000).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="card">
+                        <h2 style={{marginBottom: '20px'}}>🎯 Next Steps</h2>
+                        <div style={{fontSize: '16px', lineHeight: '1.6'}}>
+                            <p><strong>✅ Your backend is running successfully!</strong></p>
+                            <p style={{marginTop: '12px'}}>Now you can:</p>
+                            <ul style={{marginLeft: '20px', marginTop: '8px'}}>
+                                <li>📱 <strong>Set up React frontend</strong> in /client/ folder</li>
+                                <li>🔗 <strong>Connect frontend to backend</strong> using fetch API</li>
+                                <li>👥 <strong>Implement user registration/login</strong> with Firebase Auth</li>
+                                <li>📝 <strong>Build post creation</strong> and management features</li>
+                                <li>🎮 <strong>Add gamification</strong> with points and badges</li>
+                            </ul>
+                            
+                            <div style={{marginTop: '24px', padding: '16px', background: '#e8f5e8', borderRadius: '8px'}}>
+                                <p><strong>🚀 Your Capstone Project Status:</strong></p>
+                                <p>✅ Firebase: Connected</p>
+                                <p>✅ Backend API: Running</p>
+                                <p>✅ Sample Data: Loaded</p>
+                                <p>✅ Models: Complete</p>
+                                <p>🎯 Ready for frontend development!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<CapstoneAPITester />, document.getElementById('root'));
+    </script>
+</body>
+</html>

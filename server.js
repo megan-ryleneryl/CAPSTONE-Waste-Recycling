@@ -7,17 +7,18 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const multer = require('multer'); // Add missing import
 
-// Import services
-const authService = require('./services/authService');
-const { StorageService, upload, serveUploads } = require('./services/storageService');
-const notificationService = require('./services/notificationService');
+// Import services (fixed file names to match your actual files)
+const authService = require('./services/auth-service'); // Fixed: auth-service.js
+const { StorageService, upload, serveUploads } = require('./services/storage-service'); // Fixed: storage-service.js
+const notificationService = require('./services/notification-service'); // Fixed: notification-service.js
 
-// Import models
-const User = require('./models/User');
-const Post = require('./models/Post');
+// Import models (fixed file names to match your actual files)
+const User = require('./models/Users'); // Fixed: Users.js
+const Post = require('./models/Posts'); // Fixed: Posts.js
 const WastePost = require('./models/WastePost');
-const Application = require('./models/Application');
+const Application = require('./models/Applications'); // Fixed: Applications.js
 const Pickup = require('./models/Pickup');
 
 const app = express();
@@ -62,9 +63,14 @@ app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
+    environment: process.env.NODE_ENV,
+    message: 'Capstone Recycling Platform API is running'
   });
 });
+
+// ============================================================================
+// PUBLIC ROUTES (No authentication required)
+// ============================================================================
 
 // Authentication routes
 app.post('/api/auth/register', async (req, res) => {
@@ -76,15 +82,77 @@ app.post('/api/auth/register', async (req, res) => {
       user: {
         uid: result.firebaseUser.uid,
         email: result.firebaseUser.email,
-        userType: result.firestoreUser.userType
+        userType: result.firestoreUser.userType,
+        firstName: result.firestoreUser.firstName,
+        lastName: result.firestoreUser.lastName
       }
     });
   } catch (error) {
+    console.error('Registration error:', error.message);
     res.status(400).json({ success: false, error: error.message });
   }
 });
 
-// Protected routes (require authentication)
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    
+    if (!idToken) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Firebase ID token is required' 
+      });
+    }
+
+    const verificationResult = await authService.verifyToken(idToken);
+    
+    res.json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        uid: verificationResult.firebaseUid,
+        email: verificationResult.email,
+        userType: verificationResult.user.userType,
+        firstName: verificationResult.user.firstName,
+        lastName: verificationResult.user.lastName,
+        points: verificationResult.user.points
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error.message);
+    res.status(401).json({ success: false, error: error.message });
+  }
+});
+
+// Get public posts (for browsing without login)
+app.get('/api/posts/public', async (req, res) => {
+  try {
+    const { type = 'Waste', limit = 20 } = req.query;
+    const posts = await Post.findByType(type);
+    
+    // Return limited public data
+    const publicPosts = posts.slice(0, parseInt(limit)).map(post => ({
+      postID: post.postID,
+      title: post.title,
+      description: post.description,
+      location: post.location,
+      status: post.status,
+      createdAt: post.createdAt,
+      // Hide sensitive user data for public view
+      userType: post.userType
+    }));
+    
+    res.json({ success: true, posts: publicPosts });
+  } catch (error) {
+    console.error('Public posts error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================================
+// PROTECTED ROUTES (Authentication required)
+// ============================================================================
+
 app.use('/api/protected', authService.authenticateUser.bind(authService));
 
 // User routes
@@ -92,6 +160,7 @@ app.get('/api/protected/profile', async (req, res) => {
   try {
     res.json({ success: true, user: req.user });
   } catch (error) {
+    console.error('Profile fetch error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -99,8 +168,160 @@ app.get('/api/protected/profile', async (req, res) => {
 app.put('/api/protected/profile', async (req, res) => {
   try {
     const updatedUser = await User.update(req.user.userID, req.body);
-    res.json({ success: true, user: updatedUser });
+    res.json({ success: true, user: updatedUser, message: 'Profile updated successfully' });
   } catch (error) {
+    console.error('Profile update error:', error.message);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+// Posts routes
+app.get('/api/protected/posts', async (req, res) => {
+  try {
+    const { type, status, location, userId } = req.query;
+    
+    let posts;
+    if (userId) {
+      posts = await Post.findByUserID(userId);
+    } else if (type) {
+      posts = await Post.findByType(type);
+    } else if (status) {
+      posts = await Post.findByStatus(status);
+    } else if (location) {
+      posts = await Post.findByLocation(location);
+    } else {
+      // Get all waste posts by default
+      posts = await Post.findByType('Waste');
+    }
+    
+    res.json({ success: true, posts });
+  } catch (error) {
+    console.error('Posts fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/protected/posts/:postId', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Post not found' });
+    }
+    res.json({ success: true, post });
+  } catch (error) {
+    console.error('Post fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/protected/posts/waste', async (req, res) => {
+  try {
+    const wastePostData = {
+      ...req.body,
+      userID: req.user.userID
+    };
+    
+    const wastePost = await WastePost.create(wastePostData);
+    
+    // Award points for creating a post
+    const Point = require('./models/Point');
+    await Point.create({
+      userID: req.user.userID,
+      pointsEarned: 5,
+      transaction: 'Post_Creation',
+      description: `Created waste post: ${wastePost.title}`
+    });
+    
+    res.status(201).json({ 
+      success: true, 
+      post: wastePost,
+      message: 'Waste post created successfully. You earned 5 points!'
+    });
+  } catch (error) {
+    console.error('Waste post creation error:', error.message);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/protected/posts/:postId', async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Post not found' });
+    }
+    
+    // Check if user owns the post or is admin
+    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+      return res.status(403).json({ success: false, error: 'Unauthorized to edit this post' });
+    }
+    
+    const updatedPost = await Post.update(req.params.postId, req.body);
+    res.json({ success: true, post: updatedPost, message: 'Post updated successfully' });
+  } catch (error) {
+    console.error('Post update error:', error.message);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+// Pickup routes
+app.get('/api/protected/pickups', async (req, res) => {
+  try {
+    const { type = 'all' } = req.query;
+    let pickups;
+    
+    if (type === 'given') {
+      pickups = await Pickup.findByGiverID(req.user.userID);
+    } else if (type === 'collected') {
+      pickups = await Pickup.findByCollectorID(req.user.userID);
+    } else {
+      // Get all pickups for this user (both given and collected)
+      const givenPickups = await Pickup.findByGiverID(req.user.userID);
+      const collectedPickups = await Pickup.findByCollectorID(req.user.userID);
+      pickups = [...givenPickups, ...collectedPickups];
+    }
+    
+    res.json({ success: true, pickups });
+  } catch (error) {
+    console.error('Pickups fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/protected/pickups', async (req, res) => {
+  try {
+    const pickupData = {
+      ...req.body,
+      collectorID: req.user.userID
+    };
+    
+    const pickup = await Pickup.create(pickupData);
+    res.status(201).json({ 
+      success: true, 
+      pickup, 
+      message: 'Pickup request created successfully' 
+    });
+  } catch (error) {
+    console.error('Pickup creation error:', error.message);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
+  try {
+    const pickup = await Pickup.findById(req.params.pickupId);
+    if (!pickup) {
+      return res.status(404).json({ success: false, error: 'Pickup not found' });
+    }
+    
+    // Only the giver can confirm pickups
+    if (pickup.giverID !== req.user.userID) {
+      return res.status(403).json({ success: false, error: 'Unauthorized to confirm this pickup' });
+    }
+    
+    await pickup.confirm();
+    res.json({ success: true, pickup, message: 'Pickup confirmed successfully' });
+  } catch (error) {
+    console.error('Pickup confirm error:', error.message);
     res.status(400).json({ success: false, error: error.message });
   }
 });
@@ -127,6 +348,7 @@ app.post('/api/protected/upload/application-documents',
         files: uploadedFiles 
       });
     } catch (error) {
+      console.error('Document upload error:', error.message);
       res.status(500).json({ success: false, error: error.message });
     }
   }
@@ -153,49 +375,152 @@ app.post('/api/protected/upload/proof-of-pickup',
         fileUrl: uploadedFile 
       });
     } catch (error) {
+      console.error('Proof upload error:', error.message);
       res.status(500).json({ success: false, error: error.message });
     }
   }
 );
 
-// Post routes
-app.get('/api/protected/posts', async (req, res) => {
-  try {
-    const { type, status, location } = req.query;
-    
-    let posts;
-    if (type) {
-      posts = await Post.findByType(type);
-    } else if (status) {
-      posts = await Post.findByStatus(status);
-    } else if (location) {
-      posts = await Post.findByLocation(location);
-    } else {
-      // You might want to implement a general "get all posts" method
-      posts = await Post.findByType('Waste'); // Default to waste posts
+app.post('/api/protected/upload/profile-picture',
+  upload.single('picture'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'No file uploaded' });
+      }
+
+      const uploadedFile = await StorageService.uploadProfilePicture(req.file, req.user.userID);
+      
+      // Update user profile with new picture URL
+      await User.update(req.user.userID, { profilePicture: uploadedFile });
+      
+      res.json({ 
+        success: true, 
+        message: 'Profile picture uploaded successfully',
+        fileUrl: uploadedFile 
+      });
+    } catch (error) {
+      console.error('Profile picture upload error:', error.message);
+      res.status(500).json({ success: false, error: error.message });
     }
-    
-    res.json({ success: true, posts });
+  }
+);
+
+// Application routes
+app.get('/api/protected/applications', async (req, res) => {
+  try {
+    const applications = await Application.findByUserID(req.user.userID);
+    res.json({ success: true, applications });
   } catch (error) {
+    console.error('Applications fetch error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-app.post('/api/protected/posts/waste', async (req, res) => {
+app.post('/api/protected/applications', async (req, res) => {
   try {
-    const wastePostData = {
+    const applicationData = {
       ...req.body,
       userID: req.user.userID
     };
     
-    const wastePost = await WastePost.create(wastePostData);
-    res.status(201).json({ success: true, post: wastePost });
+    const application = await Application.create(applicationData);
+    res.status(201).json({ 
+      success: true, 
+      application,
+      message: 'Application submitted successfully' 
+    });
   } catch (error) {
+    console.error('Application creation error:', error.message);
     res.status(400).json({ success: false, error: error.message });
   }
 });
 
-// Admin routes
+// Notifications routes
+app.get('/api/protected/notifications', async (req, res) => {
+  try {
+    const Notification = require('./models/Notification');
+    const notifications = await Notification.findByUserID(req.user.userID);
+    res.json({ success: true, notifications });
+  } catch (error) {
+    console.error('Notifications fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/protected/notifications/:notificationId/read', async (req, res) => {
+  try {
+    const Notification = require('./models/Notification');
+    const notification = await Notification.findById(req.params.notificationId);
+    
+    if (!notification) {
+      return res.status(404).json({ success: false, error: 'Notification not found' });
+    }
+    
+    if (notification.userID !== req.user.userID) {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+    
+    await notification.markAsRead();
+    res.json({ success: true, message: 'Notification marked as read' });
+  } catch (error) {
+    console.error('Notification update error:', error.message);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+// Points and leaderboard routes
+app.get('/api/protected/points', async (req, res) => {
+  try {
+    const Point = require('./models/Point');
+    const userPoints = await Point.findByUserID(req.user.userID);
+    const totalPoints = await Point.getTotalPointsByUser(req.user.userID);
+    
+    res.json({ 
+      success: true, 
+      points: userPoints, 
+      totalPoints,
+      user: req.user
+    });
+  } catch (error) {
+    console.error('Points fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/protected/leaderboard', async (req, res) => {
+  try {
+    const Point = require('./models/Point');
+    const { limit = 10 } = req.query;
+    const leaderboard = await Point.getLeaderboard(parseInt(limit));
+    
+    res.json({ success: true, leaderboard });
+  } catch (error) {
+    console.error('Leaderboard fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================================
+// COLLECTOR ROUTES (Collector access required)
+// ============================================================================
+
+app.use('/api/collector', authService.requireCollector.bind(authService));
+
+app.get('/api/collector/available-posts', async (req, res) => {
+  try {
+    const availablePosts = await Post.findByStatus('Active');
+    res.json({ success: true, posts: availablePosts });
+  } catch (error) {
+    console.error('Available posts fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================================
+// ADMIN ROUTES (Admin access required)
+// ============================================================================
+
 app.use('/api/admin', authService.requireAdmin.bind(authService));
 
 app.get('/api/admin/users', async (req, res) => {
@@ -203,7 +528,47 @@ app.get('/api/admin/users', async (req, res) => {
     const result = await authService.getAllUsers();
     res.json({ success: true, ...result });
   } catch (error) {
+    console.error('Admin users fetch error:', error.message);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/admin/applications/pending', async (req, res) => {
+  try {
+    const pendingApplications = await Application.findByStatus('Pending');
+    res.json({ success: true, applications: pendingApplications });
+  } catch (error) {
+    console.error('Pending applications fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/admin/applications/:applicationId/review', async (req, res) => {
+  try {
+    const { status, justification } = req.body;
+    const application = await Application.findById(req.params.applicationId);
+    
+    if (!application) {
+      return res.status(404).json({ success: false, error: 'Application not found' });
+    }
+    
+    await application.review(req.user.userID, status, justification);
+    
+    // Send notification to applicant
+    await notificationService.notifyApplicationStatus(
+      application.userID, 
+      application.applicationType, 
+      status
+    );
+    
+    res.json({ 
+      success: true, 
+      application, 
+      message: `Application ${status.toLowerCase()} successfully` 
+    });
+  } catch (error) {
+    console.error('Application review error:', error.message);
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 
@@ -212,13 +577,43 @@ app.get('/api/admin/storage-stats', async (req, res) => {
     const stats = await StorageService.getStorageStats();
     res.json({ success: true, stats });
   } catch (error) {
+    console.error('Storage stats error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
+// ============================================================================
+// DEVELOPMENT ROUTES (Only available in development)
+// ============================================================================
+
+if (process.env.NODE_ENV === 'development' && process.env.ENABLE_DEBUG_ROUTES === 'true') {
+  app.get('/api/debug/test-firebase', async (req, res) => {
+    try {
+      const { FirebaseHelper } = require('./config/firebase');
+      const result = await FirebaseHelper.testConnection();
+      res.json({ success: true, firebaseTest: result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/debug/cleanup-temp', async (req, res) => {
+    try {
+      const result = await StorageService.cleanupTempFiles();
+      res.json({ success: true, cleanup: result });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+}
+
+// ============================================================================
+// ERROR HANDLING & 404
+// ============================================================================
+
 // Error handling middleware
 app.use((error, req, res, next) => {
-  console.error('Error:', error);
+  console.error('Server Error:', error);
   
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
@@ -243,27 +638,62 @@ app.use((error, req, res, next) => {
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ success: false, error: 'Route not found' });
+  res.status(404).json({ 
+    success: false, 
+    error: 'Route not found',
+    availableRoutes: [
+      'GET /health',
+      'POST /api/auth/register',
+      'POST /api/auth/login',
+      'GET /api/posts/public',
+      'GET /api/protected/profile',
+      'POST /api/protected/posts/waste'
+    ]
+  });
 });
+
+// ============================================================================
+// SERVER STARTUP & SHUTDOWN
+// ============================================================================
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received. Shutting down gracefully...');
   server.close(() => {
     console.log('Server closed.');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed.');
+    process.exit(0);
   });
 });
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Recycling Platform API running on port ${PORT}`);
-  console.log(`📱 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🗂️  File uploads: Local storage (${path.join(__dirname, 'uploads')})`);
+  console.log('🚀 ===============================================');
+  console.log('🌱 CAPSTONE RECYCLING PLATFORM API STARTED');
+  console.log('🚀 ===============================================');
+  console.log(`📍 Server running on: http://localhost:${PORT}`);
+  console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
+  console.log(`📁 File uploads: Local storage`);
+  console.log(`🔥 Firebase Project: capstone-recycling-system`);
+  console.log('');
+  console.log('🧪 Test endpoints:');
+  console.log(`   Health: GET http://localhost:${PORT}/health`);
+  console.log(`   Public posts: GET http://localhost:${PORT}/api/posts/public`);
+  console.log(`   Register: POST http://localhost:${PORT}/api/auth/register`);
+  console.log('');
+  console.log('🎯 Ready for capstone development!');
   
   // Clean up temp files on startup
-  StorageService.cleanupTempFiles().then(result => {
-    console.log(`🧹 ${result.message}`);
-  });
+  StorageService.cleanupTempFiles()
+    .then(result => console.log(`🧹 ${result.message}`))
+    .catch(err => console.warn(`⚠️ Cleanup warning: ${err.message}`));
 });
 
 module.exports = app;
