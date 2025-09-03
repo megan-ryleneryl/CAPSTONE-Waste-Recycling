@@ -16,9 +16,9 @@ const notificationService = require('./services/notificationService');
 // Import models
 const User = require('./models/User');
 const Post = require('./models/Post');
-const WastePost = require('./models/WastePost');
+const WastePost = require('../models/WastePost');
 const Application = require('./models/Application');
-const Pickup = require('./models/Pickup');
+const Pickup = require('../models/Pickup');
 
 const app = express();
 const PORT = process.env.PORT || 3000;

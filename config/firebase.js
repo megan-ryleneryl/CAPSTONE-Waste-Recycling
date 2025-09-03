@@ -18,7 +18,6 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase Client SDK
-console.log('🔥 Initializing Firebase for Capstone Recycling System...');
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase services
@@ -26,8 +25,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-console.log('✅ Firebase Client SDK initialized');
-console.log('🎯 Project: capstone-recycling-system');
+console.log('Firebase Client SDK initialized');
 
 // Initialize Firebase Admin SDK
 let adminAuth = null;
@@ -38,9 +36,7 @@ let adminMessaging = null;
 try {
   // Try to load service account key
   const serviceAccount = require('./serviceAccountKey.json');
-  
-  console.log('🔑 Loading Firebase Admin SDK...');
-  
+    
   const adminApp = admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     projectId: "capstone-recycling-system",
@@ -52,14 +48,9 @@ try {
   adminStorage = admin.storage();
   adminMessaging = admin.messaging();
   
-  console.log('✅ Firebase Admin SDK initialized');
-  console.log('🛡️  Admin services: Auth, Firestore, Storage, Messaging');
-  
+  console.log('Firebase Admin SDK initialized');
 } catch (error) {
-  console.warn('⚠️  Firebase Admin SDK not initialized:', error.message);
-  console.warn('📄 Make sure serviceAccountKey.json exists in config/ folder');
-  console.warn('🔧 Download it from Firebase Console → Project Settings → Service Accounts');
-  console.warn('💡 Ask team lead for the serviceAccountKey.json file');
+  console.warn('Firebase Admin SDK not initialized:', error.message);
 }
 
 // Helper functions for the capstone project
@@ -98,7 +89,7 @@ const FirebaseHelper = {
     try {
       if (adminDb) {
         // Test Firestore connection
-        console.log('🧪 Testing Firestore connection...');
+        console.log('Testing Firestore connection...');
         const testRef = adminDb.collection('_capstone_test').doc('connection');
         await testRef.set({ 
           timestamp: new Date(), 
@@ -107,58 +98,14 @@ const FirebaseHelper = {
         });
         await testRef.delete();
         
-        console.log('✅ Firestore connection successful');
+        console.log('Firestore connection successful');
         return { success: true, message: 'Firebase connected successfully' };
       } else {
-        console.warn('⚠️  Admin SDK not available - some features may not work');
+        console.warn('Admin SDK not available - some features may not work');
         return { success: false, message: 'Admin SDK not available' };
       }
     } catch (error) {
-      console.error('❌ Firebase connection failed:', error.message);
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Initialize sample data for capstone demo
-  async initializeSampleData() {
-    if (!adminDb) {
-      console.warn('⚠️  Cannot initialize sample data - Admin SDK not available');
-      return;
-    }
-
-    try {
-      console.log('🌱 Initializing sample data for capstone demo...');
-      
-      // Create sample materials
-      const materialsRef = adminDb.collection('materials');
-      const sampleMaterials = [
-        {
-          materialID: 'pet_bottles_001',
-          category: 'Recyclable',
-          type: 'pet_bottles',
-          averagePricePerKg: 15.50,
-          pricingHistory: [],
-          createdAt: new Date()
-        },
-        {
-          materialID: 'aluminum_cans_001', 
-          category: 'Recyclable',
-          type: 'aluminum_cans',
-          averagePricePerKg: 45.00,
-          pricingHistory: [],
-          createdAt: new Date()
-        }
-      ];
-
-      for (const material of sampleMaterials) {
-        await materialsRef.doc(material.materialID).set(material);
-      }
-
-      console.log('✅ Sample materials created');
-      return { success: true, message: 'Sample data initialized' };
-      
-    } catch (error) {
-      console.error('❌ Sample data initialization failed:', error.message);
+      console.error('Firebase connection failed:', error.message);
       return { success: false, error: error.message };
     }
   }
@@ -190,18 +137,17 @@ module.exports = {
 // Test connection on startup (capstone development)
 if (process.env.NODE_ENV === 'development') {
   setTimeout(async () => {
-    console.log('🔍 Testing Firebase setup...');
+    console.log('Testing Firebase setup...');
     const result = await FirebaseHelper.testConnection();
     
     if (result.success) {
-      console.log('🎉 Firebase setup complete and working!');
-      console.log('🚀 Ready for capstone development!');
+      console.log('Firebase setup complete and working.');
       
       // Optional: Initialize sample data for demos
       // await FirebaseHelper.initializeSampleData();
     } else {
-      console.log('⚠️  Firebase setup incomplete:', result.message || result.error);
-      console.log('📖 Check SETUP_CHECKLIST.md for troubleshooting steps');
+      console.log('Firebase setup incomplete:', result.message || result.error);
+      console.log('Check SETUP_CHECKLIST.md for troubleshooting steps');
     }
   }, 2000);
 }
