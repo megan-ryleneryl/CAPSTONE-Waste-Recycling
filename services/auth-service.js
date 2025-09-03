@@ -1,6 +1,6 @@
 // authService.js - Firebase Authentication service for Firestore
 const { adminAuth } = require('../config/firebase');
-const User = require('../models/User');
+const User = require('../models/Users');
 
 class AuthService {
   // Create Firebase user and sync with Firestore

@@ -1,5 +1,5 @@
 // WastePost.js - Firestore WastePost Model (Inherits from Post)
-const Post = require('./Post');
+const Post = require('./Posts');
 
 class WastePost extends Post {
   constructor(data = {}) {
