@@ -1,6 +1,6 @@
 // scripts/initSampleData.js - Initialize sample data for capstone project
 require('dotenv').config();
-const { adminDb, FirebaseHelper } = require('../config/firebase');
+const { adminDb, FirebaseHelper } = require('../../config/firebase');
 
 async function initializeSampleData() {
   if (!adminDb) {

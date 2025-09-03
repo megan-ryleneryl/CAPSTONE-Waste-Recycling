@@ -675,25 +675,7 @@ process.on('SIGINT', () => {
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log('🚀 ===============================================');
-  console.log('🌱 CAPSTONE RECYCLING PLATFORM API STARTED');
-  console.log('🚀 ===============================================');
-  console.log(`📍 Server running on: http://localhost:${PORT}`);
-  console.log(`🔧 Environment: ${process.env.NODE_ENV}`);
-  console.log(`📁 File uploads: Local storage`);
-  console.log(`🔥 Firebase Project: capstone-recycling-system`);
-  console.log('');
-  console.log('🧪 Test endpoints:');
-  console.log(`   Health: GET http://localhost:${PORT}/health`);
-  console.log(`   Public posts: GET http://localhost:${PORT}/api/posts/public`);
-  console.log(`   Register: POST http://localhost:${PORT}/api/auth/register`);
-  console.log('');
-  console.log('🎯 Ready for capstone development!');
-  
-  // Clean up temp files on startup
-  StorageService.cleanupTempFiles()
-    .then(result => console.log(`🧹 ${result.message}`))
-    .catch(err => console.warn(`⚠️ Cleanup warning: ${err.message}`));
+  console.log(`Server running on: http://localhost:${PORT}`);
 });
 
 module.exports = app;
