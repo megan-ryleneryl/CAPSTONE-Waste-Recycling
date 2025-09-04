@@ -1,53 +1,46 @@
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
-export const authAPI = {
-  login: async (email, password) => {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    return response.json();
-  },
-
-  register: async (userData) => {
-    const response = await fetch(`${API_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData)
-    });
-    return response.json();
-  },
-
-  googleLogin: async (token) => {
-    const response = await fetch(`${API_URL}/auth/google`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    });
-    return response.json();
-  }
-};
-
-export const userAPI = {
-  getProfile: async (token) => {
-    const response = await fetch(`${API_URL}/users/profile`, {
-      headers: { 
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    return response.json();
-  },
-
-  updateProfile: async (token, updates) => {
-    const response = await fetch(`${API_URL}/users/profile`, {
-      method: 'PUT',
-      headers: { 
+class ApiService {
+  async request(endpoint, options = {}) {
+    const token = localStorage.getItem('authToken');
+    
+    const config = {
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(token && { Authorization: `Bearer ${token}` }),
+        ...options.headers,
       },
-      body: JSON.stringify(updates)
-    });
-    return response.json();
+      ...options,
+    };
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    return await response.json();
   }
-};
+
+  // Auth methods
+  async login(email, password) {
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async register(userData) {
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  // Protected methods
+  async getProfile() {
+    return this.request('/protected/profile');
+  }
+
+  async getPosts(filters = {}) {
+    const queryParams = new URLSearchParams(filters);
+    return this.request(`/protected/posts?${queryParams}`);
+  }
+}
+
+export default new ApiService();

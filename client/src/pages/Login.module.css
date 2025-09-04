@@ -1,0 +1,121 @@
+/* client/src/pages/Login.module.css */
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 400px;
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  color: var(--text-color);
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.submitButton {
+  width: 100%;
+  margin-top: var(--spacing-sm);
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  text-align: center;
+}
+
+.registerPrompt {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.registerLink {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold);
+  transition: color var(--transition-normal);
+}
+
+.registerLink:hover {
+  color: var(--primary-hover);
+}
+
+.homeLink {
+  color: var(--text-light);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  transition: color var(--transition-normal);
+}
+
+.homeLink:hover {
+  color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .container {
+    padding: var(--spacing-sm);
+  }
+  
+  .loginCard {
+    max-width: 100%;
+  }
+  
+  .title {
+    font-size: var(--font-size-xl);
+  }
+}
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 400px;
+}
+
+.header {
+  text-align: center;
+}
+
+.title {
+  color: var(--text-color);
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin: 0;
+}
