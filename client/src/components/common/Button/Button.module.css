@@ -1,0 +1,122 @@
+/* client/src/components/common/Button/Button.module.css */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  position: relative;
+  text-decoration: none;
+  box-sizing: border-box;
+  font-family: inherit;
+  gap: 0.5rem;
+}
+
+/* Variants */
+.primary {
+  background-color: var(--primary-color, #667eea);
+  color: white;
+}
+
+.primary:hover:not(.disabled) {
+  background-color: var(--primary-hover, #5a6fd8);
+  transform: translateY(-1px);
+}
+
+.secondary {
+  background-color: transparent;
+  color: var(--primary-color, #667eea);
+  border: 2px solid var(--primary-color, #667eea);
+}
+
+.secondary:hover:not(.disabled) {
+  background-color: var(--primary-color, #667eea);
+  color: white;
+}
+
+.danger {
+  background-color: var(--danger-color, #dc3545);
+  color: white;
+}
+
+.danger:hover:not(.disabled) {
+  background-color: var(--danger-hover, #c82333);
+}
+
+.success {
+  background-color: var(--success-color, #28a745);
+  color: white;
+}
+
+.success:hover:not(.disabled) {
+  background-color: var(--success-hover, #218838);
+}
+
+.ghost {
+  background-color: transparent;
+  color: var(--text-color, #333);
+  border: 1px solid var(--border-color, #ddd);
+}
+
+.ghost:hover:not(.disabled) {
+  background-color: var(--background-light, #f8f9fa);
+}
+
+/* Sizes */
+.small {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.medium {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+}
+
+.large {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* States */
+.loading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.textHidden {
+  opacity: 0;
+}
+
+.text {
+  opacity: 1;
+}

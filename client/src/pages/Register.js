@@ -1,16 +1,9 @@
-// client/src/App.js
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import './App.css';
+// client/src/pages/Register.js
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
-// Simple Register component for completeness
-const RegisterComponent = () => {
-  const [formData, setFormData] = React.useState({
+const Register = () => {
+  const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
@@ -18,8 +11,9 @@ const RegisterComponent = () => {
     confirmPassword: '',
     userType: 'Giver'
   });
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({
@@ -40,10 +34,28 @@ const RegisterComponent = () => {
     }
 
     try {
-      // For testing, simulate successful registration
+      // Replace this with actual API call
+      const response = await fetch('http://localhost:3001/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Store token and redirect
+        localStorage.setItem('authToken', result.idToken);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Registration failed');
+      }
+    } catch (err) {
       console.log('Registration attempt:', formData);
-      
-      // Simulate API response
+      // For testing, simulate successful registration
       const newUser = {
         userID: '123',
         firstName: formData.firstName,
@@ -54,9 +66,7 @@ const RegisterComponent = () => {
       };
       
       localStorage.setItem('user', JSON.stringify(newUser));
-      window.location.href = '/dashboard';
-    } catch (err) {
-      setError('Registration failed. Please try again.');
+      navigate('/dashboard');
     }
 
     setLoading(false);
@@ -129,6 +139,7 @@ const RegisterComponent = () => {
                   fontSize: '1rem',
                   boxSizing: 'border-box'
                 }}
+                placeholder="Enter first name"
               />
             </div>
             
@@ -155,6 +166,7 @@ const RegisterComponent = () => {
                   fontSize: '1rem',
                   boxSizing: 'border-box'
                 }}
+                placeholder="Enter last name"
               />
             </div>
           </div>
@@ -182,6 +194,7 @@ const RegisterComponent = () => {
                 fontSize: '1rem',
                 boxSizing: 'border-box'
               }}
+              placeholder="Enter your email"
             />
           </div>
 
@@ -210,6 +223,9 @@ const RegisterComponent = () => {
               <option value="Giver">Waste Giver</option>
               <option value="Collector">Waste Collector</option>
             </select>
+            <small style={{ color: '#666', fontSize: '0.8rem' }}>
+              Giver: Post waste for collection | Collector: Collect waste from others
+            </small>
           </div>
 
           <div style={{
@@ -241,6 +257,7 @@ const RegisterComponent = () => {
                   fontSize: '1rem',
                   boxSizing: 'border-box'
                 }}
+                placeholder="Password"
               />
             </div>
             
@@ -267,6 +284,7 @@ const RegisterComponent = () => {
                   fontSize: '1rem',
                   boxSizing: 'border-box'
                 }}
+                placeholder="Confirm password"
               />
             </div>
           </div>
@@ -284,7 +302,8 @@ const RegisterComponent = () => {
               fontSize: '1rem',
               fontWeight: 'bold',
               cursor: loading ? 'not-allowed' : 'pointer',
-              marginBottom: '1rem'
+              marginBottom: '1rem',
+              transition: 'background-color 0.3s'
             }}
           >
             {loading ? 'Creating Account...' : 'Create Account'}
@@ -293,57 +312,31 @@ const RegisterComponent = () => {
 
         <div style={{ 
           textAlign: 'center', 
-          color: '#666'
+          color: '#666',
+          marginBottom: '1rem'
         }}>
           Already have an account?{' '}
-          <a 
-            href="/login" 
+          <Link 
+            to="/login" 
             style={{ color: '#667eea', textDecoration: 'none', fontWeight: 'bold' }}
           >
             Sign in here
-          </a>
+          </Link>
+        </div>
+
+        <div style={{ 
+          textAlign: 'center' 
+        }}>
+          <Link 
+            to="/" 
+            style={{ color: '#888', textDecoration: 'none', fontSize: '0.9rem' }}
+          >
+            ← Back to Home
+          </Link>
         </div>
       </div>
     </div>
   );
 };
 
-// Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const user = localStorage.getItem('user');
-  return user ? children : <Navigate to="/login" />;
-};
-
-function App() {
-  return (
-    <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
-          {/* Redirect any unknown routes to home */}
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </div>
-    </Router>
-  );
-}
-
-export default App;
+export default Register;

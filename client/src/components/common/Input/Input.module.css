@@ -1,0 +1,98 @@
+/* client/src/components/common/Input/Input.module.css */
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-weight: 600;
+  color: var(--text-color, #333);
+  font-size: 0.875rem;
+}
+
+.required {
+  color: var(--danger-color, #dc3545);
+  margin-left: 0.25rem;
+}
+
+.input {
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 5px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  background-color: var(--input-bg, white);
+  color: var(--text-color, #333);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-color, #667eea);
+  box-shadow: 0 0 0 3px var(--primary-color-alpha, rgba(102, 126, 234, 0.1));
+}
+
+.input:disabled {
+  background-color: var(--background-muted, #f5f5f5);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Sizes */
+.small {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.medium {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+}
+
+.large {
+  padding: 1rem 1.25rem;
+  font-size: 1.125rem;
+}
+
+/* Variants */
+.default {
+  /* Default styles already defined above */
+}
+
+.filled {
+  background-color: var(--background-light, #f8f9fa);
+  border: 1px solid transparent;
+}
+
+.filled:focus {
+  background-color: white;
+  border-color: var(--primary-color, #667eea);
+}
+
+.outlined {
+  border-width: 2px;
+  background-color: transparent;
+}
+
+/* Error state */
+.error {
+  border-color: var(--danger-color, #dc3545);
+}
+
+.error:focus {
+  border-color: var(--danger-color, #dc3545);
+  box-shadow: 0 0 0 3px var(--danger-color-alpha, rgba(220, 53, 69, 0.1));
+}
+
+.errorText {
+  color: var(--danger-color, #dc3545);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.helperText {
+  color: var(--text-muted, #666);
+  font-size: 0.75rem;
+}
