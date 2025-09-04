@@ -103,4 +103,5 @@ docker-compose.override.yml
 
 # Local configuration overrides
 config/local.js
-config/local.json
+config/local.jsonconfig/serviceAccountKey.json
+config/serviceAccountKey.json
