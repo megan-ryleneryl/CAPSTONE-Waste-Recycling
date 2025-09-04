@@ -12,8 +12,6 @@ yarn-error.log*
 # .env.production.local
 
 # Firebase - COMMENTED OUT FOR CAPSTONE PROJECT  
-# serviceAccountKey.json
-# config/serviceAccountKey.json
 firebase-debug.log
 
 # File uploads (you can choose to commit sample files but not user uploads)
