@@ -11,7 +11,7 @@ const multer = require('multer');
 
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
-const profileRoutes = require('./routes/users');
+const profileRoutes = require('./routes/profileRoutes');
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -22,7 +22,7 @@ const notificationService = require('./services/notification-service');
 const User = require('./models/Users'); 
 const Post = require('./models/Posts'); 
 const WastePost = require('./models/WastePost');
-const Application = require('./models/Applications'); 
+const Application = require('./models/Application'); 
 const Pickup = require('./models/Pickup');
 
 const app = express();

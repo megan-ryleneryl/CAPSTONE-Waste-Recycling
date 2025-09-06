@@ -2,7 +2,7 @@
 // Feel free to delete or change completely.
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Posts.module.css';
 
@@ -78,7 +78,10 @@ const Posts = () => {
             <button className={styles.navButton}>Charts and Data</button>
             <button className={styles.navButton}>Inbox</button>
             <button className={styles.navButton}>About</button>
-            <button className={styles.navButton}>Profile</button>
+            {/* hi sorry i just need to access the profile page */}
+            <Link to="/protected/profile" className={styles.navButton}>
+              Profile
+            </Link>
             <button onClick={handleLogout} className={styles.logoutButton}>
               Logout
             </button>

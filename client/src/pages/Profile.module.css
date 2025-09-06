@@ -1,0 +1,724 @@
+.container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+/* Header */
+.header {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.binIcon {
+  font-size: 1.8rem;
+}
+
+.logoText {
+  color: #3B6535;
+  font-weight: 700;
+}
+
+.nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.navIcon {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.navIcon:hover {
+  background-color: #f0f0f0;
+}
+
+/* Main Container */
+.mainContainer {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background-color: #e8e8e8;
+  border-radius: 12px;
+  padding: 1.5rem;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.sidebarNav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.sidebarItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 0.95rem;
+  text-align: left;
+  color: #333;
+}
+
+.sidebarItem:hover {
+  background-color: #d8d8d8;
+}
+
+.sidebarItem.active {
+  background-color: #d0d0d0;
+  font-weight: 600;
+}
+
+.icon {
+  font-size: 1.2rem;
+  width: 24px;
+  text-align: center;
+}
+
+/* Filter Section */
+.filterSection {
+  margin-bottom: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ccc;
+}
+
+.filterSection h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #666;
+}
+
+.filterItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 0.95rem;
+  text-align: left;
+  color: #333;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.filterItem:hover {
+  background-color: #d8d8d8;
+}
+
+.activeFilter {
+  background-color: #d0d0d0;
+  font-weight: 600;
+}
+
+.createPostButton {
+  width: 100%;
+  padding: 1rem;
+  background-color: #3B6535;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.createPostButton:hover {
+  background-color: #2a4a26;
+}
+
+/* Main Content */
+.content {
+  flex: 1;
+  background-color: white;
+  border-radius: 12px;
+  padding: 2rem;
+  min-height: 600px;
+}
+
+.profileCard {
+  max-width: 800px;
+}
+
+/* Profile Header */
+.profileHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.profileInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.profileAvatar {
+  width: 60px;
+  height: 60px;
+}
+
+.profileDetails h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.userType {
+  display: inline-block;
+  background-color: #888;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.editButton {
+  position: absolute;
+  right: -30px;
+  top: 0;
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.editButton:hover {
+  opacity: 0.7;
+}
+
+.verifiedBadge {
+  background-color: #90EE90;
+  color: #2a4a26;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Stats */
+.stats {
+  display: flex;
+  gap: 3rem;
+  margin-bottom: 1.5rem;
+}
+
+.statItem {
+  font-size: 1rem;
+  color: #666;
+}
+
+.statItem strong {
+  color: #333;
+  font-size: 1.1rem;
+  margin-right: 0.25rem;
+}
+
+/* Contact Info */
+.contactInfo {
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.contactInfo p {
+  margin: 0.5rem 0;
+}
+
+/* CTA Section */
+.ctaSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.ctaCard {
+  background-color: #f5f5f5;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.ctaCard p {
+  margin: 0 0 1rem 0;
+  color: #333;
+  line-height: 1.6;
+}
+
+.ctaButton {
+  background-color: #3B6535;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.ctaButton:hover {
+  background-color: #2a4a26;
+}
+
+/* Badges Section */
+.badgesSection {
+  margin-top: 2rem;
+}
+
+.badgesSection h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.badgesList {
+  display: flex;
+  gap: 1rem;
+}
+
+.badgePlaceholder {
+  width: 100px;
+  height: 100px;
+  background-color: #e0e0e0;
+  border-radius: 8px;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #333;
+}
+
+.closeButton {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #666;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  color: #333;
+}
+
+.profileIcon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+/* Form Styles */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formGroup label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.input,
+.select,
+.textarea {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background-color: #f5f5f5;
+  transition: border-color 0.3s;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: #3B6535;
+  background-color: white;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.fileInput {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: #f5f5f5;
+}
+
+.submitButton,
+.saveButton {
+  background-color: #3B6535;
+  color: white;
+  border: none;
+  padding: 0.9rem 2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  align-self: center;
+  min-width: 120px;
+}
+
+.submitButton:hover,
+.saveButton:hover {
+  background-color: #2a4a26;
+}
+
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3B6535;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loadingContainer p {
+  margin-top: 1rem;
+  color: #666;
+}
+
+/* Error Toast */
+.errorToast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background-color: #f44336;
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out;
+  z-index: 1001;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .mainContainer {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    position: static;
+  }
+
+  .content {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .headerContent {
+    padding: 1rem;
+  }
+
+  .mainContainer {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .sidebar {
+    padding: 1rem;
+  }
+
+  .content {
+    padding: 1rem;
+  }
+
+  .stats {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .ctaSection {
+    gap: 1rem;
+  }
+
+  .badgesList {
+    flex-wrap: wrap;
+  }
+
+  .badgePlaceholder {
+    width: 80px;
+    height: 80px;
+  }
+
+  .modalContent {
+    width: 95%;
+    padding: 1.5rem;
+  }
+
+  .profileHeader {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .verifiedBadge {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo {
+    font-size: 1.2rem;
+  }
+
+  .nav {
+    gap: 0.5rem;
+  }
+
+  .navIcon {
+    font-size: 1.2rem;
+    padding: 0.25rem;
+  }
+
+  .sidebarItem,
+  .filterItem {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .createPostButton {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .profileDetails h2 {
+    font-size: 1.2rem;
+  }
+
+  .ctaCard {
+    padding: 1rem;
+  }
+
+  .ctaCard p {
+    font-size: 0.9rem;
+  }
+
+  .ctaButton {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+
+  .modalContent {
+    padding: 1rem;
+  }
+
+  .modalHeader h2 {
+    font-size: 1.1rem;
+  }
+
+  .formGroup label {
+    font-size: 0.85rem;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .submitButton,
+  .saveButton {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Additional utility classes */
+.hidden {
+  display: none;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.success {
+  color: #4caf50;
+}
+
+.error {
+  color: #f44336;
+}
+
+.warning {
+  color: #ff9800;
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease,
+              opacity 0.3s ease;
+}
+
+/* Focus states for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #3B6535;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .header,
+  .sidebar,
+  .ctaSection,
+  .modal {
+    display: none;
+  }
+
+  .mainContainer {
+    padding: 0;
+  }
+
+  .content {
+    box-shadow: none;
+    border-radius: 0;
+  }
+}

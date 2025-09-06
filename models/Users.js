@@ -19,6 +19,21 @@ class User {
     this.points = data.points || 0;
     this.badges = data.badges || []; // Array of {badgeId, earnedAt}
     this.createdAt = data.createdAt || new Date();
+
+    // this.userID = data.userID || '';
+    // this.firstName = data.firstName || '';
+    // this.lastName = data.lastName || '';
+    // this.email = data.email || '';
+    // this.phone = data.phone || '';
+    // this.address = data.address || '';
+    // this.userType = data.userType || 'Giver';
+    // this.status = data.status || 'pending';
+    // this.isOrganization = data.isOrganization || false;
+    // this.organizationName = data.organizationName || '';
+    // this.points = data.points || 0;
+    // this.totalDonations = data.totalDonations || 0;
+    // this.badges = data.badges || [];
+    // this.createdAt = data.createdAt || new Date();
   }
 
   // Validation
