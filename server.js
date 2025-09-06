@@ -1,7 +1,4 @@
 // server.js - Express server setup with local file storage
-const authRoutes = require('./routes/auth');
-const postRoutes = require('./routes/posts');
-
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -10,7 +7,10 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-const multer = require('multer'); // Add missing import
+const multer = require('multer');
+
+const authRoutes = require('./routes/auth');
+const postRoutes = require('./routes/posts');
 
 // Import services (fixed file names to match your actual files)
 const authService = require('./services/auth-service'); 
@@ -31,6 +31,17 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 app.use(compression());
 
+// CORS configuration
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3001'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
@@ -40,14 +51,6 @@ const limiter = rateLimit({
   legacyHeaders: false,
 });
 app.use('/api/', limiter);
-
-// CORS configuration
-const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3001'],
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
 
 // Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
