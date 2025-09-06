@@ -240,70 +240,83 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
 };
 
 // Main Profile Component
-const Profile = () => {
-  const [user, setUser] = useState(null);
+const Profile = ({ user: propsUser, activeFilter }) => {
+  const [user, setUser] = useState(propsUser || null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState(null);
-  const [activeFilter, setActiveFilter] = useState('recyclables');
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    address: ''
+  });
   const navigate = useNavigate();
 
-    const fetchUserProfile = useCallback(async () => {
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+    const fetchUserProfile = async () => {
     try {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
         
         if (!token || !userData) {
-        navigate('/login');
-        return;
+          navigate('/login');
+          return;
         }
 
-        // Parse stored user data
-        const parsedUser = JSON.parse(userData);
-        
-        // Fetch updated profile from server
-        const response = await axios.get('http://localhost:3001/api/protected/profile', {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-        });
+        try {
+          const response = await axios.get('http://localhost:3001/api/protected/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
 
-        if (response.data.success) {
-        setUser(response.data.user);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        } else {
-        setUser(parsedUser);
+          if (response.data.success) {
+            const profileData = response.data.user;
+            setUser(profileData);
+            setEditForm({
+              firstName: profileData.firstName || '',
+              lastName: profileData.lastName || '',
+              phone: profileData.phone || '',
+              address: profileData.address || ''
+            });
+            localStorage.setItem('user', JSON.stringify(profileData));
+          }
+        } catch (apiError) {
+          console.log('Using cached user data');
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+          setEditForm({
+            firstName: parsedUser.firstName || '',
+            lastName: parsedUser.lastName || '',
+            phone: parsedUser.phone || '',
+            address: parsedUser.address || ''
+          });
         }
-    } catch (err) {
-        console.error('Error fetching profile:', err);
-        // Use stored user data as fallback
-        const userData = localStorage.getItem('user');
-        if (userData) {
-        setUser(JSON.parse(userData));
-        }
-    } finally {
+      } catch (err) {
+        console.error('Error loading profile:', err);
+        setError('Failed to load profile');
+      } finally {
         setLoading(false);
-    }
-    }, [navigate]); // Add navigate as dependency
+      }
+    };
 
-    useEffect(() => {
-    fetchUserProfile();
-    }, [fetchUserProfile]); // Add fetchUserProfile as dependency
+      useEffect(() => {
+        fetchUserProfile();
+      }, [fetchUserProfile]
+    ); // Add fetchUserProfile as dependency
 
-  const handleEditProfile = async (formData) => {
+  const handleEditProfile = async (e) => {
+    e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      const [firstName, ...lastNameParts] = formData.userName.split(' ');
-      const lastName = lastNameParts.join(' ');
       
       const response = await axios.put(
         'http://localhost:3001/api/protected/profile',
-        {
-          firstName,
-          lastName,
-          phone: formData.phone,
-          address: formData.address
-        },
+        editForm,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -312,9 +325,11 @@ const Profile = () => {
       );
 
       if (response.data.success) {
-        setUser(response.data.user);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        const updatedUser = response.data.user;
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         setActiveModal(null);
+        alert('Profile updated successfully!');
       }
     } catch (err) {
       setError('Failed to update profile');
@@ -405,98 +420,6 @@ const Profile = () => {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.logo}>
-            <span className={styles.binIcon}>🗑️</span>
-            <span className={styles.logoText}>BinGo</span>
-          </div>
-          
-          <nav className={styles.nav}>
-            <button className={styles.navIcon} title="Messages">💬</button>
-            <button className={styles.navIcon} title="Notifications">🔔</button>
-            <button className={styles.navIcon} title="Profile">👤</button>
-            <button 
-                className={styles.navIcon} 
-                onClick={handleLogout}
-                title="Logout"
-            >
-                🚪
-            </button>
-          </nav>
-        </div>
-      </header>
-
-      <div className={styles.mainContainer}>
-        {/* Left Sidebar */}
-        <aside className={styles.sidebar}>
-            <nav className={styles.sidebarNav}>
-                <button 
-                className={styles.sidebarItem}
-                onClick={() => navigate('/dashboard')}
-                >
-                <span className={styles.icon}>📊</span>
-                <span>Dashboard</span>
-                </button>
-                <button 
-                className={styles.sidebarItem}
-                onClick={() => navigate('/posts')}
-                >
-                <span className={styles.icon}>📋</span>
-                <span>Posts</span>
-                </button>
-                <button className={styles.sidebarItem}>
-                <span className={styles.icon}>🔔</span>
-                <span>Notifications</span>
-                </button>
-                <button className={styles.sidebarItem}>
-                <span className={styles.icon}>📧</span>
-                <span>Inbox</span>
-                </button>
-                <button className={styles.sidebarItem}>
-                <span className={styles.icon}>ℹ️</span>
-                <span>About</span>
-                </button>
-                <button className={`${styles.sidebarItem} ${styles.active}`}>
-                <span className={styles.icon}>👤</span>
-                <span>Profile</span>
-                </button>
-            </nav>
-
-          <div className={styles.filterSection}>
-            <h3>Filter Posts</h3>
-            <button 
-              className={`${styles.filterItem} ${activeFilter === 'recyclables' ? styles.activeFilter : ''}`}
-              onClick={() => setActiveFilter('recyclables')}
-            >
-              <span className={styles.icon}>♻️</span>
-              <span>Recyclables</span>
-            </button>
-            <button 
-              className={`${styles.filterItem} ${activeFilter === 'initiatives' ? styles.activeFilter : ''}`}
-              onClick={() => setActiveFilter('initiatives')}
-            >
-              <span className={styles.icon}>📋</span>
-              <span>Initiatives</span>
-            </button>
-            <button 
-              className={`${styles.filterItem} ${activeFilter === 'forums' ? styles.activeFilter : ''}`}
-              onClick={() => setActiveFilter('forums')}
-            >
-              <span className={styles.icon}>👥</span>
-              <span>Forums</span>
-            </button>
-          </div>
-
-          <button 
-            className={styles.createPostButton}
-            onClick={() => navigate('/create-post')}
-            >
-            <span>+ Create Post</span>
-          </button>
-        </aside>
-
         {/* Main Content */}
         <main className={styles.content}>
           <div className={styles.profileCard}>
@@ -518,7 +441,7 @@ const Profile = () => {
                   className={styles.editButton}
                   onClick={() => setActiveModal('edit')}
                 >
-                  ✏️
+                  Edit
                 </button>
               </div>
               <div className={styles.verifiedBadge}>
@@ -576,7 +499,6 @@ const Profile = () => {
             </div>
           </div>
         </main>
-      </div>
 
       {/* Modals */}
       {activeModal === 'edit' && (

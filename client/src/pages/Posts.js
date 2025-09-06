@@ -80,34 +80,6 @@ const Posts = () => {
 
   return (
     <div className={styles.container}>
-      {/* Header - matching CreatePost style */}
-      <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div className={styles.logo}>
-            <h1>BinGo</h1>
-          </div>
-          
-          <nav className={styles.nav}>
-            <Link to="/dashboard" className={styles.navButton}>
-              Dashboard
-            </Link>
-            <button className={styles.navButton}>Notifications</button>
-            <button className={styles.navButton}>Charts</button>
-            <button className={styles.navButton}>Inbox</button>
-            <button className={styles.navButton}>About</button>
-            <button 
-              onClick={handleProfileClick} 
-              className={styles.navButton}
-            >
-              Profile
-            </button>
-            <button onClick={handleLogout} className={styles.logoutButton}>
-              Logout
-            </button>
-          </nav>
-        </div>
-      </header>
-
       {/* Main Content */}
       <main className={styles.main}>
         {/* Posts Header */}
@@ -156,7 +128,7 @@ const Posts = () => {
             <div className={styles.userCard}>
               <h4>Welcome, {currentUser?.firstName}!</h4>
               <p className={styles.userType}>
-                {currentUser?.userType === 'Giver' ? '🎁 Waste Giver' : '♻️ Collector'}
+                {currentUser?.userType === 'Giver' ? 'Waste Giver' : 'Collector'}
               </p>
               <p className={styles.points}>
                 Points: <strong>{currentUser?.points || 0}</strong>
@@ -184,8 +156,8 @@ const Posts = () => {
                   </div>
                   <p className={styles.postDescription}>{post.description}</p>
                   <div className={styles.postMeta}>
-                    <span>📍 {post.location}</span>
-                    <span>📅 {new Date(post.createdAt).toLocaleDateString()}</span>
+                    <span>{post.location}</span>
+                    <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                   </div>
                   <div className={styles.postActions}>
                     <button className={styles.viewButton}>View Details</button>

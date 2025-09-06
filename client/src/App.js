@@ -7,8 +7,8 @@ import Posts from './pages/Posts';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import CreatePost from './pages/CreatePost';
-import './App.css';
 import AppLayout from './components/layout/AppLayout/AppLayout';
+import './App.css';
 
 // Simple Register component for completeness
 const RegisterComponent = () => {
@@ -310,7 +310,7 @@ const RegisterComponent = () => {
   );
 };
 
-// Enhanced Protected Route Component
+// Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
   const user = localStorage.getItem('user');
@@ -319,7 +319,8 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
   
-  return children;
+  // Wrap authenticated pages with AppLayout
+  return <AppLayout>{children}</AppLayout>;
 };
 
 // Auto-login Route Component

@@ -47,7 +47,9 @@ const TopNav = ({ user }) => {
   return (
     <nav className={`${styles.navbar} ${isScrolled ? styles.scrolled : ''} ${isHidden ? styles.hidden : ''}`}>
       <div className={styles.navContent}>
-        <Logo size="medium" />
+        <Link to="/posts" style={{ textDecoration: 'none' }}>
+            <Logo size="medium" />
+          </Link>
         <div className={styles.navRight}>
           {/* Notifications */}
           <div className={styles.notificationWrapper}>

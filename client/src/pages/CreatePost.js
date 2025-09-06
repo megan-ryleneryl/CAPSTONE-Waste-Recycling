@@ -130,7 +130,6 @@ const CreatePost = () => {
             className={`${styles.typeButton} ${postType === 'Waste' ? styles.active : ''}`}
             onClick={() => setPostType('Waste')}
           >
-            <span className={styles.icon}>♻️</span>
             <span>Waste Post</span>
             <small>Offer recyclable materials</small>
           </button>
@@ -140,7 +139,6 @@ const CreatePost = () => {
             className={`${styles.typeButton} ${postType === 'Initiative' ? styles.active : ''}`}
             onClick={() => setPostType('Initiative')}
           >
-            <span className={styles.icon}>🌱</span>
             <span>Initiative</span>
             <small>Start a green project</small>
           </button>
@@ -150,7 +148,6 @@ const CreatePost = () => {
             className={`${styles.typeButton} ${postType === 'Forum' ? styles.active : ''}`}
             onClick={() => setPostType('Forum')}
           >
-            <span className={styles.icon}>💬</span>
             <span>Forum Post</span>
             <small>Share tips or news</small>
           </button>

@@ -39,61 +39,13 @@ const Dashboard = () => {
     return <div>Loading...</div>;
   }
 
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case 'post': return '📝';
-      case 'pickup': return '🚚';
-      case 'points': return '⭐';
-      case 'badge': return '🏆';
-      default: return '📋';
-    }
-  };
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
-      {/* Header */}
-      <header style={{
-        backgroundColor: 'white',
-        padding: '1rem 2rem',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <h1 style={{ color: '#667eea', margin: 0, fontSize: '1.5rem' }}>
-            🌱♻️ EcoConnect
-          </h1>
-        </div>
-        
-        <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <Link to="/dashboard" style={{ color: '#667eea', textDecoration: 'none', fontWeight: 'bold' }}>
-            Dashboard
-          </Link>
-          <Link to="/profile" style={{ color: '#666', textDecoration: 'none' }}>
-            Profile
-          </Link>
-          <button 
-            onClick={handleLogout}
-            style={{
-              backgroundColor: 'transparent',
-              border: '1px solid #ddd',
-              padding: '0.5rem 1rem',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              color: '#666'
-            }}
-          >
-            Logout
-          </button>
-        </nav>
-      </header>
-
       <div style={{ padding: '2rem' }}>
         {/* Welcome Section */}
         <div style={{ marginBottom: '2rem' }}>
           <h2 style={{ color: '#333', fontSize: '2rem', marginBottom: '0.5rem' }}>
-            Welcome back, {user.firstName}! 👋
+            Welcome back, {user.firstName}!
           </h2>
           <p style={{ color: '#666', fontSize: '1.1rem' }}>
             Here's what's happening with your recycling activities
@@ -114,7 +66,6 @@ const Dashboard = () => {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📝</div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#667eea' }}>
               {stats.totalPosts}
             </div>
@@ -128,7 +79,6 @@ const Dashboard = () => {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🚚</div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#28a745' }}>
               {stats.activePickups}
             </div>
@@ -142,7 +92,6 @@ const Dashboard = () => {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#17a2b8' }}>
               {stats.completedPickups}
             </div>
@@ -156,7 +105,6 @@ const Dashboard = () => {
             boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⭐</div>
             <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ffc107' }}>
               {stats.totalPoints}
             </div>
@@ -192,7 +140,7 @@ const Dashboard = () => {
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                <span>📝</span> Create New Waste Post
+                Create New Waste Post
               </button>
               
               <button style={{
@@ -207,7 +155,7 @@ const Dashboard = () => {
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                <span>🔍</span> Browse Available Waste
+                Browse Available Waste
               </button>
               
               <button style={{
@@ -222,7 +170,7 @@ const Dashboard = () => {
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                <span>💬</span> Visit Community Forum
+                Visit Community Forum
               </button>
             </div>
           </div>
@@ -246,7 +194,6 @@ const Dashboard = () => {
                   borderRadius: '8px'
                 }}>
                   <div style={{ fontSize: '1.2rem' }}>
-                    {getActivityIcon(activity.type)}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ 
