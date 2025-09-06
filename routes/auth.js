@@ -21,7 +21,14 @@ const generateToken = (user) => {
 // Complete rewrite of register endpoint
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, userType = 'Giver' } = req.body;
+    const { firstName, lastName, email, password, userType = 'Giver' } = req.body;
+
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'First name, last name, email, and password are required'
+      });
+    }
 
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
@@ -36,16 +43,11 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Parse username into first and last name
-    const nameParts = username.trim().split(' ');
-    const firstName = nameParts[0] || username;
-    const lastName = nameParts.slice(1).join(' ') || '';
-
     // Create user data with ALL defaults from Users.js model
     const userData = {
-      firstName,
-      lastName,
-      email,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.toLowerCase().trim(),
       passwordHash,
       userType,
       status: 'Pending', // Default status
@@ -93,6 +95,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
 
     // Find user by email
     const user = await User.findByEmail(email);
