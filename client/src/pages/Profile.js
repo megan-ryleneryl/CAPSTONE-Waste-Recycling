@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Profile.module.css';
 
@@ -248,47 +248,47 @@ const Profile = () => {
   const [activeFilter, setActiveFilter] = useState('recyclables');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
-  const fetchUserProfile = async () => {
+    const fetchUserProfile = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-      
-      if (!token || !userData) {
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (!token || !userData) {
         navigate('/login');
         return;
-      }
-
-      // Parse stored user data
-      const parsedUser = JSON.parse(userData);
-      
-      // Fetch updated profile from server
-      const response = await axios.get('http://localhost:3001/api/protected/profile', {
-        headers: {
-          'Authorization': `Bearer ${token}`
         }
-      });
 
-      if (response.data.success) {
+        // Parse stored user data
+        const parsedUser = JSON.parse(userData);
+        
+        // Fetch updated profile from server
+        const response = await axios.get('http://localhost:3001/api/protected/profile', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+        });
+
+        if (response.data.success) {
         setUser(response.data.user);
         localStorage.setItem('user', JSON.stringify(response.data.user));
-      } else {
+        } else {
         setUser(parsedUser);
-      }
+        }
     } catch (err) {
-      console.error('Error fetching profile:', err);
-      // Use stored user data as fallback
-      const userData = localStorage.getItem('user');
-      if (userData) {
+        console.error('Error fetching profile:', err);
+        // Use stored user data as fallback
+        const userData = localStorage.getItem('user');
+        if (userData) {
         setUser(JSON.parse(userData));
-      }
+        }
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+    }, [navigate]); // Add navigate as dependency
+
+    useEffect(() => {
+    fetchUserProfile();
+    }, [fetchUserProfile]); // Add fetchUserProfile as dependency
 
   const handleEditProfile = async (formData) => {
     try {
@@ -381,9 +381,12 @@ const Profile = () => {
   };
 
   const handleLogout = () => {
+    // Clear all authentication data (matching your other components)
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberedUser');
+    
+    // Navigate to login page
     navigate('/login');
   };
 
@@ -411,9 +414,16 @@ const Profile = () => {
           </div>
           
           <nav className={styles.nav}>
-            <button className={styles.navIcon}>💬</button>
-            <button className={styles.navIcon}>🔔</button>
-            <button className={styles.navIcon}>👤</button>
+            <button className={styles.navIcon} title="Messages">💬</button>
+            <button className={styles.navIcon} title="Notifications">🔔</button>
+            <button className={styles.navIcon} title="Profile">👤</button>
+            <button 
+                className={styles.navIcon} 
+                onClick={handleLogout}
+                title="Logout"
+            >
+                🚪
+            </button>
           </nav>
         </div>
       </header>
@@ -421,28 +431,38 @@ const Profile = () => {
       <div className={styles.mainContainer}>
         {/* Left Sidebar */}
         <aside className={styles.sidebar}>
-          <nav className={styles.sidebarNav}>
-            <button className={styles.sidebarItem}>
-              <span className={styles.icon}>🔔</span>
-              <span>Notifications</span>
-            </button>
-            <button className={styles.sidebarItem}>
-              <span className={styles.icon}>📊</span>
-              <span>Charts and Data</span>
-            </button>
-            <button className={styles.sidebarItem}>
-              <span className={styles.icon}>📧</span>
-              <span>Inbox</span>
-            </button>
-            <button className={styles.sidebarItem}>
-              <span className={styles.icon}>ℹ️</span>
-              <span>About</span>
-            </button>
-            <button className={`${styles.sidebarItem} ${styles.active}`}>
-              <span className={styles.icon}>👤</span>
-              <span>Profile</span>
-            </button>
-          </nav>
+            <nav className={styles.sidebarNav}>
+                <button 
+                className={styles.sidebarItem}
+                onClick={() => navigate('/dashboard')}
+                >
+                <span className={styles.icon}>📊</span>
+                <span>Dashboard</span>
+                </button>
+                <button 
+                className={styles.sidebarItem}
+                onClick={() => navigate('/posts')}
+                >
+                <span className={styles.icon}>📋</span>
+                <span>Posts</span>
+                </button>
+                <button className={styles.sidebarItem}>
+                <span className={styles.icon}>🔔</span>
+                <span>Notifications</span>
+                </button>
+                <button className={styles.sidebarItem}>
+                <span className={styles.icon}>📧</span>
+                <span>Inbox</span>
+                </button>
+                <button className={styles.sidebarItem}>
+                <span className={styles.icon}>ℹ️</span>
+                <span>About</span>
+                </button>
+                <button className={`${styles.sidebarItem} ${styles.active}`}>
+                <span className={styles.icon}>👤</span>
+                <span>Profile</span>
+                </button>
+            </nav>
 
           <div className={styles.filterSection}>
             <h3>Filter Posts</h3>
@@ -469,7 +489,10 @@ const Profile = () => {
             </button>
           </div>
 
-          <button className={styles.createPostButton}>
+          <button 
+            className={styles.createPostButton}
+            onClick={() => navigate('/create-post')}
+            >
             <span>+ Create Post</span>
           </button>
         </aside>
