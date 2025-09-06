@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+  background: white;
   padding: 1rem;
   font-family: 'Raleway', sans-serif;
 }
@@ -18,6 +18,9 @@
 }
 
 .logoSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   margin-bottom: 2rem;
 }
@@ -44,6 +47,7 @@
 
 .googleButton, .emailButton {
   width: 100%;
+  box-sizing: border-box;
   padding: 0.875rem;
   border: none;
   border-radius: 8px;
@@ -115,6 +119,7 @@
 .loginButton {
   display: block;
   width: 100%;
+  box-sizing: border-box;
   padding: 0.875rem;
   background: #3B6535;
   color: #B3F2AC;
@@ -140,6 +145,7 @@
 
 .input {
   width: 100%;
+  box-sizing: border-box;
   padding: 0.875rem 1rem;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -170,6 +176,8 @@
 }
 
 .createButton {
+  width: 100%;
+  box-sizing: border-box;
   background: #3B6535;
   color: #B3F2AC;
   padding: 0.875rem;

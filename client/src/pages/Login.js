@@ -25,7 +25,9 @@ const Login = () => {
     <div className={styles.container}>
       <div className={styles.loginCard}>
         <div className={styles.logoSection}>
-          <Logo size="large" />
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <Logo size="large" />
+          </Link>
           <p className={styles.tagline}>Your Partner in a Circular Economy</p>
         </div>
 
@@ -68,6 +70,11 @@ const Login = () => {
             {loading ? 'Logging in...' : 'Log In'}
           </button>
         </form>
+
+        <div className={styles.signupPrompt}>
+          <p>Don't have an account?</p>
+          <Link to="/register" className={styles.signupLink}>Sign up</Link>
+        </div>
       </div>
     </div>
   );
