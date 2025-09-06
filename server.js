@@ -11,13 +11,14 @@ const multer = require('multer');
 
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
+const profileRoutes = require('./routes/users');
 
-// Import services (fixed file names to match your actual files)
+// Import services
 const authService = require('./services/auth-service'); 
 const { StorageService, upload, serveUploads } = require('./services/storage-service'); 
 const notificationService = require('./services/notification-service'); 
 
-// Import models (fixed file names to match your actual files)
+// Import models
 const User = require('./models/Users'); 
 const Post = require('./models/Posts'); 
 const WastePost = require('./models/WastePost');
@@ -38,7 +39,6 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -76,6 +76,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/protected/profile', profileRoutes);
 
 // ============================================================================
 // PUBLIC ROUTES (No authentication required)
