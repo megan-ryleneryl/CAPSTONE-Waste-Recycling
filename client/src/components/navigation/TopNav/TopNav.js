@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../../common/Logo/logo';
 import styles from './TopNav.module.css';
@@ -10,6 +10,10 @@ const TopNav = ({ user }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
+
+  // Refs for detecting clicks outside dropdowns
+  const notificationRef = useRef(null);
+  const userMenuRef = useRef(null);
 
 //   useEffect(() => {
 //     const handleScroll = () => {
@@ -30,6 +34,23 @@ const TopNav = ({ user }) => {
 //     window.addEventListener('scroll', handleScroll, { passive: true });
 //     return () => window.removeEventListener('scroll', handleScroll);
 //   }, [lastScrollY]);
+
+  // Handle clicks outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -91,10 +112,15 @@ const TopNav = ({ user }) => {
           </button>
 
           {/* User Menu */}
-          <div className={styles.userMenuWrapper}>
+          <div className={styles.userMenuWrapper} ref={userMenuRef}>
             <button 
               className={styles.userButton}
-              onClick={() => setShowUserMenu(!showUserMenu)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowUserMenu(!showUserMenu);
+                // Close notifications if it's open
+                if (showNotifications) setShowNotifications(false);
+              }}
             >
               <div className={styles.userAvatar}>
                 {user?.firstName?.[0]}{user?.lastName?.[0]}

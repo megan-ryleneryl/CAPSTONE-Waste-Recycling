@@ -26,71 +26,79 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
     onSubmit(formData);
   };
 
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className={styles.modal}>
-      <div className={styles.modalContent}>
-        <div className={styles.modalHeader}>
-          <button onClick={onClose} className={styles.closeButton}>×</button>
-          <h2>Apply for Org Account</h2>
+    <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
+      <div className={styles.modal}>
+        <div className={styles.modalContent}>
+          <div className={styles.modalHeader}>
+            <button onClick={onClose} className={styles.closeButton}>×</button>
+            <h2>Apply for Org Account</h2>
+          </div>
+          
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.formGroup}>
+              <label>Organization Name</label>
+              <input
+                type="text"
+                name="organizationName"
+                value={formData.organizationName}
+                onChange={handleInputChange}
+                className={styles.input}
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Organization Location</label>
+              <select
+                name="organizationLocation"
+                value={formData.organizationLocation}
+                onChange={handleInputChange}
+                className={styles.select}
+                required
+              >
+                <option value="">Select Location</option>
+                <option value="Metro Manila">Metro Manila</option>
+                <option value="Cebu">Cebu</option>
+                <option value="Davao">Davao</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Reason for applying</label>
+              <textarea
+                name="reason"
+                value={formData.reason}
+                onChange={handleInputChange}
+                className={styles.textarea}
+                rows="4"
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Proof of Organization Membership</label>
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className={styles.fileInput}
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+              />
+            </div>
+
+            <button type="submit" className={styles.submitButton}>
+              Submit
+            </button>
+          </form>
         </div>
-        
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formGroup}>
-            <label>Organization Name</label>
-            <input
-              type="text"
-              name="organizationName"
-              value={formData.organizationName}
-              onChange={handleInputChange}
-              className={styles.input}
-              required
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label>Organization Location</label>
-            <select
-              name="organizationLocation"
-              value={formData.organizationLocation}
-              onChange={handleInputChange}
-              className={styles.select}
-              required
-            >
-              <option value="">Select Location</option>
-              <option value="Metro Manila">Metro Manila</option>
-              <option value="Cebu">Cebu</option>
-              <option value="Davao">Davao</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label>Reason for applying</label>
-            <textarea
-              name="reason"
-              value={formData.reason}
-              onChange={handleInputChange}
-              className={styles.textarea}
-              rows="4"
-              required
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label>Proof of Organization Membership</label>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              className={styles.fileInput}
-              accept=".pdf,.jpg,.jpeg,.png"
-              required
-            />
-          </div>
-
-          <button type="submit" className={styles.submitButton}>
-            Submit
-          </button>
-        </form>
       </div>
     </div>
   );
@@ -117,43 +125,52 @@ const CollectorForm = ({ onClose, onSubmit }) => {
     onSubmit(formData);
   };
 
+  // Handle click outside modal
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className={styles.modal}>
-      <div className={styles.modalContent}>
-        <div className={styles.modalHeader}>
-          <button onClick={onClose} className={styles.closeButton}>×</button>
-          <h2>Apply for Collector</h2>
+    <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
+      <div className={styles.modal}>
+        <div className={styles.modalContent}>
+          <div className={styles.modalHeader}>
+            <button onClick={onClose} className={styles.closeButton}>×</button>
+            <h2>Apply for Collector</h2>
+          </div>
+          
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.formGroup}>
+              <label>Business justification</label>
+              <textarea
+                name="businessJustification"
+                value={formData.businessJustification}
+                onChange={handleInputChange}
+                className={styles.textarea}
+                rows="5"
+                placeholder="Explain why you want to become a collector..."
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Proof of MRF (Document Upload)</label>
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className={styles.fileInput}
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+              />
+            </div>
+
+            <button type="submit" className={styles.submitButton}>
+              Submit
+            </button>
+          </form>
         </div>
-        
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formGroup}>
-            <label>Business justification</label>
-            <textarea
-              name="businessJustification"
-              value={formData.businessJustification}
-              onChange={handleInputChange}
-              className={styles.textarea}
-              rows="5"
-              placeholder="Explain why you want to become a collector..."
-              required
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label>Proof of MRF (Document Upload)</label>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              className={styles.fileInput}
-              accept=".pdf,.jpg,.jpeg,.png"
-              required
-            />
-          </div>
-
-          <button type="submit" className={styles.submitButton}>
-            Submit
-          </button>
-        </form>
       </div>
     </div>
   );
@@ -177,63 +194,71 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
     onSubmit(formData);
   };
 
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className={styles.modal}>
-      <div className={styles.modalContent}>
-        <div className={styles.modalHeader}>
-          <button onClick={onClose} className={styles.closeButton}>×</button>
-          <div className={styles.profileIcon}>
-            <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-              <circle cx="40" cy="40" r="40" fill="#E0E0E0"/>
-              <circle cx="40" cy="30" r="15" fill="#666"/>
-              <ellipse cx="40" cy="65" rx="25" ry="20" fill="#666"/>
-            </svg>
+    <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
+      <div className={styles.modal}>
+        <div className={styles.modalContent}>
+          <div className={styles.modalHeader}>
+            <button onClick={onClose} className={styles.closeButton}>×</button>
+            <div className={styles.profileIcon}>
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                <circle cx="40" cy="40" r="40" fill="#E0E0E0"/>
+                <circle cx="40" cy="30" r="15" fill="#666"/>
+                <ellipse cx="40" cy="65" rx="25" ry="20" fill="#666"/>
+              </svg>
+            </div>
           </div>
+          
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.formGroup}>
+              <label>User_Name</label>
+              <input
+                type="text"
+                name="userName"
+                value={formData.userName}
+                onChange={handleInputChange}
+                className={styles.input}
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Phone Number</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className={styles.input}
+                placeholder="09XX XXX XXXX"
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Address</label>
+              <input
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                className={styles.input}
+                placeholder="City, Province"
+                required
+              />
+            </div>
+
+            <button type="submit" className={styles.saveButton}>
+              Save
+            </button>
+          </form>
         </div>
-        
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formGroup}>
-            <label>User_Name</label>
-            <input
-              type="text"
-              name="userName"
-              value={formData.userName}
-              onChange={handleInputChange}
-              className={styles.input}
-              required
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label>Phone Number</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              className={styles.input}
-              placeholder="09XX XXX XXXX"
-              required
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label>Address</label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleInputChange}
-              className={styles.input}
-              placeholder="City, Province"
-              required
-            />
-          </div>
-
-          <button type="submit" className={styles.saveButton}>
-            Save
-          </button>
-        </form>
       </div>
     </div>
   );

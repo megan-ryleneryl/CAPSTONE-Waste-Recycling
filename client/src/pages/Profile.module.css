@@ -298,6 +298,20 @@
   animation: fadeIn 0.3s ease;
 }
 
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -314,6 +328,136 @@
   animation: slideUp 0.3s ease;
 }
 
+.modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e5e5;
+  position: relative;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.closeButton {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 5px;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.profileIcon {
+  margin: 0 auto 10px;
+}
+
+.form {
+  padding: 24px;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.fileInput {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.submitButton,
+.saveButton {
+  width: 100%;
+  padding: 14px;
+  background-color: #3B6535;
+  color: #B3F2AC;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Raleway', sans-serif;
+}
+
+.submitButton:hover,
+.saveButton:hover {
+  background-color: #2d4e29;
+}
+
+.submitButton:active,
+.saveButton:active {
+  transform: translateY(1px);
+}
+
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -325,92 +469,15 @@
   }
 }
 
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f0f0f0;
-}
-
-.modalHeader h2 {
-  margin: 0;
-  color: #333;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.closeButton {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #999;
-  cursor: pointer;
-  transition: color 0.2s;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.closeButton:hover {
-  color: #333;
-}
-
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.formGroup label {
-  font-weight: 600;
-  color: #333;
-  font-size: 0.9rem;
-}
-
-.input {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-family: 'Raleway', sans-serif;
-  transition: all 0.3s ease;
-}
-
-.input:focus {
-  outline: none;
-  border-color: #3B6535;
-  box-shadow: 0 0 0 3px rgba(59, 101, 53, 0.1);
-}
-
-.saveButton {
-  background: #3B6535;
-  color: #B3F2AC;
-  border: none;
-  padding: 0.875rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: 'Raleway', sans-serif;
-  margin-top: 1rem;
-}
-
-.saveButton:hover {
-  background: #2d4e29;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Responsive Design */
@@ -445,6 +512,27 @@
   }
 
   .modalContent {
-    padding: 1.5rem;
+    padding: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .modalBackdrop {
+    padding: 10px;
+  }
+  
+  .modal {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+  }
+  
+  .modalHeader,
+  .form {
+    padding: 16px;
+  }
+  
+  .modalHeader h2 {
+    font-size: 1.3rem;
   }
 }
