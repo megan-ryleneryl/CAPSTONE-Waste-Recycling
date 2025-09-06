@@ -1,0 +1,47 @@
+/* client/src/components/layout/AppLayout/AppLayout.module.css */
+.appContainer {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+  font-family: 'Raleway', sans-serif;
+}
+
+.mainLayout {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: 2rem;
+  padding: 2rem;
+  padding-top: 1rem;
+}
+
+.mainContent {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  min-height: calc(100vh - 140px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 1024px) {
+  .mainLayout {
+    padding: 1rem;
+    gap: 1rem;
+  }
+  
+  .mainContent {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .mainLayout {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+  
+  .mainContent {
+    border-radius: 8px;
+    padding: 1rem;
+  }
+}

@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import CreatePost from './pages/CreatePost';
 import './App.css';
+import AppLayout from './components/layout/AppLayout/AppLayout';
 
 // Simple Register component for completeness
 const RegisterComponent = () => {
@@ -348,9 +349,9 @@ function App() {
     <Router>
       <div className="App">
         <Routes>
+          {/* Public routes - No AppLayout */}
           <Route path="/" element={<Landing />} />
           
-          {/* Wrap Login with AutoLoginRoute */}
           <Route 
             path="/login" 
             element={
@@ -362,7 +363,7 @@ function App() {
           
           <Route path="/register" element={<Register />} />
           
-          {/* Posts route */}
+          {/* Protected routes - With AppLayout */}
           <Route 
             path="/posts" 
             element={
@@ -372,7 +373,6 @@ function App() {
             } 
           />
           
-          {/* Create Post route */}
           <Route 
             path="/create-post" 
             element={
@@ -399,6 +399,25 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
+          {/* Add more protected routes as needed */}
+          {/* <Route 
+            path="/notifications" 
+            element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            } 
+          />
+          
+          <Route 
+            path="/inbox" 
+            element={
+              <ProtectedRoute>
+                <Inbox />
+              </ProtectedRoute>
+            } 
+          /> */}
           
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
