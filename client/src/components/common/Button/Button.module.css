@@ -1,69 +1,62 @@
-/* client/src/components/common/Button/Button.module.css */
-
 .button {
+  font-family: 'Raleway', sans-serif;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  position: relative;
-  text-decoration: none;
-  box-sizing: border-box;
-  font-family: inherit;
   gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
 }
 
-/* Variants */
+/* BinGo Primary - Dark Green */
 .primary {
-  background-color: var(--primary-color, #667eea);
-  color: white;
+  background-color: #3B6535;
+  color: #B3F2AC;
 }
 
-.primary:hover:not(.disabled) {
-  background-color: var(--primary-hover, #5a6fd8);
-  transform: translateY(-1px);
+.primary:hover:not(:disabled) {
+  background-color: #2d4e29;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
 }
 
+/* BinGo Secondary - Orange */
 .secondary {
+  background-color: #F0924C;
+  color: white;
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: #d97f3b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(240, 146, 76, 0.3);
+}
+
+/* Outline variant */
+.outline {
   background-color: transparent;
-  color: var(--primary-color, #667eea);
-  border: 2px solid var(--primary-color, #667eea);
+  border: 2px solid #3B6535;
+  color: #3B6535;
 }
 
-.secondary:hover:not(.disabled) {
-  background-color: var(--primary-color, #667eea);
-  color: white;
+.outline:hover:not(:disabled) {
+  background-color: #3B6535;
+  color: #B3F2AC;
 }
 
-.danger {
-  background-color: var(--danger-color, #dc3545);
-  color: white;
-}
-
-.danger:hover:not(.disabled) {
-  background-color: var(--danger-hover, #c82333);
-}
-
-.success {
-  background-color: var(--success-color, #28a745);
-  color: white;
-}
-
-.success:hover:not(.disabled) {
-  background-color: var(--success-hover, #218838);
-}
-
+/* Ghost variant */
 .ghost {
   background-color: transparent;
-  color: var(--text-color, #333);
-  border: 1px solid var(--border-color, #ddd);
+  color: #3B6535;
 }
 
-.ghost:hover:not(.disabled) {
-  background-color: var(--background-light, #f8f9fa);
+.ghost:hover:not(:disabled) {
+  background-color: rgba(59, 101, 53, 0.1);
 }
 
 /* Sizes */
@@ -82,35 +75,29 @@
   font-size: 1.125rem;
 }
 
-.fullWidth {
-  width: 100%;
-}
-
 /* States */
-.loading {
-  pointer-events: none;
-  opacity: 0.8;
-}
-
 .disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-  pointer-events: none;
 }
 
-/* Loading spinner */
+.loading {
+  color: transparent;
+}
+
+/* Loading Spinner */
 .spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #B3F2AC;
+  border-top-color: transparent;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.6s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
 .textHidden {

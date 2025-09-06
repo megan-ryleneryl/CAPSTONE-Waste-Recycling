@@ -10,15 +10,15 @@ const path = require('path');
 const multer = require('multer'); // Add missing import
 
 // Import services (fixed file names to match your actual files)
-const authService = require('./services/auth-service'); // Fixed: auth-service.js
-const { StorageService, upload, serveUploads } = require('./services/storage-service'); // Fixed: storage-service.js
-const notificationService = require('./services/notification-service'); // Fixed: notification-service.js
+const authService = require('./services/auth-service'); 
+const { StorageService, upload, serveUploads } = require('./services/storage-service'); 
+const notificationService = require('./services/notification-service'); 
 
 // Import models (fixed file names to match your actual files)
-const User = require('./models/Users'); // Fixed: Users.js
-const Post = require('./models/Posts'); // Fixed: Posts.js
+const User = require('./models/Users'); 
+const Post = require('./models/Posts'); 
 const WastePost = require('./models/WastePost');
-const Application = require('./models/Applications'); // Fixed: Applications.js
+const Application = require('./models/Applications'); 
 const Pickup = require('./models/Pickup');
 
 const app = express();
