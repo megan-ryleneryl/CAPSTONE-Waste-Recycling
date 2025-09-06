@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/common/Logo/logo';
 import styles from './Login.module.css';
+import axios from 'axios';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -10,15 +11,58 @@ const Login = () => {
     rememberMe: false
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const rememberedUser = localStorage.getItem('rememberedUser');
+    const token = localStorage.getItem('token');
+    
+    if (rememberedUser && token) {
+      // Auto-redirect to posts if "Remember Me" was previously checked
+      navigate('/posts');
+    }
+  }, [navigate]);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    // API call here
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 1000);
+    
+    try {
+      const response = await axios.post('http://localhost:3001/api/auth/login', {
+        email: formData.email,
+        password: formData.password
+      });
+      
+      if (response.data.success) {
+        // Store token
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        // Handle "Remember Me"
+        if (formData.rememberMe) {
+          localStorage.setItem('rememberedUser', JSON.stringify(response.data.user));
+        } else {
+          localStorage.removeItem('rememberedUser');
+        }
+        
+        // Navigate to posts screen
+        navigate('/posts');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -33,13 +77,20 @@ const Login = () => {
 
         <h2 className={styles.title}>Log in</h2>
 
+        {error && (
+          <div className={styles.errorMessage}>
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.inputGroup}>
             <input
               type="email"
+              name="email"
               placeholder="Email"
               value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              onChange={handleInputChange}
               className={styles.input}
               required
             />
@@ -48,9 +99,10 @@ const Login = () => {
           <div className={styles.inputGroup}>
             <input
               type="password"
+              name="password"
               placeholder="Password"
               value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              onChange={handleInputChange}
               className={styles.input}
               required
             />
@@ -60,13 +112,18 @@ const Login = () => {
             <input
               type="checkbox"
               id="remember"
+              name="rememberMe"
               checked={formData.rememberMe}
-              onChange={(e) => setFormData({...formData, rememberMe: e.target.checked})}
+              onChange={handleInputChange} 
             />
             <label htmlFor="remember">Remember me</label>
           </div>
 
-          <button type="submit" className={styles.submitButton} disabled={loading}>
+          <button 
+            type="submit" 
+            className={styles.submitButton} 
+            disabled={loading}
+          >
             {loading ? 'Logging in...' : 'Log In'}
           </button>
         </form>

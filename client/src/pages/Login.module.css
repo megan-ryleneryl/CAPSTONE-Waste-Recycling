@@ -137,6 +137,18 @@
   text-decoration: underline;
 }
 
+/* Error Message */
+.errorMessage {
+  background: rgba(220, 53, 69, 0.1);
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  padding: 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
 @media (max-width: 480px) {
   .loginCard {
     padding: 2rem 1.5rem;

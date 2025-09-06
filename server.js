@@ -1,4 +1,7 @@
 // server.js - Express server setup with local file storage
+const authRoutes = require('./routes/auth');
+const postRoutes = require('./routes/posts');
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -67,6 +70,9 @@ app.get('/health', (req, res) => {
     message: 'Capstone Recycling Platform API is running'
   });
 });
+
+app.use('/api/auth', authRoutes);
+app.use('/api/posts', postRoutes);
 
 // ============================================================================
 // PUBLIC ROUTES (No authentication required)

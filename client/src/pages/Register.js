@@ -2,10 +2,68 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/common/Logo/logo';
 import styles from './Register.module.css';
+import axios from 'axios';
 
 const SignUp = () => {
-  const [step, setStep] = useState(1); // 1: Choose method, 2: Create account
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false); 
+  const [error, setError] = useState(''); 
   const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const handleInputChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  // Form submission handler
+  const handleCreateAccount = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const response = await axios.post('http://localhost:3001/api/auth/register', {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        userType: 'Giver' // Default as specified
+      });
+      
+      if (response.data.success) {
+        // Store token
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        
+        // Navigate to login for first-time verification
+        navigate('/login');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const SignUpChoice = () => (
     <div className={styles.container}>
@@ -64,29 +122,47 @@ const SignUp = () => {
 
         <h2 className={styles.title}>Create an Account</h2>
 
-        <form className={styles.form}>
+        {error && (
+          <div className={styles.errorMessage}>
+            {error}
+          </div>
+        )}
+
+        <form className={styles.form} onSubmit={handleCreateAccount}>
           <input
             type="text"
+            name="username" 
             placeholder="Username"
             className={styles.input}
+            value={formData.username} 
+            onChange={handleInputChange} 
             required
           />
           <input
             type="email"
+            name="email" 
             placeholder="Email"
             className={styles.input}
+            value={formData.email} 
+            onChange={handleInputChange}
             required
           />
           <input
             type="password"
+            name="password" 
             placeholder="Password"
             className={styles.input}
+            value={formData.password}
+            onChange={handleInputChange} 
             required
           />
           <input
             type="password"
+            name="confirmPassword" 
             placeholder="Confirm Password"
             className={styles.input}
+            value={formData.confirmPassword}
+            onChange={handleInputChange} 
             required
           />
 
@@ -94,8 +170,12 @@ const SignUp = () => {
             All new users are Givers by default.
           </p>
 
-          <button type="submit" className={styles.createButton}>
-            Create Account
+          <button 
+            type="submit" 
+            className={styles.createButton}
+            disabled={loading}
+          >
+            {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
       </div>

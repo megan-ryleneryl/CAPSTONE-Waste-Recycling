@@ -1,0 +1,18 @@
+/* Note from Megan: This is copy-pasted code, it's just here as a placeholder.  */
+/* Feel free to delete or change completely. */
+
+/* Complete CSS implementation for Posts screen */
+.container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.header {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* ... rest of CSS styles ... */

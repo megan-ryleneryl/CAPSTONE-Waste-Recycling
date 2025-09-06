@@ -1,11 +1,12 @@
-// client/src/App.js
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Posts from './pages/Posts';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import CreatePost from './pages/CreatePost';
 import './App.css';
 
 // Simple Register component for completeness
@@ -308,20 +309,79 @@ const RegisterComponent = () => {
   );
 };
 
-// Protected Route Component
+// Enhanced Protected Route Component
 const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
   const user = localStorage.getItem('user');
-  return user ? children : <Navigate to="/login" />;
+  
+  if (!token || !user) {
+    return <Navigate to="/login" />;
+  }
+  
+  return children;
+};
+
+// Auto-login Route Component
+const AutoLoginRoute = ({ children }) => {
+  const rememberedUser = localStorage.getItem('rememberedUser');
+  const token = localStorage.getItem('token');
+  
+  if (rememberedUser && token) {
+    return <Navigate to="/posts" />;
+  }
+  
+  return children;
 };
 
 function App() {
+  // Add Remember Me check on app load
+  useEffect(() => {
+    const rememberedUser = localStorage.getItem('rememberedUser');
+    const token = localStorage.getItem('token');
+    
+    if (rememberedUser && token) {
+      // Validate token is still valid (optional)
+    }
+  }, []);
+
   return (
     <Router>
       <div className="App">
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
+          
+          {/* Wrap Login with AutoLoginRoute */}
+          <Route 
+            path="/login" 
+            element={
+              <AutoLoginRoute>
+                <Login />
+              </AutoLoginRoute>
+            } 
+          />
+          
           <Route path="/register" element={<Register />} />
+          
+          {/* Posts route */}
+          <Route 
+            path="/posts" 
+            element={
+              <ProtectedRoute>
+                <Posts />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Create Post route */}
+          <Route 
+            path="/create-post" 
+            element={
+              <ProtectedRoute>
+                <CreatePost />
+              </ProtectedRoute>
+            } 
+          />
+          
           <Route 
             path="/dashboard" 
             element={
@@ -330,6 +390,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
           <Route 
             path="/profile" 
             element={
@@ -338,7 +399,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          {/* Redirect any unknown routes to home */}
+          
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
