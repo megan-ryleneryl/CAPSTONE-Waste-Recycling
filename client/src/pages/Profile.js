@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Profile.module.css';
+import ModalPortal from '../components/common/ModalPortal';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
@@ -282,6 +283,62 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     fetchUserProfile();
   }, []);
 
+  // Load user data
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+      setLoading(false);
+    } else {
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  // Handle body scroll lock
+  useEffect(() => {
+    if (activeModal) {
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+      
+      // Optional: Hide navigation with class
+      document.body.classList.add('modal-open');
+    } else {
+      // Restore body scroll
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    }
+    
+    // Cleanup
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
+  }, [activeModal]);
+
+  // Close modal when clicking backdrop
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setActiveModal(null);
+    }
+  };
+
+  // Handle Escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && activeModal) {
+        setActiveModal(null);
+      }
+    };
+    
+    if (activeModal) {
+      document.addEventListener('keydown', handleEscape);
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [activeModal]);
+
     const fetchUserProfile = async () => {
     try {
         const token = localStorage.getItem('token');
@@ -525,27 +582,46 @@ const Profile = ({ user: propsUser, activeFilter }) => {
           </div>
         </main>
 
-      {/* Modals */}
-      {activeModal === 'edit' && (
-        <EditProfileForm 
-          user={user}
-          onClose={() => setActiveModal(null)}
-          onSubmit={handleEditProfile}
-        />
-      )}
-      
-      {activeModal === 'collector' && (
-        <CollectorForm 
-          onClose={() => setActiveModal(null)}
-          onSubmit={handleCollectorApplication}
-        />
-      )}
-      
-      {activeModal === 'organization' && (
-        <OrganizationForm 
-          onClose={() => setActiveModal(null)}
-          onSubmit={handleOrganizationApplication}
-        />
+      {/* MODALS RENDERED THROUGH PORTAL */}
+      {activeModal && (
+        <ModalPortal>
+          <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalContent}>
+                {activeModal === 'edit' && (
+                  <EditProfileForm 
+                    user={user}
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={(data) => {
+                      console.log('Edit profile:', data);
+                      setActiveModal(null);
+                    }}
+                  />
+                )}
+                
+                {activeModal === 'collector' && (
+                  <CollectorForm
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={(data) => {
+                      console.log('Collector application:', data);
+                      setActiveModal(null);
+                    }}
+                  />
+                )}
+                
+                {activeModal === 'organization' && (
+                  <OrganizationForm
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={(data) => {
+                      console.log('Organization application:', data);
+                      setActiveModal(null);
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
       )}
 
       {/* Error Message */}
