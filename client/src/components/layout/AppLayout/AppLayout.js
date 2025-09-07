@@ -7,6 +7,8 @@ import styles from './AppLayout.module.css';
 const AppLayout = ({ children }) => {
   const [user, setUser] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const location = useLocation();
 
   // Pages that don't need the layout
@@ -19,6 +21,20 @@ const AppLayout = ({ children }) => {
       setUser(JSON.parse(userData));
     }
   }, []);
+
+  useEffect(() => {
+    // Handle responsive behavior
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
 
   // Don't show layout on certain pages
   if (noLayoutPages.includes(location.pathname)) {
@@ -33,11 +49,24 @@ const AppLayout = ({ children }) => {
         <SideNav 
           activeFilter={activeFilter} 
           onFilterChange={setActiveFilter}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
         />
         
-        <main className={styles.mainContent}>
+        <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
           {React.cloneElement(children, { user, activeFilter })}
         </main>
+
+        {/* Mobile Menu Toggle Button */}
+        {isMobile && (
+          <button 
+            className={styles.mobileMenuToggle}
+            onClick={toggleSidebar}
+            aria-label="Toggle menu"
+          >
+            ☰
+          </button>
+        )}
       </div>
     </div>
   );

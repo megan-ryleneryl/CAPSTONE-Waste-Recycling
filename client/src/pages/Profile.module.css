@@ -99,7 +99,7 @@
 
 .editButton:hover {
   background: #d97f3b;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(240, 146, 76, 0.3);
 }
 
@@ -236,7 +236,7 @@
 }
 
 .ctaCard {
-  background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+  background: #f5f5f5;
   border-radius: 10px;
   padding: 1.5rem;
   margin-bottom: 10px;
@@ -298,18 +298,21 @@
   animation: fadeIn 0.3s ease;
 }
 
+/* Modal Backdrop */
 .modalBackdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
@@ -317,58 +320,55 @@
   to { opacity: 1; }
 }
 
+/* Modal Container */
 .modalContent {
   background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  width: 90%;
-  max-width: 500px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   max-height: 90vh;
-  overflow-y: auto;
-  animation: slideUp 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  background: transparent; /* Remove white background */
   max-width: 500px;
   width: 100%;
   max-height: 90vh;
-  overflow-y: auto;
   position: relative;
   animation: modalSlideIn 0.3s ease-out;
 }
 
 .modalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e5e5e5;
+  background: linear-gradient(135deg, #3B6535 0%, #2d4e29 100%);
+  color: #B3F2AC;
+  padding: 1.5rem 2rem;
   position: relative;
+  flex-shrink: 0;
 }
 
 .modalHeader h2 {
   margin: 0;
   font-size: 1.5rem;
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  font-family: 'Raleway', sans-serif;
+  color: #B3F2AC;
+  padding-right: 40px;
 }
 
 .closeButton {
   position: absolute;
-  top: 15px;
-  right: 20px;
-  background: none;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  font-size: 24px;
+  font-size: 1.5rem;
   cursor: pointer;
-  color: #666;
-  padding: 5px;
-  border-radius: 50%;
+  color: #B3F2AC;
   width: 35px;
   height: 35px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -376,8 +376,8 @@
 }
 
 .closeButton:hover {
-  background-color: #f0f0f0;
-  color: #333;
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
 }
 
 .profileIcon {
@@ -385,43 +385,118 @@
 }
 
 .form {
-  padding: 24px;
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+  
+  /* Custom Scrollbar Styling */
+  scrollbar-width: thin;
+  scrollbar-color: #D9D9D9 #f0f0f0;
 }
 
 .formGroup {
-  margin-bottom: 20px;
+  margin-bottom: 1.5rem;
+}
+
+.formGroup:last-child {
+  margin-bottom: 0;
 }
 
 .formGroup label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
+  font-family: 'Raleway', sans-serif;
+  font-weight: 600;
   color: #333;
+  margin-bottom: 0.5rem;
+  display: block;
+  font-size: 0.95rem;
+}
+
+/* Webkit Scrollbar Styling (Chrome, Safari, Edge) */
+.form::-webkit-scrollbar {
+  width: 8px;
+}
+
+.form::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 0 20px 20px 0; /* Match modal border radius */
+}
+
+.form::-webkit-scrollbar-thumb {
+  background: #D9D9D9;
+  border-radius: 4px;
+}
+
+.form::-webkit-scrollbar-thumb:hover {
+  background: #c0c0c0;
 }
 
 .input,
+.textarea,
 .select,
-.textarea {
+.fileInput {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: border-color 0.2s ease;
   box-sizing: border-box;
+  font-family: 'Raleway', sans-serif;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+/* Select Dropdown */
+.select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.2em;
+  padding-right: 2.5rem;
+}
+
+/* File Input Styling */
+.fileInputWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.fileInput {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Raleway', sans-serif;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: white;
+  cursor: pointer;
+}
+
+.fileInput:hover {
+  border-color: #3B6535;
 }
 
 .input:focus,
-.select:focus,
-.textarea:focus {
+.textarea:focus,
+.select:focus {
+  border-color: #3B6535;
+  box-shadow: 0 0 0 3px rgba(59, 101, 53, 0.1);
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: #999;
+  font-family: 'Raleway', sans-serif;
 }
 
 .textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 120px;
+  line-height: 1.5;
 }
 
 .fileInput {
@@ -434,23 +509,24 @@
 
 .submitButton,
 .saveButton {
-  width: 100%;
-  padding: 14px;
-  background-color: #3B6535;
+  background: #3B6535;
   color: #B3F2AC;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 1rem 2rem;
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  width: 100%;
   font-family: 'Raleway', sans-serif;
 }
 
 .submitButton:hover,
 .saveButton:hover {
-  background-color: #2d4e29;
+  background: #2d4e29;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
 }
 
 .submitButton:active,
@@ -509,30 +585,5 @@
 @media (max-width: 480px) {
   .profileDetails h2 {
     font-size: 1.4rem;
-  }
-
-  .modalContent {
-    padding: 0;
-  }
-}
-
-@media (max-width: 600px) {
-  .modalBackdrop {
-    padding: 10px;
-  }
-  
-  .modal {
-    max-width: none;
-    width: 100%;
-    margin: 0;
-  }
-  
-  .modalHeader,
-  .form {
-    padding: 16px;
-  }
-  
-  .modalHeader h2 {
-    font-size: 1.3rem;
   }
 }

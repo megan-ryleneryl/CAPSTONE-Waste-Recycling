@@ -65,6 +65,21 @@ const TopNav = ({ user }) => {
     { id: 3, text: 'Waste collected successfully', time: '2 hours ago', unread: false },
   ];
 
+  // Notification Bell Icon Component
+  const BellIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+
+  // Chat/Message Icon Component
+  const ChatIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+
   return (
     <nav className={`${styles.navbar} ${isScrolled ? styles.scrolled : ''} ${isHidden ? styles.hidden : ''}`}>
       <div className={styles.navContent}>
@@ -78,7 +93,7 @@ const TopNav = ({ user }) => {
               className={styles.navIcon}
               onClick={() => setShowNotifications(!showNotifications)}
             >
-              🔔
+              <BellIcon />
               {notifications.some(n => n.unread) && <span className={styles.badge}></span>}
             </button>
             
@@ -108,7 +123,7 @@ const TopNav = ({ user }) => {
 
           {/* Messages */}
           <button className={styles.navIcon}>
-            💬
+            <ChatIcon />
           </button>
 
           {/* User Menu */}
@@ -118,7 +133,6 @@ const TopNav = ({ user }) => {
               onClick={(e) => {
                 e.stopPropagation();
                 setShowUserMenu(!showUserMenu);
-                // Close notifications if it's open
                 if (showNotifications) setShowNotifications(false);
               }}
             >
@@ -139,17 +153,21 @@ const TopNav = ({ user }) => {
                   </p>
                   <p className={styles.userEmail}>{user?.email}</p>
                   <div className={styles.userStats}>
-                    <span>{user?.points || 0} points</span>
+                    <span><strong>{user?.points || 0}</strong> points</span>
                     <span className={styles.userType}>{user?.userType}</span>
                   </div>
                 </div>
+                
                 <div className={styles.dropdownDivider}></div>
+                
                 <Link to="/profile" className={styles.dropdownItem}>
-                  My Profile
+                  <span>My Profile</span>
                 </Link>
+                
                 <div className={styles.dropdownDivider}></div>
+                
                 <button onClick={handleLogout} className={styles.logoutButton}>
-                  Logout
+                  <span>Logout</span>
                 </button>
               </div>
             )}

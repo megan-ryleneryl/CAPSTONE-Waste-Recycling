@@ -1,59 +1,63 @@
-/* client/src/styles/variables.css */
-
 :root {
-  /* Primary Colors */
+  /* ==================== COLORS ==================== */
+  
+  /* Primary Brand Colors */
   --primary-color: #3B6535;
   --primary-hover: #2d4e29;
-  --primary-color-alpha: rgba(59, 101, 53, 0.1);
+  --primary-light: #4a7c42;
+  --primary-alpha-10: rgba(59, 101, 53, 0.1);
+  --primary-alpha-20: rgba(59, 101, 53, 0.2);
   
   --secondary-color: #F0924C;
   --secondary-hover: #d97f3b;
-  --secondary-color-alpha: rgba(240, 146, 76, 0.1);
+  --secondary-light: #f5a76a;
+  --secondary-alpha-10: rgba(240, 146, 76, 0.1);
+  --secondary-alpha-20: rgba(240, 146, 76, 0.2);
   
   --accent-color: #B3F2AC;
   --accent-hover: #9fe097;
+  --accent-dark: #8bc983;
   
   /* Status Colors */
   --success-color: #3B6535;
-  --success-hover: #2d4e29;
-  --success-color-alpha: rgba(59, 101, 53, 0.1);
-  
   --warning-color: #F0924C;
-  --warning-hover: #d97f3b;
-  --warning-color-alpha: rgba(240, 146, 76, 0.1);
-  
-  /* Keep existing danger/info colors */
   --danger-color: #dc3545;
-  --danger-hover: #c82333;
-  --danger-color-alpha: rgba(220, 53, 69, 0.1);
-  
   --info-color: #17a2b8;
-  --info-hover: #138496;
-  --info-color-alpha: rgba(23, 162, 184, 0.1);
   
   /* Text Colors */
-  --text-color: #333333;
-  --text-muted: #666666;
-  --text-light: #999999;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --text-light: #cccccc;
   --text-white: #ffffff;
-  --text-on-primary: #B3F2AC; /* Light green text on dark green bg */
+  --text-on-primary: #B3F2AC;
+  --text-on-secondary: #ffffff;
   
   /* Background Colors */
-  --background-primary: #ffffff;
-  --background-secondary: #f8f9fa;
-  --background-light: #f8f9fa;
-  --background-muted: #f5f5f5;
-  --background-dark: #3B6535;
-  --background-overlay: #D9D9D9;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-light: #f5f5f5;
+  --bg-card: #D9D9D9;
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+  --bg-gradient: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+  --bg-gradient-dark: linear-gradient(135deg, #3B6535 0%, #2d4e29 100%);
   
-  /* Card & Surface */
-  --card-bg: #D9D9D9;
-  --input-bg: #ffffff;
+  /* Borders */
+  --border-color: #e0e0e0;
+  --border-light: #f0f0f0;
+  --border-dark: #cccccc;
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 20px;
+  --border-radius-round: 50%;
   
-  /* Typography - Raleway */
-  --font-family-primary: 'Raleway', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  --font-family-mono: 'Fira Code', 'Monaco', monospace;
+  /* ==================== TYPOGRAPHY ==================== */
   
+  --font-family-primary: 'Raleway', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-mono: 'Fira Code', 'Monaco', 'Courier New', monospace;
+  
+  /* Font Sizes */
   --font-size-xs: 0.75rem;   /* 12px */
   --font-size-sm: 0.875rem;  /* 14px */
   --font-size-base: 1rem;    /* 16px */
@@ -61,22 +65,52 @@
   --font-size-xl: 1.25rem;   /* 20px */
   --font-size-2xl: 1.5rem;   /* 24px */
   --font-size-3xl: 2rem;     /* 32px */
+  --font-size-4xl: 2.5rem;   /* 40px */
   
+  /* Font Weights */
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
   
+  /* Line Heights */
   --line-height-tight: 1.25;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.75;
   
-  /* Transitions */
-  --transition-fast: 0.15s ease-in-out;
-  --transition-normal: 0.3s ease-in-out;
-  --transition-slow: 0.5s ease-in-out;
+  /* ==================== SPACING ==================== */
   
-  /* Z-index */
+  --spacing-xs: 0.25rem;  /* 4px */
+  --spacing-sm: 0.5rem;   /* 8px */
+  --spacing-md: 1rem;     /* 16px */
+  --spacing-lg: 1.5rem;   /* 24px */
+  --spacing-xl: 2rem;     /* 32px */
+  --spacing-2xl: 3rem;    /* 48px */
+  --spacing-3xl: 4rem;    /* 64px */
+  
+  /* ==================== SHADOWS ==================== */
+  
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.15);
+  --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.15);
+  --shadow-primary: 0 4px 12px rgba(59, 101, 53, 0.3);
+  --shadow-secondary: 0 4px 12px rgba(240, 146, 76, 0.3);
+  
+  /* ==================== TRANSITIONS ==================== */
+  
+  --transition-fast: 0.15s ease-in-out;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease-in-out;
+  --transition-all: all 0.3s ease;
+  --transition-transform: transform 0.3s ease;
+  --transition-colors: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  
+  /* ==================== Z-INDEX ==================== */
+  
   --z-dropdown: 1000;
   --z-sticky: 1020;
   --z-fixed: 1030;
@@ -84,36 +118,12 @@
   --z-modal: 1050;
   --z-popover: 1060;
   --z-tooltip: 1070;
-}
-
-/* Dark theme variables */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text-color: #ffffff;
-    --text-muted: #cccccc;
-    --text-light: #999999;
-    
-    --background-primary: #1a1a1a;
-    --background-secondary: #2d2d2d;
-    --background-light: #333333;
-    --background-muted: #404040;
-    
-    --card-bg: #2d2d2d;
-    --input-bg: #333333;
-    
-    --border-color: #404040;
-    --border-light: #555555;
-    
-    --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
-  }
-}
-
-/* Responsive breakpoints */
-:root {
+  
+  /* ==================== BREAKPOINTS ==================== */
+  
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
 }
