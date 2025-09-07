@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken'); 
 const User = require('../models/Users');
+const { register, login, googleLogin } = require('../controllers/authController');
 
 // Add JWT token generator
 const generateToken = (user) => {
@@ -18,7 +19,7 @@ const generateToken = (user) => {
   );
 };
 
-// Complete rewrite of register endpoint
+// Register endpoint
 router.post('/register', async (req, res) => {
   try {
     const { firstName, lastName, email, password, userType = 'Giver' } = req.body;
@@ -91,7 +92,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Complete rewrite of login endpoint
+// Login endpoint
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -150,5 +151,7 @@ router.post('/login', async (req, res) => {
     });
   }
 });
+
+router.post('/google', googleLogin);
 
 module.exports = router;

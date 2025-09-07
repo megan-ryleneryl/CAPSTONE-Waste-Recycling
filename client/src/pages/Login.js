@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/common/Logo/logo';
 import styles from './Login.module.css';
 import axios from 'axios';
+import GoogleLoginButton from '../components/common/Button/GoogleLoginButton';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -63,6 +64,24 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle Google login success
+  const handleGoogleSuccess = (data) => {
+    console.log('Google login successful:', data);
+    
+    // Store the token and user data (adjust based on your backend response)
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    
+    // Navigate to posts
+    navigate('/posts');
+  };
+
+  // Handle Google login error
+  const handleGoogleError = (error) => {
+    console.error('Google login error:', error);
+    setError('Google login failed. Please try again.');
   };
 
   return (
@@ -127,6 +146,24 @@ const Login = () => {
             {loading ? 'Logging in...' : 'Log In'}
           </button>
         </form>
+
+        {/* Divider */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          margin: '30px 0',
+          color: '#999'
+        }}>
+          <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+          <span style={{ padding: '0 20px', fontSize: '14px' }}>OR</span>
+          <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+        </div>
+
+        {/* Google Login Button */}
+        <GoogleLoginButton 
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+        />
 
         <div className={styles.signupPrompt}>
           <p>Don't have an account?</p>

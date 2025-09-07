@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/common/Logo/logo';
 import styles from './Register.module.css';
 import axios from 'axios';
+import GoogleLoginButton from '../components/common/Button/GoogleLoginButton';
 
 const SignUp = () => {
   const [step, setStep] = useState(1);
@@ -76,6 +77,24 @@ const SignUp = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle Google signup success
+  const handleGoogleSuccess = (data) => {
+    console.log('Google signup successful:', data);
+    
+    // Store the token and user data (adjust based on your backend response)
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    
+    // Navigate to posts
+    navigate('/posts');
+  };
+
+  // Handle Google signup error
+  const handleGoogleError = (error) => {
+    console.error('Google signup error:', error);
+    setError('Google signup failed. Please try again.');
   };
 
   if (step === 1) {
@@ -210,6 +229,24 @@ const SignUp = () => {
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
+
+        {/* Add divider */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          margin: '30px 0',
+          color: '#999'
+        }}>
+          <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+          <span style={{ padding: '0 20px', fontSize: '14px' }}>OR</span>
+          <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+        </div>
+
+        {/* Add Google Signup Button */}
+        <GoogleLoginButton 
+          onSuccess={handleGoogleSuccess}
+          onError={handleGoogleError}
+        />
       </div>
     </div>
   );
