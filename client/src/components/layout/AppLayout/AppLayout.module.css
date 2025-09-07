@@ -19,10 +19,12 @@
   flex: 1;
   padding: 2rem;
   min-height: calc(100vh - 70px);
-  transition: margin-left 0.3s ease;
-  margin-left: 280px;
-  width: calc(100% - 280px);
+  transition: all 0.3s ease;
+  margin-left: 300px;
+  width: calc(100% - 300px);
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
 
 /* When sidebar is collapsed */

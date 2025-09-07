@@ -317,15 +317,21 @@
   font-weight: 600;
 }
 
+/* Had a problem with this appearing as gray on green */
 .userType {
-  background: var(--primary-color);
-  color: #B3F2AC;;
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  font-family: var(--font-family-primary);
-  display: inline-block;
+  background: var(--primary-color) !important;
+  color: var(--text-on-primary) !important;
+  padding: 0.25rem 0.75rem !important;
+  border-radius: 12px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  font-family: var(--font-family-primary) !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  text-transform: capitalize !important;
+  border: none !important;
+  text-decoration: none !important;
+  line-height: 1.2 !important;
 }
 
 /* Dropdown Divider */
