@@ -306,8 +306,6 @@
   margin-top: 0.75rem;
   font-size: 0.85rem;
   font-family: var(--font-family-primary);
-  justify-content: center;
-  align-items: center;
 }
 
 .userStats span {

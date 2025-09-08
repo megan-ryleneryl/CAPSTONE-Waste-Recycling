@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Profile.module.css';
@@ -53,23 +53,6 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
                 className={styles.input}
                 required
               />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Organization Location</label>
-              <select
-                name="organizationLocation"
-                value={formData.organizationLocation}
-                onChange={handleInputChange}
-                className={styles.select}
-                required
-              >
-                <option value="">Select Location</option>
-                <option value="Metro Manila">Metro Manila</option>
-                <option value="Luzon">Luzon</option>
-                <option value="Visayas">Visayas</option>
-                <option value="Mindanao">Mindanao</option>
-              </select>
             </div>
 
             <div className={styles.formGroup}>
@@ -180,19 +163,107 @@ const CollectorForm = ({ onClose, onSubmit }) => {
 // Component for Edit Profile Form
 const EditProfileForm = ({ user, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
-    userName: `${user.firstName} ${user.lastName}`,
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
     phone: user.phone || '',
-    address: user.address || ''
+    profilePicture: null
   });
+  const [previewUrl, setPreviewUrl] = useState(user.profilePicture || null);
+  const fileInputRef = useRef(null);
+
+  // Format phone number: 09XX XXX XXXX
+  const formatPhoneNumber = (value) => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 11 digits
+    const limited = digits.slice(0, 11);
+    
+    // Format as 09XX XXX XXXX
+    if (limited.length <= 4) {
+      return limited;
+    } else if (limited.length <= 7) {
+      return `${limited.slice(0, 4)} ${limited.slice(4)}`;
+    } else {
+      return `${limited.slice(0, 4)} ${limited.slice(4, 7)} ${limited.slice(7)}`;
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    
+    if (name === 'phone') {
+      // Ensure it starts with 09
+      let phoneValue = value.replace(/\D/g, ''); // Remove non-digits
+      
+      if (phoneValue.length > 0 && !phoneValue.startsWith('09')) {
+        // If user tries to type something other than 09 at the start
+        if (phoneValue.length === 1 && phoneValue !== '0') {
+          phoneValue = '09' + phoneValue;
+        } else if (phoneValue.length === 2 && !phoneValue.startsWith('09')) {
+          phoneValue = '09' + phoneValue.slice(1);
+        }
+      }
+      
+      const formatted = formatPhoneNumber(phoneValue);
+      setFormData({ ...formData, [name]: formatted });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        alert('Please upload a valid image file (JPEG, PNG, or GIF)');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size should be less than 5MB');
+        return;
+      }
+      
+      setFormData({ ...formData, profilePicture: file });
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Validate phone number
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits && phoneDigits.length !== 11) {
+      alert('Phone number must be exactly 11 digits');
+      return;
+    }
+    if (phoneDigits && !phoneDigits.startsWith('09')) {
+      alert('Phone number must start with 09');
+      return;
+    }
+    
+    // Create FormData for file upload
+    const submitData = new FormData();
+    submitData.append('firstName', formData.firstName);
+    submitData.append('lastName', formData.lastName);
+    submitData.append('phone', formData.phone);
+    
+    if (formData.profilePicture) {
+      submitData.append('profilePicture', formData.profilePicture);
+    }
+    
+    onSubmit(submitData);
   };
 
   const handleBackdropClick = (e) => {
@@ -201,32 +272,81 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
     }
   };
 
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
       <div className={styles.modal}>
         <div className={styles.modalContent}>
           <div className={styles.modalHeader}>
             <button onClick={onClose} className={styles.closeButton}>×</button>
-            <div className={styles.profileIcon}>
-              <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                <circle cx="40" cy="40" r="40" fill="#E0E0E0"/>
-                <circle cx="40" cy="30" r="15" fill="#666"/>
-                <ellipse cx="40" cy="65" rx="25" ry="20" fill="#666"/>
-              </svg>
+            <h2>Edit Profile</h2>
+          </div>
+          
+          {/* Profile Picture Section */}
+          <div className={styles.profilePictureSection}>
+            <div className={styles.profilePictureContainer}>
+              {previewUrl ? (
+                <img 
+                  src={previewUrl} 
+                  alt="Profile" 
+                  className={styles.profilePicturePreview}
+                />
+              ) : (
+                <div className={styles.profilePicturePlaceholder}>
+                  <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                    <circle cx="40" cy="40" r="40" fill="#E0E0E0"/>
+                    <circle cx="40" cy="30" r="15" fill="#666"/>
+                    <ellipse cx="40" cy="65" rx="25" ry="20" fill="#666"/>
+                  </svg>
+                </div>
+              )}
+              <button 
+                type="button" 
+                className={styles.changePictureButton}
+                onClick={triggerFileInput}
+              >
+                Change Photo
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
             </div>
           </div>
           
           <form onSubmit={handleSubmit} className={styles.form}>
-            <div className={styles.formGroup}>
-              <label>User_Name</label>
-              <input
-                type="text"
-                name="userName"
-                value={formData.userName}
-                onChange={handleInputChange}
-                className={styles.input}
-                required
-              />
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label>First Name</label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  placeholder="Enter first name"
+                  required
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Last Name</label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  placeholder="Enter last name"
+                  required
+                />
+              </div>
             </div>
 
             <div className={styles.formGroup}>
@@ -238,25 +358,15 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
                 onChange={handleInputChange}
                 className={styles.input}
                 placeholder="09XX XXX XXXX"
-                required
+                maxLength="13" // Account for spaces in formatting
               />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label>Address</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                className={styles.input}
-                placeholder="City, Province"
-                required
-              />
+              <small className={styles.helpText}>
+                Philippine mobile number (11 digits starting with 09)
+              </small>
             </div>
 
             <button type="submit" className={styles.saveButton}>
-              Save
+              Save Changes
             </button>
           </form>
         </div>
@@ -395,40 +505,96 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     ); // Add fetchUserProfile as dependency
 
     const handleEditSubmit = async (formData) => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      // Parse userName to firstName and lastName if needed
-      const nameParts = formData.userName.split(' ');
-      const updateData = {
-        firstName: nameParts[0] || '',
-        lastName: nameParts.slice(1).join(' ') || '',
-        phone: formData.phone,
-        address: formData.address
-      };
+      try {
+        const token = localStorage.getItem('token');
+        
+        // Check if formData is FormData object (with file upload) or regular object
+        if (formData instanceof FormData) {
+          // Handle profile picture upload if present
+          if (formData.get('profilePicture')) {
+            try {
+              const pictureResponse = await axios.post(
+                'http://localhost:3001/api/protected/upload/profile-picture',
+                formData,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                  }
+                }
+              );
+              
+              if (pictureResponse.data.success && pictureResponse.data.fileUrl) {
+                // Update the user object with new profile picture
+                setUser(prev => ({ ...prev, profilePicture: pictureResponse.data.fileUrl }));
+              }
+            } catch (uploadError) {
+              console.error('Error uploading profile picture:', uploadError);
+            }
+          }
+          
+          // Now update the text fields
+          const updateData = {
+            firstName: formData.get('firstName'),
+            lastName: formData.get('lastName'),
+            phone: formData.get('phone')
+          };
+          
+          const response = await axios.put(
+            'http://localhost:3001/api/protected/profile',
+            updateData,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          if (response.data.success) {
+            const updatedUser = { ...user, ...response.data.user };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setActiveModal(null);
+            setError('');
+            alert('Profile updated successfully!');
+            
+            // Refresh profile to get latest data
+            fetchUserProfile();
+          }
+        } else {
+          // Handle old format (if still being used somewhere)
+          const nameParts = formData.userName ? formData.userName.split(' ') : [formData.firstName, formData.lastName];
+          const updateData = {
+            firstName: formData.firstName || nameParts[0] || '',
+            lastName: formData.lastName || nameParts.slice(1).join(' ') || '',
+            phone: formData.phone,
+            address: formData.address
+          };
 
-      const response = await axios.put(
-        'http://localhost:3001/api/protected/profile',
-        updateData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
+          const response = await axios.put(
+            'http://localhost:3001/api/protected/profile',
+            updateData,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
+
+          if (response.data.success) {
+            setUser(response.data.user);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            setActiveModal(null);
+            setError('');
+            alert('Profile updated successfully!');
           }
         }
-      );
-
-      if (response.data.success) {
-        setUser(response.data.user);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        setActiveModal(null);
-        setError(''); // Clear any existing errors
-        alert('Profile updated successfully!');
+      } catch (error) {
+        console.error('Error updating profile:', error);
+        setError('Failed to update profile');
       }
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      setError('Failed to update profile');
-    }
-  };
+    };
 
   const handleCollectorSubmit = async (formData) => {
     try {
@@ -517,27 +683,116 @@ const Profile = ({ user: propsUser, activeFilter }) => {
           <div className={styles.profileCard}>
             {/* Profile Header */}
             <div className={styles.profileHeader}>
-              <div className={styles.profileInfo}>
-                <div className={styles.profileAvatar}>
-                  <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                    <circle cx="30" cy="30" r="30" fill="#E0E0E0"/>
-                    <circle cx="30" cy="24" r="10" fill="#666"/>
-                    <ellipse cx="30" cy="45" rx="18" ry="15" fill="#666"/>
-                  </svg>
-                </div>
-                <div className={styles.profileDetails}>
-                  <h2>{user.firstName} {user.lastName}</h2>
-                  <span className={styles.userType}>{user.userType}</span>
-                </div>
-                <button 
-                  className={styles.editButton}
-                  onClick={() => setActiveModal('edit')}
+              <div className={styles.profileAvatar}>
+                {user?.profilePicture ? (
+                  <img 
+                    src={user.profilePicture} 
+                    alt={`${user?.firstName} ${user?.lastName}`}
+                    className={styles.avatarImage}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className={styles.avatarFallback} 
+                  style={user?.profilePicture ? {display: 'none'} : {}}
                 >
-                  Edit
-                </button>
+                  {`${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase()}
+                </div>
               </div>
-              <div className={styles.verifiedBadge}>
-                {user.status === 'verified' ? 'Verified' : 'Pending'}
+              
+              <div className={styles.profileInfo}>
+                <div className={styles.profileDetails}>
+                  <h2>
+                    {user.firstName} {user.lastName}
+                    {user?.isOrganization && (
+                      <span className={styles.organizationBadge}>
+                        Organization
+                      </span>
+                    )}
+                  </h2>
+                  
+                  {/* Display organization name if user is an organization */}
+                  {user?.isOrganization && user?.organizationName && (
+                    <p className={styles.organizationName}>
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2"
+                        style={{ marginRight: '8px' }}
+                      >
+                        <path d="M3 21h18"/>
+                        <path d="M5 21V7l8-4v18"/>
+                        <path d="M19 21V11l-6-4"/>
+                        <rect x="9" y="9" width="4" height="4"/>
+                        <rect x="9" y="14" width="4" height="4"/>
+                      </svg>
+                      {user.organizationName}
+                    </p>
+                  )}
+                  
+                  <p className={styles.email}>{user?.email}</p>
+                  
+                  {user?.phone && (
+                    <p className={styles.phone}>
+                      <svg 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2"
+                        style={{ marginRight: '8px' }}
+                      >
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                      </svg>
+                      {user.phone}
+                    </p>
+                  )}
+                  
+                  <div className={styles.statusContainer}>
+                    <span 
+                      className={styles.statusBadge}
+                      style={{
+                        backgroundColor: 
+                          user?.status === 'Verified' ? '#E8F5E9' :
+                          user?.status === 'Pending' ? '#FFF3E0' :
+                          user?.status === 'Rejected' ? '#FFEBEE' : '#FFF3E0',
+                        color: 
+                          user?.status === 'Verified' ? '#2E7D32' :
+                          user?.status === 'Pending' ? '#E65100' :
+                          user?.status === 'Rejected' ? '#C62828' : '#E65100'
+                      }}
+                    >
+                      <span 
+                        className={styles.statusDot} 
+                        style={{ 
+                          backgroundColor: 
+                            user?.status === 'Verified' ? '#2E7D32' :
+                            user?.status === 'Pending' ? '#E65100' :
+                            user?.status === 'Rejected' ? '#C62828' : '#E65100'
+                        }}
+                      ></span>
+                      {user?.status === 'Verified' ? 'Verified' :
+                      user?.status === 'Pending' ? 'Pending Verification' :
+                      user?.status === 'Rejected' ? 'Verification Rejected' : 'Pending Verification'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className={styles.profileActions}>
+                  <button 
+                    className={styles.editButton}
+                    onClick={() => setActiveModal('edit')}
+                  >
+                    Edit Profile
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -549,12 +804,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
               <div className={styles.statItem}>
                 <strong>{user.totalDonations || '50 kg'}</strong> Donations
               </div>
-            </div>
-
-            {/* Contact Info */}
-            <div className={styles.contactInfo}>
-              <p><strong>Phone number:</strong> {user.phone || 'No phone set'}</p>
-              <p><strong>Email:</strong> {user.email || ''}</p>
             </div>
 
             {/* Call to Action Cards */}

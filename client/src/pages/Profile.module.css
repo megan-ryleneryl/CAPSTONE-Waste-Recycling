@@ -39,31 +39,38 @@
 /* Profile Header */
 .profileHeader {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 1.5rem;
-  border-bottom: 2px solid #f0f0f0;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
   margin-bottom: 2rem;
 }
 
 .profileInfo {
+  flex: 1;
   display: flex;
-  align-items: center;
-  gap: 1.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
 }
 
 .profileDetails {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
+  gap: 0.5rem;
 }
 
 .profileDetails h2 {
   margin: 0;
-  font-size: 1.8rem;
-  color: #333;
+  font-size: 2rem;
   font-weight: 700;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-family: 'Raleway', sans-serif;
 }
 
 .userType {
@@ -81,18 +88,19 @@
   background: #F0924C;
   color: white;
   border: none;
-  padding: 0.6rem 1.2rem;
+  padding: 0.75rem 2rem;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   font-family: 'Raleway', sans-serif;
+  white-space: nowrap;
 }
 
 .editButton:hover {
-  background: #d97f3b;
-  transform: translateY(-1px);
+  background: #e67e2e;
+  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(240, 146, 76, 0.3);
 }
 
@@ -107,6 +115,17 @@
 }
 
 /* Stats Grid */
+.stats {
+  display: flex;
+  gap: 3rem;
+  padding: 1.5rem 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  align-items: center;
+  justify-content: center;
+}
+
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -525,6 +544,182 @@
 .submitButton:active,
 .saveButton:active {
   transform: translateY(1px);
+}
+
+.profilePictureSection {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 2rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.profilePictureContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.profilePicturePreview {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.profilePicturePlaceholder {
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.changePictureButton {
+  background: #3B6535;
+  color: #B3F2AC;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Raleway', sans-serif;
+}
+
+.changePictureButton:hover {
+  background: #2d4e29;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 101, 53, 0.3);
+}
+
+.profileActions {
+  flex-shrink: 0;
+}
+
+/* Form Row for First and Last Name */
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.helpText {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #666;
+  font-family: 'Raleway', sans-serif;
+}
+
+/* Profile Display Enhancements */
+.profileAvatar {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  flex-shrink: 0; /* Prevent avatar from shrinking */
+  margin-right: 2rem;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 5px solid #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.avatarFallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3B6535, #2d4e29);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #B3F2AC;
+  font-size: 3rem;
+  font-weight: 700;
+  border: 5px solid #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: 'Raleway', sans-serif;
+}
+
+.email {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+  font-family: 'Raleway', sans-serif;
+  text-align: left;
+}
+
+.phone {
+  display: flex;
+  align-items: center;
+  color: #666;
+  margin: 0;
+  font-size: 0.95rem;
+  font-family: 'Raleway', sans-serif;
+}
+
+.organizationBadge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: linear-gradient(135deg, #F0924C, #e67e2e);
+  color: white;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  vertical-align: middle;
+  font-family: 'Raleway', sans-serif;
+}
+
+.organizationName {
+  display: flex;
+  align-items: center;
+  color: #666;
+  font-size: 1rem;
+  margin: 0;
+  font-weight: 500;
+  font-family: 'Raleway', sans-serif;
+}
+
+.statusContainer {
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-family: 'Raleway', sans-serif;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 @keyframes slideUp {

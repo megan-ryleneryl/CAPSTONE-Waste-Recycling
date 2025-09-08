@@ -5,7 +5,6 @@ import styles from './TopNav.module.css';
 
 const TopNav = ({ user }) => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
   const [isHidden, setIsHidden] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -14,26 +13,6 @@ const TopNav = ({ user }) => {
   // Refs for detecting clicks outside dropdowns
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
-
-//   useEffect(() => {
-//     const handleScroll = () => {
-//       const currentScrollY = window.scrollY;
-      
-//       // Hide navbar when scrolling down, show when scrolling up
-//       if (currentScrollY > lastScrollY && currentScrollY > 100) {
-//         setIsHidden(true);
-//       } else {
-//         setIsHidden(false);
-//       }
-      
-//       // Add shadow when scrolled
-//       setIsScrolled(currentScrollY > 10);
-//       setLastScrollY(currentScrollY);
-//     };
-
-//     window.addEventListener('scroll', handleScroll, { passive: true });
-//     return () => window.removeEventListener('scroll', handleScroll);
-//   }, [lastScrollY]);
 
   // Handle clicks outside dropdowns
   useEffect(() => {
