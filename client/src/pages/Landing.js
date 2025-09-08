@@ -69,7 +69,7 @@ const Landing = () => {
       {/* Features Section */}
       <section id="features" className={styles.features}>
         <div className={styles.sectionContent}>
-          <h2 className={styles.sectionTitle}>Why Choose BinGo?</h2>
+          <h2 className={styles.sectionTitle}>Why Choose EcoTayo?</h2>
           <div className={styles.featureGrid}>
             <div className={styles.featureCard}>
               {/* <div className={styles.featureIcon}>🗑️</div> */}

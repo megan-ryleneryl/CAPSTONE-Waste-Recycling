@@ -1,0 +1,82 @@
+.googleButtonContainer {
+  width: 100%;
+  margin: 20px 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 25px 0;
+  color: #999;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
+}
+
+.dividerText {
+  padding: 0 20px;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #888;
+}
+
+.googleButtonWrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 24px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  color: #3c4043;
+  background: white;
+  min-width: 300px;
+  height: 44px;
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #4285f4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Override Google button styles if needed */
+.googleButtonWrapper > div {
+  margin: 0 auto !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .googleButtonWrapper {
+    width: 100%;
+  }
+  
+  .loadingState {
+    min-width: 100%;
+    max-width: 300px;
+  }
+}

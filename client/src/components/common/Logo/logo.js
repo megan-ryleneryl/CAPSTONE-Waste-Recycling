@@ -37,8 +37,8 @@ const Logo = ({ size = 'medium', showText = true, className = '' }) => {
           display: 'flex',
           alignItems: 'baseline'
         }}>
-          <span style={{ color: '#3B6535' }}>Bin</span>
-          <span style={{ color: '#F0924C' }}>Go</span>
+          <span style={{ color: '#3B6535' }}>Eco</span>
+          <span style={{ color: '#F0924C' }}>Tayo</span>
         </div>
       )}
     </div>

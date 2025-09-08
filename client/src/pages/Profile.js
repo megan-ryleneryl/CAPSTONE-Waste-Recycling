@@ -550,7 +550,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
             {/* Call to Action Cards */}
             <div className={styles.ctaSection}>
               <div className={styles.ctaCard}>
-                <p>Join BinGo as a Collector and help close the loop on recycling in your community. Claim posts, manage pickups, and turn waste into a resource. Apply now and start earning points for every successful collection!</p>
+                <p>Join EcoTayo as a Collector and help close the loop on recycling in your community. Claim posts, manage pickups, and turn waste into a resource. Apply now and start earning points for every successful collection!</p>
                 <button 
                   className={styles.ctaButton}
                   onClick={() => setActiveModal('collector')}
@@ -560,7 +560,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
               </div>
 
               <div className={styles.ctaCard}>
-                <p>Join BinGo as a Verified Organization and connect directly with thousands of givers. Showcase your projects, collect materials at scale, and build your reputation as a leader in sustainable waste management.</p>
+                <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects, collect materials at scale, and build your reputation as a leader in sustainable waste management.</p>
                 <button 
                   className={styles.ctaButton}
                   onClick={() => setActiveModal('organization')}

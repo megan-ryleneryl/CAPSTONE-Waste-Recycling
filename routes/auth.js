@@ -3,7 +3,10 @@ const router = express.Router();
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken'); 
 const User = require('../models/Users');
-const { register, login, googleLogin } = require('../controllers/authController');
+const { OAuth2Client } = require('google-auth-library');
+
+// Initialize Google OAuth client
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Add JWT token generator
 const generateToken = (user) => {
@@ -152,6 +155,81 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/google', googleLogin);
+// Google Authentication Route
+router.post('/google', async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    // Verify the Google token
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    const { email, given_name, family_name, picture } = payload;
+    
+    // Check if user exists
+    let user = await User.findByEmail(email);
+    let isNewUser = false;
+    
+    if (!user) {
+      // Create new user from Google data
+      isNewUser = true;
+      const salt = await bcrypt.genSalt(10);
+      const randomPassword = Math.random().toString(36).slice(-8);
+      const passwordHash = await bcrypt.hash(randomPassword, salt);
+      
+      const userData = {
+        firstName: given_name || '',
+        lastName: family_name || '',
+        email: email.toLowerCase().trim(),
+        passwordHash, // Random password since they're using Google
+        userType: 'Giver', // Default type
+        status: 'Verified', // Auto-verify Google users
+        points: 0,
+        badges: [],
+        phone: '',
+        isOrganization: false,
+        organizationName: null,
+        preferredTimes: [],
+        preferredLocations: [],
+        createdAt: new Date(),
+        authProvider: 'google', // Track that this is a Google user
+        profilePicture: picture || null
+      };
+      
+      user = await User.create(userData);
+    }
+    
+    // Generate JWT token
+    const jwtToken = generateToken(user);
+    
+    res.json({
+      success: true,
+      message: isNewUser ? 'Account created successfully via Google' : 'Login successful',
+      token: jwtToken,
+      isNewUser,
+      user: {
+        userID: user.userID,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        status: user.status,
+        points: user.points,
+        badges: user.badges,
+        profilePicture: user.profilePicture
+      }
+    });
+  } catch (error) {
+    console.error('Google authentication error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Google authentication failed',
+      error: error.message 
+    });
+  }
+});
 
 module.exports = router;

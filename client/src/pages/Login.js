@@ -147,22 +147,18 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Divider */}
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          margin: '30px 0',
-          color: '#999'
-        }}>
-          <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
-          <span style={{ padding: '0 20px', fontSize: '14px' }}>OR</span>
-          <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
-        </div>
-
         {/* Google Login Button */}
         <GoogleLoginButton 
-          onSuccess={handleGoogleSuccess}
-          onError={handleGoogleError}
+          onSuccess={(data) => {
+            console.log('Google login successful:', data);
+            // Navigate to posts or dashboard
+            navigate('/posts');
+          }}
+          onError={(errorMessage) => {
+            setError(errorMessage);
+          }}
+          text="signin_with"
+          isRegister={false}
         />
 
         <div className={styles.signupPrompt}>

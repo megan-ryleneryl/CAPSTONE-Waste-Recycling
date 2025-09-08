@@ -13,7 +13,7 @@
   overflow: hidden;
 }
 
-/* BinGo Primary - Dark Green */
+/* EcoTayo Primary - Dark Green */
 .primary {
   background-color: #3B6535;
   color: #B3F2AC;
@@ -25,7 +25,7 @@
   box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
 }
 
-/* BinGo Secondary - Orange */
+/* EcoTayo Secondary - Orange */
 .secondary {
   background-color: #F0924C;
   color: white;
