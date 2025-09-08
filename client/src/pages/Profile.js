@@ -271,7 +271,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState(null);
-  const [editForm, setEditForm] = useState({
+  const [setEditForm] = useState({
     firstName: '',
     lastName: '',
     phone: '',
@@ -339,7 +339,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     };
   }, [activeModal]);
 
-    const fetchUserProfile = async () => {
+    const fetchUserProfile = useCallback(async () => {
     try {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
@@ -384,108 +384,12 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       } finally {
         setLoading(false);
       }
-    };
+    }, [navigate]);
 
       useEffect(() => {
         fetchUserProfile();
       }, [fetchUserProfile]
     ); // Add fetchUserProfile as dependency
-
-  const handleEditProfile = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await axios.put(
-        'http://localhost:3001/api/protected/profile',
-        editForm,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.data.success) {
-        const updatedUser = response.data.user;
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        setActiveModal(null);
-        alert('Profile updated successfully!');
-      }
-    } catch (err) {
-      setError('Failed to update profile');
-      console.error('Update error:', err);
-    }
-  };
-
-  const handleCollectorApplication = async (formData) => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await axios.post(
-        'http://localhost:3001/api/protected/applications',
-        {
-          type: 'collector',
-          businessJustification: formData.businessJustification,
-          mrfProof: formData.mrfProof?.name || 'document.pdf'
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.data.success) {
-        alert('Application submitted successfully!');
-        setActiveModal(null);
-      }
-    } catch (err) {
-      setError('Failed to submit application');
-      console.error('Application error:', err);
-    }
-  };
-
-  const handleOrganizationApplication = async (formData) => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await axios.post(
-        'http://localhost:3001/api/protected/applications',
-        {
-          type: 'organization',
-          organizationName: formData.organizationName,
-          organizationLocation: formData.organizationLocation,
-          reason: formData.reason,
-          proofDocument: formData.proofDocument?.name || 'document.pdf'
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.data.success) {
-        alert('Application submitted successfully!');
-        setActiveModal(null);
-      }
-    } catch (err) {
-      setError('Failed to submit application');
-      console.error('Application error:', err);
-    }
-  };
-
-  const handleLogout = () => {
-    // Clear all authentication data (matching your other components)
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('rememberedUser');
-    
-    // Navigate to login page
-    navigate('/login');
-  };
 
   if (loading) {
     return (
@@ -593,7 +497,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     user={user}
                     onClose={() => setActiveModal(null)}
                     onSubmit={(data) => {
-                      console.log('Edit profile:', data);
                       setActiveModal(null);
                     }}
                   />
@@ -603,7 +506,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                   <CollectorForm
                     onClose={() => setActiveModal(null)}
                     onSubmit={(data) => {
-                      console.log('Collector application:', data);
                       setActiveModal(null);
                     }}
                   />
@@ -613,7 +515,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                   <OrganizationForm
                     onClose={() => setActiveModal(null)}
                     onSubmit={(data) => {
-                      console.log('Organization application:', data);
                       setActiveModal(null);
                     }}
                   />

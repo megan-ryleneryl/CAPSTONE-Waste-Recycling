@@ -167,12 +167,6 @@ router.post('/google', async (req, res) => {
     });
     
     const payload = ticket.getPayload();
-    console.log('Google payload received:', {
-      email: payload.email,
-      given_name: payload.given_name,
-      family_name: payload.family_name,
-      name: payload.name
-    });
     
     const { email, given_name, family_name, name, picture } = payload;
     
@@ -245,9 +239,7 @@ router.post('/google', async (req, res) => {
     // Final safety check - ensure names are not empty
     firstName = (firstName || '').trim() || 'User';
     lastName = (lastName || '').trim() || '.';
-    
-    console.log('Processed names:', { firstName, lastName });
-    
+      
     // Check if user exists
     let user = await User.findByEmail(email);
     let isNewUser = false;
@@ -278,13 +270,6 @@ router.post('/google', async (req, res) => {
         profilePicture: picture || null
       };
       
-      console.log('Creating Google user with data:', {
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
-        authProvider: userData.authProvider
-      });
-      
       user = await User.create(userData);
       console.log('User created successfully:', user.userID);
     } else {
@@ -298,12 +283,6 @@ router.post('/google', async (req, res) => {
     
     // Generate JWT token
     const jwtToken = generateToken(user);
-    
-    console.log('Sending response with user:', {
-      userID: user.userID,
-      firstName: user.firstName,
-      lastName: user.lastName
-    });
     
     res.json({
       success: true,

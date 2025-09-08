@@ -26,11 +26,6 @@ const GoogleLoginButton = ({
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
         
-        // If this is a new user (register flow), you might want to track that
-        if (isRegister && response.data.isNewUser) {
-          console.log('New user registered via Google');
-        }
-        
         if (onSuccess) {
           onSuccess(response.data);
         } else {

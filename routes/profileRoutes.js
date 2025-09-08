@@ -8,9 +8,7 @@ const Application = require('../models/Application');
 const authenticateUser = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
-    console.log('Auth header received:', authHeader ? 'Present' : 'Missing');
-    
+        
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ 
         success: false,
@@ -23,9 +21,7 @@ const authenticateUser = async (req, res, next) => {
     try {
       // Verify the JWT token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-      
-      console.log('Token decoded, userID:', decoded.userID);
-      
+            
       // Fetch fresh user data from database
       const user = await User.findById(decoded.userID);
       
@@ -36,9 +32,7 @@ const authenticateUser = async (req, res, next) => {
           message: 'User not found. Please login again.' 
         });
       }
-      
-      console.log('User found:', user.email);
-      
+            
       // Attach user to request object
       req.user = user;
       next();
@@ -64,9 +58,7 @@ router.use(authenticateUser);
 
 // Get current user profile
 router.get('/', async (req, res) => {
-  try {
-    console.log('Profile request for user:', req.user?.email);
-    
+  try {    
     // req.user is already set by the authentication middleware
     // and contains fresh data from the database
     if (!req.user) {
@@ -99,7 +91,6 @@ router.get('/', async (req, res) => {
       }
     };
     
-    console.log('Sending profile data for:', profileData.user.email);
     res.json(profileData);
     
   } catch (error) {
@@ -114,9 +105,7 @@ router.get('/', async (req, res) => {
 
 // Update user profile
 router.put('/', async (req, res) => {
-  try {
-    console.log('Profile update request for user:', req.user?.email);
-    
+  try {    
     const allowedUpdates = [
       'firstName', 
       'lastName', 
@@ -133,8 +122,6 @@ router.put('/', async (req, res) => {
       }
     });
     
-    console.log('Updating fields:', Object.keys(updates));
-
     // Update user in database
     const updatedUser = await User.update(req.user.userID, updates);
     

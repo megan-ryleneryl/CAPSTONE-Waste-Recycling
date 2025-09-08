@@ -89,7 +89,6 @@ const FirebaseHelper = {
     try {
       if (adminDb) {
         // Test Firestore connection
-        console.log('Testing Firestore connection...');
         const testRef = adminDb.collection('_capstone_test').doc('connection');
         await testRef.set({ 
           timestamp: new Date(), 

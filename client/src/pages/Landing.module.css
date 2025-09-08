@@ -115,6 +115,8 @@
 
 .heroButtons {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 1rem;
   margin-bottom: 3rem;
 }
@@ -158,6 +160,8 @@
 .stats {
   display: flex;
   gap: 2rem;
+  align-items: center;
+  justify-content: center;
 }
 
 .statItem {

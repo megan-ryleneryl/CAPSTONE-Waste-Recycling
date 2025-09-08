@@ -66,24 +66,6 @@ const Login = () => {
     }
   };
 
-  // Handle Google login success
-  const handleGoogleSuccess = (data) => {
-    console.log('Google login successful:', data);
-    
-    // Store the token and user data (adjust based on your backend response)
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    
-    // Navigate to posts
-    navigate('/posts');
-  };
-
-  // Handle Google login error
-  const handleGoogleError = (error) => {
-    console.error('Google login error:', error);
-    setError('Google login failed. Please try again.');
-  };
-
   return (
     <div className={styles.container}>
       <div className={styles.loginCard}>
@@ -150,7 +132,6 @@ const Login = () => {
         {/* Google Login Button */}
         <GoogleLoginButton 
           onSuccess={(data) => {
-            console.log('Google login successful:', data);
             // Navigate to posts or dashboard
             navigate('/posts');
           }}
