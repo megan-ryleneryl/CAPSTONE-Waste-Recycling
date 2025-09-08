@@ -167,7 +167,86 @@ router.post('/google', async (req, res) => {
     });
     
     const payload = ticket.getPayload();
-    const { email, given_name, family_name, picture } = payload;
+    console.log('Google payload received:', {
+      email: payload.email,
+      given_name: payload.given_name,
+      family_name: payload.family_name,
+      name: payload.name
+    });
+    
+    const { email, given_name, family_name, name, picture } = payload;
+    
+    // Helper function to split full name intelligently
+    const splitFullName = (fullName) => {
+      if (!fullName || fullName.trim() === '') {
+        return { firstName: 'User', lastName: 'Account' };
+      }
+      
+      const nameParts = fullName.trim().split(/\s+/);
+      
+      if (nameParts.length === 1) {
+        return {
+          firstName: nameParts[0],
+          lastName: '.' // Minimal placeholder
+        };
+      } else if (nameParts.length === 2) {
+        return {
+          firstName: nameParts[0],
+          lastName: nameParts[1]
+        };
+      } else {
+        return {
+          firstName: nameParts[0],
+          lastName: nameParts.slice(1).join(' ')
+        };
+      }
+    };
+    
+    // Determine first and last names with proper logic
+    let firstName, lastName;
+    
+    // Priority 1: Use given_name and family_name if both exist
+    if (given_name && family_name) {
+      firstName = given_name;
+      lastName = family_name;
+    } 
+    // Priority 2: Use given_name if it exists (even without family_name)
+    else if (given_name) {
+      // Check if given_name contains multiple words
+      const givenNameParts = given_name.trim().split(/\s+/);
+      if (givenNameParts.length > 1) {
+        // Split the given_name if it contains full name
+        firstName = givenNameParts[0];
+        lastName = givenNameParts.slice(1).join(' ');
+      } else {
+        firstName = given_name;
+        lastName = family_name || '.'; // Use family_name if available, otherwise placeholder
+      }
+    }
+    // Priority 3: Use family_name only (rare case)
+    else if (family_name) {
+      firstName = family_name;
+      lastName = '.';
+    }
+    // Priority 4: Fall back to the 'name' field
+    else if (name) {
+      const splitName = splitFullName(name);
+      firstName = splitName.firstName;
+      lastName = splitName.lastName;
+    }
+    // Priority 5: Extract from email as last resort
+    else {
+      const emailName = email.split('@')[0];
+      const splitEmail = splitFullName(emailName.replace(/[._-]/g, ' '));
+      firstName = splitEmail.firstName;
+      lastName = splitEmail.lastName;
+    }
+    
+    // Final safety check - ensure names are not empty
+    firstName = (firstName || '').trim() || 'User';
+    lastName = (lastName || '').trim() || '.';
+    
+    console.log('Processed names:', { firstName, lastName });
     
     // Check if user exists
     let user = await User.findByEmail(email);
@@ -177,15 +256,15 @@ router.post('/google', async (req, res) => {
       // Create new user from Google data
       isNewUser = true;
       const salt = await bcrypt.genSalt(10);
-      const randomPassword = Math.random().toString(36).slice(-8);
+      const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
       const passwordHash = await bcrypt.hash(randomPassword, salt);
       
       const userData = {
-        firstName: given_name || '',
-        lastName: family_name || '',
+        firstName: firstName,
+        lastName: lastName,
         email: email.toLowerCase().trim(),
-        passwordHash, // Random password since they're using Google
-        userType: 'Giver', // Default type
+        passwordHash,
+        userType: 'Giver',
         status: 'Verified', // Auto-verify Google users
         points: 0,
         badges: [],
@@ -195,15 +274,36 @@ router.post('/google', async (req, res) => {
         preferredTimes: [],
         preferredLocations: [],
         createdAt: new Date(),
-        authProvider: 'google', // Track that this is a Google user
+        authProvider: 'google',
         profilePicture: picture || null
       };
       
+      console.log('Creating Google user with data:', {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        authProvider: userData.authProvider
+      });
+      
       user = await User.create(userData);
+      console.log('User created successfully:', user.userID);
+    } else {
+      // Update existing user's profile picture if provided
+      if (picture && !user.profilePicture) {
+        await User.update(user.userID, { profilePicture: picture });
+        user.profilePicture = picture;
+      }
+      console.log('Existing user found:', user.userID);
     }
     
     // Generate JWT token
     const jwtToken = generateToken(user);
+    
+    console.log('Sending response with user:', {
+      userID: user.userID,
+      firstName: user.firstName,
+      lastName: user.lastName
+    });
     
     res.json({
       success: true,

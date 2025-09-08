@@ -1,15 +1,75 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/Users');
+const jwt = require('jsonwebtoken');
 const Application = require('../models/Application');
+
+// Authentication middleware specific for profile routes
+const authenticateUser = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    console.log('Auth header received:', authHeader ? 'Present' : 'Missing');
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided. Please login.' 
+      });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    
+    try {
+      // Verify the JWT token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      console.log('Token decoded, userID:', decoded.userID);
+      
+      // Fetch fresh user data from database
+      const user = await User.findById(decoded.userID);
+      
+      if (!user) {
+        console.log('User not found for ID:', decoded.userID);
+        return res.status(401).json({ 
+          success: false,
+          message: 'User not found. Please login again.' 
+        });
+      }
+      
+      console.log('User found:', user.email);
+      
+      // Attach user to request object
+      req.user = user;
+      next();
+    } catch (jwtError) {
+      console.error('JWT verification error:', jwtError.message);
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid or expired token. Please login again.' 
+      });
+    }
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    return res.status(500).json({ 
+      success: false,
+      message: 'Authentication error',
+      error: error.message 
+    });
+  }
+};
+
+// Apply authentication middleware to all routes in this router
+router.use(authenticateUser);
 
 // Get current user profile
 router.get('/', async (req, res) => {
   try {
-    // req.user is set by the authentication middleware
-    const user = await User.findById(req.user.userID);
+    console.log('Profile request for user:', req.user?.email);
     
-    if (!user) {
+    // req.user is already set by the authentication middleware
+    // and contains fresh data from the database
+    if (!req.user) {
       return res.status(404).json({ 
         success: false, 
         message: 'User not found' 
@@ -17,25 +77,31 @@ router.get('/', async (req, res) => {
     }
 
     // Return user profile data
-    res.json({
+    const profileData = {
       success: true,
       user: {
-        userID: user.userID,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone || '',
-        address: user.address || '',
-        userType: user.userType,
-        status: user.status || 'pending',
-        isOrganization: user.isOrganization || false,
-        organizationName: user.organizationName || '',
-        points: user.points || 0,
-        totalDonations: user.totalDonations || 0,
-        badges: user.badges || [],
-        createdAt: user.createdAt
+        userID: req.user.userID,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        email: req.user.email,
+        phone: req.user.phone || '',
+        address: req.user.address || '',
+        userType: req.user.userType,
+        status: req.user.status || 'Pending',
+        isOrganization: req.user.isOrganization || false,
+        organizationName: req.user.organizationName || '',
+        points: req.user.points || 0,
+        totalDonations: req.user.totalDonations || 0,
+        badges: req.user.badges || [],
+        profilePicture: req.user.profilePicture || null,
+        authProvider: req.user.authProvider || 'email',
+        createdAt: req.user.createdAt
       }
-    });
+    };
+    
+    console.log('Sending profile data for:', profileData.user.email);
+    res.json(profileData);
+    
   } catch (error) {
     console.error('Profile fetch error:', error);
     res.status(500).json({ 
@@ -49,6 +115,8 @@ router.get('/', async (req, res) => {
 // Update user profile
 router.put('/', async (req, res) => {
   try {
+    console.log('Profile update request for user:', req.user?.email);
+    
     const allowedUpdates = [
       'firstName', 
       'lastName', 
@@ -64,6 +132,8 @@ router.put('/', async (req, res) => {
         updates[key] = req.body[key];
       }
     });
+    
+    console.log('Updating fields:', Object.keys(updates));
 
     // Update user in database
     const updatedUser = await User.update(req.user.userID, updates);
@@ -79,13 +149,12 @@ router.put('/', async (req, res) => {
         phone: updatedUser.phone || '',
         address: updatedUser.address || '',
         userType: updatedUser.userType,
-        status: updatedUser.status || 'pending',
-        isOrganization: updatedUser.isOrganization || false,
-        organizationName: updatedUser.organizationName || '',
-        points: updatedUser.points || 0,
-        totalDonations: updatedUser.totalDonations || 0,
-        badges: updatedUser.badges || [],
-        createdAt: updatedUser.createdAt
+        status: updatedUser.status,
+        isOrganization: updatedUser.isOrganization,
+        organizationName: updatedUser.organizationName,
+        points: updatedUser.points,
+        badges: updatedUser.badges,
+        profilePicture: updatedUser.profilePicture
       }
     });
   } catch (error) {
