@@ -66,9 +66,9 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
               >
                 <option value="">Select Location</option>
                 <option value="Metro Manila">Metro Manila</option>
-                <option value="Cebu">Cebu</option>
-                <option value="Davao">Davao</option>
-                <option value="Other">Other</option>
+                <option value="Luzon">Luzon</option>
+                <option value="Visayas">Visayas</option>
+                <option value="Mindanao">Mindanao</option>
               </select>
             </div>
 
@@ -79,7 +79,8 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
                 value={formData.reason}
                 onChange={handleInputChange}
                 className={styles.textarea}
-                rows="4"
+                rows="5"
+                placeholder="Explain why your organization wants to join..."
                 required
               />
             </div>
@@ -126,7 +127,6 @@ const CollectorForm = ({ onClose, onSubmit }) => {
     onSubmit(formData);
   };
 
-  // Handle click outside modal
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -139,7 +139,7 @@ const CollectorForm = ({ onClose, onSubmit }) => {
         <div className={styles.modalContent}>
           <div className={styles.modalHeader}>
             <button onClick={onClose} className={styles.closeButton}>×</button>
-            <h2>Apply for Collector</h2>
+            <h2>Apply to be a Collector</h2>
           </div>
           
           <form onSubmit={handleSubmit} className={styles.form}>
@@ -157,7 +157,7 @@ const CollectorForm = ({ onClose, onSubmit }) => {
             </div>
 
             <div className={styles.formGroup}>
-              <label>Proof of MRF (Document Upload)</label>
+              <label>Proof of Business Identity (Document Upload)</label>
               <input
                 type="file"
                 onChange={handleFileChange}
@@ -265,114 +265,13 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
   );
 };
 
-const handleEditSubmit = async (formData) => {
-  try {
-    const token = localStorage.getItem('token');
-    
-    // Parse userName to firstName and lastName if needed
-    const nameParts = formData.userName.split(' ');
-    const updateData = {
-      firstName: nameParts[0] || '',
-      lastName: nameParts.slice(1).join(' ') || '',
-      phone: formData.phone,
-      address: formData.address
-    };
-
-    const response = await axios.put(
-      'http://localhost:3001/api/protected/profile',
-      updateData,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }
-    );
-
-    if (response.data.success) {
-      setUser(response.data.user);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      setActiveModal(null);
-      // Show success message
-      alert('Profile updated successfully!');
-    }
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    setError('Failed to update profile');
-  }
-};
-
-const handleCollectorSubmit = async (formData) => {
-  try {
-    const token = localStorage.getItem('token');
-
-    // Create FormData for file upload
-    const submitData = new FormData();
-    submitData.append('businessJustification', formData.businessJustification);
-    if (formData.mrfProof) {
-      submitData.append('mrfProof', formData.mrfProof);
-    }
-    
-    const response = await axios.post(
-      'http://localhost:3001/api/protected/profile/apply-collector',
-      submitData,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      }
-    );
-
-    if (response.data.success) {
-      setActiveModal(null);
-      alert('Collector application submitted successfully! Please wait for approval.');
-      // Refresh profile to reflect pending status
-      fetchUserProfile();
-    }
-  } catch (error) {
-    console.error('Error submitting collector application:', error);
-    setError(error.response?.data?.message || 'Failed to submit application');
-  }
-};
-
-const handleOrganizationSubmit = async (formData) => {
-  try {
-    const token = localStorage.getItem('token');
-    
-    const response = await axios.post(
-      'http://localhost:3001/api/protected/profile/apply-organization',
-      {
-        organizationName: formData.organizationName,
-        organizationLocation: formData.organizationLocation,
-        reason: formData.reason,
-        proofDocument: formData.proofDocument // Handle file upload if needed
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }
-    );
-
-    if (response.data.success) {
-      setActiveModal(null);
-      alert('Organization application submitted successfully! Please wait for approval.');
-      // Refresh profile to reflect pending status
-      fetchUserProfile();
-    }
-  } catch (error) {
-    console.error('Error submitting organization application:', error);
-    setError(error.response?.data?.message || 'Failed to submit application');
-  }
-};
-
 // Main Profile Component
 const Profile = ({ user: propsUser, activeFilter }) => {
   const [user, setUser] = useState(propsUser || null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState(null);
-  const [setEditForm] = useState({
+  const [editForm, setEditForm] = useState({
     firstName: '',
     lastName: '',
     phone: '',
@@ -442,55 +341,161 @@ const Profile = ({ user: propsUser, activeFilter }) => {
 
     const fetchUserProfile = useCallback(async () => {
     try {
-        const token = localStorage.getItem('token');
-        const userData = localStorage.getItem('user');
-        
-        if (!token || !userData) {
-          navigate('/login');
-          return;
-        }
-
-        try {
-          const response = await axios.get('http://localhost:3001/api/protected/profile', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.data.success) {
-            const profileData = response.data.user;
-            setUser(profileData);
-            setEditForm({
-              firstName: profileData.firstName || '',
-              lastName: profileData.lastName || '',
-              phone: profileData.phone || '',
-              address: profileData.address || ''
-            });
-            localStorage.setItem('user', JSON.stringify(profileData));
-          }
-        } catch (apiError) {
-          console.log('Using cached user data');
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-          setEditForm({
-            firstName: parsedUser.firstName || '',
-            lastName: parsedUser.lastName || '',
-            phone: parsedUser.phone || '',
-            address: parsedUser.address || ''
-          });
-        }
-      } catch (err) {
-        console.error('Error loading profile:', err);
-        setError('Failed to load profile');
-      } finally {
-        setLoading(false);
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      
+      if (!token || !userData) {
+        navigate('/login');
+        return;
       }
-    }, [navigate]);
+
+      // Clear any previous errors when fetching
+      setError('');
+
+      try {
+        const response = await axios.get('http://localhost:3001/api/protected/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.data.success) {
+          const profileData = response.data.user;
+          setUser(profileData);
+          setEditForm({
+            firstName: profileData.firstName || '',
+            lastName: profileData.lastName || '',
+            phone: profileData.phone || '',
+            address: profileData.address || ''
+          });
+          localStorage.setItem('user', JSON.stringify(profileData));
+        }
+      } catch (apiError) {
+        console.log('Using cached user data');
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setEditForm({
+          firstName: parsedUser.firstName || '',
+          lastName: parsedUser.lastName || '',
+          phone: parsedUser.phone || '',
+          address: parsedUser.address || ''
+        });
+      }
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      setError('Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
 
       useEffect(() => {
         fetchUserProfile();
       }, [fetchUserProfile]
     ); // Add fetchUserProfile as dependency
+
+    const handleEditSubmit = async (formData) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Parse userName to firstName and lastName if needed
+      const nameParts = formData.userName.split(' ');
+      const updateData = {
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
+        phone: formData.phone,
+        address: formData.address
+      };
+
+      const response = await axios.put(
+        'http://localhost:3001/api/protected/profile',
+        updateData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setUser(response.data.user);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        setActiveModal(null);
+        setError(''); // Clear any existing errors
+        alert('Profile updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setError('Failed to update profile');
+    }
+  };
+
+  const handleCollectorSubmit = async (formData) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      // Create FormData for file upload
+      const submitData = new FormData();
+      submitData.append('businessJustification', formData.businessJustification);
+      if (formData.mrfProof) {
+        submitData.append('mrfProof', formData.mrfProof);
+      }
+      
+      const response = await axios.post(
+        'http://localhost:3001/api/protected/profile/apply-collector',
+        submitData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setActiveModal(null);
+        setError(''); // Clear any existing errors
+        alert('Collector application submitted successfully! Please wait for approval.');
+        // Refresh profile to reflect pending status
+        fetchUserProfile();
+      }
+    } catch (error) {
+      console.error('Error submitting collector application:', error);
+      setError(error.response?.data?.message || 'Failed to submit application');
+    }
+  };
+
+  const handleOrganizationSubmit = async (formData) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.post(
+        'http://localhost:3001/api/protected/profile/apply-organization',
+        {
+          organizationName: formData.organizationName,
+          organizationLocation: formData.organizationLocation,
+          reason: formData.reason,
+          proofDocument: formData.proofDocument // Handle file upload if needed
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setActiveModal(null);
+        setError(''); // Clear any existing errors
+        alert('Organization application submitted successfully! Please wait for approval.');
+        // Refresh profile to reflect pending status
+        fetchUserProfile();
+      }
+    } catch (error) {
+      console.error('Error submitting organization application:', error);
+      setError(error.response?.data?.message || 'Failed to submit application');
+    }
+  };
 
   if (loading) {
     return (
