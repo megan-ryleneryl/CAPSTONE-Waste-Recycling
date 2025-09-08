@@ -265,6 +265,107 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
   );
 };
 
+const handleEditSubmit = async (formData) => {
+  try {
+    const token = localStorage.getItem('token');
+    
+    // Parse userName to firstName and lastName if needed
+    const nameParts = formData.userName.split(' ');
+    const updateData = {
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      phone: formData.phone,
+      address: formData.address
+    };
+
+    const response = await axios.put(
+      'http://localhost:3001/api/protected/profile',
+      updateData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    if (response.data.success) {
+      setUser(response.data.user);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setActiveModal(null);
+      // Show success message
+      alert('Profile updated successfully!');
+    }
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    setError('Failed to update profile');
+  }
+};
+
+const handleCollectorSubmit = async (formData) => {
+  try {
+    const token = localStorage.getItem('token');
+
+    // Create FormData for file upload
+    const submitData = new FormData();
+    submitData.append('businessJustification', formData.businessJustification);
+    if (formData.mrfProof) {
+      submitData.append('mrfProof', formData.mrfProof);
+    }
+    
+    const response = await axios.post(
+      'http://localhost:3001/api/protected/profile/apply-collector',
+      submitData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+
+    if (response.data.success) {
+      setActiveModal(null);
+      alert('Collector application submitted successfully! Please wait for approval.');
+      // Refresh profile to reflect pending status
+      fetchUserProfile();
+    }
+  } catch (error) {
+    console.error('Error submitting collector application:', error);
+    setError(error.response?.data?.message || 'Failed to submit application');
+  }
+};
+
+const handleOrganizationSubmit = async (formData) => {
+  try {
+    const token = localStorage.getItem('token');
+    
+    const response = await axios.post(
+      'http://localhost:3001/api/protected/profile/apply-organization',
+      {
+        organizationName: formData.organizationName,
+        organizationLocation: formData.organizationLocation,
+        reason: formData.reason,
+        proofDocument: formData.proofDocument // Handle file upload if needed
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    if (response.data.success) {
+      setActiveModal(null);
+      alert('Organization application submitted successfully! Please wait for approval.');
+      // Refresh profile to reflect pending status
+      fetchUserProfile();
+    }
+  } catch (error) {
+    console.error('Error submitting organization application:', error);
+    setError(error.response?.data?.message || 'Failed to submit application');
+  }
+};
+
 // Main Profile Component
 const Profile = ({ user: propsUser, activeFilter }) => {
   const [user, setUser] = useState(propsUser || null);
@@ -438,7 +539,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
             {/* Stats */}
             <div className={styles.stats}>
               <div className={styles.statItem}>
-                <strong>{user.points || 100}</strong> Points
+                <span>Points: {user.points || 0}</span>
               </div>
               <div className={styles.statItem}>
                 <strong>{user.totalDonations || '50 kg'}</strong> Donations
@@ -447,41 +548,55 @@ const Profile = ({ user: propsUser, activeFilter }) => {
 
             {/* Contact Info */}
             <div className={styles.contactInfo}>
-              <p><strong>Phone number:</strong> {user.phone || '0999 999 9999'}</p>
-              <p><strong>Address:</strong> {user.address || 'Quezon City'}</p>
+              <p><strong>Phone number:</strong> {user.phone || 'No phone set'}</p>
+              <p><strong>Email:</strong> {user.email || ''}</p>
             </div>
 
             {/* Call to Action Cards */}
             <div className={styles.ctaSection}>
-              <div className={styles.ctaCard}>
-                <p>Join EcoTayo as a Collector and help close the loop on recycling in your community. Claim posts, manage pickups, and turn waste into a resource. Apply now and start earning points for every successful collection!</p>
-                <button 
-                  className={styles.ctaButton}
-                  onClick={() => setActiveModal('collector')}
-                >
-                  Apply to be a Collector
-                </button>
-              </div>
+              {user.userType === 'Giver' && (
+                <div className={styles.ctaCard}>
+                  <p>Join EcoTayo as a Collector and help close the loop on recycling in your community. Claim posts, manage pickups, and turn waste into a resource. Apply now and start earning points for every successful collection!</p>
+                  <button 
+                    className={styles.ctaButton}
+                    onClick={() => setActiveModal('collector')}
+                  >
+                    Apply to be a Collector
+                  </button>
+                </div>
+              )}
 
-              <div className={styles.ctaCard}>
-                <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects, collect materials at scale, and build your reputation as a leader in sustainable waste management.</p>
-                <button 
-                  className={styles.ctaButton}
-                  onClick={() => setActiveModal('organization')}
-                >
-                  Apply for an Org Account
-                </button>
-              </div>
+              {!user.isOrganization && (
+                <div className={styles.ctaCard}>
+                  <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects, collect materials at scale, and build your reputation as a leader in sustainable waste management.</p>
+                  <button 
+                    className={styles.ctaButton}
+                    onClick={() => setActiveModal('organization')}
+                  >
+                    Apply for an Org Account
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Badges Section */}
             <div className={styles.badgesSection}>
               <h3>Badges:</h3>
-              <div className={styles.badgesList}>
-                <div className={styles.badgePlaceholder}></div>
-                <div className={styles.badgePlaceholder}></div>
-                <div className={styles.badgePlaceholder}></div>
-              </div>
+                <div className={styles.badgesList}>
+                  {user.badges && user.badges.length > 0 ? (
+                    user.badges.map((badge, index) => (
+                      <div key={index} className={styles.badge}>
+                        {badge.name || badge}
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className={styles.badgePlaceholder}></div>
+                      <div className={styles.badgePlaceholder}></div>
+                      <div className={styles.badgePlaceholder}></div>
+                    </>
+                  )}
+                </div>
             </div>
           </div>
         </main>
@@ -496,27 +611,21 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                   <EditProfileForm 
                     user={user}
                     onClose={() => setActiveModal(null)}
-                    onSubmit={(data) => {
-                      setActiveModal(null);
-                    }}
+                    onSubmit={handleEditSubmit}
                   />
                 )}
                 
                 {activeModal === 'collector' && (
                   <CollectorForm
                     onClose={() => setActiveModal(null)}
-                    onSubmit={(data) => {
-                      setActiveModal(null);
-                    }}
+                    onSubmit={handleCollectorSubmit} 
                   />
                 )}
-                
+
                 {activeModal === 'organization' && (
                   <OrganizationForm
                     onClose={() => setActiveModal(null)}
-                    onSubmit={(data) => {
-                      setActiveModal(null);
-                    }}
+                    onSubmit={handleOrganizationSubmit}
                   />
                 )}
               </div>
