@@ -12,6 +12,8 @@ const multer = require('multer');
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const profileRoutes = require('./routes/profileRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -77,6 +79,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/protected/profile', profileRoutes);
+
+app.use('/api/messages', messageRoutes);
 
 // ============================================================================
 // PUBLIC ROUTES (No authentication required)
