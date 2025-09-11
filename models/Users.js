@@ -10,7 +10,7 @@ class User {
     this.email = data.email || '';
     this.phone = data.phone || '';
     this.passwordHash = data.passwordHash || '';
-    this.status = data.status || 'Pending'; // Pending, Verified, Rejected
+    this.status = data.status || 'Pending'; // Pending, Verified, Submitted, Rejected
     this.userType = data.userType || ''; // Giver, Collector, Admin
     this.isOrganization = data.isOrganization || false;
     this.organizationName = data.organizationName || null;
@@ -19,21 +19,7 @@ class User {
     this.points = data.points || 0;
     this.badges = data.badges || []; // Array of {badgeId, earnedAt}
     this.createdAt = data.createdAt || new Date();
-
-    // this.userID = data.userID || '';
-    // this.firstName = data.firstName || '';
-    // this.lastName = data.lastName || '';
-    // this.email = data.email || '';
-    // this.phone = data.phone || '';
-    // this.address = data.address || '';
-    // this.userType = data.userType || 'Giver';
-    // this.status = data.status || 'pending';
-    // this.isOrganization = data.isOrganization || false;
-    // this.organizationName = data.organizationName || '';
-    // this.points = data.points || 0;
-    // this.totalDonations = data.totalDonations || 0;
-    // this.badges = data.badges || [];
-    // this.createdAt = data.createdAt || new Date();
+    this.profilePictureUrl = data.profilePictureUrl || '';
   }
 
   // Validation
@@ -46,7 +32,7 @@ class User {
     if (!this.userType || !['Giver', 'Collector', 'Admin'].includes(this.userType)) {
       errors.push('Valid user type is required');
     }
-    if (!['Pending', 'Verified', 'Rejected'].includes(this.status)) {
+    if (!['Pending', 'Verified', 'Submitted', 'Rejected'].includes(this.status)) {
       errors.push('Valid status is required');
     }
 
@@ -73,7 +59,8 @@ class User {
       preferredLocations: this.preferredLocations,
       points: this.points,
       badges: this.badges,
-      createdAt: this.createdAt
+      createdAt: this.createdAt,
+      profilePictureUrl: profilePictureUrl
     };
   }
 

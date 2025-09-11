@@ -160,6 +160,58 @@ const CollectorForm = ({ onClose, onSubmit }) => {
   );
 };
 
+// Component for Uploading Verification Documents
+const VerificationForm = ({ onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    identityProof: null
+  });
+
+  const handleFileChange = (e) => {
+    setFormData({ ...formData, identityProof: e.target.files[0] });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  return (
+    <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
+      <div className={styles.modal}>
+        <div className={styles.modalContent}>
+          <div className={styles.modalHeader}>
+            <button onClick={onClose} className={styles.closeButton}>×</button>
+            <h2>Upload Proof of Identity for Verification</h2>
+          </div>
+          
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.formGroup}>
+              <label>Proof of Identity (Document Upload)</label>
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className={styles.fileInput}
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+              />
+            </div>
+
+            <button type="submit" className={styles.submitButton}>
+              Submit
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Component for Edit Profile Form
 const EditProfileForm = ({ user, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -663,6 +715,35 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     }
   };
 
+    const handleVerificationSubmit = async (formData) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.post(
+        'http://localhost:3001/api/protected/profile/verification',
+        {
+          proofDocument: formData.proofDocument
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setActiveModal(null);
+        setError(''); // Clear any existing errors
+        alert('Verification application submitted successfully! Please wait for approval.');
+        // Refresh profile to reflect submitted status
+        fetchUserProfile();
+      }
+    } catch (error) {
+      console.error('Error submitting verification application:', error);
+      setError(error.response?.data?.message || 'Failed to submit application');
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
@@ -762,10 +843,12 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                         backgroundColor: 
                           user?.status === 'Verified' ? '#E8F5E9' :
                           user?.status === 'Pending' ? '#FFF3E0' :
+                          user?.status === 'Submitted' ? '#FFF3E0' :
                           user?.status === 'Rejected' ? '#FFEBEE' : '#FFF3E0',
                         color: 
                           user?.status === 'Verified' ? '#2E7D32' :
                           user?.status === 'Pending' ? '#E65100' :
+                          user?.status === 'Submitted' ? '#E65100' :
                           user?.status === 'Rejected' ? '#C62828' : '#E65100'
                       }}
                     >
@@ -775,11 +858,13 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                           backgroundColor: 
                             user?.status === 'Verified' ? '#2E7D32' :
                             user?.status === 'Pending' ? '#E65100' :
+                            user?.status === 'Submitted' ? '#E65100' :
                             user?.status === 'Rejected' ? '#C62828' : '#E65100'
                         }}
                       ></span>
                       {user?.status === 'Verified' ? 'Verified' :
                       user?.status === 'Pending' ? 'Pending Verification' :
+                      user?.status === 'Submitted' ? 'Waiting for Admin Approval' :
                       user?.status === 'Rejected' ? 'Verification Rejected' : 'Pending Verification'}
                     </span>
                   </div>
@@ -808,6 +893,18 @@ const Profile = ({ user: propsUser, activeFilter }) => {
 
             {/* Call to Action Cards */}
             <div className={styles.ctaSection}>
+              {user.status === 'Pending' && (
+                <div className={styles.ctaCard}>
+                  <p>Submit your proof of identity and unlock the posting, commenting, and chat features!</p>
+                  <button 
+                    className={styles.ctaButton}
+                    onClick={() => setActiveModal('verification')}
+                  >
+                    Submit your Verification
+                  </button>
+                </div>
+              )}
+              
               {user.userType === 'Giver' && (
                 <div className={styles.ctaCard}>
                   <p>Join EcoTayo as a Collector and help close the loop on recycling in your community. Claim posts, manage pickups, and turn waste into a resource. Apply now and start earning points for every successful collection!</p>
@@ -866,6 +963,13 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     user={user}
                     onClose={() => setActiveModal(null)}
                     onSubmit={handleEditSubmit}
+                  />
+                )}
+
+                {activeModal === 'verification' && (
+                  <VerificationForm
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={handleVerificationSubmit} 
                   />
                 )}
                 

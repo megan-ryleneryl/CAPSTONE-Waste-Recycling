@@ -179,10 +179,10 @@ router.post('/apply-collector', async (req, res) => {
     // Create application
     const application = await Application.create({
       userID: req.user.userID,
-      type: 'collector',
+      applicationType: 'Collector_Privilege',
       status: 'pending',
-      businessJustification,
-      mrfProof: mrfProof || 'document.pdf',
+      justification: businessJustification,
+      documents: mrfProof || 'document.pdf',
       submittedAt: new Date()
     });
 
@@ -239,12 +239,11 @@ router.post('/apply-organization', async (req, res) => {
     // Create application
     const application = await Application.create({
       userID: req.user.userID,
-      type: 'organization',
+      applicationType: 'Org_Verification',
       status: 'pending',
-      organizationName,
-      organizationLocation,
-      reason,
-      proofDocument: proofDocument || 'document.pdf',
+      organizationName: organizationName,
+      justification: reason,
+      documents: proofDocument || 'document.pdf',
       submittedAt: new Date()
     });
 
@@ -258,6 +257,38 @@ router.post('/apply-organization', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Error submitting organization application', 
+      error: error.message 
+    });
+  }
+});
+
+// Verify user account
+router.post('/verification', async (req, res) => {
+  try {
+    const { 
+      proofDocument 
+    } = req.body;
+
+    // Create application
+    const application = await Application.create({
+      userID: req.user.userID,
+      applicationType: 'Account_Verification',
+      status: 'pending',
+      justification: reason,
+      documents: proofDocument || 'document.pdf',
+      submittedAt: new Date()
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Verification application submitted successfully',
+      application 
+    });
+  } catch (error) {
+    console.error('Verification application error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error submitting verification application', 
       error: error.message 
     });
   }

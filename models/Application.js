@@ -8,6 +8,7 @@ class Application {
     this.userID = data.userID || '';
     this.applicationType = data.applicationType || ''; // Account_Verification, Org_Verification, Collector_Privilege
     this.justification = data.justification || null;
+    this.organizationName = data.organizationName || '';
     this.documents = data.documents || []; // Array of file URLs
     this.status = data.status || 'Pending'; // Pending, Approved, Rejected
     this.reviewedBy = data.reviewedBy || null;
