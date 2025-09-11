@@ -96,6 +96,10 @@
   transition: all 0.3s ease;
   font-family: 'Raleway', sans-serif;
   white-space: nowrap;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  width: auto;
+  margin-left: auto;
 }
 
 .editButton:hover {
@@ -603,6 +607,10 @@
 
 .profileActions {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
 }
 
 /* Form Row for First and Last Name */

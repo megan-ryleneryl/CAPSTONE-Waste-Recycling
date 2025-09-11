@@ -428,24 +428,6 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
   );
 };
 
-const fetchUserApplications = async () => {
-  try {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(
-      'http://localhost:3001/api/protected/profile/applications',
-      {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }
-    );
-    
-    if (response.data.success) {
-      setUserApplications(response.data.applications);
-    }
-  } catch (error) {
-    console.error('Error fetching applications:', error);
-  }
-};
-
 // Main Profile Component
 const Profile = ({ user: propsUser, activeFilter }) => {
   const [user, setUser] = useState(propsUser || null);
@@ -461,23 +443,81 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     phone: '',
     address: ''
   });
+  
   const navigate = useNavigate();
 
+  const fetchUserApplications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        'http://localhost:3001/api/protected/profile/applications',
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      if (response.data.success) {
+        setUserApplications(response.data.applications);
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    }
+  };
+
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      
+      if (!token || !userData) {
+        navigate('/login');
+        return;
+      }
+
+      setError('');
+
+      try {
+        const response = await axios.get('http://localhost:3001/api/protected/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.data.success) {
+          const profileData = response.data.user;
+          setUser(profileData);
+          setEditForm({
+            firstName: profileData.firstName || '',
+            lastName: profileData.lastName || '',
+            phone: profileData.phone || '',
+            address: profileData.address || ''
+          });
+          localStorage.setItem('user', JSON.stringify(profileData));
+        }
+      } catch (apiError) {
+        console.log('Using cached user data');
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        setEditForm({
+          firstName: parsedUser.firstName || '',
+          lastName: parsedUser.lastName || '',
+          phone: parsedUser.phone || '',
+          address: parsedUser.address || ''
+        });
+      }
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      setError('Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  // useEffect hooks
   useEffect(() => {
     fetchUserProfile();
     fetchUserApplications();
-  }, []);
-
-  // Load user data
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-      setLoading(false);
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
+  }, [fetchUserProfile]);
 
   // Handle body scroll lock
   useEffect(() => {
@@ -520,64 +560,9 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     }
     
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [activeModal]);
-
-    const fetchUserProfile = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-      
-      if (!token || !userData) {
-        navigate('/login');
-        return;
-      }
-
-      // Clear any previous errors when fetching
-      setError('');
-
-      try {
-        const response = await axios.get('http://localhost:3001/api/protected/profile', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.data.success) {
-          const profileData = response.data.user;
-          setUser(profileData);
-          setEditForm({
-            firstName: profileData.firstName || '',
-            lastName: profileData.lastName || '',
-            phone: profileData.phone || '',
-            address: profileData.address || ''
-          });
-          localStorage.setItem('user', JSON.stringify(profileData));
-        }
-      } catch (apiError) {
-        console.log('Using cached user data');
-        const parsedUser = JSON.parse(userData);
-        setUser(parsedUser);
-        setEditForm({
-          firstName: parsedUser.firstName || '',
-          lastName: parsedUser.lastName || '',
-          phone: parsedUser.phone || '',
-          address: parsedUser.address || ''
-        });
-      }
-    } catch (err) {
-      console.error('Error loading profile:', err);
-      setError('Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-      useEffect(() => {
-        fetchUserProfile();
-      }, [fetchUserProfile]
-    ); // Add fetchUserProfile as dependency
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }, [activeModal]);
 
     const handleEditSubmit = async (formData) => {
       try {

@@ -20,10 +20,6 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
     }
   }, []);
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
       ...prev,

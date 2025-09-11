@@ -7,13 +7,14 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
 
+// Import routes
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const profileRoutes = require('./routes/profileRoutes');
 const messageRoutes = require('./routes/messageRoutes');
-
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -44,16 +45,6 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
-
 // Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -63,8 +54,76 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('combined'));
 }
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting for static files
+  skip: (req) => req.path.startsWith('/uploads')
+});
+app.use('/api/', limiter);
+
+// Static file serving
+console.log('Setting up static file serving for:', path.join(__dirname, 'uploads'));
+
+// Static middleware
+app.use('/uploads', (req, res, next) => {
+  console.log('Static file request received:', req.path);
+  next();
+}, express.static(path.join(__dirname, 'uploads'), {
+  dotfiles: 'ignore',
+  index: false,
+  setHeaders: (res, path) => {
+    console.log('Setting headers for:', path);
+    // Set proper content types
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+      res.set('Content-Type', 'image/jpeg');
+    } else if (path.endsWith('.png')) {
+      res.set('Content-Type', 'image/png');
+    } else if (path.endsWith('.pdf')) {
+      res.set('Content-Type', 'application/pdf');
+    }
+    res.set('Cache-Control', 'public, max-age=31536000');
+  }
+}));
+
+app.get('/uploads/*', (req, res) => {
+  console.log('Fallback static handler hit for:', req.path);
+  
+  const filePath = path.join(__dirname, req.path);
+  console.log('Looking for file at:', filePath);
+  
+  if (!fs.existsSync(filePath)) {
+    console.log('File not found:', filePath);
+    return res.status(404).json({
+      success: false,
+      error: 'File not found',
+      requestedPath: req.path,
+      fullPath: filePath
+    });
+  }
+
+  // Determine content type
+  const ext = path.extname(filePath).toLowerCase();
+  let contentType = 'application/octet-stream';
+  
+  if (ext === '.jpg' || ext === '.jpeg') {
+    contentType = 'image/jpeg';
+  } else if (ext === '.png') {
+    contentType = 'image/png';
+  } else if (ext === '.pdf') {
+    contentType = 'application/pdf';
+  }
+
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('Cache-Control', 'public, max-age=31536000');
+  
+  console.log('Serving file successfully:', filePath);
+  res.sendFile(path.resolve(filePath));
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -79,7 +138,6 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/protected/profile', profileRoutes);
-
 app.use('/api/messages', messageRoutes);
 
 // ============================================================================
