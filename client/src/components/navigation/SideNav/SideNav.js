@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styles from './SideNav.module.css';
 
@@ -9,7 +9,16 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
     filters: true,
     actions: true
   });
+  const [user, setUser] = useState(null);
   const location = useLocation();
+
+  useEffect(() => {
+    // Get user data from localStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -29,6 +38,11 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
     { path: '/inbox', label: 'Inbox' },
     { path: '/profile', label: 'Profile' },
   ];
+
+  // Add Approvals menu for Admin users
+  if (user?.userType === 'Admin') {
+    mainNavItems.push({ path: '/admin/approvals', label: 'Approvals' });
+  }
 
   const filterOptions = [
     { id: 'all', label: 'All Posts' },

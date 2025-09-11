@@ -1,0 +1,261 @@
+.approvalsContainer {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: var(--font-family-primary);
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.header h1 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+}
+
+.filterButton,
+.filterActive {
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--border-color);
+  background: white;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-family: var(--font-family-primary);
+  transition: all 0.3s ease;
+}
+
+.filterActive {
+  background: var(--primary-color);
+  color: var(--text-on-primary);
+  border-color: var(--primary-color);
+}
+
+.filterButton:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.applicationsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.applicationCard {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.applicationCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.applicationType {
+  background: var(--secondary-color);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.applicationDate {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.cardBody {
+  margin-bottom: 1.5rem;
+}
+
+.applicantInfo {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.justification {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+}
+
+.cardActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.viewButton,
+.approveButton,
+.rejectButton {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: var(--font-family-primary);
+}
+
+.viewButton {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.viewButton:hover {
+  background: var(--border-color);
+}
+
+.approveButton {
+  background: var(--primary-color);
+  color: var(--text-on-primary);
+}
+
+.approveButton:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.rejectButton {
+  background: var(--danger-color);
+  color: white;
+}
+
+.rejectButton:hover {
+  background: #b71c1c;
+  transform: translateY(-1px);
+}
+
+.emptyState {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modalContent {
+  background: white;
+  border-radius: var(--border-radius-xl);
+  padding: 2rem;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-xl);
+}
+
+.modalContent h2 {
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 0.5rem;
+}
+
+.detailsContent {
+  margin-bottom: 1.5rem;
+}
+
+.detailsContent p {
+  margin: 0.75rem 0;
+  color: var(--text-secondary);
+}
+
+.detailsContent strong {
+  color: var(--text-primary);
+  margin-right: 0.5rem;
+}
+
+.detailsContent ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 0.5rem;
+}
+
+.detailsContent li {
+  padding: 0.25rem 0;
+}
+
+.detailsContent a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.detailsContent a:hover {
+  text-decoration: underline;
+}
+
+.closeButton {
+  background: var(--primary-color);
+  color: var(--text-on-primary);
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: var(--border-radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: var(--font-family-primary);
+  width: 100%;
+}
+
+.closeButton:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}

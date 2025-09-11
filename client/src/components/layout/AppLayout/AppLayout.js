@@ -51,6 +51,7 @@ const AppLayout = ({ children }) => {
           onFilterChange={setActiveFilter}
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={toggleSidebar}
+          user={user}
         />
         
         <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''}`}>

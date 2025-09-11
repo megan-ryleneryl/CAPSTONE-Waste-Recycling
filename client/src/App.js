@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Posts from './pages/Posts';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import Approvals from './pages/Admin/Approvals';
 import CreatePost from './pages/CreatePost';
 import AppLayout from './components/layout/AppLayout/AppLayout';
 import './App.css';
@@ -100,26 +101,16 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          
-          {/* Add more protected routes as needed */}
-          {/* <Route 
-            path="/notifications" 
-            element={
-              <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
-            } 
-          />
-          
+
+          {/* Admin Routes */}
           <Route 
-            path="/inbox" 
+            path="/admin/approvals" 
             element={
               <ProtectedRoute>
-                <Inbox />
+                <Approvals />
               </ProtectedRoute>
             } 
-          /> */}
-          
+          />          
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

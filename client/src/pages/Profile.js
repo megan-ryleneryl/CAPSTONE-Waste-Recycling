@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/common/ModalPortal';
+import ApplicationStatusTracker from '../components/ApplicationStatusTracker/ApplicationStatusTracker';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
@@ -427,12 +428,33 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
   );
 };
 
+const fetchUserApplications = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(
+      'http://localhost:3001/api/protected/profile/applications',
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+    
+    if (response.data.success) {
+      setUserApplications(response.data.applications);
+    }
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+  }
+};
+
 // Main Profile Component
 const Profile = ({ user: propsUser, activeFilter }) => {
   const [user, setUser] = useState(propsUser || null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState(null);
+  const [submittedApplication, setSubmittedApplication] = useState(null);
+  const [showStatusTracker, setShowStatusTracker] = useState(false);
+  const [userApplications, setUserApplications] = useState([]);
   const [editForm, setEditForm] = useState({
     firstName: '',
     lastName: '',
@@ -443,6 +465,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
 
   useEffect(() => {
     fetchUserProfile();
+    fetchUserApplications();
   }, []);
 
   // Load user data
@@ -657,11 +680,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       uploadData.append('businessJustification', formData.businessJustification);
       if (formData.mrfProof) {
         uploadData.append('mrfProof', formData.mrfProof);
-        console.log('File details:', {
-          name: formData.mrfProof.name,
-          size: formData.mrfProof.size,
-          type: formData.mrfProof.type
-        });
       }
       
       const response = await axios.post(
@@ -677,9 +695,12 @@ const Profile = ({ user: propsUser, activeFilter }) => {
 
       if (response.data.success) {
         setActiveModal(null);
+        setSubmittedApplication(response.data.application);
+        setShowStatusTracker(true);
         setError('');
         alert('Collector application submitted successfully! Please wait for approval.');
         fetchUserProfile();
+        fetchUserApplications();
       }
     } catch (error) {
       console.error('Error submitting collector application:', error);
@@ -708,11 +729,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       uploadData.append('reason', formData.reason);
       if (formData.proofDocument) {
         uploadData.append('proofDocument', formData.proofDocument);
-        console.log('File details:', {
-          name: formData.proofDocument.name,
-          size: formData.proofDocument.size,
-          type: formData.proofDocument.type
-        });
       }
       
       const response = await axios.post(
@@ -728,9 +744,12 @@ const Profile = ({ user: propsUser, activeFilter }) => {
 
       if (response.data.success) {
         setActiveModal(null);
+        setSubmittedApplication(response.data.application);
+        setShowStatusTracker(true);
         setError('');
         alert('Organization application submitted successfully! Please wait for approval.');
         fetchUserProfile();
+        fetchUserApplications();
       }
     } catch (error) {
       console.error('Error submitting organization application:', error);
@@ -756,11 +775,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       const uploadData = new FormData();
       if (formData.identityProof) {
         uploadData.append('proofDocument', formData.identityProof);
-        console.log('File details:', {
-          name: formData.identityProof.name,
-          size: formData.identityProof.size,
-          type: formData.identityProof.type
-        });
       } else {
         alert('Please select a document to upload');
         return;
@@ -779,6 +793,8 @@ const Profile = ({ user: propsUser, activeFilter }) => {
 
       if (response.data.success) {
         setActiveModal(null);
+        setSubmittedApplication(response.data.application);
+        setShowStatusTracker(true);
         setError(''); // Clear any existing errors
         alert('Verification application submitted successfully! Please wait for approval.');
         
@@ -789,6 +805,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       
         // Refresh profile to reflect submitted status
         fetchUserProfile();
+        fetchUserApplications();
       }
     } catch (error) {
       console.error('Error submitting verification application:', error);
@@ -939,6 +956,19 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                   >
                     Edit Profile
                   </button>
+
+                  {userApplications.length > 0 && (
+                    <button
+                      className={styles.statusButton}
+                      onClick={() => {
+                        const latestApp = userApplications[userApplications.length - 1];
+                        setSubmittedApplication(latestApp);
+                        setShowStatusTracker(true);
+                      }}
+                    >
+                      View Application Status
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1048,6 +1078,16 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     onSubmit={handleOrganizationSubmit}
                   />
                 )}
+
+                {showStatusTracker && submittedApplication && (
+                  <ApplicationStatusTracker
+                    application={submittedApplication}
+                    onClose={() => {
+                      setShowStatusTracker(false);
+                      setSubmittedApplication(null);
+                    }}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -1059,6 +1099,17 @@ const Profile = ({ user: propsUser, activeFilter }) => {
         <div className={styles.errorToast}>
           {error}
         </div>
+      )}
+
+      {/* Application Status Tracker */}
+      {showStatusTracker && submittedApplication && (
+        <ApplicationStatusTracker
+          application={submittedApplication}
+          onClose={() => {
+            setShowStatusTracker(false);
+            setSubmittedApplication(null);
+          }}
+        />
       )}
     </div>
   );

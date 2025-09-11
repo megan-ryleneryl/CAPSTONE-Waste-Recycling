@@ -620,6 +620,26 @@
   font-family: 'Raleway', sans-serif;
 }
 
+.statusButton {
+  background: var(--secondary-color);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: var(--font-family-primary);
+  margin-left: 1rem;
+}
+
+.statusButton:hover {
+  background: var(--secondary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-secondary);
+}
+
 /* Profile Display Enhancements */
 .profileAvatar {
   position: relative;
