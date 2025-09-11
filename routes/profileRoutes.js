@@ -159,7 +159,7 @@ router.put('/', async (req, res) => {
 router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
   try {
     const { businessJustification } = req.body;
-    
+
     // Validate required fields
     if (!businessJustification) {
       return res.status(400).json({ 
@@ -185,13 +185,13 @@ router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
       });
     }
     
-    let documentUrl = 'document.pdf'; // Default placeholder
+    let documents = [];
     
     // Handle file upload if provided
     if (req.file) {
       try {
         const uploadResult = await StorageService.saveFile(req.file, 'applications/collector');
-        documentUrl = uploadResult.url;
+        documents.push(uploadResult.url);
       } catch (uploadError) {
         console.error('File upload error:', uploadError);
         return res.status(400).json({
@@ -203,20 +203,31 @@ router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
     }
 
     // Create application
-    const application = await Application.create({
+    const applicationData = {
       userID: req.user.userID,
       applicationType: 'Collector_Privilege',
       status: 'Pending',
       justification: businessJustification,
-      documents: [documentUrl],
-      submittedAt: new Date()
-    });
+      documents: documents,
+      submittedAt: new Date(),
+      metadata: {
+        businessJustification: businessJustification
+      }
+    };
+
+    const application = await Application.create(applicationData);
 
     res.json({ 
       success: true, 
       message: 'Collector application submitted successfully',
-      application,
-      documentUrl
+      application: {
+        applicationID: application.applicationID,
+        applicationType: application.applicationType,
+        status: application.status,
+        justification: application.justification,
+        documents: application.documents,
+        submittedAt: application.submittedAt
+      }
     });
   } catch (error) {
     console.error('Collector application error:', error);
@@ -241,7 +252,7 @@ router.post('/apply-organization', upload.single('proofDocument'), async (req, r
     if (!organizationName || !organizationLocation || !reason) {
       return res.status(400).json({ 
         success: false, 
-        message: 'All fields are required' 
+        message: 'Organization name, location, and reason are required' 
       });
     }
 
@@ -262,13 +273,13 @@ router.post('/apply-organization', upload.single('proofDocument'), async (req, r
       });
     }
     
-    let documentUrl = 'document.pdf'; // Default placeholder
+    let documents = [];
     
     // Handle file upload if provided
     if (req.file) {
       try {
         const uploadResult = await StorageService.saveFile(req.file, 'applications/organization');
-        documentUrl = uploadResult.url;
+        documents.push(uploadResult.url);
       } catch (uploadError) {
         console.error('File upload error:', uploadError);
         return res.status(400).json({
@@ -279,22 +290,37 @@ router.post('/apply-organization', upload.single('proofDocument'), async (req, r
       }
     }
 
-    // Create application
-    const application = await Application.create({
+    // Create application with proper data structure
+    const applicationData = {
       userID: req.user.userID,
       applicationType: 'Org_Verification',
       status: 'Pending',
-      organizationName: organizationName,
       justification: reason,
-      documents: [documentUrl],
-      submittedAt: new Date()
-    });
+      documents: documents,
+      submittedAt: new Date(),
+      organizationName: organizationName,
+      organizationLocation: organizationLocation,
+      metadata: {
+        organizationName: organizationName,
+        organizationLocation: organizationLocation,
+        reason: reason
+      }
+    };
+
+    const application = await Application.create(applicationData);
 
     res.json({ 
       success: true, 
       message: 'Organization application submitted successfully',
-      application,
-      documentUrl
+      application: {
+        applicationID: application.applicationID,
+        applicationType: application.applicationType,
+        status: application.status,
+        justification: application.justification,
+        organizationName: application.organizationName,
+        documents: application.documents,
+        submittedAt: application.submittedAt
+      }
     });
   } catch (error) {
     console.error('Organization application error:', error);
@@ -308,15 +334,14 @@ router.post('/apply-organization', upload.single('proofDocument'), async (req, r
 
 // Verify user account
 router.post('/verification', upload.single('proofDocument'), async (req, res) => {
-  try {
-    let documentUrl = 'document.pdf'; // Default placeholder
+  try {    
+    let documents = [];
     
     // Handle file upload if provided
     if (req.file) {
       try {
         const uploadResult = await StorageService.saveFile(req.file, 'applications/verification');
-        documentUrl = uploadResult.url;
-        console.log('Document uploaded successfully:', documentUrl);
+        documents.push(uploadResult.url);
       } catch (uploadError) {
         console.error('File upload error:', uploadError);
         return res.status(400).json({
@@ -325,48 +350,64 @@ router.post('/verification', upload.single('proofDocument'), async (req, res) =>
           error: uploadError.message
         });
       }
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Proof document is required for verification'
+      });
     }
 
     // Check if there's an existing pending verification application
     const existingApplications = await Application.findByUserID(req.user.userID);
     const pendingVerification = existingApplications.find(
-      app => app.applicationType === 'Account_Verification' && app.status === 'Pending'
+      app => app.applicationType === 'Account_Verification' && 
+             (app.status === 'Pending' || app.status === 'Submitted')
     );
 
     let application;
     
     if (pendingVerification) {
       // Update existing application with document and status
-      application = await Application.update(pendingVerification.applicationID, {
-        documents: [documentUrl],
+      const updateData = {
+        documents: documents,
         status: 'Submitted',
         submittedAt: new Date()
-      });
-      console.log('Updated existing application:', pendingVerification.applicationID);
+      };
+      
+      application = await Application.update(pendingVerification.applicationID, updateData);
     } else {
       // Create new application if none exists
-      application = await Application.create({
+      const applicationData = {
         userID: req.user.userID,
         applicationType: 'Account_Verification',
         status: 'Submitted',
         justification: 'Account verification request',
-        documents: [documentUrl],
+        documents: documents,
         submittedAt: new Date()
-      });
-      console.log('Created new application:', application.applicationID);
+      };
+      
+      application = await Application.create(applicationData);
     }
     
     // Update user status to "Submitted"
-    await User.update(req.user.userID, {
-      status: 'Submitted'
-    });
-    console.log('Updated user status to Submitted');
+    try {
+      const updatedUser = await User.update(req.user.userID, {
+        status: 'Submitted'
+      });
+    } catch (userUpdateError) {
+      console.error('Error updating user status:', userUpdateError);
+    }
 
     res.json({ 
       success: true, 
       message: 'Verification document submitted successfully',
-      application,
-      documentUrl
+      application: {
+        applicationID: application.applicationID,
+        applicationType: application.applicationType,
+        status: application.status,
+        documents: application.documents,
+        submittedAt: application.submittedAt
+      }
     });
   } catch (error) {
     console.error('Verification application error:', error);

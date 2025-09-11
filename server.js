@@ -64,7 +64,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // Serve uploaded files statically
-app.use('/uploads', serveUploads, express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -686,6 +686,9 @@ process.on('SIGINT', () => {
     process.exit(0);
   });
 });
+
+const { handleMulterError } = require('./services/storage-service');
+app.use(handleMulterError);
 
 // Start server
 const server = app.listen(PORT, () => {

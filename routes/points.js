@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/users_model');
-const Point = require('../models/point_model');
+const User = require('../models/Users');
+const Point = require('../models/Point');
 const { verifyToken } = require('../middleware/auth');
 
 // Add points to user

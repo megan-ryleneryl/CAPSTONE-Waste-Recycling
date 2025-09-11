@@ -657,6 +657,11 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       uploadData.append('businessJustification', formData.businessJustification);
       if (formData.mrfProof) {
         uploadData.append('mrfProof', formData.mrfProof);
+        console.log('File details:', {
+          name: formData.mrfProof.name,
+          size: formData.mrfProof.size,
+          type: formData.mrfProof.type
+        });
       }
       
       const response = await axios.post(
@@ -678,8 +683,18 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       }
     } catch (error) {
       console.error('Error submitting collector application:', error);
-      setError(error.response?.data?.message || 'Failed to submit application');
-    }
+      console.error('Response data:', error.response?.data);
+      
+      let errorMessage = 'Failed to submit application';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      alert(`Error: ${errorMessage}`);
+      }
   };
 
   const handleOrganizationSubmit = async (formData) => {
@@ -693,6 +708,11 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       uploadData.append('reason', formData.reason);
       if (formData.proofDocument) {
         uploadData.append('proofDocument', formData.proofDocument);
+        console.log('File details:', {
+          name: formData.proofDocument.name,
+          size: formData.proofDocument.size,
+          type: formData.proofDocument.type
+        });
       }
       
       const response = await axios.post(
@@ -714,7 +734,17 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       }
     } catch (error) {
       console.error('Error submitting organization application:', error);
-      setError(error.response?.data?.message || 'Failed to submit application');
+      console.error('Response data:', error.response?.data);
+      
+      let errorMessage = 'Failed to submit application';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      alert(`Error: ${errorMessage}`);
     }
   };
 
@@ -726,6 +756,14 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       const uploadData = new FormData();
       if (formData.identityProof) {
         uploadData.append('proofDocument', formData.identityProof);
+        console.log('File details:', {
+          name: formData.identityProof.name,
+          size: formData.identityProof.size,
+          type: formData.identityProof.type
+        });
+      } else {
+        alert('Please select a document to upload');
+        return;
       }
       
       const response = await axios.post(
@@ -743,13 +781,29 @@ const Profile = ({ user: propsUser, activeFilter }) => {
         setActiveModal(null);
         setError(''); // Clear any existing errors
         alert('Verification application submitted successfully! Please wait for approval.');
+        
+        // Update local user state immediately to reflect the status change
+        const updatedUser = { ...user, status: 'Submitted' };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      
         // Refresh profile to reflect submitted status
         fetchUserProfile();
       }
     } catch (error) {
       console.error('Error submitting verification application:', error);
-      setError(error.response?.data?.message || 'Failed to submit application');
-    }
+      console.error('Response data:', error.response?.data);
+      
+      let errorMessage = 'Failed to submit application';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+      alert(`Error: ${errorMessage}`);
+      }
   };
 
   if (loading) {
