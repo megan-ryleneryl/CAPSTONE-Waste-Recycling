@@ -1,4 +1,3 @@
-// config/firebase.js - Firebase Configuration for Capstone Project
 const { initializeApp } = require('firebase/app');
 const { getAuth } = require('firebase/auth');
 const { getFirestore } = require('firebase/firestore');

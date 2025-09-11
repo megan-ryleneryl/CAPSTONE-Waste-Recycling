@@ -310,7 +310,6 @@ router.post('/google', async (req, res) => {
       await User.update(user.userID, { profilePictureUrl: picture });
       user.profilePictureUrl = picture;
     }
-    console.log('Existing user found:', user.userID);
   }
     
     // Generate JWT token
