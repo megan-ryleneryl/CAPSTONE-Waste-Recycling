@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/Users');
 const jwt = require('jsonwebtoken');
 const Application = require('../models/Application');
+const { StorageService, upload } = require('../services/storage-service');
 
 // Authentication middleware specific for profile routes
 const authenticateUser = async (req, res, next) => {
@@ -155,11 +156,19 @@ router.put('/', async (req, res) => {
 });
 
 // Apply to be a collector
-router.post('/apply-collector', async (req, res) => {
+router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
   try {
-    const { businessJustification, mrfProof } = req.body;
+    const { businessJustification } = req.body;
     
-    // Check if user is eligible
+    // Validate required fields
+    if (!businessJustification) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Business justification is required' 
+      });
+    }
+    
+    // Check if user is a Giver
     const user = await User.findById(req.user.userID);
     
     if (!user) {
@@ -175,21 +184,39 @@ router.post('/apply-collector', async (req, res) => {
         message: 'Only Givers can apply to be Collectors' 
       });
     }
+    
+    let documentUrl = 'document.pdf'; // Default placeholder
+    
+    // Handle file upload if provided
+    if (req.file) {
+      try {
+        const uploadResult = await StorageService.saveFile(req.file, 'applications/collector');
+        documentUrl = uploadResult.url;
+      } catch (uploadError) {
+        console.error('File upload error:', uploadError);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to upload document',
+          error: uploadError.message
+        });
+      }
+    }
 
     // Create application
     const application = await Application.create({
       userID: req.user.userID,
       applicationType: 'Collector_Privilege',
-      status: 'pending',
+      status: 'Pending',
       justification: businessJustification,
-      documents: mrfProof || 'document.pdf',
+      documents: [documentUrl],
       submittedAt: new Date()
     });
 
     res.json({ 
       success: true, 
       message: 'Collector application submitted successfully',
-      application 
+      application,
+      documentUrl
     });
   } catch (error) {
     console.error('Collector application error:', error);
@@ -202,13 +229,12 @@ router.post('/apply-collector', async (req, res) => {
 });
 
 // Apply for organization account
-router.post('/apply-organization', async (req, res) => {
+router.post('/apply-organization', upload.single('proofDocument'), async (req, res) => {
   try {
     const { 
       organizationName, 
       organizationLocation, 
-      reason, 
-      proofDocument 
+      reason
     } = req.body;
     
     // Validate required fields
@@ -235,22 +261,40 @@ router.post('/apply-organization', async (req, res) => {
         message: 'User already has an organization account' 
       });
     }
+    
+    let documentUrl = 'document.pdf'; // Default placeholder
+    
+    // Handle file upload if provided
+    if (req.file) {
+      try {
+        const uploadResult = await StorageService.saveFile(req.file, 'applications/organization');
+        documentUrl = uploadResult.url;
+      } catch (uploadError) {
+        console.error('File upload error:', uploadError);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to upload document',
+          error: uploadError.message
+        });
+      }
+    }
 
     // Create application
     const application = await Application.create({
       userID: req.user.userID,
       applicationType: 'Org_Verification',
-      status: 'pending',
+      status: 'Pending',
       organizationName: organizationName,
       justification: reason,
-      documents: proofDocument || 'document.pdf',
+      documents: [documentUrl],
       submittedAt: new Date()
     });
 
     res.json({ 
       success: true, 
       message: 'Organization application submitted successfully',
-      application 
+      application,
+      documentUrl
     });
   } catch (error) {
     console.error('Organization application error:', error);
@@ -263,26 +307,66 @@ router.post('/apply-organization', async (req, res) => {
 });
 
 // Verify user account
-router.post('/verification', async (req, res) => {
+router.post('/verification', upload.single('proofDocument'), async (req, res) => {
   try {
-    const { 
-      proofDocument 
-    } = req.body;
+    let documentUrl = 'document.pdf'; // Default placeholder
+    
+    // Handle file upload if provided
+    if (req.file) {
+      try {
+        const uploadResult = await StorageService.saveFile(req.file, 'applications/verification');
+        documentUrl = uploadResult.url;
+        console.log('Document uploaded successfully:', documentUrl);
+      } catch (uploadError) {
+        console.error('File upload error:', uploadError);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to upload document',
+          error: uploadError.message
+        });
+      }
+    }
 
-    // Create application
-    const application = await Application.create({
-      userID: req.user.userID,
-      applicationType: 'Account_Verification',
-      status: 'pending',
-      justification: reason,
-      documents: proofDocument || 'document.pdf',
-      submittedAt: new Date()
+    // Check if there's an existing pending verification application
+    const existingApplications = await Application.findByUserID(req.user.userID);
+    const pendingVerification = existingApplications.find(
+      app => app.applicationType === 'Account_Verification' && app.status === 'Pending'
+    );
+
+    let application;
+    
+    if (pendingVerification) {
+      // Update existing application with document and status
+      application = await Application.update(pendingVerification.applicationID, {
+        documents: [documentUrl],
+        status: 'Submitted',
+        submittedAt: new Date()
+      });
+      console.log('Updated existing application:', pendingVerification.applicationID);
+    } else {
+      // Create new application if none exists
+      application = await Application.create({
+        userID: req.user.userID,
+        applicationType: 'Account_Verification',
+        status: 'Submitted',
+        justification: 'Account verification request',
+        documents: [documentUrl],
+        submittedAt: new Date()
+      });
+      console.log('Created new application:', application.applicationID);
+    }
+    
+    // Update user status to "Submitted"
+    await User.update(req.user.userID, {
+      status: 'Submitted'
     });
+    console.log('Updated user status to Submitted');
 
     res.json({ 
       success: true, 
-      message: 'Verification application submitted successfully',
-      application 
+      message: 'Verification document submitted successfully',
+      application,
+      documentUrl
     });
   } catch (error) {
     console.error('Verification application error:', error);

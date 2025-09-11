@@ -60,7 +60,7 @@ class User {
       points: this.points,
       badges: this.badges,
       createdAt: this.createdAt,
-      profilePictureUrl: profilePictureUrl
+      profilePictureUrl: this.profilePictureUrl
     };
   }
 

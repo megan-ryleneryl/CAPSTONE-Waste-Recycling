@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken'); 
 const User = require('../models/Users');
+const Application = require('../models/Application');
 const { OAuth2Client } = require('google-auth-library');
 
 // Initialize Google OAuth client
@@ -67,6 +68,22 @@ router.post('/register', async (req, res) => {
 
     // Create user in Firestore
     const user = await User.create(userData);
+
+    // Create an Account_Verification application for new users
+    try {
+      const application = await Application.create({
+        userID: user.userID,
+        applicationType: 'Account_Verification',
+        status: 'Pending',
+        justification: 'Initial account verification',
+        documents: [],
+        submittedAt: new Date()
+      });
+      console.log('Application created for user:', application.applicationID);
+    } catch (appError) {
+      console.error('Failed to create application:', appError.message);
+      // Don't fail the registration if application creation fails
+    }
     
     // Generate token
     const token = generateToken(user);
@@ -245,41 +262,56 @@ router.post('/google', async (req, res) => {
     let isNewUser = false;
     
     if (!user) {
-      // Create new user from Google data
-      isNewUser = true;
-      const salt = await bcrypt.genSalt(10);
-      const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-      const passwordHash = await bcrypt.hash(randomPassword, salt);
-      
-      const userData = {
-        firstName: firstName,
-        lastName: lastName,
-        email: email.toLowerCase().trim(),
-        passwordHash,
-        userType: 'Giver',
-        status: 'Verified', // Auto-verify Google users
-        points: 0,
-        badges: [],
-        phone: '',
-        isOrganization: false,
-        organizationName: null,
-        preferredTimes: [],
-        preferredLocations: [],
-        createdAt: new Date(),
-        authProvider: 'google',
-        profilePicture: picture || null
-      };
-      
-      user = await User.create(userData);
-      console.log('User created successfully:', user.userID);
-    } else {
-      // Update existing user's profile picture if provided
-      if (picture && !user.profilePicture) {
-        await User.update(user.userID, { profilePicture: picture });
-        user.profilePicture = picture;
-      }
-      console.log('Existing user found:', user.userID);
+    // Create new user from Google data
+    isNewUser = true;
+    const salt = await bcrypt.genSalt(10);
+    const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    const passwordHash = await bcrypt.hash(randomPassword, salt);
+    
+    const userData = {
+      firstName: firstName,
+      lastName: lastName,
+      email: email.toLowerCase().trim(),
+      passwordHash,
+      userType: 'Giver',
+      status: 'Pending',
+      points: 0,
+      badges: [],
+      phone: '',
+      isOrganization: false,
+      organizationName: null,
+      preferredTimes: [],
+      preferredLocations: [],
+      createdAt: new Date(),
+      authProvider: 'google',
+      profilePictureUrl: picture || null
+    };      
+    
+    user = await User.create(userData);
+    console.log('User created successfully:', user.userID);
+
+    // Create an Account_Verification application for new Google users (already verified)
+    try {
+      const application = await Application.create({
+        userID: user.userID,
+        applicationType: 'Account_Verification',
+        status: 'Pending',
+        justification: '',
+        documents: [],
+        submittedAt: new Date(),
+      });
+      console.log('Application created for Google user:', application.applicationID);
+    } catch (appError) {
+      console.error('Failed to create application for Google user:', appError.message);
     }
+  } else {
+    // Update existing user's profile picture if provided
+    if (picture && !user.profilePictureUrl) {
+      await User.update(user.userID, { profilePictureUrl: picture });
+      user.profilePictureUrl = picture;
+    }
+    console.log('Existing user found:', user.userID);
+  }
     
     // Generate JWT token
     const jwtToken = generateToken(user);
@@ -298,7 +330,7 @@ router.post('/google', async (req, res) => {
         status: user.status,
         points: user.points,
         badges: user.badges,
-        profilePicture: user.profilePicture
+        profilePictureUrl: user.profilePictureUrl
       }
     });
   } catch (error) {

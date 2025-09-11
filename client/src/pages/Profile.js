@@ -651,17 +651,17 @@ const Profile = ({ user: propsUser, activeFilter }) => {
   const handleCollectorSubmit = async (formData) => {
     try {
       const token = localStorage.getItem('token');
-
+      
       // Create FormData for file upload
-      const submitData = new FormData();
-      submitData.append('businessJustification', formData.businessJustification);
+      const uploadData = new FormData();
+      uploadData.append('businessJustification', formData.businessJustification);
       if (formData.mrfProof) {
-        submitData.append('mrfProof', formData.mrfProof);
+        uploadData.append('mrfProof', formData.mrfProof);
       }
       
       const response = await axios.post(
         'http://localhost:3001/api/protected/profile/apply-collector',
-        submitData,
+        uploadData,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -672,9 +672,8 @@ const Profile = ({ user: propsUser, activeFilter }) => {
 
       if (response.data.success) {
         setActiveModal(null);
-        setError(''); // Clear any existing errors
+        setError('');
         alert('Collector application submitted successfully! Please wait for approval.');
-        // Refresh profile to reflect pending status
         fetchUserProfile();
       }
     } catch (error) {
@@ -687,26 +686,30 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     try {
       const token = localStorage.getItem('token');
       
+      // Create FormData for file upload
+      const uploadData = new FormData();
+      uploadData.append('organizationName', formData.organizationName);
+      uploadData.append('organizationLocation', formData.organizationLocation);
+      uploadData.append('reason', formData.reason);
+      if (formData.proofDocument) {
+        uploadData.append('proofDocument', formData.proofDocument);
+      }
+      
       const response = await axios.post(
         'http://localhost:3001/api/protected/profile/apply-organization',
-        {
-          organizationName: formData.organizationName,
-          organizationLocation: formData.organizationLocation,
-          reason: formData.reason,
-          proofDocument: formData.proofDocument // Handle file upload if needed
-        },
+        uploadData,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
           }
         }
       );
 
       if (response.data.success) {
         setActiveModal(null);
-        setError(''); // Clear any existing errors
+        setError('');
         alert('Organization application submitted successfully! Please wait for approval.');
-        // Refresh profile to reflect pending status
         fetchUserProfile();
       }
     } catch (error) {
@@ -715,18 +718,23 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     }
   };
 
-    const handleVerificationSubmit = async (formData) => {
+  const handleVerificationSubmit = async (formData) => {
     try {
       const token = localStorage.getItem('token');
       
+      // Create FormData for file upload
+      const uploadData = new FormData();
+      if (formData.identityProof) {
+        uploadData.append('proofDocument', formData.identityProof);
+      }
+      
       const response = await axios.post(
         'http://localhost:3001/api/protected/profile/verification',
-        {
-          proofDocument: formData.proofDocument
-        },
+        uploadData,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
           }
         }
       );

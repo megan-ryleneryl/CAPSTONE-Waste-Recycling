@@ -24,7 +24,7 @@ class Application {
     if (!this.applicationType || !['Account_Verification', 'Org_Verification', 'Collector_Privilege'].includes(this.applicationType)) {
       errors.push('Valid application type is required');
     }
-    if (!['Pending', 'Approved', 'Rejected'].includes(this.status)) {
+    if (!['Pending', 'Submitted', 'Approved', 'Rejected'].includes(this.status)) {
       errors.push('Valid status is required');
     }
 
@@ -41,6 +41,7 @@ class Application {
       userID: this.userID,
       applicationType: this.applicationType,
       justification: this.justification,
+      organizationName: this.organizationName,
       documents: this.documents,
       status: this.status,
       reviewedBy: this.reviewedBy,
