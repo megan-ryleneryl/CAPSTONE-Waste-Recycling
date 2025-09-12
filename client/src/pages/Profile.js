@@ -431,6 +431,43 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
 
 // Application Selector Component
 const ApplicationSelector = ({ applications, onSelect, onClose }) => {
+  
+  // Helper function to format date
+  const formatDate = (date) => {
+    if (!date) return 'Date not available';
+    
+    // Handle Firestore Timestamp objects
+    let dateObj;
+    
+    if (date?.seconds) {
+      // Firestore Timestamp format
+      dateObj = new Date(date.seconds * 1000);
+    } else if (date?.toDate && typeof date.toDate === 'function') {
+      // Firestore Timestamp with toDate method
+      dateObj = date.toDate();
+    } else if (typeof date === 'string') {
+      // String date
+      dateObj = new Date(date);
+    } else if (date instanceof Date) {
+      // Already a Date object
+      dateObj = date;
+    } else {
+      // Try to parse it anyway
+      dateObj = new Date(date);
+    }
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return 'Date not available';
+    }
+    
+    return dateObj.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   return (
     <ModalPortal>
       <div className={styles.modalBackdrop} onClick={onClose}>
@@ -460,7 +497,7 @@ const ApplicationSelector = ({ applications, onSelect, onClose }) => {
                       </span>
                     </div>
                     <div className={styles.appItemDate}>
-                      Submitted: {new Date(app.submittedAt).toLocaleDateString()}
+                      Submitted: {formatDate(app.submittedAt)}
                     </div>
                   </div>
                 ))
@@ -793,7 +830,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       // Create FormData for file upload
       const uploadData = new FormData();
       uploadData.append('organizationName', formData.organizationName);
-      uploadData.append('organizationLocation', formData.organizationLocation);
       uploadData.append('reason', formData.reason);
       if (formData.proofDocument) {
         uploadData.append('proofDocument', formData.proofDocument);
@@ -815,6 +851,22 @@ const Profile = ({ user: propsUser, activeFilter }) => {
         setSubmittedApplication(response.data.application);
         setShowStatusTracker(true);
         setError('');
+
+        // Update user state to reflect organization status
+        setUser(prevUser => ({
+          ...prevUser,
+          isOrganization: true,
+          organizationName: formData.organizationName
+        }));
+        
+        // Update localStorage
+        const updatedUser = {
+          ...user,
+          isOrganization: true,
+          organizationName: formData.organizationName
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+
         alert('Organization application submitted successfully! Please wait for approval.');
         fetchUserProfile();
         fetchUserApplications();
@@ -889,6 +941,13 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       setError(errorMessage);
       alert(`Error: ${errorMessage}`);
       }
+  };
+
+  const hasPendingOrganizationApplication = () => {
+    return userApplications.some(app => 
+      app.applicationType === 'Org_Verification' && 
+      (app.status === 'Pending' || app.status === 'Submitted')
+    );
   };
 
   if (loading) {
@@ -1029,7 +1088,11 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     <button
                       className={styles.statusButton}
                       onClick={() => {
-                        setActiveModal(null);
+                        // setActiveModal(null);
+
+                        console.log('Status button clicked'); // Debug log
+                        console.log('Applications:', userApplications); // Debug log
+                        
                         if (userApplications.length === 1) {
                           // If only one application, show it directly
                           setSubmittedApplication(userApplications[0]);
@@ -1093,7 +1156,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                 </div>
               )}
 
-              {!user.isOrganization && (
+              {!user.isOrganization && !hasPendingOrganizationApplication() && (
                 <div className={styles.ctaCard}>
                   <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects, collect materials at scale, and build your reputation as a leader in sustainable waste management.</p>
                   <button 
@@ -1129,6 +1192,8 @@ const Profile = ({ user: propsUser, activeFilter }) => {
         </main>
 
       {/* MODALS RENDERED THROUGH PORTAL */}
+      
+      {/* 1. Active Modal Forms (Edit, Verification, Collector, Organization) */}
       {activeModal && (
         <ModalPortal>
           <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
@@ -1162,57 +1227,51 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     onSubmit={handleOrganizationSubmit}
                   />
                 )}
-
-                {showStatusTracker && submittedApplication && (
-                  <ApplicationStatusTracker
-                    application={submittedApplication}
-                    onClose={() => {
-                      setShowStatusTracker(false);
-                      setSubmittedApplication(null);
-                    }}
-                  />
-                )}
-
-                {showDeleteModal && (
-                  <DeleteAccountModal
-                    onClose={() => setShowDeleteModal(false)}
-                    onConfirm={handleDeleteAccount}
-                  />
-                )}
-
-                {showApplicationSelector && (
-                  <ApplicationSelector
-                    applications={userApplications}
-                    onSelect={(app) => {
-                      setSubmittedApplication(app);
-                      setShowApplicationSelector(false);
-                      setShowStatusTracker(true);
-                    }}
-                    onClose={() => setShowApplicationSelector(false)}
-                  />
-                )}
               </div>
             </div>
           </div>
         </ModalPortal>
       )}
 
-      {/* Error Message */}
-      {error && (
-        <div className={styles.errorToast}>
-          {error}
-        </div>
+      {/* 2. Application Selector Modal */}
+      {showApplicationSelector && (
+        <ApplicationSelector
+          applications={userApplications}
+          onSelect={(app) => {
+            console.log('Application selected:', app); // Debug log
+            setSubmittedApplication(app);
+            setShowApplicationSelector(false);
+            setShowStatusTracker(true);
+          }}
+          onClose={() => setShowApplicationSelector(false)}
+        />
       )}
 
-      {/* Application Status Tracker */}
+      {/* 3. Application Status Tracker Modal */}
       {showStatusTracker && submittedApplication && (
         <ApplicationStatusTracker
           application={submittedApplication}
           onClose={() => {
+            console.log('Closing status tracker'); // Debug log
             setShowStatusTracker(false);
             setSubmittedApplication(null);
           }}
         />
+      )}
+
+      {/* 4. Delete Account Modal */}
+      {showDeleteModal && (
+        <DeleteAccountModal
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDeleteAccount}
+        />
+      )}
+
+      {/* Error Message Toast */}
+      {error && (
+        <div className={styles.errorToast}>
+          {error}
+        </div>
       )}
     </div>
   );
