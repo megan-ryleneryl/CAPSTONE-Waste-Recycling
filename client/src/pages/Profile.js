@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/common/ModalPortal';
+import DeleteAccountModal from '../components/DeleteAccountModal/DeleteAccountModal';
 import ApplicationStatusTracker from '../components/ApplicationStatusTracker/ApplicationStatusTracker';
 
 // Component for Organization Application Form
@@ -428,6 +429,50 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
   );
 };
 
+// Application Selector Component
+const ApplicationSelector = ({ applications, onSelect, onClose }) => {
+  return (
+    <ModalPortal>
+      <div className={styles.modalBackdrop} onClick={onClose}>
+        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2>Your Applications</h2>
+              <button className={styles.closeButton} onClick={onClose}>×</button>
+            </div>
+            
+            <div className={styles.applicationsList}>
+              {applications.length === 0 ? (
+                <p className={styles.emptyMessage}>No applications found</p>
+              ) : (
+                applications.map((app, index) => (
+                  <div 
+                    key={app.applicationID}
+                    className={styles.applicationItem}
+                    onClick={() => onSelect(app)}
+                  >
+                    <div className={styles.appItemHeader}>
+                      <span className={styles.appType}>
+                        {app.applicationType.replace(/_/g, ' ')}
+                      </span>
+                      <span className={`${styles.appStatus} ${styles[app.status.toLowerCase()]}`}>
+                        {app.status}
+                      </span>
+                    </div>
+                    <div className={styles.appItemDate}>
+                      Submitted: {new Date(app.submittedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </ModalPortal>
+  );
+};
+
 // Main Profile Component
 const Profile = ({ user: propsUser, activeFilter }) => {
   const [user, setUser] = useState(propsUser || null);
@@ -443,6 +488,8 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     phone: '',
     address: ''
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showApplicationSelector, setShowApplicationSelector] = useState(false);
   
   const navigate = useNavigate();
 
@@ -456,8 +503,10 @@ const Profile = ({ user: propsUser, activeFilter }) => {
         }
       );
       
-      if (response.data.success) {
+      if (response.data.success && response.data.applications) {
         setUserApplications(response.data.applications);
+        // Don't automatically set submitted application for new users
+        // Only set it when user clicks to view
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -513,6 +562,37 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     }
   }, [navigate]);
 
+  const handleDeleteAccount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Call the delete endpoint
+      const response = await axios.delete(
+        'http://localhost:3001/api/protected/profile/account',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (response.data.success) {
+        // Clear local storage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('rememberedUser');
+        
+        // Redirect to landing page
+        alert('Your account has been deleted successfully.');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Failed to delete account. Please try again.');
+      setShowDeleteModal(false);
+    }
+  };
+
   // useEffect hooks
   useEffect(() => {
     fetchUserProfile();
@@ -544,6 +624,9 @@ const Profile = ({ user: propsUser, activeFilter }) => {
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       setActiveModal(null);
+      setShowStatusTracker(false);
+      setShowDeleteModal(false);
+      setShowApplicationSelector(false);
     }
   };
 
@@ -946,14 +1029,30 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     <button
                       className={styles.statusButton}
                       onClick={() => {
-                        const latestApp = userApplications[userApplications.length - 1];
-                        setSubmittedApplication(latestApp);
-                        setShowStatusTracker(true);
+                        setActiveModal(null);
+                        if (userApplications.length === 1) {
+                          // If only one application, show it directly
+                          setSubmittedApplication(userApplications[0]);
+                          setShowStatusTracker(true);
+                        } else {
+                          // Show selector for multiple applications
+                          setShowApplicationSelector(true);
+                        }
                       }}
                     >
-                      View Application Status
+                      View Application Status ({userApplications.length})
                     </button>
                   )}
+
+                  <button
+                    className={styles.deleteButton}
+                    onClick={() => {
+                      setActiveModal(null);
+                      setShowDeleteModal(true);
+                    }}
+                  >
+                    Delete Account
+                  </button>
                 </div>
               </div>
             </div>
@@ -1071,6 +1170,25 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                       setShowStatusTracker(false);
                       setSubmittedApplication(null);
                     }}
+                  />
+                )}
+
+                {showDeleteModal && (
+                  <DeleteAccountModal
+                    onClose={() => setShowDeleteModal(false)}
+                    onConfirm={handleDeleteAccount}
+                  />
+                )}
+
+                {showApplicationSelector && (
+                  <ApplicationSelector
+                    applications={userApplications}
+                    onSelect={(app) => {
+                      setSubmittedApplication(app);
+                      setShowApplicationSelector(false);
+                      setShowStatusTracker(true);
+                    }}
+                    onClose={() => setShowApplicationSelector(false)}
                   />
                 )}
               </div>

@@ -745,6 +745,92 @@
   animation: pulse 2s infinite;
 }
 
+.deleteButton {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: var(--font-family-primary);
+  margin-top: 1rem;
+}
+
+.deleteButton:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.applicationsList {
+  padding: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.applicationItem {
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.applicationItem:hover {
+  background: var(--border-color);
+  transform: translateX(4px);
+}
+
+.appItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.appType {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.appStatus {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.appStatus.pending,
+.appStatus.submitted {
+  background: #FFF3E0;
+  color: #F57C00;
+}
+
+.appStatus.approved {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.appStatus.rejected {
+  background: #FFEBEE;
+  color: #C62828;
+}
+
+.appItemDate {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.emptyMessage {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }

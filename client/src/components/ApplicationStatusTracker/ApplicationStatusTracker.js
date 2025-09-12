@@ -43,8 +43,33 @@ const ApplicationStatusTracker = ({ application, onClose }) => {
 
   const formatDate = (date) => {
     if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', {
+    
+    // Handle Firestore Timestamp objects
+    let dateObj;
+    
+    if (date.seconds) {
+      // Firestore Timestamp format
+      dateObj = new Date(date.seconds * 1000);
+    } else if (date.toDate && typeof date.toDate === 'function') {
+      // Firestore Timestamp with toDate method
+      dateObj = date.toDate();
+    } else if (typeof date === 'string') {
+      // String date
+      dateObj = new Date(date);
+    } else if (date instanceof Date) {
+      // Already a Date object
+      dateObj = date;
+    } else {
+      // Try to parse it anyway
+      dateObj = new Date(date);
+    }
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return 'Date not available';
+    }
+    
+    return dateObj.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -146,13 +171,31 @@ const ApplicationStatusTracker = ({ application, onClose }) => {
                 <div className={styles.documentsSection}>
                   <h4>Submitted Documents</h4>
                   <ul className={styles.documentsList}>
-                    {application.documents.map((doc, index) => (
-                      <li key={index}>
-                        <a href={doc} target="_blank" rel="noopener noreferrer">
-                          Document {index + 1}
-                        </a>
-                      </li>
-                    ))}
+                    {application.documents.map((doc, index) => {
+                      // Ensure the URL points to the backend server
+                      let documentUrl = doc;
+                      
+                      // If it's a relative path, prepend the server URL
+                      if (!doc.startsWith('http')) {
+                        documentUrl = `http://localhost:3001${doc.startsWith('/') ? doc : '/' + doc}`;
+                      }
+                      
+                      return (
+                        <li key={index}>
+                          <a 
+                            href={documentUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.open(documentUrl, '_blank');
+                            }}
+                          >
+                            Document {index + 1}
+                          </a>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}

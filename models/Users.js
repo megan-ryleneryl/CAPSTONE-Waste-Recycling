@@ -157,6 +157,22 @@ class User {
     }
   }
 
+  static async softDelete(userID) {
+    const db = getFirestore();
+    try {
+      const userRef = doc(db, 'users', userID);
+      const updateData = {
+        status: 'Deleted',
+      };
+      
+      await updateDoc(userRef, updateData);
+      
+      return { success: true, message: 'User soft deleted successfully' };
+    } catch (error) {
+      throw new Error(`Failed to soft delete user: ${error.message}`);
+    }
+  }
+
   // Instance methods
   async save() {
     return await User.create(this.toFirestore());

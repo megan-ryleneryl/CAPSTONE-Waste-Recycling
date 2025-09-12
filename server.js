@@ -67,62 +67,12 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // Static file serving
-console.log('Setting up static file serving for:', path.join(__dirname, 'uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Static middleware
 app.use('/uploads', (req, res, next) => {
-  console.log('Static file request received:', req.path);
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Methods', 'GET');
   next();
-}, express.static(path.join(__dirname, 'uploads'), {
-  dotfiles: 'ignore',
-  index: false,
-  setHeaders: (res, path) => {
-    console.log('Setting headers for:', path);
-    // Set proper content types
-    if (path.endsWith('.jpg') || path.endsWith('.jpeg')) {
-      res.set('Content-Type', 'image/jpeg');
-    } else if (path.endsWith('.png')) {
-      res.set('Content-Type', 'image/png');
-    } else if (path.endsWith('.pdf')) {
-      res.set('Content-Type', 'application/pdf');
-    }
-    res.set('Cache-Control', 'public, max-age=31536000');
-  }
-}));
-
-app.get('/uploads/*', (req, res) => {
-  console.log('Fallback static handler hit for:', req.path);
-  
-  const filePath = path.join(__dirname, req.path);
-  console.log('Looking for file at:', filePath);
-  
-  if (!fs.existsSync(filePath)) {
-    console.log('File not found:', filePath);
-    return res.status(404).json({
-      success: false,
-      error: 'File not found',
-      requestedPath: req.path,
-      fullPath: filePath
-    });
-  }
-
-  // Determine content type
-  const ext = path.extname(filePath).toLowerCase();
-  let contentType = 'application/octet-stream';
-  
-  if (ext === '.jpg' || ext === '.jpeg') {
-    contentType = 'image/jpeg';
-  } else if (ext === '.png') {
-    contentType = 'image/png';
-  } else if (ext === '.pdf') {
-    contentType = 'application/pdf';
-  }
-
-  res.setHeader('Content-Type', contentType);
-  res.setHeader('Cache-Control', 'public, max-age=31536000');
-  
-  console.log('Serving file successfully:', filePath);
-  res.sendFile(path.resolve(filePath));
 });
 
 // Health check endpoint

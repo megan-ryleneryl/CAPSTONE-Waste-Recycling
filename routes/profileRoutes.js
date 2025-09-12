@@ -243,16 +243,17 @@ router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
 router.post('/apply-organization', upload.single('proofDocument'), async (req, res) => {
   try {
     const { 
-      organizationName, 
-      organizationLocation, 
+      organizationName,  
       reason
     } = req.body;
+
+    console.log(organizationName + " " + reason);
     
     // Validate required fields
-    if (!organizationName || !organizationLocation || !reason) {
+    if (!organizationName || !reason) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Organization name, location, and reason are required' 
+        message: 'Organization name and reason are required' 
       });
     }
 
@@ -299,10 +300,8 @@ router.post('/apply-organization', upload.single('proofDocument'), async (req, r
       documents: documents,
       submittedAt: new Date(),
       organizationName: organizationName,
-      organizationLocation: organizationLocation,
       metadata: {
         organizationName: organizationName,
-        organizationLocation: organizationLocation,
         reason: reason
       }
     };
@@ -424,6 +423,23 @@ router.get('/applications', async (req, res) => {
   try {
     const applications = await Application.findByUserID(req.user.userID);
     
+    const applicationsWithDates = applications.map(app => {
+      const appData = app instanceof Application ? app.toFirestore() : app;
+        return {
+          ...appData,
+          submittedAt: appData.submittedAt?.toDate 
+            ? appData.submittedAt.toDate().toISOString()
+            : appData.submittedAt?.seconds 
+            ? new Date(appData.submittedAt.seconds * 1000).toISOString()
+            : appData.submittedAt,
+          reviewedAt: appData.reviewedAt?.toDate 
+            ? appData.reviewedAt.toDate().toISOString()
+            : appData.reviewedAt?.seconds 
+            ? new Date(appData.reviewedAt.seconds * 1000).toISOString()
+            : appData.reviewedAt
+        };
+      });
+
     res.json({
       success: true,
       applications
@@ -433,6 +449,45 @@ router.get('/applications', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Error fetching applications', 
+      error: error.message 
+    });
+  }
+});
+
+// Delete user account
+router.delete('/account', async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    
+    // // Delete all user's applications
+    // const applications = await Application.findByUserID(userID);
+    // for (const app of applications) {
+    //   await Application.delete(app.applicationID);
+    // }
+    
+    // // Delete all user's posts
+    // const posts = await Post.findByUserID(userID);
+    // for (const post of posts) {
+    //   await Post.delete(post.postID);
+    // }
+    
+    // // Delete all user's notifications
+    // await Notification.deleteAllByUserID(userID);
+    
+    // Delete user account
+    // await authService.deleteUser(userID);
+
+    await User.softDelete(userID);
+    
+    res.json({ 
+      success: true, 
+      message: 'Account deleted successfully' 
+    });
+  } catch (error) {
+    console.error('Account deletion error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error deleting account', 
       error: error.message 
     });
   }
