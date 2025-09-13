@@ -5,6 +5,8 @@ import styles from './Profile.module.css';
 import ModalPortal from '../components/common/ModalPortal';
 import DeleteAccountModal from '../components/DeleteAccountModal/DeleteAccountModal';
 import ApplicationStatusTracker from '../components/ApplicationStatusTracker/ApplicationStatusTracker';
+import PreferredTimesModal from '../components/Profile/PreferredTimesModal';
+import PreferredLocationsModal from '../components/Profile/PreferredLocationsModal';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
@@ -943,6 +945,78 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       }
   };
 
+  const handlePreferredTimesSubmit = async (times) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        'http://localhost:5000/api/protected/profile',
+        { preferredTimes: times },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // Update local state
+        setUser(prev => ({
+          ...prev,
+          preferredTimes: times
+        }));
+        
+        // Update localStorage
+        const updatedUser = { ...user, preferredTimes: times };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Close modal
+        setActiveModal(null);
+        
+        // Show success message (you can add a toast notification here)
+        console.log('Preferred times updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating preferred times:', error);
+      setError('Failed to update preferred times');
+    }
+  };
+
+  const handlePreferredLocationsSubmit = async (locations) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        'http://localhost:5000/api/protected/profile',
+        { preferredLocations: locations },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // Update local state
+        setUser(prev => ({
+          ...prev,
+          preferredLocations: locations
+        }));
+        
+        // Update localStorage
+        const updatedUser = { ...user, preferredLocations: locations };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Close modal
+        setActiveModal(null);
+        
+        // Show success message
+        console.log('Preferred locations updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating preferred locations:', error);
+      setError('Failed to update preferred locations');
+    }
+  };
+
   const hasPendingOrganizationApplication = () => {
     return userApplications.some(app => 
       app.applicationType === 'Org_Verification' && 
@@ -1088,11 +1162,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     <button
                       className={styles.statusButton}
                       onClick={() => {
-                        // setActiveModal(null);
-
-                        console.log('Status button clicked'); // Debug log
-                        console.log('Applications:', userApplications); // Debug log
-                        
                         if (userApplications.length === 1) {
                           // If only one application, show it directly
                           setSubmittedApplication(userApplications[0]);
@@ -1106,6 +1175,40 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                       View Application Status ({userApplications.length})
                     </button>
                   )}
+
+                  {/* Preferred Times Button */}
+                  <button 
+                    onClick={() => setActiveModal('preferredTimes')}
+                    className={styles.ctaButton}
+                  >
+                    <span className={styles.buttonIcon}></span>
+                    <span>
+                      <strong>Set Pickup Times</strong>
+                      <small>
+                        {user?.preferredTimes?.length > 0 
+                          ? `${user.preferredTimes.length} time slots set`
+                          : 'Configure availability'
+                        }
+                      </small>
+                    </span>
+                  </button>
+
+                  {/* Preferred Locations Button */}
+                  <button 
+                    onClick={() => setActiveModal('preferredLocations')}
+                    className={styles.ctaButton}
+                  >
+                    <span className={styles.buttonIcon}></span>
+                    <span>
+                      <strong>Manage Locations</strong>
+                      <small>
+                        {user?.preferredLocations?.length > 0 
+                          ? `${user.preferredLocations.length} locations`
+                          : 'Add pickup locations'
+                        }
+                      </small>
+                    </span>
+                  </button>
 
                   <button
                     className={styles.deleteButton}
@@ -1128,6 +1231,50 @@ const Profile = ({ user: propsUser, activeFilter }) => {
               <div className={styles.statItem}>
                 <strong>{user.totalDonations || '50 kg'}</strong> Donations
               </div>
+
+              {/* Preferred Pickup Information */}
+              {(user?.preferredTimes?.length > 0 || user?.preferredLocations?.length > 0) && (
+                <div className={styles.preferredInfo}>
+                  <h3 className={styles.sectionTitle}>Pickup Preferences</h3>
+                  
+                  {user.preferredTimes?.length > 0 && (
+                    <div className={styles.infoItem}>
+                      <strong>Available Times:</strong>
+                      <ul className={styles.preferencesList}>
+                        {user.preferredTimes.slice(0, 3).map((time, index) => (
+                          <li key={index}>
+                            {time.day} - {time.time}
+                          </li>
+                        ))}
+                        {user.preferredTimes.length > 3 && (
+                          <li className={styles.moreItems}>
+                            +{user.preferredTimes.length - 3} more...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {user.preferredLocations?.length > 0 && (
+                    <div className={styles.infoItem}>
+                      <strong>Pickup Locations:</strong>
+                      <ul className={styles.preferencesList}>
+                        {user.preferredLocations.slice(0, 2).map((location, index) => (
+                          <li key={index}>
+                            {location.name} 
+                            {location.isPrimary && <span className={styles.primaryTag}>(Primary)</span>}
+                          </li>
+                        ))}
+                        {user.preferredLocations.length > 2 && (
+                          <li className={styles.moreItems}>
+                            +{user.preferredLocations.length - 2} more...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Call to Action Cards */}
@@ -1227,6 +1374,22 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     onSubmit={handleOrganizationSubmit}
                   />
                 )}
+
+                {activeModal === 'preferredTimes' && (
+                  <PreferredTimesModal
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={handlePreferredTimesSubmit}
+                    currentTimes={user?.preferredTimes || []}
+                  />
+                )}
+
+                {activeModal === 'preferredLocations' && (
+                  <PreferredLocationsModal
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={handlePreferredLocationsSubmit}
+                    currentLocations={user?.preferredLocations || []}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -1238,7 +1401,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
         <ApplicationSelector
           applications={userApplications}
           onSelect={(app) => {
-            console.log('Application selected:', app); // Debug log
             setSubmittedApplication(app);
             setShowApplicationSelector(false);
             setShowStatusTracker(true);
@@ -1252,7 +1414,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
         <ApplicationStatusTracker
           application={submittedApplication}
           onClose={() => {
-            console.log('Closing status tracker'); // Debug log
             setShowStatusTracker(false);
             setSubmittedApplication(null);
           }}

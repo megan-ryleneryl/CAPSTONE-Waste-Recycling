@@ -21,6 +21,8 @@ const Approvals = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
+
+      console.log('Fetched applications:', response.data); // Debug log
       
       if (response.data.success) {
         setApplications(response.data.applications);
@@ -58,6 +60,11 @@ const Approvals = () => {
   };
 
   const handleReject = async (applicationId, reason) => {
+    if (!reason || reason.trim() === '') {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
@@ -100,95 +107,103 @@ const Approvals = () => {
     <div className={styles.approvalsContainer}>
       <header className={styles.header}>
         <h1>Application Approvals</h1>
-        <div className={styles.filters}>
-          <button 
-            className={filter === 'all' ? styles.filterActive : styles.filterButton}
-            onClick={() => setFilter('all')}
-          >
-            All ({applications.length})
-          </button>
-          <button 
-            className={filter === 'Account_Verification' ? styles.filterActive : styles.filterButton}
-            onClick={() => setFilter('Account_Verification')}
-          >
-            Account Verification
-          </button>
-          <button 
-            className={filter === 'Org_Verification' ? styles.filterActive : styles.filterButton}
-            onClick={() => setFilter('Org_Verification')}
-          >
-            Organization
-          </button>
-          <button 
-            className={filter === 'Collector_Privilege' ? styles.filterActive : styles.filterButton}
-            onClick={() => setFilter('Collector_Privilege')}
-          >
-            Collector
-          </button>
+        <div className={styles.stats}>
+          <span className={styles.statItem}>Total: {applications.length}</span>
+          <span className={styles.statItem}>Filtered: {filteredApplications.length}</span>
         </div>
       </header>
 
-      <div className={styles.applicationsGrid}>
-        {filteredApplications.length === 0 ? (
-          <div className={styles.emptyState}>
-            <p>No pending applications</p>
-          </div>
-        ) : (
-          filteredApplications.map(application => (
-            <div key={application.applicationID} className={styles.applicationCard}>
-              <div className={styles.cardHeader}>
-                <span className={styles.applicationType}>
-                  {application.applicationType.replace(/_/g, ' ')}
-                </span>
-                <span className={styles.applicationDate}>
-                  {new Date(application.submittedAt).toLocaleDateString()}
-                </span>
-              </div>
-              
-              <div className={styles.cardBody}>
-                <p className={styles.applicantInfo}>
-                  <strong>User ID:</strong> {application.userID}
-                </p>
-                {application.organizationName && (
-                  <p className={styles.applicantInfo}>
-                    <strong>Organization:</strong> {application.organizationName}
-                  </p>
-                )}
-                {application.justification && (
-                  <p className={styles.justification}>
-                    <strong>Reason:</strong> {application.justification}
-                  </p>
-                )}
-              </div>
+      <div className={styles.filters}>
+        <button 
+          className={filter === 'all' ? styles.filterActive : styles.filterButton}
+          onClick={() => setFilter('all')}
+        >
+          All ({applications.length})
+        </button>
+        <button 
+          className={filter === 'Account_Verification' ? styles.filterActive : styles.filterButton}
+          onClick={() => setFilter('Account_Verification')}
+        >
+          Account Verification
+        </button>
+        <button 
+          className={filter === 'Org_Verification' ? styles.filterActive : styles.filterButton}
+          onClick={() => setFilter('Org_Verification')}
+        >
+          Organization
+        </button>
+        <button 
+          className={filter === 'Collector_Privilege' ? styles.filterActive : styles.filterButton}
+          onClick={() => setFilter('Collector_Privilege')}
+        >
+          Collector
+        </button>
+      </div>
 
-              <div className={styles.cardActions}>
-                <button 
-                  className={styles.viewButton}
-                  onClick={() => setSelectedApplication(application)}
-                >
-                  View Details
-                </button>
-                <button 
-                  className={styles.approveButton}
-                  onClick={() => handleApprove(application.applicationID)}
-                >
-                  Approve
-                </button>
-                <button 
-                  className={styles.rejectButton}
-                  onClick={() => {
-                    const reason = prompt('Enter rejection reason:');
-                    if (reason) {
-                      handleReject(application.applicationID, reason);
-                    }
-                  }}
-                >
-                  Reject
-                </button>
-              </div>
+      {/* White container wrapper for the applications grid */}
+      <div className={styles.applicationsContainer}>
+        <div className={styles.applicationsGrid}>
+          {filteredApplications.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p>No pending applications</p>
             </div>
-          ))
-        )}
+          ) : (
+            filteredApplications.map(application => (
+              <div key={application.applicationID} className={styles.applicationCard}>
+                <div className={styles.cardHeader}>
+                  <span className={styles.applicationType}>
+                    {application.applicationType.replace(/_/g, ' ')}
+                  </span>
+                  <span className={styles.applicationDate}>
+                    {new Date(application.submittedAt).toLocaleDateString()}
+                  </span>
+                </div>
+                
+                <div className={styles.cardBody}>
+                  <p className={styles.applicantInfo}>
+                    <strong>User ID:</strong> {application.userID}
+                  </p>
+                  {application.organizationName && (
+                    <p className={styles.applicantInfo}>
+                      <strong>Organization:</strong> {application.organizationName}
+                    </p>
+                  )}
+                  {application.justification && (
+                    <p className={styles.justification}>
+                      <strong>Reason:</strong> {application.justification}
+                    </p>
+                  )}
+                </div>
+
+                <div className={styles.cardActions}>
+                  <button 
+                    className={styles.viewButton}
+                    onClick={() => setSelectedApplication(application)}
+                  >
+                    View Details
+                  </button>
+                  <button 
+                    className={styles.approveButton}
+                    onClick={() => handleApprove(application.applicationID)}
+                  >
+                    Approve
+                  </button>
+                  <button 
+                    className={styles.rejectButton}
+                    onClick={() => {
+                      const reason = prompt('Enter rejection reason:');
+                      if (reason) {
+                        handleReject(application.applicationID, reason);
+                      }
+                    }}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       {selectedApplication && (
@@ -197,14 +212,24 @@ const Approvals = () => {
             <h2>Application Details</h2>
             <div className={styles.detailsContent}>
               <p><strong>Application ID:</strong> {selectedApplication.applicationID}</p>
-              <p><strong>Type:</strong> {selectedApplication.applicationType}</p>
+              <p><strong>Type:</strong> {selectedApplication.applicationType.replace(/_/g, ' ')}</p>
               <p><strong>User ID:</strong> {selectedApplication.userID}</p>
+              <p><strong>Status:</strong> {selectedApplication.status}</p>
               <p><strong>Submitted:</strong> {new Date(selectedApplication.submittedAt).toLocaleString()}</p>
-              {selectedApplication.justification && (
-                <p><strong>Justification:</strong> {selectedApplication.justification}</p>
+              
+              {selectedApplication.organizationName && (
+                <p><strong>Organization Name:</strong> {selectedApplication.organizationName}</p>
               )}
+              
+              {selectedApplication.justification && (
+                <div className={styles.justificationDetail}>
+                  <strong>Justification:</strong>
+                  <p>{selectedApplication.justification}</p>
+                </div>
+              )}
+              
               {selectedApplication.documents && selectedApplication.documents.length > 0 && (
-                <div>
+                <div className={styles.documentsSection}>
                   <strong>Documents:</strong>
                   <ul>
                     {selectedApplication.documents.map((doc, index) => (
@@ -218,9 +243,29 @@ const Approvals = () => {
                 </div>
               )}
             </div>
-            <button className={styles.closeButton} onClick={() => setSelectedApplication(null)}>
-              Close
-            </button>
+            
+            <div className={styles.modalActions}>
+              <button 
+                className={styles.approveButton}
+                onClick={() => handleApprove(selectedApplication.applicationID)}
+              >
+                Approve
+              </button>
+              <button 
+                className={styles.rejectButton}
+                onClick={() => {
+                  const reason = prompt('Enter rejection reason:');
+                  if (reason) {
+                    handleReject(selectedApplication.applicationID, reason);
+                  }
+                }}
+              >
+                Reject
+              </button>
+              <button className={styles.closeButton} onClick={() => setSelectedApplication(null)}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

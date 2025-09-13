@@ -458,24 +458,6 @@ router.get('/applications', async (req, res) => {
 router.delete('/account', async (req, res) => {
   try {
     const userID = req.user.userID;
-    
-    // // Delete all user's applications
-    // const applications = await Application.findByUserID(userID);
-    // for (const app of applications) {
-    //   await Application.delete(app.applicationID);
-    // }
-    
-    // // Delete all user's posts
-    // const posts = await Post.findByUserID(userID);
-    // for (const post of posts) {
-    //   await Post.delete(post.postID);
-    // }
-    
-    // // Delete all user's notifications
-    // await Notification.deleteAllByUserID(userID);
-    
-    // Delete user account
-    // await authService.deleteUser(userID);
 
     await User.softDelete(userID);
     

@@ -20,6 +20,7 @@ class User {
     this.badges = data.badges || []; // Array of {badgeId, earnedAt}
     this.createdAt = data.createdAt || new Date();
     this.profilePictureUrl = data.profilePictureUrl || '';
+    this.deletedAt = null;
   }
 
   // Validation
@@ -60,7 +61,8 @@ class User {
       points: this.points,
       badges: this.badges,
       createdAt: this.createdAt,
-      profilePictureUrl: this.profilePictureUrl
+      profilePictureUrl: this.profilePictureUrl,
+      deletedAt: this.deletedAt
     };
   }
 
@@ -162,8 +164,39 @@ class User {
     try {
       const userRef = doc(db, 'users', userID);
       const updateData = {
+        firstName: 'Deleted',
+        lastName: 'User',
         status: 'Deleted',
+        deletedAt: new Date()
       };
+
+      // Cancel all pickups where this user is either giver or collector
+      const Pickup = require('./Pickup');
+      
+      // Find pickups where user is the giver
+      const giverPickups = await Pickup.findByGiverID(userID);
+      for (const pickup of giverPickups) {
+        if (pickup.canBeCancelled()) {
+          await pickup.cancel('User account was deleted');
+        }
+      }
+      
+      // Find pickups where user is the collector
+      const collectorPickups = await Pickup.findByCollectorID(userID);
+      for (const pickup of collectorPickups) {
+        if (pickup.canBeCancelled()) {
+          await pickup.cancel('User account was deleted');
+        }
+      }
+
+      // Set all this user's posts to inactive
+      const Post = require('./Post');
+      const userPosts = await Post.findByUserID(userID);
+      for (const post of userPosts) {
+        if (post.status !== 'Inactive') {
+          await post.update({ status: 'Inactive' });
+        }
+      }
       
       await updateDoc(userRef, updateData);
       

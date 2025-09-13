@@ -79,11 +79,8 @@ const ApplicationStatusTracker = ({ application, onClose }) => {
   };
 
   if (!application) {
-    console.log('No application provided to tracker'); // Debug log
     return null;
   }
-
-  console.log('Rendering ApplicationStatusTracker with:', application); // Debug log
 
   const steps = getStatusSteps(application.applicationType);
   const currentStepIndex = getCurrentStepIndex(application.status);

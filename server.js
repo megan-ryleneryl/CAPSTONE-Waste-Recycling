@@ -543,6 +543,7 @@ app.get('/api/collector/available-posts', async (req, res) => {
 // ADMIN ROUTES (Admin access required)
 // ============================================================================
 
+app.use('/api/admin', authService.authenticateUser.bind(authService));
 app.use('/api/admin', authService.requireAdmin.bind(authService));
 
 app.get('/api/admin/users', async (req, res) => {
@@ -557,8 +558,23 @@ app.get('/api/admin/users', async (req, res) => {
 
 app.get('/api/admin/applications/pending', async (req, res) => {
   try {
+    // Fetch both 'Pending' and 'Submitted' status applications
     const pendingApplications = await Application.findByStatus('Pending');
-    res.json({ success: true, applications: pendingApplications });
+    const submittedApplications = await Application.findByStatus('Submitted');
+    
+    // Combine both arrays
+    const allApplications = [...pendingApplications, ...submittedApplications];
+    
+    // Sort by submittedAt date (most recent first)
+    allApplications.sort((a, b) => {
+      const dateA = new Date(a.submittedAt);
+      const dateB = new Date(b.submittedAt);
+      return dateB - dateA;
+    });
+    
+    console.log(`Found ${allApplications.length} pending/submitted applications`);
+    
+    res.json({ success: true, applications: allApplications });
   } catch (error) {
     console.error('Pending applications fetch error:', error.message);
     res.status(500).json({ success: false, error: error.message });
