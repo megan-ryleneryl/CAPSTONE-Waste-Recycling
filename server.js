@@ -90,6 +90,10 @@ app.use('/api/posts', postRoutes);
 app.use('/api/protected/profile', profileRoutes);
 app.use('/api/messages', messageRoutes);
 
+app.use('/api/admin', (req, res, next) => {
+  next();
+});
+
 // ============================================================================
 // PUBLIC ROUTES (No authentication required)
 // ============================================================================
@@ -546,6 +550,11 @@ app.get('/api/collector/available-posts', async (req, res) => {
 app.use('/api/admin', authService.authenticateUser.bind(authService));
 app.use('/api/admin', authService.requireAdmin.bind(authService));
 
+// Add debug logging middleware
+app.use('/api/admin', (req, res, next) => {
+  next();
+});
+
 app.get('/api/admin/users', async (req, res) => {
   try {
     const result = await authService.getAllUsers();
@@ -556,8 +565,50 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
-app.get('/api/admin/applications/pending', async (req, res) => {
+app.get('/api/admin/applications', async (req, res) => {
   try {
+    console.log('Fetching all applications for admin:', req.user?.email);
+    
+    const Application = require('./models/Application');
+    
+    // Fetch all applications regardless of status
+    const pendingApplications = await Application.findByStatus('Pending');
+    const submittedApplications = await Application.findByStatus('Submitted');
+    const approvedApplications = await Application.findByStatus('Approved');
+    const rejectedApplications = await Application.findByStatus('Rejected');
+    
+    // Combine all arrays
+    const allApplications = [
+      ...pendingApplications,
+      ...submittedApplications,
+      ...approvedApplications,
+      ...rejectedApplications
+    ];
+    
+    // Sort by submittedAt date (most recent first)
+    allApplications.sort((a, b) => {
+      const dateA = new Date(a.reviewedAt || a.submittedAt);
+      const dateB = new Date(b.reviewedAt || b.submittedAt);
+      return dateB - dateA;
+    });
+        
+    res.json({ success: true, applications: allApplications });
+  } catch (error) {
+    console.error('Applications fetch error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: 'Failed to fetch applications. Please check server logs.'
+    });
+  }
+});
+
+app.get('/api/admin/applications/pending', async (req, res) => {
+  try {   
+    // Import Application model if not already imported
+    const Application = require('./models/Application');
+    
     // Fetch both 'Pending' and 'Submitted' status applications
     const pendingApplications = await Application.findByStatus('Pending');
     const submittedApplications = await Application.findByStatus('Submitted');
@@ -571,42 +622,44 @@ app.get('/api/admin/applications/pending', async (req, res) => {
       const dateB = new Date(b.submittedAt);
       return dateB - dateA;
     });
-    
-    console.log(`Found ${allApplications.length} pending/submitted applications`);
-    
+        
     res.json({ success: true, applications: allApplications });
   } catch (error) {
-    console.error('Pending applications fetch error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Pending applications fetch error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: 'Failed to fetch applications. Please check server logs.'
+    });
   }
 });
 
 app.put('/api/admin/applications/:applicationId/review', async (req, res) => {
   try {
     const { status, justification } = req.body;
+    const Application = require('./models/Application');
     const application = await Application.findById(req.params.applicationId);
     
     if (!application) {
       return res.status(404).json({ success: false, error: 'Application not found' });
     }
     
+    // Update both the application and the user model
     await application.review(req.user.userID, status, justification);
     
-    // Send notification to applicant
-    await notificationService.notifyApplicationStatus(
-      application.userID, 
-      application.applicationType, 
-      status
-    );
+    // Fetch the updated application to return current state
+    const updatedApplication = await Application.findById(req.params.applicationId);
     
     res.json({ 
       success: true, 
-      application, 
-      message: `Application ${status.toLowerCase()} successfully` 
+      message: `Application ${status.toLowerCase()} successfully`,
+      application: updatedApplication
     });
   } catch (error) {
-    console.error('Application review error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
+    console.error('Application review error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

@@ -246,8 +246,6 @@ router.post('/apply-organization', upload.single('proofDocument'), async (req, r
       organizationName,  
       reason
     } = req.body;
-
-    console.log(organizationName + " " + reason);
     
     // Validate required fields
     if (!organizationName || !reason) {

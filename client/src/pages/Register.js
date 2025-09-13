@@ -72,9 +72,7 @@ const SignUp = () => {
   };
 
   // Handle Google Sign Up Success
-  const handleGoogleSignUp = (data) => {
-    console.log('Google sign up successful:', data);
-    
+  const handleGoogleSignUp = (data) => {    
     // If it's a new user, you might want to show a welcome message
     if (data.isNewUser) {
       // Could set a welcome flag in localStorage

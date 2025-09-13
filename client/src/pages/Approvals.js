@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Approvals.module.css';
+import ModalPortal from '../components/common/ModalPortal';
 
 const Approvals = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all'); // New state for status filter
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchApplications();
@@ -15,20 +20,28 @@ const Approvals = () => {
   const fetchApplications = async () => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Fetch all applications, not just pending
       const response = await axios.get(
-        'http://localhost:3001/api/admin/applications/pending',
+        'http://localhost:3001/api/admin/applications',
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
-
-      console.log('Fetched applications:', response.data); // Debug log
       
       if (response.data.success) {
         setApplications(response.data.applications);
       }
     } catch (error) {
-      console.error('Error fetching applications:', error);
+      console.error('Error fetching applications:', error.response || error);
+      if (error.response?.status === 403) {
+        setError('Admin access required. Please ensure you are logged in with an admin account.');
+      } else if (error.response?.status === 401) {
+        setError('Authentication failed. Please login again.');
+        navigate('/login');
+      } else {
+        setError('Failed to fetch applications. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -48,14 +61,17 @@ const Approvals = () => {
         }
       );
       
-      if (response.data.success) {
+      // Check response properly
+      if (response.data && response.data.success) {
         alert('Application approved successfully!');
         fetchApplications();
         setSelectedApplication(null);
+      } else {
+        throw new Error('Invalid response from server');
       }
     } catch (error) {
       console.error('Error approving application:', error);
-      alert('Failed to approve application');
+      alert(error.response?.data?.error || 'Failed to approve application');
     }
   };
 
@@ -78,27 +94,63 @@ const Approvals = () => {
         }
       );
       
-      if (response.data.success) {
+      // Check response properly
+      if (response.data && response.data.success) {
         alert('Application rejected');
         fetchApplications();
         setSelectedApplication(null);
+      } else {
+        throw new Error('Invalid response from server');
       }
     } catch (error) {
       console.error('Error rejecting application:', error);
-      alert('Failed to reject application');
+      alert(error.response?.data?.error || 'Failed to reject application');
     }
   };
 
   const filteredApplications = applications.filter(app => {
-    if (filter === 'all') return true;
-    return app.applicationType === filter;
+    // Filter by type
+    const typeMatch = filter === 'all' || app.applicationType === filter;
+    
+    // Filter by status
+    const statusMatch = statusFilter === 'all' || app.status === statusFilter;
+    
+    return typeMatch && statusMatch;
   });
+
+  // Get status badge styling
+  const getStatusBadge = (status) => {
+    const statusStyles = {
+      'Pending': styles.statusPending,
+      'Submitted': styles.statusSubmitted,
+      'Approved': styles.statusApproved,
+      'Rejected': styles.statusRejected
+    };
+    return statusStyles[status] || styles.statusDefault;
+  };
 
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
         <div className={styles.spinner}></div>
         <p>Loading applications...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <div className={styles.errorMessage}>
+          <h2>Access Error</h2>
+          <p>{error}</p>
+          <button 
+            onClick={() => navigate('/posts')} 
+            className={styles.backButton}
+          >
+            Go Back to Posts
+          </button>
+        </div>
       </div>
     );
   }
@@ -113,31 +165,64 @@ const Approvals = () => {
         </div>
       </header>
 
+      {/* Type Filters */}
       <div className={styles.filters}>
-        <button 
-          className={filter === 'all' ? styles.filterActive : styles.filterButton}
-          onClick={() => setFilter('all')}
-        >
-          All ({applications.length})
-        </button>
-        <button 
-          className={filter === 'Account_Verification' ? styles.filterActive : styles.filterButton}
-          onClick={() => setFilter('Account_Verification')}
-        >
-          Account Verification
-        </button>
-        <button 
-          className={filter === 'Org_Verification' ? styles.filterActive : styles.filterButton}
-          onClick={() => setFilter('Org_Verification')}
-        >
-          Organization
-        </button>
-        <button 
-          className={filter === 'Collector_Privilege' ? styles.filterActive : styles.filterButton}
-          onClick={() => setFilter('Collector_Privilege')}
-        >
-          Collector
-        </button>
+        <div className={styles.filterGroup}>
+          <span className={styles.filterLabel}>Type:</span>
+          <button 
+            className={filter === 'all' ? styles.filterActive : styles.filterButton}
+            onClick={() => setFilter('all')}
+          >
+            All Types
+          </button>
+          <button 
+            className={filter === 'Account_Verification' ? styles.filterActive : styles.filterButton}
+            onClick={() => setFilter('Account_Verification')}
+          >
+            Account Verification
+          </button>
+          <button 
+            className={filter === 'Org_Verification' ? styles.filterActive : styles.filterButton}
+            onClick={() => setFilter('Org_Verification')}
+          >
+            Organization
+          </button>
+          <button 
+            className={filter === 'Collector_Privilege' ? styles.filterActive : styles.filterButton}
+            onClick={() => setFilter('Collector_Privilege')}
+          >
+            Collector
+          </button>
+        </div>
+        
+        {/* Status Filters */}
+        <div className={styles.filterGroup}>
+          <span className={styles.filterLabel}>Status:</span>
+          <button 
+            className={statusFilter === 'all' ? styles.filterActive : styles.filterButton}
+            onClick={() => setStatusFilter('all')}
+          >
+            All Statuses
+          </button>
+          <button 
+            className={statusFilter === 'Pending' ? styles.filterActive : styles.filterButton}
+            onClick={() => setStatusFilter('Pending')}
+          >
+            Pending
+          </button>
+          <button 
+            className={statusFilter === 'Approved' ? styles.filterActive : styles.filterButton}
+            onClick={() => setStatusFilter('Approved')}
+          >
+            Approved
+          </button>
+          <button 
+            className={statusFilter === 'Rejected' ? styles.filterActive : styles.filterButton}
+            onClick={() => setStatusFilter('Rejected')}
+          >
+            Rejected
+          </button>
+        </div>
       </div>
 
       {/* White container wrapper for the applications grid */}
@@ -145,7 +230,7 @@ const Approvals = () => {
         <div className={styles.applicationsGrid}>
           {filteredApplications.length === 0 ? (
             <div className={styles.emptyState}>
-              <p>No pending applications</p>
+              <p>No applications found matching your filters</p>
             </div>
           ) : (
             filteredApplications.map(application => (
@@ -154,8 +239,8 @@ const Approvals = () => {
                   <span className={styles.applicationType}>
                     {application.applicationType.replace(/_/g, ' ')}
                   </span>
-                  <span className={styles.applicationDate}>
-                    {new Date(application.submittedAt).toLocaleDateString()}
+                  <span className={`${styles.statusBadge} ${getStatusBadge(application.status)}`}>
+                    {application.status}
                   </span>
                 </div>
                 
@@ -173,6 +258,14 @@ const Approvals = () => {
                       <strong>Reason:</strong> {application.justification}
                     </p>
                   )}
+                  <p className={styles.applicationDate}>
+                    <strong>Submitted:</strong> {new Date(application.submittedAt).toLocaleDateString()}
+                  </p>
+                  {application.reviewedAt && (
+                    <p className={styles.applicationDate}>
+                      <strong>Reviewed:</strong> {new Date(application.reviewedAt).toLocaleDateString()}
+                    </p>
+                  )}
                 </div>
 
                 <div className={styles.cardActions}>
@@ -182,23 +275,27 @@ const Approvals = () => {
                   >
                     View Details
                   </button>
-                  <button 
-                    className={styles.approveButton}
-                    onClick={() => handleApprove(application.applicationID)}
-                  >
-                    Approve
-                  </button>
-                  <button 
-                    className={styles.rejectButton}
-                    onClick={() => {
-                      const reason = prompt('Enter rejection reason:');
-                      if (reason) {
-                        handleReject(application.applicationID, reason);
-                      }
-                    }}
-                  >
-                    Reject
-                  </button>
+                  {application.status === 'Pending' && (
+                    <>
+                      <button 
+                        className={styles.approveButton}
+                        onClick={() => handleApprove(application.applicationID)}
+                      >
+                        Approve
+                      </button>
+                      <button 
+                        className={styles.rejectButton}
+                        onClick={() => {
+                          const reason = prompt('Enter rejection reason:');
+                          if (reason) {
+                            handleReject(application.applicationID, reason);
+                          }
+                        }}
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))
@@ -206,68 +303,111 @@ const Approvals = () => {
         </div>
       </div>
 
+      {/* Application Details Modal with ModalPortal wrapper */}
       {selectedApplication && (
-        <div className={styles.modalOverlay} onClick={() => setSelectedApplication(null)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2>Application Details</h2>
-            <div className={styles.detailsContent}>
-              <p><strong>Application ID:</strong> {selectedApplication.applicationID}</p>
-              <p><strong>Type:</strong> {selectedApplication.applicationType.replace(/_/g, ' ')}</p>
-              <p><strong>User ID:</strong> {selectedApplication.userID}</p>
-              <p><strong>Status:</strong> {selectedApplication.status}</p>
-              <p><strong>Submitted:</strong> {new Date(selectedApplication.submittedAt).toLocaleString()}</p>
-              
-              {selectedApplication.organizationName && (
-                <p><strong>Organization Name:</strong> {selectedApplication.organizationName}</p>
-              )}
-              
-              {selectedApplication.justification && (
-                <div className={styles.justificationDetail}>
-                  <strong>Justification:</strong>
-                  <p>{selectedApplication.justification}</p>
+        <ModalPortal>
+          <div className={styles.modalBackdrop} onClick={() => setSelectedApplication(null)}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalContent}>
+                <div className={styles.modalHeader}>
+                  <h2>Application Details</h2>
+                  <button onClick={() => setSelectedApplication(null)} className={styles.closeButton}>×</button>
                 </div>
-              )}
-              
-              {selectedApplication.documents && selectedApplication.documents.length > 0 && (
-                <div className={styles.documentsSection}>
-                  <strong>Documents:</strong>
-                  <ul>
-                    {selectedApplication.documents.map((doc, index) => (
-                      <li key={index}>
-                        <a href={doc} target="_blank" rel="noopener noreferrer">
-                          Document {index + 1}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                
+                <div className={styles.detailsContent}>
+                  <p><strong>Application ID:</strong> {selectedApplication.applicationID}</p>
+                  <p><strong>Type:</strong> {selectedApplication.applicationType.replace(/_/g, ' ')}</p>
+                  <p><strong>User ID:</strong> {selectedApplication.userID}</p>
+                  <p>
+                    <strong>Status:</strong> 
+                    <span className={`${styles.statusBadge} ${getStatusBadge(selectedApplication.status)}`}>
+                      {selectedApplication.status}
+                    </span>
+                  </p>
+                  <p><strong>Submitted:</strong> {new Date(selectedApplication.submittedAt).toLocaleString()}</p>
+                  
+                  {selectedApplication.reviewedAt && (
+                    <>
+                      <p><strong>Reviewed:</strong> {new Date(selectedApplication.reviewedAt).toLocaleString()}</p>
+                      <p><strong>Reviewed By:</strong> {selectedApplication.reviewedBy}</p>
+                    </>
+                  )}
+                  
+                  {selectedApplication.organizationName && (
+                    <p><strong>Organization Name:</strong> {selectedApplication.organizationName}</p>
+                  )}
+                  
+                  {selectedApplication.justification && (
+                    <div className={styles.justificationDetail}>
+                      <strong>Justification:</strong>
+                      <p>{selectedApplication.justification}</p>
+                    </div>
+                  )}
+                  
+                  {selectedApplication.documents && selectedApplication.documents.length > 0 && (
+                    <div className={styles.documentsSection}>
+                      <strong>Documents:</strong>
+                      <ul>
+                        {selectedApplication.documents.map((doc, index) => {
+                          // Ensure the URL points to the backend server
+                          let documentUrl = doc;
+                          
+                          // If it's a relative path, prepend the server URL
+                          if (!doc.startsWith('http')) {
+                            documentUrl = `http://localhost:3001${doc.startsWith('/') ? doc : '/' + doc}`;
+                          }
+                          
+                          return (
+                            <li key={index}>
+                              <a 
+                                href={documentUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  window.open(documentUrl, '_blank');
+                                }}
+                              >
+                                Document {index + 1}
+                              </a>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            
-            <div className={styles.modalActions}>
-              <button 
-                className={styles.approveButton}
-                onClick={() => handleApprove(selectedApplication.applicationID)}
-              >
-                Approve
-              </button>
-              <button 
-                className={styles.rejectButton}
-                onClick={() => {
-                  const reason = prompt('Enter rejection reason:');
-                  if (reason) {
-                    handleReject(selectedApplication.applicationID, reason);
-                  }
-                }}
-              >
-                Reject
-              </button>
-              <button className={styles.closeButton} onClick={() => setSelectedApplication(null)}>
-                Close
-              </button>
+                
+                <div className={styles.modalActions}>
+                  {selectedApplication.status === 'Pending' && (
+                    <>
+                      <button 
+                        className={styles.approveButton}
+                        onClick={() => handleApprove(selectedApplication.applicationID)}
+                      >
+                        Approve
+                      </button>
+                      <button 
+                        className={styles.rejectButton}
+                        onClick={() => {
+                          const reason = prompt('Enter rejection reason:');
+                          if (reason) {
+                            handleReject(selectedApplication.applicationID, reason);
+                          }
+                        }}
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  <button className={styles.cancelButton} onClick={() => setSelectedApplication(null)}>
+                    Close
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

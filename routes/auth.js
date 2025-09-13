@@ -79,7 +79,6 @@ router.post('/register', async (req, res) => {
         documents: [],
         submittedAt: new Date()
       });
-      console.log('Application created for user:', application.applicationID);
     } catch (appError) {
       console.error('Failed to create application:', appError.message);
       // Don't fail the registration if application creation fails
@@ -99,7 +98,9 @@ router.post('/register', async (req, res) => {
         email: user.email,
         userType: user.userType,
         status: user.status,
-        points: user.points
+        points: user.points,
+        badges: user.badges,
+        isAdmin: user.userType === 'Admin'
       }
     });
   } catch (error) {
@@ -288,7 +289,6 @@ router.post('/google', async (req, res) => {
     };      
     
     user = await User.create(userData);
-    console.log('User created successfully:', user.userID);
 
     // Create an Account_Verification application for new Google users (already verified)
     try {
@@ -300,7 +300,6 @@ router.post('/google', async (req, res) => {
         documents: [],
         submittedAt: new Date(),
       });
-      console.log('Application created for Google user:', application.applicationID);
     } catch (appError) {
       console.error('Failed to create application for Google user:', appError.message);
     }

@@ -971,9 +971,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
         
         // Close modal
         setActiveModal(null);
-        
-        // Show success message (you can add a toast notification here)
-        console.log('Preferred times updated successfully');
       }
     } catch (error) {
       console.error('Error updating preferred times:', error);
@@ -1007,9 +1004,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
         
         // Close modal
         setActiveModal(null);
-        
-        // Show success message
-        console.log('Preferred locations updated successfully');
       }
     } catch (error) {
       console.error('Error updating preferred locations:', error);
@@ -1176,40 +1170,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     </button>
                   )}
 
-                  {/* Preferred Times Button */}
-                  <button 
-                    onClick={() => setActiveModal('preferredTimes')}
-                    className={styles.ctaButton}
-                  >
-                    <span className={styles.buttonIcon}></span>
-                    <span>
-                      <strong>Set Pickup Times</strong>
-                      <small>
-                        {user?.preferredTimes?.length > 0 
-                          ? `${user.preferredTimes.length} time slots set`
-                          : 'Configure availability'
-                        }
-                      </small>
-                    </span>
-                  </button>
-
-                  {/* Preferred Locations Button */}
-                  <button 
-                    onClick={() => setActiveModal('preferredLocations')}
-                    className={styles.ctaButton}
-                  >
-                    <span className={styles.buttonIcon}></span>
-                    <span>
-                      <strong>Manage Locations</strong>
-                      <small>
-                        {user?.preferredLocations?.length > 0 
-                          ? `${user.preferredLocations.length} locations`
-                          : 'Add pickup locations'
-                        }
-                      </small>
-                    </span>
-                  </button>
-
                   <button
                     className={styles.deleteButton}
                     onClick={() => {
@@ -1231,50 +1191,66 @@ const Profile = ({ user: propsUser, activeFilter }) => {
               <div className={styles.statItem}>
                 <strong>{user.totalDonations || '50 kg'}</strong> Donations
               </div>
+            </div>
 
-              {/* Preferred Pickup Information */}
-              {(user?.preferredTimes?.length > 0 || user?.preferredLocations?.length > 0) && (
-                <div className={styles.preferredInfo}>
-                  <h3 className={styles.sectionTitle}>Pickup Preferences</h3>
-                  
-                  {user.preferredTimes?.length > 0 && (
-                    <div className={styles.infoItem}>
-                      <strong>Available Times:</strong>
-                      <ul className={styles.preferencesList}>
-                        {user.preferredTimes.slice(0, 3).map((time, index) => (
+            {/* Preferences Section */}
+            <div className={styles.preferencesSection}>
+              <h3 className={styles.sectionTitle}>Pickup Preferences</h3>
+              
+              <div className={styles.preferencesContent}>
+                {/* Preferred Times */}
+                <div className={styles.preferenceItem}>
+                  <div className={styles.preferenceHeader}>
+                    <h4>Preferred Pickup Times</h4>
+                    <button 
+                      onClick={() => setActiveModal('preferredTimes')}
+                      className={styles.editPreferenceButton}
+                    >
+                      {user?.preferredTimes?.length > 0 ? 'Edit' : 'Set Times'}
+                    </button>
+                  </div>
+                  <div className={styles.preferenceValue}>
+                    {user?.preferredTimes?.length > 0 ? (
+                      <ul className={styles.preferenceList}>
+                        {user.preferredTimes.map((time, index) => (
                           <li key={index}>
-                            {time.day} - {time.time}
+                            {time.day}: {time.startTime} - {time.endTime}
                           </li>
                         ))}
-                        {user.preferredTimes.length > 3 && (
-                          <li className={styles.moreItems}>
-                            +{user.preferredTimes.length - 3} more...
-                          </li>
-                        )}
                       </ul>
-                    </div>
-                  )}
-                  
-                  {user.preferredLocations?.length > 0 && (
-                    <div className={styles.infoItem}>
-                      <strong>Pickup Locations:</strong>
-                      <ul className={styles.preferencesList}>
-                        {user.preferredLocations.slice(0, 2).map((location, index) => (
-                          <li key={index}>
-                            {location.name} 
-                            {location.isPrimary && <span className={styles.primaryTag}>(Primary)</span>}
-                          </li>
-                        ))}
-                        {user.preferredLocations.length > 2 && (
-                          <li className={styles.moreItems}>
-                            +{user.preferredLocations.length - 2} more...
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  )}
+                    ) : (
+                      <p className={styles.noPreference}>No preferred times set</p>
+                    )}
+                  </div>
                 </div>
-              )}
+
+                {/* Preferred Locations */}
+                <div className={styles.preferenceItem}>
+                  <div className={styles.preferenceHeader}>
+                    <h4>Preferred Pickup Locations</h4>
+                    <button 
+                      onClick={() => setActiveModal('preferredLocations')}
+                      className={styles.editPreferenceButton}
+                    >
+                      {user?.preferredLocations?.length > 0 ? 'Edit' : 'Set Locations'}
+                    </button>
+                  </div>
+                  <div className={styles.preferenceValue}>
+                    {user?.preferredLocations?.length > 0 ? (
+                      <ul className={styles.preferenceList}>
+                        {user.preferredLocations.map((location, index) => (
+                          <li key={index}>
+                            <strong>{location.name}</strong>
+                            {location.address && <span> - {location.address}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className={styles.noPreference}>No preferred locations set</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Call to Action Cards */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import TopNav from '../../navigation/TopNav/TopNav';
 import SideNav from '../../navigation/SideNav/SideNav';
 import styles from './AppLayout.module.css';
@@ -10,15 +10,20 @@ const AppLayout = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Pages that don't need the layout
   const noLayoutPages = ['/login', '/register', '/'];
 
   useEffect(() => {
     // Load user data from localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    const path = window.location.pathname;
+    if (path.startsWith('/admin')) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.userType !== 'Admin') {
+        console.error('Non-admin user attempting to access admin route');
+        navigate('/posts');
+      }
     }
   }, []);
 

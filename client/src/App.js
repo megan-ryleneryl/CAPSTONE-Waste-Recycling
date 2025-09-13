@@ -110,7 +110,7 @@ function App() {
                 <Approvals />
               </ProtectedRoute>
             } 
-          />          
+          />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

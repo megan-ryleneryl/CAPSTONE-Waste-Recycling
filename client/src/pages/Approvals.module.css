@@ -34,9 +34,11 @@
 
 .filters {
   display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 1rem;
+  padding-left: 2rem;
   background: white;
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-sm);
@@ -241,13 +243,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
   animation: fadeIn 0.3s ease;
 }
 
@@ -260,8 +260,25 @@
   }
 }
 
+/* Modal Backdrop */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
 .modalContent {
-  background: white;
+  /* background: white;
   border-radius: var(--border-radius-xl);
   padding: 2rem;
   max-width: 600px;
@@ -269,7 +286,15 @@
   max-height: 80vh;
   overflow-y: auto;
   box-shadow: var(--shadow-xl);
-  animation: slideUp 0.3s ease;
+  animation: slideUp 0.3s ease; */
+
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes slideUp {
@@ -346,17 +371,14 @@
 .documentsSection a {
   color: var(--primary-color);
   text-decoration: none;
-  padding: 0.5rem 1rem;
-  background: var(--bg-secondary);
-  border-radius: var(--border-radius-md);
-  display: inline-block;
-  transition: all 0.3s ease;
+  font-weight: 500;
+  font-family: var(--font-family-primary);
+  transition: color 0.2s ease;
 }
 
 .documentsSection a:hover {
-  background: var(--primary-color);
-  color: var(--text-on-primary);
-  transform: translateX(5px);
+  color: var(--primary-hover);
+  text-decoration: underline;
 }
 
 .modalActions {
@@ -385,6 +407,333 @@
 
 .closeButton:hover {
   background: var(--border-color);
+}
+
+.errorContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: var(--spacing-lg);
+}
+
+.errorMessage {
+  background: var(--card-bg);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  text-align: center;
+  max-width: 500px;
+  box-shadow: var(--shadow-sm);
+}
+
+.errorMessage h2 {
+  color: var(--danger-color);
+  margin-bottom: var(--spacing-md);
+}
+
+.errorMessage p {
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.backButton {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  transition: background-color 0.2s;
+}
+
+.backButton:hover {
+  background: var(--primary-dark);
+}
+
+/* Status Badge Styles */
+.statusBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statusPending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.statusSubmitted {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.statusApproved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.statusRejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.statusDefault {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+/* Filter Group Styles */
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterLabel {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-right: 0.5rem;
+}
+
+/* Modal with ModalPortal styles */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: white;
+  border-radius: 20px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlide 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+@keyframes modalSlide {
+  from {
+    transform: scale(0.8) translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem 1rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  background: var(--primary-color);
+  color: white;
+  position: relative;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-family: var(--font-family-primary);
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: white;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-weight: 300;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.detailsContent {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: #d9d9d9 #f0f0f0;
+}
+
+/* Webkit Scrollbar Styling */
+.detailsContent::-webkit-scrollbar {
+  width: 8px;
+}
+
+.detailsContent::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 0 20px 20px 0;
+}
+
+.detailsContent::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 4px;
+}
+
+.detailsContent::-webkit-scrollbar-thumb:hover {
+  background: #c0c0c0;
+}
+
+.detailsContent p {
+  margin: 0.75rem 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-family: var(--font-family-primary);
+  font-size: 0.95rem;
+}
+
+.detailsContent strong {
+  color: var(--text-primary);
+  margin-right: 0.5rem;
+  font-weight: 600;
+}
+
+.statusBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.justificationDetail {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+}
+
+.justificationDetail strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.justificationDetail p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.documentsSection {
+  margin-top: 1rem;
+}
+
+.documentsSection strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.documentsSection ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+
+.documentsSection li {
+  padding: 0.5rem 0;
+}
+
+.modalActions {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.modalActions button {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #e0e0e0;
+  border-radius: var(--border-radius-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: var(--font-family-primary);
+  font-size: 0.95rem;
+}
+
+.approveButton {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.approveButton:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.rejectButton {
+  background: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+}
+
+.rejectButton:hover {
+  background: #b71c1c;
+  border-color: #b71c1c;
+  transform: translateY(-1px);
+}
+
+.cancelButton {
+  background: white;
+  color: var(--text-primary);
+  border-color: #e0e0e0;
+}
+
+.cancelButton:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--bg-secondary);
 }
 
 /* Responsive Design */
