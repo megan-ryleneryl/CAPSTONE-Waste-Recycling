@@ -8,14 +8,86 @@ const Approvals = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [userDetails, setUserDetails] = useState({});
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [filter, setFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all'); // New state for status filter
+  const [statusFilter, setStatusFilter] = useState('all');
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchApplications();
   }, []);
+
+  // Helper function to format Firestore dates
+  const formatDate = (date) => {
+    if (!date) return 'Not available';
+    
+    let dateObj;
+    
+    // Handle different date formats from Firestore
+    if (date?.seconds) {
+      dateObj = new Date(date.seconds * 1000);
+    } else if (date?.toDate && typeof date.toDate === 'function') {
+      dateObj = date.toDate();
+    } else if (date?._seconds) {
+      dateObj = new Date(date._seconds * 1000);
+    } else if (typeof date === 'string') {
+      // Handle string format: "Sep 11, 2025, 8:04:41.697 PM"
+      dateObj = new Date(date.replace(/,/g, ''));
+    } else if (date instanceof Date) {
+      dateObj = date;
+    } else {
+      dateObj = new Date(date);
+    }
+    
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid Date';
+    }
+    
+    return dateObj.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Fetch user details for a given userID
+  const fetchUserDetails = async (userID) => {
+    if (userDetails[userID]) return userDetails[userID];
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `http://localhost:3001/api/admin/users/${userID}`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      if (response.data.success) {
+        const user = response.data.user;
+        const userInfo = {
+          displayName: user.isOrganization && user.organizationName 
+            ? `${user.organizationName} (${user.firstName} ${user.lastName})`
+            : `${user.firstName} ${user.lastName}`,
+          isAdmin: user.userType === 'Admin',
+          email: user.email
+        };
+        
+        setUserDetails(prev => ({
+          ...prev,
+          [userID]: userInfo
+        }));
+        
+        return userInfo;
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      return { displayName: userID, isAdmin: false };
+    }
+  };
 
   const fetchApplications = async () => {
     try {
@@ -30,7 +102,18 @@ const Approvals = () => {
       );
       
       if (response.data.success) {
-        setApplications(response.data.applications);
+        const apps = response.data.applications;
+        setApplications(apps);
+        
+        // Fetch user details for all applications
+        const userIDs = [...new Set([
+          ...apps.map(app => app.userID),
+          ...apps.filter(app => app.reviewedBy).map(app => app.reviewedBy)
+        ])];
+        
+        for (const userID of userIDs) {
+          await fetchUserDetails(userID);
+        }
       }
     } catch (error) {
       console.error('Error fetching applications:', error.response || error);
@@ -45,6 +128,17 @@ const Approvals = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getUserDisplay = (userID, isReviewer = false) => {
+    const user = userDetails[userID];
+    if (!user) return userID;
+    
+    if (isReviewer && user.isAdmin) {
+      return `Admin ${user.displayName}`;
+    }
+    
+    return user.displayName;
   };
 
   const handleApprove = async (applicationId) => {
@@ -246,7 +340,7 @@ const Approvals = () => {
                 
                 <div className={styles.cardBody}>
                   <p className={styles.applicantInfo}>
-                    <strong>User ID:</strong> {application.userID}
+                    <strong>Submitted by:</strong> {getUserDisplay(application.userID)}
                   </p>
                   {application.organizationName && (
                     <p className={styles.applicantInfo}>
@@ -259,11 +353,16 @@ const Approvals = () => {
                     </p>
                   )}
                   <p className={styles.applicationDate}>
-                    <strong>Submitted:</strong> {new Date(application.submittedAt).toLocaleDateString()}
+                    <strong>Submitted:</strong> {formatDate(application.submittedAt)}
                   </p>
                   {application.reviewedAt && (
                     <p className={styles.applicationDate}>
-                      <strong>Reviewed:</strong> {new Date(application.reviewedAt).toLocaleDateString()}
+                      <strong>Reviewed:</strong> {formatDate(application.reviewedAt)}
+                    </p>
+                  )}
+                  {application.reviewedBy && (
+                    <p className={styles.applicantInfo}>
+                      <strong>Reviewed by:</strong> {getUserDisplay(application.reviewedBy, true)}
                     </p>
                   )}
                 </div>
@@ -317,19 +416,19 @@ const Approvals = () => {
                 <div className={styles.detailsContent}>
                   <p><strong>Application ID:</strong> {selectedApplication.applicationID}</p>
                   <p><strong>Type:</strong> {selectedApplication.applicationType.replace(/_/g, ' ')}</p>
-                  <p><strong>User ID:</strong> {selectedApplication.userID}</p>
+                  <p><strong>Submitted by:</strong> {getUserDisplay(selectedApplication.userID)}</p>
                   <p>
                     <strong>Status:</strong> 
                     <span className={`${styles.statusBadge} ${getStatusBadge(selectedApplication.status)}`}>
                       {selectedApplication.status}
                     </span>
                   </p>
-                  <p><strong>Submitted:</strong> {new Date(selectedApplication.submittedAt).toLocaleString()}</p>
+                  <p><strong>Submitted:</strong> {formatDate(selectedApplication.submittedAt)}</p>
                   
                   {selectedApplication.reviewedAt && (
                     <>
-                      <p><strong>Reviewed:</strong> {new Date(selectedApplication.reviewedAt).toLocaleString()}</p>
-                      <p><strong>Reviewed By:</strong> {selectedApplication.reviewedBy}</p>
+                      <p><strong>Reviewed:</strong> {formatDate(selectedApplication.reviewedAt)}</p>
+                      <p><strong>Reviewed By:</strong> {getUserDisplay(selectedApplication.reviewedBy, true)}</p>
                     </>
                   )}
                   

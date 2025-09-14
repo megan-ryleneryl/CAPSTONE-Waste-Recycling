@@ -949,7 +949,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        'http://localhost:5000/api/protected/profile',
+        'http://localhost:3001/api/protected/profile',
         { preferredTimes: times },
         {
           headers: {
@@ -982,7 +982,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        'http://localhost:5000/api/protected/profile',
+        'http://localhost:3001/api/protected/profile',
         { preferredLocations: locations },
         {
           headers: {

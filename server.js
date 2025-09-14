@@ -204,11 +204,11 @@ app.put('/api/protected/profile', async (req, res) => {
 // Posts routes
 app.get('/api/protected/posts', async (req, res) => {
   try {
-    const { type, status, location, userId } = req.query;
+    const { type, status, location, userID } = req.query;
     
     let posts;
-    if (userId) {
-      posts = await Post.findByUserID(userId);
+    if (userID) {
+      posts = await Post.findByUserID(userID);
     } else if (type) {
       posts = await Post.findByType(type);
     } else if (status) {
@@ -566,9 +566,7 @@ app.get('/api/admin/users', async (req, res) => {
 });
 
 app.get('/api/admin/applications', async (req, res) => {
-  try {
-    console.log('Fetching all applications for admin:', req.user?.email);
-    
+  try {    
     const Application = require('./models/Application');
     
     // Fetch all applications regardless of status
@@ -632,6 +630,30 @@ app.get('/api/admin/applications/pending', async (req, res) => {
       error: error.message,
       details: 'Failed to fetch applications. Please check server logs.'
     });
+  }
+});
+
+app.get('/api/admin/users/:userID', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userID);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    res.json({ 
+      success: true, 
+      user: {
+        userID: user.userID,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        isOrganization: user.isOrganization,
+        organizationName: user.organizationName
+      }
+    });
+  } catch (error) {
+    console.error('User fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

@@ -12,9 +12,9 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
   const [isAddingLocation, setIsAddingLocation] = useState(false);
 
   const locationTypes = [
-    { value: 'home', label: 'Home', icon: '🏠' },
-    { value: 'office', label: 'Office', icon: '🏢' },
-    { value: 'other', label: 'Other', icon: '📍' }
+    { value: 'home', label: 'Home' },
+    { value: 'office', label: 'Office' },
+    { value: 'other', label: 'Other' }
   ];
 
   useEffect(() => {
@@ -131,7 +131,7 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
                           className={styles.removeButton}
                           aria-label="Remove location"
                         >
-                          🗑️
+                          Delete
                         </button>
                       </div>
                     </div>

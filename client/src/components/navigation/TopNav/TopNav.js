@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import Logo from '../../common/Logo/logo';
 import styles from './TopNav.module.css';
 
-const TopNav = ({ user }) => {
+const TopNav = () => {
+  const { currentUser: user, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -32,9 +34,7 @@ const TopNav = ({ user }) => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('rememberedUser');
+    logout();  // Use context logout
     navigate('/login');
   };
 

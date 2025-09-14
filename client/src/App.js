@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -48,73 +49,75 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <div className="App">
-        <Routes>
-          {/* Public routes - No AppLayout */}
-          <Route path="/" element={<Landing />} />
-          
-          <Route 
-            path="/login" 
-            element={
-              <AutoLoginRoute>
-                <Login />
-              </AutoLoginRoute>
-            } 
-          />
-          
-          <Route path="/register" element={<Register />} />
-          
-          {/* Protected routes - With AppLayout */}
-          <Route 
-            path="/posts" 
-            element={
-              <ProtectedRoute>
-                <Posts />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/create-post" 
-            element={
-              <ProtectedRoute>
-                <CreatePost />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Routes>
+            {/* Public routes - No AppLayout */}
+            <Route path="/" element={<Landing />} />
+            
+            <Route 
+              path="/login" 
+              element={
+                <AutoLoginRoute>
+                  <Login />
+                </AutoLoginRoute>
+              } 
+            />
+            
+            <Route path="/register" element={<Register />} />
+            
+            {/* Protected routes - With AppLayout */}
+            <Route 
+              path="/posts" 
+              element={
+                <ProtectedRoute>
+                  <Posts />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/create-post" 
+              element={
+                <ProtectedRoute>
+                  <CreatePost />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
 
-          {/* Admin Routes */}
-          <Route 
-            path="/admin/approvals" 
-            element={
-              <ProtectedRoute>
-                <Approvals />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </div>
-    </Router>
+            {/* Admin Routes */}
+            <Route 
+              path="/admin/approvals" 
+              element={
+                <ProtectedRoute>
+                  <Approvals />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

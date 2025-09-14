@@ -24,7 +24,7 @@ const authenticateUser = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
             
       // Fetch fresh user data from database
-      const user = await User.findById(decoded.userID);
+      const user = await User.findById(decoded.userID || decoded.userID);
       
       if (!user) {
         console.log('User not found for ID:', decoded.userID);
@@ -125,25 +125,18 @@ router.put('/', async (req, res) => {
     
     // Update user in database
     const updatedUser = await User.update(req.user.userID, updates);
-    
+
+    if (!updatedUser) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Failed to update user' 
+      });
+    }
+
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: {
-        userID: updatedUser.userID,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
-        email: updatedUser.email,
-        phone: updatedUser.phone || '',
-        address: updatedUser.address || '',
-        userType: updatedUser.userType,
-        status: updatedUser.status,
-        isOrganization: updatedUser.isOrganization,
-        organizationName: updatedUser.organizationName,
-        points: updatedUser.points,
-        badges: updatedUser.badges,
-        profilePicture: updatedUser.profilePicture
-      }
+      user: updatedUser
     });
   } catch (error) {
     console.error('Profile update error:', error);
