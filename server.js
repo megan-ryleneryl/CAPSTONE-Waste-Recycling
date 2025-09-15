@@ -408,7 +408,7 @@ app.post('/api/protected/upload/proof-of-pickup',
 );
 
 app.post('/api/protected/upload/profile-picture',
-  upload.single('picture'),
+  upload.single('profilePicture'),
   async (req, res) => {
     try {
       if (!req.file) {
@@ -417,8 +417,8 @@ app.post('/api/protected/upload/profile-picture',
 
       const uploadedFile = await StorageService.uploadProfilePicture(req.file, req.user.userID);
       
-      // Update user profile with new picture URL
-      await User.update(req.user.userID, { profilePicture: uploadedFile });
+      // Update user profile with new picture URL - using correct field name
+      await User.update(req.user.userID, { profilePictureUrl: uploadedFile });
       
       res.json({ 
         success: true, 

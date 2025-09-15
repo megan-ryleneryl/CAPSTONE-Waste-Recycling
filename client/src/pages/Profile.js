@@ -224,7 +224,7 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
     phone: user.phone || '',
     profilePicture: null
   });
-  const [previewUrl, setPreviewUrl] = useState(user.profilePicture || null);
+  const [previewUrl, setPreviewUrl] = useState(user.profilePictureUrl || null);
   const fileInputRef = useRef(null);
 
   // Format phone number: 09XX XXX XXXX
@@ -708,7 +708,10 @@ const Profile = ({ user: propsUser, activeFilter }) => {
               
               if (pictureResponse.data.success && pictureResponse.data.fileUrl) {
                 // Update the user object with new profile picture
-                setUser(prev => ({ ...prev, profilePicture: pictureResponse.data.fileUrl }));
+                setUser(prev => ({ 
+                  ...prev, 
+                  profilePictureUrl: pictureResponse.data.fileUrl
+                }));
               }
             } catch (uploadError) {
               console.error('Error uploading profile picture:', uploadError);
@@ -734,7 +737,12 @@ const Profile = ({ user: propsUser, activeFilter }) => {
           );
           
           if (response.data.success) {
-            const updatedUser = { ...user, ...response.data.user };
+            const updatedUser = { 
+              ...user, 
+              ...response.data.user,
+              // Ensure profilePictureUrl is preserved if it exists
+              profilePictureUrl: response.data.user.profilePictureUrl || user.profilePictureUrl
+            };
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
             setActiveModal(null);
@@ -1011,6 +1019,13 @@ const Profile = ({ user: propsUser, activeFilter }) => {
     }
   };
 
+  const hasPendingCollectorApplication = () => {
+    return userApplications.some(app => 
+      app.applicationType === 'Collector_Privilege' && 
+      (app.status === 'Pending' || app.status === 'Submitted')
+    );
+  };
+
   const hasPendingOrganizationApplication = () => {
     return userApplications.some(app => 
       app.applicationType === 'Org_Verification' && 
@@ -1039,9 +1054,9 @@ const Profile = ({ user: propsUser, activeFilter }) => {
             {/* Profile Header */}
             <div className={styles.profileHeader}>
               <div className={styles.profileAvatar}>
-                {user?.profilePicture ? (
+                {user?.profilePictureUrl  ? (
                   <img 
-                    src={user.profilePicture} 
+                    src={user.profilePictureUrl} 
                     alt={`${user?.firstName} ${user?.lastName}`}
                     className={styles.avatarImage}
                     onError={(e) => {
@@ -1052,7 +1067,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                 ) : null}
                 <div 
                   className={styles.avatarFallback} 
-                  style={user?.profilePicture ? {display: 'none'} : {}}
+                  style={user?.profilePictureUrl ? {display: 'none'} : {}}
                 >
                   {`${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase()}
                 </div>
@@ -1214,7 +1229,10 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                       <ul className={styles.preferenceList}>
                         {user.preferredTimes.map((time, index) => (
                           <li key={index}>
-                            {time.day}: {time.startTime} - {time.endTime}
+                            {time.day}: {time.startTime}
+                            {time.startTime !== 'Flexible' && (
+                              <> - {time.endTime}</>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -1267,7 +1285,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                 </div>
               )}
               
-              {user.userType === 'Giver' && (
+              {user.userType === 'Giver' && !hasPendingCollectorApplication() && (
                 <div className={styles.ctaCard}>
                   <p>Join EcoTayo as a Collector and help close the loop on recycling in your community. Claim posts, manage pickups, and turn waste into a resource. Apply now and start earning points for every successful collection!</p>
                   <button 

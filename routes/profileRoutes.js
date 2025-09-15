@@ -136,7 +136,10 @@ router.put('/', async (req, res) => {
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: updatedUser
+      user: {
+        ...updatedUser,
+        profilePictureUrl: updatedUser.profilePictureUrl
+      }
     });
   } catch (error) {
     console.error('Profile update error:', error);

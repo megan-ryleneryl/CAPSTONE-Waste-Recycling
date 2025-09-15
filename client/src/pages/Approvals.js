@@ -305,6 +305,12 @@ const Approvals = () => {
             Pending
           </button>
           <button 
+            className={statusFilter === 'Submitted' ? styles.filterActive : styles.filterButton}
+            onClick={() => setStatusFilter('Submitted')}
+          >
+            Submitted
+          </button>
+          <button 
             className={statusFilter === 'Approved' ? styles.filterActive : styles.filterButton}
             onClick={() => setStatusFilter('Approved')}
           >
@@ -374,7 +380,7 @@ const Approvals = () => {
                   >
                     View Details
                   </button>
-                  {application.status === 'Pending' && (
+                  {(application.status === 'Pending' || application.status === 'Submitted') && (
                     <>
                       <button 
                         className={styles.approveButton}

@@ -7,15 +7,8 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
     name: '',
     address: '',
     instructions: '',
-    type: 'home' // home, office, other
   });
   const [isAddingLocation, setIsAddingLocation] = useState(false);
-
-  const locationTypes = [
-    { value: 'home', label: 'Home' },
-    { value: 'office', label: 'Office' },
-    { value: 'other', label: 'Other' }
-  ];
 
   useEffect(() => {
     // Initialize with current locations
@@ -31,7 +24,6 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
         name: '',
         address: '',
         instructions: '',
-        type: 'home'
       });
       setIsAddingLocation(false);
     }
@@ -125,7 +117,7 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
                         <button
                           type="button"
                           onClick={() => handleRemoveLocation(location.id)}
-                          className={styles.removeButton}
+                          className={styles.deleteLocationButton}
                           aria-label="Remove location"
                         >
                           Delete
@@ -139,31 +131,6 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
               {isAddingLocation && (
                 <div className={styles.addLocationForm}>
                   <h4 className={styles.formTitle}>Add New Location</h4>
-                  
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Location Type</label>
-                    <div className={styles.typeSelector}>
-                      {locationTypes.map(type => (
-                        <label key={type.value} className={styles.typeOption}>
-                          <input
-                            type="radio"
-                            name="locationType"
-                            value={type.value}
-                            checked={newLocation.type === type.value}
-                            onChange={(e) => setNewLocation({
-                              ...newLocation,
-                              type: e.target.value
-                            })}
-                            className={styles.radio}
-                          />
-                          <span className={styles.typeLabel}>
-                            <span className={styles.typeIcon}>{type.icon}</span>
-                            {type.label}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
 
                   <div className={styles.formGroup}>
                     <label className={styles.label}>Location Name *</label>

@@ -37,6 +37,16 @@ class StorageService {
       throw new Error(`Failed to save file: ${error.message}`);
     }
   }
+
+  static async uploadProfilePicture(file, userID) {
+    try {
+      const result = await this.saveFile(file, `profile-pictures/${userID}`);
+      return result.url;
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      throw new Error(`Failed to upload profile picture: ${error.message}`);
+    }
+  }
 }
 
 // Configure multer with proper file size limits and validation

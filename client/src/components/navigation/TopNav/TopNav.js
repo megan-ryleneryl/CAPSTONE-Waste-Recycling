@@ -107,17 +107,23 @@ const TopNav = () => {
 
           {/* User Menu */}
           <div className={styles.userMenuWrapper} ref={userMenuRef}>
-            <button 
-              className={styles.userButton}
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowUserMenu(!showUserMenu);
-                if (showNotifications) setShowNotifications(false);
-              }}
-            >
-              <div className={styles.userAvatar}>
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
-              </div>
+            <button className={styles.userButton} onClick={() => setShowUserMenu(!showUserMenu)}>
+              {user?.profilePictureUrl ? (
+                <img 
+                  src={user.profilePictureUrl} // Using profilePictureUrl
+                  alt={`${user?.firstName} ${user?.lastName}`}
+                  className={styles.userAvatar}
+                  style={{ objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : (
+                <div className={styles.userAvatar}>
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </div>
+              )}
               <span className={styles.userName}>
                 {user?.firstName} {user?.lastName}
               </span>
