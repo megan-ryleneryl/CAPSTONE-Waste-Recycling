@@ -353,13 +353,13 @@ class Pickup {
 
   // Get giver information
   async getGiver() {
-    const User = require('./User');
+    const User = require('./Users');
     return await User.findById(this.giverID);
   }
 
   // Get collector information
   async getCollector() {
-    const User = require('./User');
+    const User = require('./Users');
     return await User.findById(this.collectorID);
   }
 

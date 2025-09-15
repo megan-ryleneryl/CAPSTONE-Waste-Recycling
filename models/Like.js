@@ -196,7 +196,7 @@ class Like {
       const userIDs = likes.map(like => like.userID);
       
       // Get user details
-      const User = require('./User');
+      const User = require('./Users');
       const users = await Promise.all(
         userIDs.map(userID => User.findById(userID))
       );
@@ -218,7 +218,7 @@ class Like {
 
   // Get the user who made this like
   async getUser() {
-    const User = require('./User');
+    const User = require('./Users');
     return await User.findById(this.userID);
   }
 

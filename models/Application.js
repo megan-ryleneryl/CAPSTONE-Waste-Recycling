@@ -196,7 +196,7 @@ class Application {
 
     // If approved, update user status based on application type
     if (status === 'Approved') {
-      const User = require('./User');
+      const User = require('./Users');
       const user = await User.findById(this.userID);
       
       if (user) {
@@ -209,6 +209,7 @@ class Application {
           case 'Org_Verification':
             userUpdate.status = 'Verified';
             userUpdate.isOrganization = true;
+            userUpdate.organizationName = this.organizationName;
             break;
           case 'Collector_Privilege':
             if (user.userType !== 'Collector') {
@@ -218,7 +219,7 @@ class Application {
             break;
         }
         
-        await user.update(userUpdate);
+        await User.update(this.userID, userUpdate);
       }
     }
 

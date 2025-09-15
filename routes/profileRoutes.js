@@ -202,7 +202,7 @@ router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
     const applicationData = {
       userID: req.user.userID,
       applicationType: 'Collector_Privilege',
-      status: 'Pending',
+      status: 'Submitted',
       justification: businessJustification,
       documents: documents,
       submittedAt: new Date(),
@@ -289,7 +289,7 @@ router.post('/apply-organization', upload.single('proofDocument'), async (req, r
     const applicationData = {
       userID: req.user.userID,
       applicationType: 'Org_Verification',
-      status: 'Pending',
+      status: 'Submitted',
       justification: reason,
       documents: documents,
       submittedAt: new Date(),

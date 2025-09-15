@@ -798,15 +798,19 @@
 }
 
 .organizationBadge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
+  margin-left: 1rem;
+  display: inline-flex;
   background: linear-gradient(135deg, #F0924C, #e67e2e);
   color: white;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  align-items: center;
   vertical-align: middle;
   font-family: 'Raleway', sans-serif;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .organizationName {

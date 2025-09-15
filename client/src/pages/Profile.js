@@ -224,7 +224,7 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
     phone: user.phone || '',
     profilePicture: null
   });
-  const [previewUrl, setPreviewUrl] = useState(user.profilePictureUrl || null);
+  const [previewUrl, setPreviewUrl] = useState(user.profilePictureUrl || user.profilePicture || null);
   const fileInputRef = useRef(null);
 
   // Format phone number: 09XX XXX XXXX
@@ -604,6 +604,28 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       setLoading(false);
     }
   }, [navigate]);
+
+  // Helper function to construct full image URL
+  const getProfilePictureUrl = () => {
+    // First check profilePictureUrl (standard field), then profilePicture (legacy)
+    const pictureField = user?.profilePictureUrl || user?.profilePicture;
+    if (!pictureField) return null;
+    
+    // If it's already a full URL (http/https), return as is
+    if (pictureField.startsWith('http')) {
+      return pictureField;
+    }
+    
+    // If it's a relative path, prepend the server URL
+    const baseUrl = 'http://localhost:3001';
+    const pictureUrl = pictureField.startsWith('/') 
+      ? pictureField 
+      : '/' + pictureField;
+    
+    return baseUrl + pictureUrl;
+  };
+
+  const profilePictureUrl = getProfilePictureUrl();
 
   const handleDeleteAccount = async () => {
     try {
@@ -1058,9 +1080,9 @@ const Profile = ({ user: propsUser, activeFilter }) => {
             {/* Profile Header */}
             <div className={styles.profileHeader}>
               <div className={styles.profileAvatar}>
-                {user?.profilePictureUrl  ? (
+                {profilePictureUrl ? (
                   <img 
-                    src={user.profilePictureUrl} 
+                    src={profilePictureUrl} 
                     alt={`${user?.firstName} ${user?.lastName}`}
                     className={styles.avatarImage}
                     onError={(e) => {
@@ -1071,7 +1093,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                 ) : null}
                 <div 
                   className={styles.avatarFallback} 
-                  style={user?.profilePictureUrl ? {display: 'none'} : {}}
+                  style={profilePictureUrl ? {display: 'none'} : {}}
                 >
                   {`${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase()}
                 </div>
@@ -1081,11 +1103,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                 <div className={styles.profileDetails}>
                   <h2>
                     {user.firstName} {user.lastName}
-                    {user?.isOrganization && (
-                      <span className={styles.organizationBadge}>
-                        Organization
-                      </span>
-                    )}
                   </h2>
                   
                   {/* Display organization name if user is an organization */}
@@ -1160,6 +1177,12 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                       user?.status === 'Submitted' ? 'Waiting for Admin Approval' :
                       user?.status === 'Rejected' ? 'Verification Rejected' : 'Pending Verification'}
                     </span>
+
+                    {user?.isOrganization && (
+                      <span className={styles.organizationBadge}>
+                        Organization
+                      </span>
+                    )}
                   </div>
                 </div>
                 

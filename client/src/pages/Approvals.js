@@ -388,7 +388,7 @@ const Approvals = () => {
                   >
                     View Details
                   </button>
-                  {(application.status === 'Pending' || application.status === 'Submitted') && (
+                  {(application.status === 'Submitted') && (
                     <>
                       <button 
                         className={styles.approveButton}

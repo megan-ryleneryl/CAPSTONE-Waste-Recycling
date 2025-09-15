@@ -438,13 +438,13 @@ class Message {
 
   // Get sender information
   async getSender() {
-    const User = require('./User');
+    const User = require('./Users');
     return await User.findById(this.senderID);
   }
 
   // Get receiver information
   async getReceiver() {
-    const User = require('./User');
+    const User = require('./Users');
     return await User.findById(this.receiverID);
   }
 
