@@ -100,7 +100,9 @@ router.post('/register', async (req, res) => {
         status: user.status,
         points: user.points,
         badges: user.badges,
-        isAdmin: user.userType === 'Admin'
+        isAdmin: user.userType === 'Admin',
+        profilePicture: user.profilePictureUrl,  // For backward compatibility
+        profilePictureUrl: user.profilePictureUrl,
       }
     });
   } catch (error) {
@@ -160,7 +162,9 @@ router.post('/login', async (req, res) => {
         userType: user.userType,
         status: user.status,
         points: user.points,
-        badges: user.badges
+        badges: user.badges,
+        profilePicture: user.profilePictureUrl,  // For backward compatibility
+        profilePictureUrl: user.profilePictureUrl
       }
     });
   } catch (error) {
@@ -328,6 +332,7 @@ router.post('/google', async (req, res) => {
         status: user.status,
         points: user.points,
         badges: user.badges,
+        profilePicture: user.profilePictureUrl,  // For backward compatibility
         profilePictureUrl: user.profilePictureUrl
       }
     });

@@ -34,9 +34,14 @@ const TopNav = ({ user: propUser }) => {
           });
           
           if (response.data.success) {
-            setUser(response.data.user);
-            // Update localStorage with fresh data
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+            const userData = {
+              ...response.data.user,
+              // Ensure profilePicture field exists for backward compatibility
+              profilePicture: response.data.user.profilePictureUrl || response.data.user.profilePicture
+            };
+            setUser(userData);
+            // Update localStorage with both fields
+            localStorage.setItem('user', JSON.stringify(userData));
           }
         } else if (propUser) {
           setUser(propUser);
@@ -136,18 +141,20 @@ const TopNav = ({ user: propUser }) => {
 
   // Helper function to construct full image URL
   const getProfilePictureUrl = () => {
-    if (!user?.profilePicture) return null;
+    // First check profilePictureUrl (standard field), then profilePicture (legacy)
+    const pictureField = user?.profilePictureUrl || user?.profilePicture;
+    if (!pictureField) return null;
     
     // If it's already a full URL (http/https), return as is
-    if (user.profilePicture.startsWith('http')) {
-      return user.profilePicture;
+    if (pictureField.startsWith('http')) {
+      return pictureField;
     }
     
     // If it's a relative path, prepend the server URL
     const baseUrl = 'http://localhost:3001';
-    const pictureUrl = user.profilePicture.startsWith('/') 
-      ? user.profilePicture 
-      : '/' + user.profilePicture;
+    const pictureUrl = pictureField.startsWith('/') 
+      ? pictureField 
+      : '/' + pictureField;
     
     return baseUrl + pictureUrl;
   };

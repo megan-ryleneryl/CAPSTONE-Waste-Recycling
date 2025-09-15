@@ -375,7 +375,7 @@
 .addLocationForm {
   background: var(--background-gray);
   border-radius: var(--radius-medium);
-  padding: 1.5rem;
+  padding-top: 1.5rem;
   margin-top: 1rem;
   border: 2px solid var(--primary-green);
   max-width: 100%;
@@ -402,6 +402,7 @@
 
 .input,
 .textarea {
+  box-sizing: border-box;
   width: 100%;
   padding: 0.75rem;
   border: 2px solid #e0e0e0;

@@ -86,7 +86,8 @@ router.get('/', async (req, res) => {
         points: req.user.points || 0,
         totalDonations: req.user.totalDonations || 0,
         badges: req.user.badges || [],
-        profilePicture: req.user.profilePicture || null,
+        profilePicture: req.user.profilePictureUrl || null,  // For backward compatibility with TopNav
+        profilePictureUrl: req.user.profilePictureUrl || null,
         authProvider: req.user.authProvider || 'email',
         createdAt: req.user.createdAt,
         preferredTimes: req.user.preferredTimes || [],
@@ -138,10 +139,7 @@ router.put('/', async (req, res) => {
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: {
-        ...updatedUser,
-        profilePictureUrl: updatedUser.profilePictureUrl
-      }
+      user: updatedUser
     });
   } catch (error) {
     console.error('Profile update error:', error);

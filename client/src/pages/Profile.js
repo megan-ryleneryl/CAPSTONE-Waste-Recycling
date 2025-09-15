@@ -714,6 +714,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                 // Update the user object with new profile picture
                 setUser(prev => ({ 
                   ...prev, 
+                  profilePicture: pictureResponse.data.fileUrl,  // For TopNav compatibility
                   profilePictureUrl: pictureResponse.data.fileUrl
                 }));
               }
@@ -745,6 +746,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
               ...user, 
               ...response.data.user,
               // Ensure profilePictureUrl is preserved if it exists
+              profilePicture: response.data.user.profilePictureUrl || user.profilePictureUrl,
               profilePictureUrl: response.data.user.profilePictureUrl || user.profilePictureUrl
             };
             setUser(updatedUser);
@@ -971,14 +973,13 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       );
 
       if (response.data.success) {
-        // Update local state
-        setUser(prev => ({
-          ...prev,
-          preferredTimes: times
-        }));
+        // If backend returns updated user, use it
+        const updatedUser = response.data.user || { ...user, preferredTimes: times };
+        
+        // Update local state with backend response
+        setUser(updatedUser);
         
         // Update localStorage
-        const updatedUser = { ...user, preferredTimes: times };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         
         // Close modal
@@ -1004,14 +1005,13 @@ const Profile = ({ user: propsUser, activeFilter }) => {
       );
 
       if (response.data.success) {
-        // Update local state
-        setUser(prev => ({
-          ...prev,
-          preferredLocations: locations
-        }));
+        // If backend returns updated user, use it
+        const updatedUser = response.data.user || { ...user, preferredLocations: locations };
+        
+        // Update local state with backend response
+        setUser(updatedUser);
         
         // Update localStorage
-        const updatedUser = { ...user, preferredLocations: locations };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         
         // Close modal
