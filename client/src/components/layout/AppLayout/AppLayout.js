@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import TopNav from '../../navigation/TopNav/TopNav';
 import SideNav from '../../navigation/SideNav/SideNav';
+import RightSection from '../RightSection/RightSection';
 import styles from './AppLayout.module.css';
 
 const AppLayout = ({ children }) => {
@@ -9,11 +10,17 @@ const AppLayout = ({ children }) => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [rightSectionData, setRightSectionData] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   // Pages that don't need the layout
   const noLayoutPages = ['/login', '/register', '/'];
+
+  // Define which pages should show the right section
+  const pagesWithRightSection = ['/posts', '/dashboard'];
+  const showRightSection = pagesWithRightSection.includes(location.pathname) && !isMobile;
+ 
 
   useEffect(() => {
     // Load user data from localStorage
@@ -59,9 +66,21 @@ const AppLayout = ({ children }) => {
           user={user}
         />
         
-        <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
-          {React.cloneElement(children, { user, activeFilter })}
+        <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''} ${showRightSection ? styles.hasRightSection : ''}`}>
+          {React.cloneElement(children, { 
+            user, 
+            activeFilter,
+            onDataUpdate: setRightSectionData // Pass data update function to pages
+          })}
         </main>
+
+        {/* Right Section with Components */}
+        {showRightSection && (
+          <RightSection 
+            user={user} 
+            data={rightSectionData}
+          />
+        )}
 
         {/* Mobile Menu Toggle Button */}
         {isMobile && (

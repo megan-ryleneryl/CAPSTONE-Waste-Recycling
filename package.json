@@ -12,7 +12,8 @@
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
     "clean": "rm -rf uploads/temp/*",
-    "setup": "node scripts/setup.js"
+    "setup": "node scripts/setup.js",
+    "start": "node server.js"
   },
   "keywords": [
     "recycling",

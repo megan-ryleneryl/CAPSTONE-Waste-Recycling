@@ -4,23 +4,24 @@
   font-family: 'Raleway', sans-serif;
   display: flex;
   flex-direction: column;
+  align-items: center;
 }
 
 .mainLayout {
   display: flex;
   flex: 1;
   position: relative;
-  width: 100%;
+  width: 1400px;
   max-width: 100vw;
   overflow-x: hidden;
 }
 
 .mainContent {
   flex: 1;
-  padding: 2rem;
+  /* padding: 2rem; */
   min-height: calc(100vh - 70px);
   transition: all 0.3s ease;
-  margin-left: 300px;
+  /* margin-left: 300px; */
   width: calc(100% - 300px);
   box-sizing: border-box;
   position: relative;
@@ -68,7 +69,7 @@
   .mainContent {
     margin-left: 0;
   }
-  
+
   /* Mobile menu toggle button */
   .mobileMenuToggle {
     display: block;
@@ -114,3 +115,4 @@
     padding: 0.75rem 1rem;
   }
 }
+

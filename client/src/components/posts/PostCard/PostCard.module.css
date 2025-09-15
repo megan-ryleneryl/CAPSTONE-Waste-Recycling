@@ -1,0 +1,289 @@
+/* PostCard.module.css */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* max-width: 28rem; */
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.postCard {
+  background-color: #f3f4f6;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  height: 450px;
+}
+
+/* Header Styles */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.userDetails {
+  flex: 1;
+}
+
+.authorName {
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.95rem;
+}
+
+.username {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.timestamp {
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+/* Tag Styles */
+.tagContainer {
+  margin-bottom: 0.75rem;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.wasteTag,
+.initiativeTag {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.forumTag {
+  background-color: #fed7aa;
+  color: #9a3412;
+}
+
+.tagIcon {
+  font-size: 1rem;
+}
+
+/* Content Styles */
+.title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.description {
+  color: #374151;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.seeMore {
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.seeMore:hover {
+  text-decoration: underline;
+}
+
+/* Image Styles */
+.imageContainer {
+  position: relative;
+  background-color: #9ca3af;
+  border-radius: 0.75rem;
+  height: 12rem;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.postImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.navButton:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.prevButton {
+  left: 1rem;
+}
+
+.nextButton {
+  right: 1rem;
+}
+
+/* Details Styles */
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detailIcon {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.detailText {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* Interaction Styles */
+.interactions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.interactionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: color 0.2s;
+}
+
+.interactionButton:hover {
+  color: #374151;
+}
+
+/* Action Button Styles */
+.actionContainer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.actionButton {
+  padding: 0.5rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.collectButton,
+.supportButton {
+  background-color: #16a34a;
+  color: white;
+}
+
+.collectButton:hover,
+.supportButton:hover {
+  background-color: #15803d;
+  transform: translateY(-1px);
+}
+
+/* Loading and Error States */
+.loading,
+.error,
+.empty {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.error {
+  color: #dc2626;
+  background-color: #fef2f2;
+  border-radius: 0.5rem;
+  border: 1px solid #fecaca;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .container {
+    padding: 0.5rem;
+  }
+  
+  .postCard {
+    margin-bottom: 0.75rem;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .userInfo {
+    width: 100%;
+  }
+  
+  .timestamp {
+    align-self: flex-end;
+  }
+}
