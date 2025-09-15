@@ -356,41 +356,52 @@
   color: white;
 }
 
-.removeButton {
-  background: transparent;
-  border: none;
-  font-size: 1.2rem;
+.deleteLocationButton {
+  padding: 0.5rem;
+  background: white;
+  color: #DC3545;
+  border: 1px solid #DC3545;
+  border-radius: var(--radius-medium);
   cursor: pointer;
-  opacity: 0.6;
   transition: all 0.2s ease;
-  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
-.removeButton:hover {
-  opacity: 1;
-  transform: scale(1.1);
+.deleteLocationButton:hover {
+  background: #DC3545;
+  color: white;
+}
+
+.deleteLocationButton svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Add Location Form */
 .addLocationForm {
-  background: #f8f9fa;
-  border-radius: 12px;
+  background: var(--background-gray);
+  border-radius: var(--radius-medium);
   padding: 1.5rem;
   margin-top: 1rem;
-  border: 2px dashed #3B6535;
+  border: 2px solid var(--primary-green);
+  max-width: 100%;
+}
+
+.formRow {
+  margin-bottom: 1rem;
+  width: 100%;
 }
 
 .formGroup {
-  margin-bottom: 1.25rem;
-}
-
-.label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #333;
-  font-family: 'Raleway', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
 }
 
 .optional {

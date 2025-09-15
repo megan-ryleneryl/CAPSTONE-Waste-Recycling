@@ -8,10 +8,10 @@ const PreferredTimesModal = ({ onClose, onSubmit, currentTimes = [] }) => {
 
   // Predefined time slots
   const timeSlots = [
-    { value: 'morning', label: 'Morning (6AM - 12PM)', time: '06:00-12:00' },
-    { value: 'afternoon', label: 'Afternoon (12PM - 6PM)', time: '12:00-18:00' },
-    { value: 'evening', label: 'Evening (6PM - 10PM)', time: '18:00-22:00' },
-    { value: 'flexible', label: 'Flexible', time: 'flexible' }
+    { value: 'morning', label: 'Morning (6AM - 12PM)', startTime: '06:00', endTime: '12:00' },
+    { value: 'afternoon', label: 'Afternoon (12PM - 6PM)', startTime: '12:00', endTime: '18:00' },
+    { value: 'evening', label: 'Evening (6PM - 10PM)', startTime: '18:00', endTime: '22:00' },
+    { value: 'flexible', label: 'Flexible', startTime: 'Flexible', endTime: '' }
   ];
 
   const daysOfWeek = [
@@ -61,30 +61,35 @@ const PreferredTimesModal = ({ onClose, onSubmit, currentTimes = [] }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Create structured time preferences
+    // Create structured time preferences with proper startTime and endTime
     const preferences = [];
     
     selectedDays.forEach(day => {
-      selectedTimes.forEach(slot => {
-        const timeSlot = timeSlots.find(t => t.value === slot);
-        preferences.push({
-          day: day,
-          slot: slot,
-          time: timeSlot ? timeSlot.time : customTime
-        });
+      selectedTimes.forEach(slotValue => {
+        const timeSlot = timeSlots.find(t => t.value === slotValue);
+        if (timeSlot) {
+          preferences.push({
+            day: day,
+            startTime: timeSlot.startTime,
+            endTime: timeSlot.endTime || '',
+            slot: slotValue
+          });
+        }
       });
+      
+      // Handle custom time if provided
+      if (customTime) {
+        const [start, end] = customTime.split('-').map(t => t.trim());
+        if (start) {
+          preferences.push({
+            day: day,
+            startTime: start,
+            endTime: end || '',
+            slot: 'custom'
+          });
+        }
+      }
     });
-
-    // Add custom time if provided
-    if (customTime && selectedDays.length > 0) {
-      selectedDays.forEach(day => {
-        preferences.push({
-          day: day,
-          slot: 'custom',
-          time: customTime
-        });
-      });
-    }
 
     onSubmit(preferences);
   };

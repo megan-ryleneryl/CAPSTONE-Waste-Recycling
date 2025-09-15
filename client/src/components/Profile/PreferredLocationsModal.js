@@ -97,9 +97,6 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
                   {locations.map(location => (
                     <div key={location.id} className={styles.locationCard}>
                       <div className={styles.locationHeader}>
-                        <span className={styles.locationIcon}>
-                          {locationTypes.find(t => t.value === location.type)?.icon || '📍'}
-                        </span>
                         <div className={styles.locationInfo}>
                           <h4 className={styles.locationName}>
                             {location.name}
