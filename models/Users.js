@@ -167,6 +167,7 @@ class User {
         firstName: 'Deleted',
         lastName: 'User',
         status: 'Deleted',
+        email: 'Deleted',
         deletedAt: new Date()
       };
 
@@ -190,13 +191,13 @@ class User {
       }
 
       // Set all this user's posts to inactive
-      const Post = require('./Post');
-      const userPosts = await Post.findByUserID(userID);
-      for (const post of userPosts) {
-        if (post.status !== 'Inactive') {
-          await post.update({ status: 'Inactive' });
-        }
-      }
+      // const Post = require('./Post');
+      // const userPosts = await Post.findByUserID(userID);
+      // for (const post of userPosts) {
+      //   if (post.status !== 'Inactive') {
+      //     await post.update({ status: 'Inactive' });
+      //   }
+      // }
       
       await updateDoc(userRef, updateData);
       

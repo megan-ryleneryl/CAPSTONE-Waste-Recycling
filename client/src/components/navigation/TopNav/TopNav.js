@@ -1,25 +1,82 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import axios from 'axios';
 import Logo from '../../common/Logo/logo';
 import styles from './TopNav.module.css';
 
-const TopNav = () => {
-  const { currentUser: user, logout } = useAuth();
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isHidden, setIsHidden] = useState(false);
+const TopNav = ({ user: propUser }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [user, setUser] = useState(propUser);
   const navigate = useNavigate();
-
-  // Refs for detecting clicks outside dropdowns
-  const notificationRef = useRef(null);
+  const dropdownRef = useRef(null);
   const userMenuRef = useRef(null);
 
-  // Handle clicks outside dropdowns
+  // Update user state when prop changes or on mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+        
+        if (token && storedUser) {
+          // First set user from localStorage for immediate display
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          
+          // Then fetch fresh data from backend
+          const response = await axios.get('http://localhost:3001/api/protected/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.data.success) {
+            setUser(response.data.user);
+            // Update localStorage with fresh data
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+          }
+        } else if (propUser) {
+          setUser(propUser);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // If token is invalid, use propUser or clear user
+        if (error.response?.status === 401) {
+          handleLogout();
+        } else if (propUser) {
+          setUser(propUser);
+        }
+      }
+    };
+    
+    fetchUserData();
+  }, [propUser]);
+
+  // Listen for storage changes (when user updates profile)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    };
+
+    // Listen for custom event when profile is updated
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('userProfileUpdated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userProfileUpdated', handleStorageChange);
+    };
+  }, []);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -28,21 +85,79 @@ const TopNav = () => {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    fetchNotifications();
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:3001/api/protected/notifications', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        setNotifications(response.data.notifications || []);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
   const handleLogout = () => {
-    logout();  // Use context logout
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('rememberedUser');
+    setUser(null);
     navigate('/login');
   };
 
-  const notifications = [
-    { id: 1, text: 'New pickup request', time: '5 min ago', unread: true },
-    { id: 2, text: 'Points earned: +50', time: '1 hour ago', unread: true },
-    { id: 3, text: 'Waste collected successfully', time: '2 hours ago', unread: false },
-  ];
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+    setShowUserMenu(false);
+  };
+
+  const toggleUserMenu = () => {
+    setShowUserMenu(!showUserMenu);
+    setShowNotifications(false);
+  };
+
+  const getInitials = () => {
+    if (!user) return '?';
+    const first = user.firstName?.[0] || '';
+    const last = user.lastName?.[0] || '';
+    return (first + last).toUpperCase() || '?';
+  };
+
+  // Helper function to construct full image URL
+  const getProfilePictureUrl = () => {
+    if (!user?.profilePicture) return null;
+    
+    // If it's already a full URL (http/https), return as is
+    if (user.profilePicture.startsWith('http')) {
+      return user.profilePicture;
+    }
+    
+    // If it's a relative path, prepend the server URL
+    const baseUrl = 'http://localhost:3001';
+    const pictureUrl = user.profilePicture.startsWith('/') 
+      ? user.profilePicture 
+      : '/' + user.profilePicture;
+    
+    return baseUrl + pictureUrl;
+  };
+
+  if (!user) {
+    return null;
+  }
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const profilePictureUrl = getProfilePictureUrl();
 
   // Notification Bell Icon Component
   const BellIcon = () => (
@@ -60,38 +175,55 @@ const TopNav = () => {
   );
 
   return (
-    <nav className={`${styles.navbar} ${isScrolled ? styles.scrolled : ''} ${isHidden ? styles.hidden : ''}`}>
+    <nav className={styles.navbar}>
       <div className={styles.navContent}>
         <Link to="/posts" style={{ textDecoration: 'none' }}>
             <Logo size="medium" />
           </Link>
         <div className={styles.navRight}>
           {/* Notifications */}
-          <div className={styles.notificationWrapper}>
-            <button 
+          <div className={styles.notificationWrapper} ref={dropdownRef}>
+            <button
               className={styles.navIcon}
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={toggleNotifications}
+              aria-label="Notifications"
             >
               <BellIcon />
-              {notifications.some(n => n.unread) && <span className={styles.badge}></span>}
+              {unreadCount > 0 && (
+                <span className={styles.badge}>{unreadCount}</span>
+              )}
             </button>
-            
+
             {showNotifications && (
               <div className={styles.dropdown}>
                 <div className={styles.dropdownHeader}>
                   <h3>Notifications</h3>
-                  <button className={styles.markAllRead}>Mark all read</button>
+                  {unreadCount > 0 && (
+                    <button className={styles.markAllRead}>
+                      Mark all as read
+                    </button>
+                  )}
                 </div>
                 <div className={styles.notificationsList}>
-                  {notifications.map(notif => (
-                    <div 
-                      key={notif.id} 
-                      className={`${styles.notificationItem} ${notif.unread ? styles.unread : ''}`}
-                    >
-                      <p>{notif.text}</p>
-                      <span className={styles.time}>{notif.time}</span>
+                  {notifications.length > 0 ? (
+                    notifications.slice(0, 5).map((notification) => (
+                      <div
+                        key={notification.notificationID}
+                        className={`${styles.notificationItem} ${
+                          !notification.isRead ? styles.unread : ''
+                        }`}
+                      >
+                        <p>{notification.message}</p>
+                        <span className={styles.time}>
+                          {new Date(notification.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className={styles.notificationItem}>
+                      <p>No notifications</p>
                     </div>
-                  ))}
+                  )}
                 </div>
                 <Link to="/notifications" className={styles.viewAll}>
                   View all notifications
@@ -107,23 +239,34 @@ const TopNav = () => {
 
           {/* User Menu */}
           <div className={styles.userMenuWrapper} ref={userMenuRef}>
-            <button className={styles.userButton} onClick={() => setShowUserMenu(!showUserMenu)}>
-              {user?.profilePictureUrl ? (
-                <img 
-                  src={user.profilePictureUrl} // Using profilePictureUrl
-                  alt={`${user?.firstName} ${user?.lastName}`}
-                  className={styles.userAvatar}
-                  style={{ objectFit: 'cover' }}
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'flex';
-                  }}
-                />
-              ) : (
-                <div className={styles.userAvatar}>
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+            <button
+              className={styles.userButton}
+              onClick={toggleUserMenu}
+              aria-label="User menu"
+            >
+              <div className={styles.userAvatar}>
+                {profilePictureUrl ? (
+                  <img 
+                    src={profilePictureUrl} 
+                    alt={`${user?.firstName} ${user?.lastName}`}
+                    className={styles.userAvatarImage}
+                    onError={(e) => {
+                      // If image fails to load, hide it and show initials
+                      e.target.style.display = 'none';
+                      const initialsDiv = e.target.nextSibling;
+                      if (initialsDiv) {
+                        initialsDiv.style.display = 'flex';
+                      }
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className={styles.userAvatarInitials}
+                  style={profilePictureUrl ? { display: 'none' } : { display: 'flex' }}
+                >
+                  {getInitials()}
                 </div>
-              )}
+              </div>
               <span className={styles.userName}>
                 {user?.firstName} {user?.lastName}
               </span>

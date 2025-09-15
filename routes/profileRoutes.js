@@ -88,7 +88,9 @@ router.get('/', async (req, res) => {
         badges: req.user.badges || [],
         profilePicture: req.user.profilePicture || null,
         authProvider: req.user.authProvider || 'email',
-        createdAt: req.user.createdAt
+        createdAt: req.user.createdAt,
+        preferredTimes: req.user.preferredTimes || [],
+        preferredLocations: req.user.preferredLocations || []
       }
     };
     

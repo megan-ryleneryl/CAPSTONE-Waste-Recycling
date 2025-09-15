@@ -19,23 +19,30 @@ const PreferredTimesModal = ({ onClose, onSubmit, currentTimes = [] }) => {
   ];
 
   useEffect(() => {
+    setSelectedTimes([]);
+    setSelectedDays([]);
+    setCustomTime('');
+
     // Parse existing times if any
     if (currentTimes && currentTimes.length > 0) {
-      const parsedTimes = [];
-      const parsedDays = [];
+      const uniqueDays = new Set();
+      const uniqueSlots = new Set();
       
       currentTimes.forEach(time => {
         if (typeof time === 'object' && time.day && time.slot) {
-          parsedDays.push(time.day);
-          if (!parsedTimes.includes(time.slot)) {
-            parsedTimes.push(time.slot);
+          uniqueDays.add(time.day);
+          if (time.slot !== 'custom') {
+            uniqueSlots.add(time.slot);
+          } else if (time.startTime && time.endTime) {
+            // Reconstruct custom time
+            setCustomTime(`${time.startTime}-${time.endTime}`);
           }
         }
       });
       
-      setSelectedTimes(parsedTimes);
-      setSelectedDays(parsedDays);
-    }
+      setSelectedDays(Array.from(uniqueDays));
+      setSelectedTimes(Array.from(uniqueSlots));
+      }
   }, [currentTimes]);
 
   const handleTimeToggle = (timeValue) => {

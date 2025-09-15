@@ -73,7 +73,9 @@ const Approvals = () => {
             ? `${user.organizationName} (${user.firstName} ${user.lastName})`
             : `${user.firstName} ${user.lastName}`,
           isAdmin: user.userType === 'Admin',
-          email: user.email
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName
         };
         
         setUserDetails(prev => ({
@@ -203,6 +205,12 @@ const Approvals = () => {
   };
 
   const filteredApplications = applications.filter(app => {
+    // Filter out deleted users
+    const user = userDetails[app.userID];
+    if (user && user.firstName === 'Deleted' && user.lastName === 'User') {
+      return false;
+    }
+    
     // Filter by type
     const typeMatch = filter === 'all' || app.applicationType === filter;
     

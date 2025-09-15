@@ -573,7 +573,11 @@ const Profile = ({ user: propsUser, activeFilter }) => {
 
         if (response.data.success) {
           const profileData = response.data.user;
-          setUser(profileData);
+          setUser({
+            ...profileData,
+            preferredTimes: profileData.preferredTimes || [],
+            preferredLocations: profileData.preferredLocations || []
+          });
           setEditForm({
             firstName: profileData.firstName || '',
             lastName: profileData.lastName || '',
