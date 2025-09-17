@@ -28,10 +28,9 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
   };
 
   const mainNavItems = [
-    { path: '/posts', label: 'Posts' },
-    { path: '/dashboard', label: 'Dashboard' },
-    // { path: '/notifications', label: 'Notifications' },
-    { path: '/inbox', label: 'Inbox' },
+    { path: '/posts', label: 'Browse Posts' },
+    { path: '/dashboard', label: 'Dashboard'},
+    { path: '/chat', label: 'Messages' },
     { path: '/profile', label: 'Profile' },
   ];
 

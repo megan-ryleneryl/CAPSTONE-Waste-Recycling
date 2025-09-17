@@ -1,23 +1,32 @@
 // client/src/components/chat/ConversationList.js
 import React, { useState, useEffect } from 'react';
+import { chatService } from '../../config/services'; // Use configured service
 import ConversationListItem from './ConversationListItem';
-import ChatService from '../../services/chatService';
 import styles from './ConversationList.module.css';
 
-const ConversationList = ({ currentUser, onSelectConversation, selectedConversationId = null }) => {
+const ConversationList = ({ 
+  currentUser, 
+  onSelectConversation, 
+  selectedConversationId 
+}) => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    loadConversations();
-  }, [currentUser.userID]);
+    if (currentUser && currentUser.userID) {
+      loadConversations();
+      // Refresh conversations every 30 seconds
+      const interval = setInterval(loadConversations, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser]);
 
   const loadConversations = async () => {
     try {
-      setLoading(true);
-      const userConversations = await ChatService.getUserConversations(currentUser.userID);
-      setConversations(userConversations);
+      setError('');
+      const data = await chatService.getUserConversations(currentUser.userID);
+      setConversations(data || []);
     } catch (err) {
       setError('Failed to load conversations');
       console.error('Error loading conversations:', err);
@@ -27,12 +36,17 @@ const ConversationList = ({ currentUser, onSelectConversation, selectedConversat
   };
 
   const handleConversationSelect = (conversation) => {
-    onSelectConversation(conversation);
+    if (onSelectConversation) {
+      onSelectConversation(conversation);
+    }
   };
 
-  if (loading) {
+  if (loading && !conversations.length) {
     return (
       <div className={styles.conversationList}>
+        <div className={styles.header}>
+          <h2>Messages</h2>
+        </div>
         <div className={styles.loading}>
           <div className={styles.loadingSpinner}></div>
           <p>Loading conversations...</p>
@@ -41,9 +55,12 @@ const ConversationList = ({ currentUser, onSelectConversation, selectedConversat
     );
   }
 
-  if (error) {
+  if (error && !conversations.length) {
     return (
       <div className={styles.conversationList}>
+        <div className={styles.header}>
+          <h2>Messages</h2>
+        </div>
         <div className={styles.error}>
           <p>{error}</p>
           <button onClick={loadConversations} className={styles.retryButton}>
@@ -54,13 +71,25 @@ const ConversationList = ({ currentUser, onSelectConversation, selectedConversat
     );
   }
 
-  if (conversations.length === 0) {
+  if (!conversations.length) {
     return (
       <div className={styles.conversationList}>
+        <div className={styles.header}>
+          <h2>Messages</h2>
+          <button 
+            onClick={loadConversations} 
+            className={styles.refreshButton} 
+            title="Refresh"
+          >
+            🔄
+          </button>
+        </div>
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>💬</div>
-          <h3>No conversations yet</h3>
-          <p>Your conversations will appear here when you start chatting with other users.</p>
+          <p>No conversations yet</p>
+          <span className={styles.emptyHint}>
+            Messages will appear here when you start chatting
+          </span>
         </div>
       </div>
     );
@@ -70,12 +99,12 @@ const ConversationList = ({ currentUser, onSelectConversation, selectedConversat
     <div className={styles.conversationList}>
       <div className={styles.header}>
         <h2>Messages</h2>
-        <button onClick={loadConversations} className={styles.refreshButton} title="Refresh">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
+        <button 
+          onClick={loadConversations} 
+          className={styles.refreshButton} 
+          title="Refresh"
+        >
+          🔄
         </button>
       </div>
 
@@ -86,7 +115,9 @@ const ConversationList = ({ currentUser, onSelectConversation, selectedConversat
             conversation={conversation}
             currentUser={currentUser}
             onClick={handleConversationSelect}
-            isSelected={selectedConversationId === `${conversation.postID}-${conversation.otherUserID}`}
+            isSelected={
+              selectedConversationId === `${conversation.postID}-${conversation.otherUserID}`
+            }
           />
         ))}
       </div>

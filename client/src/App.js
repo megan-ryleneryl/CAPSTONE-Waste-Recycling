@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Posts from './pages/Posts';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import Chat from './pages/Chat';
 import Approvals from './pages/Approvals';
 import CreatePost from './pages/CreatePost';
 import AppLayout from './components/layout/AppLayout/AppLayout';
@@ -100,6 +101,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/chat" 
+              element={
+                <ProtectedRoute>
+                  <Chat />
                 </ProtectedRoute>
               } 
             />
