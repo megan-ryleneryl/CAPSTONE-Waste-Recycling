@@ -31,7 +31,7 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
     { path: '/posts', label: 'Posts' },
     { path: '/dashboard', label: 'Dashboard' },
     // { path: '/notifications', label: 'Notifications' },
-    // { path: '/inbox', label: 'Inbox' },
+    { path: '/inbox', label: 'Inbox' },
     { path: '/profile', label: 'Profile' },
   ];
 

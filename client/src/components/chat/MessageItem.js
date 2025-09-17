@@ -1,15 +1,15 @@
+// client/src/components/chat/MessageItem.js - Fixed version
 import React from 'react';
 import { formatMessageTime } from '../../utils/dateHelpers';
 import styles from './MessageItem.module.css';
 
 const MessageItem = ({ 
   message, 
-  currentUser, 
+  isOwn, // This should be passed from MessageList
   isLastInGroup, 
   isFirstInGroup, 
   showSenderName 
 }) => {
-  const isOwn = message.senderID === currentUser.userID;
   const isSystem = message.messageType === 'system';
   
   const messageClasses = [
@@ -61,6 +61,16 @@ const MessageItem = ({
               {message.metadata.contactPerson && (
                 <div className={styles.pickupItem}>
                   <strong>Contact:</strong> {message.metadata.contactPerson}
+                </div>
+              )}
+              {message.metadata.contactNumber && (
+                <div className={styles.pickupItem}>
+                  <strong>Phone:</strong> {message.metadata.contactNumber}
+                </div>
+              )}
+              {message.metadata.notes && (
+                <div className={styles.pickupItem}>
+                  <strong>Notes:</strong> {message.metadata.notes}
                 </div>
               )}
             </div>

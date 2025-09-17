@@ -1,4 +1,4 @@
-// models/Message.js - Extended version of your existing model
+// models/Message.js - Complete implementation
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy, or } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
 
@@ -13,14 +13,14 @@ class Message {
     this.isRead = data.isRead || false;
     this.isDeleted = data.isDeleted || false;
     
-    // NEW: Extended fields for Module 2 chat functionality
+    // Extended fields for Module 2 chat functionality
     this.messageType = data.messageType || 'text'; // 'text', 'system', 'pickup_request', 'pickup_confirmation'
     this.senderName = data.senderName || '';
     this.senderType = data.senderType || ''; // 'Giver', 'Collector', 'system'
     this.metadata = data.metadata || {}; // For storing pickup details, system actions, etc.
   }
 
-  // Validation (updated to support new fields)
+  // Validation
   validate() {
     const errors = [];
     
@@ -43,7 +43,7 @@ class Message {
     };
   }
 
-  // Convert to plain object for Firestore (updated)
+  // Convert to plain object for Firestore
   toFirestore() {
     return {
       messageID: this.messageID,
@@ -54,7 +54,6 @@ class Message {
       sentAt: this.sentAt,
       isRead: this.isRead,
       isDeleted: this.isDeleted,
-      // New fields
       messageType: this.messageType,
       senderName: this.senderName,
       senderType: this.senderType,
@@ -62,7 +61,77 @@ class Message {
     };
   }
 
-  // NEW: Static method for creating pickup coordination messages
+  // Static method to create a new message
+  static async create(data) {
+    const message = new Message(data);
+    const validation = message.validate();
+
+    if (!validation.isValid) {
+      throw new Error('Validation failed: ' + validation.errors.join(', '));
+    }
+
+    try {
+      const db = getFirestore();
+      const messageRef = doc(db, 'messages', message.messageID);
+      await setDoc(messageRef, message.toFirestore());
+      
+      return message;
+    } catch (error) {
+      throw new Error(`Failed to create message: ${error.message}`);
+    }
+  }
+
+  // Static method to find message by ID
+  static async findById(messageID) {
+    try {
+      const db = getFirestore();
+      const messageRef = doc(db, 'messages', messageID);
+      const messageSnap = await getDoc(messageRef);
+      
+      if (messageSnap.exists()) {
+        return new Message(messageSnap.data());
+      }
+      
+      return null;
+    } catch (error) {
+      throw new Error(`Failed to find message: ${error.message}`);
+    }
+  }
+
+  // Static method to update a message
+  static async update(messageID, updateData) {
+    try {
+      const db = getFirestore();
+      const messageRef = doc(db, 'messages', messageID);
+      
+      // Add timestamp for updates
+      updateData.updatedAt = new Date();
+      
+      await updateDoc(messageRef, updateData);
+      
+      return { success: true, message: 'Message updated successfully' };
+    } catch (error) {
+      throw new Error(`Failed to update message: ${error.message}`);
+    }
+  }
+
+  // Static method to delete a message
+  static async delete(messageID) {
+    try {
+      const db = getFirestore();
+      const messageRef = doc(db, 'messages', messageID);
+      await updateDoc(messageRef, { 
+        isDeleted: true, 
+        deletedAt: new Date() 
+      });
+      
+      return { success: true, message: 'Message deleted successfully' };
+    } catch (error) {
+      throw new Error(`Failed to delete message: ${error.message}`);
+    }
+  }
+
+  // Static method for creating pickup coordination messages
   static async createPickupMessage(senderData, receiverID, postID, messageText, pickupData = null) {
     const messageData = {
       senderID: senderData.userID,
@@ -78,7 +147,7 @@ class Message {
     return await Message.create(messageData);
   }
 
-  // NEW: Static method for system messages
+  // Static method for system messages
   static async createSystemMessage(receiverID, postID, messageText, actionData = {}) {
     const messageData = {
       senderID: 'system',
@@ -94,11 +163,13 @@ class Message {
     return await Message.create(messageData);
   }
 
-  // NEW: Get conversation between two users for a specific post (Module 2 chat)
+  // Get conversation between two users for a specific post
   static async getConversation(user1ID, user2ID, postID) {
     const db = getFirestore();
     try {
       const messagesRef = collection(db, 'messages');
+      
+      // Query for messages from user1 to user2
       const q1 = query(messagesRef, 
         where('postID', '==', postID),
         where('senderID', '==', user1ID),
@@ -107,6 +178,7 @@ class Message {
         orderBy('sentAt', 'asc')
       );
       
+      // Query for messages from user2 to user1
       const q2 = query(messagesRef,
         where('postID', '==', postID), 
         where('senderID', '==', user2ID),
@@ -115,9 +187,18 @@ class Message {
         orderBy('sentAt', 'asc')
       );
 
-      const [snapshot1, snapshot2] = await Promise.all([
+      // Query for system messages for this post
+      const q3 = query(messagesRef,
+        where('postID', '==', postID),
+        where('messageType', '==', 'system'),
+        where('isDeleted', '==', false),
+        orderBy('sentAt', 'asc')
+      );
+
+      const [snapshot1, snapshot2, snapshot3] = await Promise.all([
         getDocs(q1),
-        getDocs(q2)
+        getDocs(q2),
+        getDocs(q3)
       ]);
 
       const messages = [];
@@ -130,6 +211,14 @@ class Message {
         messages.push(new Message(doc.data()));
       });
 
+      snapshot3.forEach((doc) => {
+        const messageData = doc.data();
+        // Only include system messages relevant to both users
+        if (messageData.receiverID === user1ID || messageData.receiverID === user2ID) {
+          messages.push(new Message(messageData));
+        }
+      });
+
       // Sort by timestamp
       return messages.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
     } catch (error) {
@@ -137,7 +226,7 @@ class Message {
     }
   }
 
-  // NEW: Get active conversations for a user (for Module 2 inbox)
+  // Get active conversations for a user (for Module 2 inbox)
   static async getUserConversations(userID) {
     const db = getFirestore();
     try {
@@ -175,32 +264,48 @@ class Message {
       const conversations = {};
       
       allMessages.forEach(message => {
+        if (message.messageType === 'system') return; // Skip system messages for conversation list
+        
         const otherUserID = message.senderID === userID ? message.receiverID : message.senderID;
-        const conversationKey = `${message.postID}_${otherUserID}`;
+        const conversationKey = `${message.postID}-${otherUserID}`;
         
         if (!conversations[conversationKey] || 
             new Date(message.sentAt) > new Date(conversations[conversationKey].lastMessage.sentAt)) {
+          
           conversations[conversationKey] = {
             postID: message.postID,
-            otherUserID,
+            otherUserID: otherUserID,
+            otherUserName: message.senderID === userID ? 
+              'Unknown' : // You'll need to fetch this from User model
+              message.senderName,
             lastMessage: message,
-            unreadCount: allMessages.filter(m => 
-              m.postID === message.postID &&
-              m.senderID === otherUserID &&
-              m.receiverID === userID &&
-              !m.isRead
-            ).length
+            unreadCount: 0
           };
         }
       });
 
-      return Object.values(conversations);
+      // Calculate unread counts
+      for (let conversationKey in conversations) {
+        const conversation = conversations[conversationKey];
+        const unreadMessages = allMessages.filter(msg => 
+          msg.postID === conversation.postID &&
+          msg.senderID === conversation.otherUserID &&
+          msg.receiverID === userID &&
+          !msg.isRead
+        );
+        conversation.unreadCount = unreadMessages.length;
+      }
+
+      // Convert to array and sort by last message time
+      return Object.values(conversations).sort((a, b) => 
+        new Date(b.lastMessage.sentAt) - new Date(a.lastMessage.sentAt)
+      );
     } catch (error) {
       throw new Error(`Failed to get user conversations: ${error.message}`);
     }
   }
 
-  // NEW: Mark conversation as read
+  // Mark conversation as read
   static async markConversationAsRead(userID, otherUserID, postID) {
     const db = getFirestore();
     try {
@@ -209,24 +314,31 @@ class Message {
         where('postID', '==', postID),
         where('senderID', '==', otherUserID),
         where('receiverID', '==', userID),
-        where('isRead', '==', false)
+        where('isRead', '==', false),
+        where('isDeleted', '==', false)
       );
 
       const snapshot = await getDocs(q);
+      
       const updatePromises = [];
-
       snapshot.forEach((doc) => {
-        updatePromises.push(updateDoc(doc.ref, { isRead: true }));
+        updatePromises.push(
+          updateDoc(doc.ref, { 
+            isRead: true, 
+            readAt: new Date() 
+          })
+        );
       });
 
       await Promise.all(updatePromises);
-      return { success: true, messagesUpdated: snapshot.size };
+      
+      return { success: true, message: 'Conversation marked as read' };
     } catch (error) {
       throw new Error(`Failed to mark conversation as read: ${error.message}`);
     }
   }
 
-  // NEW: Get unread count for user
+  // Get unread message count for user
   static async getUnreadCount(userID) {
     const db = getFirestore();
     try {
@@ -240,173 +352,12 @@ class Message {
       const snapshot = await getDocs(q);
       return snapshot.size;
     } catch (error) {
-      console.error('Failed to get unread count:', error);
+      console.error('Error getting unread count:', error);
       return 0;
     }
   }
 
-  // Existing static methods (keeping all your original functionality)
-  static async create(messageData) {
-    const db = getFirestore();
-    const message = new Message(messageData);
-    
-    const validation = message.validate();
-    if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
-    }
-
-    try {
-      const messageRef = doc(db, 'messages', message.messageID);
-      await setDoc(messageRef, message.toFirestore());
-      
-      // Create notification for receiver (only for non-system messages)
-      if (message.messageType !== 'system') {
-        const Notification = require('./Notification');
-        await Notification.create({
-          userID: message.receiverID,
-          type: 'Message',
-          title: 'New Message',
-          message: `You have a new message from ${message.senderName || 'a user'}`,
-          referenceID: message.messageID
-        });
-      }
-      
-      return message;
-    } catch (error) {
-      throw new Error(`Failed to create message: ${error.message}`);
-    }
-  }
-
-  static async findById(messageID) {
-    const db = getFirestore();
-    try {
-      const messageRef = doc(db, 'messages', messageID);
-      const messageSnap = await getDoc(messageRef);
-      
-      if (messageSnap.exists()) {
-        return new Message(messageSnap.data());
-      }
-      return null;
-    } catch (error) {
-      throw new Error(`Failed to find message: ${error.message}`);
-    }
-  }
-
-  static async findConversation(user1ID, user2ID, postID) {
-    // Use the new enhanced method
-    return await Message.getConversation(user1ID, user2ID, postID);
-  }
-
-  static async findByPostID(postID) {
-    const db = getFirestore();
-    try {
-      const messagesRef = collection(db, 'messages');
-      const q = query(messagesRef, where('postID', '==', postID), orderBy('sentAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      
-      const messages = [];
-      querySnapshot.forEach((doc) => {
-        messages.push(new Message(doc.data()));
-      });
-      
-      return messages;
-    } catch (error) {
-      throw new Error(`Failed to find messages by post: ${error.message}`);
-    }
-  }
-
-  static async findBySenderID(senderID) {
-    const db = getFirestore();
-    try {
-      const messagesRef = collection(db, 'messages');
-      const q = query(messagesRef, where('senderID', '==', senderID), orderBy('sentAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      
-      const messages = [];
-      querySnapshot.forEach((doc) => {
-        messages.push(new Message(doc.data()));
-      });
-      
-      return messages;
-    } catch (error) {
-      throw new Error(`Failed to find messages by sender: ${error.message}`);
-    }
-  }
-
-  static async findByReceiverID(receiverID) {
-    const db = getFirestore();
-    try {
-      const messagesRef = collection(db, 'messages');
-      const q = query(messagesRef, where('receiverID', '==', receiverID), orderBy('sentAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      
-      const messages = [];
-      querySnapshot.forEach((doc) => {
-        messages.push(new Message(doc.data()));
-      });
-      
-      return messages;
-    } catch (error) {
-      throw new Error(`Failed to find messages by receiver: ${error.message}`);
-    }
-  }
-
-  static async findUnreadMessages(userID) {
-    const db = getFirestore();
-    try {
-      const messagesRef = collection(db, 'messages');
-      const q = query(messagesRef, 
-        where('receiverID', '==', userID),
-        where('isRead', '==', false),
-        where('isDeleted', '==', false),
-        orderBy('sentAt', 'desc')
-      );
-      const querySnapshot = await getDocs(q);
-      
-      const messages = [];
-      querySnapshot.forEach((doc) => {
-        messages.push(new Message(doc.data()));
-      });
-      
-      return messages;
-    } catch (error) {
-      throw new Error(`Failed to find unread messages: ${error.message}`);
-    }
-  }
-
-  static async update(messageID, updateData) {
-    const db = getFirestore();
-    try {
-      const messageRef = doc(db, 'messages', messageID);
-      await updateDoc(messageRef, updateData);
-      
-      return await Message.findById(messageID);
-    } catch (error) {
-      throw new Error(`Failed to update message: ${error.message}`);
-    }
-  }
-
-  static async delete(messageID) {
-    const db = getFirestore();
-    try {
-      const messageRef = doc(db, 'messages', messageID);
-      await deleteDoc(messageRef);
-      return { success: true, message: 'Message deleted successfully' };
-    } catch (error) {
-      throw new Error(`Failed to delete message: ${error.message}`);
-    }
-  }
-
-  static async markAsRead(messageID) {
-    try {
-      await Message.update(messageID, { isRead: true });
-      return { success: true, message: 'Message marked as read' };
-    } catch (error) {
-      throw new Error(`Failed to mark message as read: ${error.message}`);
-    }
-  }
-
-  // All your existing instance methods remain the same
+  // Instance methods
   async save() {
     return await Message.create(this.toFirestore());
   }
@@ -434,24 +385,6 @@ class Message {
       isDeleted: true, 
       deletedAt: new Date() 
     });
-  }
-
-  // Get sender information
-  async getSender() {
-    const User = require('./Users');
-    return await User.findById(this.senderID);
-  }
-
-  // Get receiver information
-  async getReceiver() {
-    const User = require('./Users');
-    return await User.findById(this.receiverID);
-  }
-
-  // Get related post information
-  async getPost() {
-    const Post = require('./Post');
-    return await Post.findById(this.postID);
   }
 
   // Get message age in human readable format

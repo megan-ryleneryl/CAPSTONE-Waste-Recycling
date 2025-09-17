@@ -1,0 +1,147 @@
+/* client/src/components/chat/ConversationListItem.module.css */
+.conversationItem {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+}
+
+.conversationItem:hover {
+  background: #f8f9fa;
+}
+
+.conversationItem.selected {
+  background: #e8f5e8;
+  border-left: 4px solid #3B6535;
+}
+
+.conversationItem.unread {
+  background: #fafbff;
+  border-left: 3px solid #3B6535;
+}
+
+.conversationItem.unread.selected {
+  border-left: 4px solid #3B6535;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3B6535, #B3F2AC);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.conversationInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0; /* Allow text to truncate */
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.userName {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+.userType {
+  color: #666;
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.unreadBadge {
+  background: #3B6535;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.postInfo {
+  font-size: 0.8rem;
+  color: #666;
+  background: #f0f7ed;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 0.25rem;
+  max-width: fit-content;
+}
+
+.lastMessage {
+  color: #666;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.conversationItem.unread .lastMessage {
+  font-weight: 500;
+  color: #333;
+}
+
+.timestamp {
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.25rem;
+}
+
+.conversationItem.unread .timestamp {
+  color: #3B6535;
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .conversationItem {
+    padding: 0.75rem 1rem;
+  }
+  
+  .avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+    margin-right: 0.75rem;
+  }
+  
+  .userName {
+    font-size: 0.95rem;
+  }
+  
+  .userType {
+    font-size: 0.8rem;
+  }
+  
+  .lastMessage {
+    font-size: 0.85rem;
+  }
+}
