@@ -13,18 +13,8 @@ const Chat = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showConversationList, setShowConversationList] = useState(true);
 
-  // Add loading state while user loads
-  if (loading || !user) {
-    return (
-      <div className={styles.chatPage}>
-        <div className={styles.loading}>
-          <div className={styles.loadingSpinner}></div>
-          <p>Loading chat...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // ✅ MOVE ALL HOOKS BEFORE ANY EARLY RETURNS
+  
   // Handle initial conversation from navigation state
   useEffect(() => {
     if (location.state?.postID && location.state?.otherUser) {
@@ -44,6 +34,20 @@ const Chat = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // ✅ NOW SAFE TO HAVE EARLY RETURNS AFTER ALL HOOKS
+  
+  // Add loading state while user loads
+  if (loading || !user) {
+    return (
+      <div className={styles.chatPage}>
+        <div className={styles.loading}>
+          <div className={styles.loadingSpinner}></div>
+          <p>Loading chat...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleOpenChat = (postID, otherUser, postData = null) => {
     setSelectedConversation({
       postID,
@@ -62,11 +66,16 @@ const Chat = () => {
     const otherUser = {
       userID: conversation.otherUserID,
       firstName: conversation.otherUserName?.split(' ')[0] || 'Unknown',
-      lastName: conversation.otherUserName?.split(' ')[1] || '',
-      userType: conversation.otherUserType || 'User'
+      lastName: conversation.otherUserName?.split(' ')[1] || 'User',
+      userType: 'User' // You might want to fetch this from your User model
     };
 
-    handleOpenChat(conversation.postID, otherUser, conversation.postData);
+    handleOpenChat(conversation.postID, otherUser);
+  };
+
+  const handleBackToList = () => {
+    setShowConversationList(true);
+    setSelectedConversation(null);
   };
 
   const handleCloseChat = () => {
@@ -78,52 +87,44 @@ const Chat = () => {
 
   return (
     <div className={styles.chatPage}>
-      <div className={styles.chatHeader}>
-        <h1>Messages</h1>
-        <p className={styles.subtitle}>
-          Coordinate pickups and communicate with other users
-        </p>
-      </div>
-
       <div className={styles.chatContainer}>
-        {/* Conversation List Panel */}
-        {(!isMobile || showConversationList) && (
-          <div className={styles.conversationPanel}>
-            <ConversationList
-              currentUser={user}
-              onSelectConversation={handleConversationSelect}
-              selectedConversationId={
-                selectedConversation 
-                  ? `${selectedConversation.postID}-${selectedConversation.otherUser.userID}`
-                  : null
-              }
-            />
-          </div>
-        )}
+        {/* Left Panel - Conversation List */}
+        <div className={`${styles.conversationPanel} ${
+          !showConversationList && isMobile ? styles.hidden : ''
+        }`}>
+          <ConversationList
+            currentUser={user}
+            onSelectConversation={handleConversationSelect}
+            selectedConversationId={
+              selectedConversation 
+                ? `${selectedConversation.postID}-${selectedConversation.otherUser.userID}`
+                : null
+            }
+          />
+        </div>
 
-        {/* Chat Window Panel */}
-        {(!isMobile || !showConversationList) && selectedConversation && (
-          <div className={styles.chatPanel}>
+        {/* Right Panel - Chat Window */}
+        <div className={`${styles.chatPanel} ${
+          showConversationList && isMobile ? styles.hidden : ''
+        }`}>
+          {selectedConversation ? (
             <ChatWindow
               postID={selectedConversation.postID}
               otherUser={selectedConversation.otherUser}
               currentUser={user}
               onClose={handleCloseChat}
+              onBack={isMobile ? handleBackToList : null}
               postData={selectedConversation.postData}
             />
-          </div>
-        )}
-
-        {/* Empty state for desktop when no chat selected */}
-        {!isMobile && !selectedConversation && (
-          <div className={styles.emptyChatPanel}>
-            <div className={styles.emptyState}>
-              <div className={styles.emptyIcon}>💬</div>
-              <h3>Select a conversation</h3>
-              <p>Choose a conversation from the list to start messaging</p>
+          ) : (
+            <div className={styles.noChatSelected}>
+              <div className={styles.emptyState}>
+                <h3>Select a conversation</h3>
+                <p>Choose a conversation from the list to start messaging</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -226,84 +226,85 @@ class Message {
     }
   }
 
-  // Get active conversations for a user (for Module 2 inbox)
-  static async getUserConversations(userID) {
-    const db = getFirestore();
-    try {
-      const messagesRef = collection(db, 'messages');
-      
-      // Get all messages where user is sender or receiver
-      const q1 = query(messagesRef, 
-        where('senderID', '==', userID),
-        where('isDeleted', '==', false),
-        orderBy('sentAt', 'desc')
-      );
-      
-      const q2 = query(messagesRef,
-        where('receiverID', '==', userID),
-        where('isDeleted', '==', false),
-        orderBy('sentAt', 'desc')
-      );
+// Simplified version of getUserConversations that doesn't require indexes
+static async getUserConversations(userID) {
+  const db = getFirestore();
+  try {
+    const messagesRef = collection(db, 'messages');
+    
+    // Simplified queries - remove orderBy to avoid index requirements
+    const q1 = query(messagesRef, 
+      where('senderID', '==', userID),
+      where('isDeleted', '==', false)
+    );
+    
+    const q2 = query(messagesRef,
+      where('receiverID', '==', userID),
+      where('isDeleted', '==', false)
+    );
 
-      const [senderSnapshot, receiverSnapshot] = await Promise.all([
-        getDocs(q1),
-        getDocs(q2)
-      ]);
+    const [senderSnapshot, receiverSnapshot] = await Promise.all([
+      getDocs(q1),
+      getDocs(q2)
+    ]);
 
-      const allMessages = [];
-      
-      senderSnapshot.forEach((doc) => {
-        allMessages.push(new Message(doc.data()));
-      });
-      
-      receiverSnapshot.forEach((doc) => {
-        allMessages.push(new Message(doc.data()));
-      });
+    const allMessages = [];
+    
+    senderSnapshot.forEach((doc) => {
+      allMessages.push(new Message(doc.data()));
+    });
+    
+    receiverSnapshot.forEach((doc) => {
+      allMessages.push(new Message(doc.data()));
+    });
 
-      // Group by conversation (postID + other participant)
-      const conversations = {};
+    // Sort in JavaScript instead of Firestore
+    allMessages.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+
+    // Group by conversation (postID + other participant)
+    const conversations = {};
+    
+    allMessages.forEach(message => {
+      if (message.messageType === 'system') return; // Skip system messages for conversation list
       
-      allMessages.forEach(message => {
-        if (message.messageType === 'system') return; // Skip system messages for conversation list
+      const otherUserID = message.senderID === userID ? message.receiverID : message.senderID;
+      const conversationKey = `${message.postID}-${otherUserID}`;
+      
+      if (!conversations[conversationKey] || 
+          new Date(message.sentAt) > new Date(conversations[conversationKey].lastMessage.sentAt)) {
         
-        const otherUserID = message.senderID === userID ? message.receiverID : message.senderID;
-        const conversationKey = `${message.postID}-${otherUserID}`;
-        
-        if (!conversations[conversationKey] || 
-            new Date(message.sentAt) > new Date(conversations[conversationKey].lastMessage.sentAt)) {
-          
-          conversations[conversationKey] = {
-            postID: message.postID,
-            otherUserID: otherUserID,
-            otherUserName: message.senderID === userID ? 
-              'Unknown' : // You'll need to fetch this from User model
-              message.senderName,
-            lastMessage: message,
-            unreadCount: 0
-          };
-        }
-      });
-
-      // Calculate unread counts
-      for (let conversationKey in conversations) {
-        const conversation = conversations[conversationKey];
-        const unreadMessages = allMessages.filter(msg => 
-          msg.postID === conversation.postID &&
-          msg.senderID === conversation.otherUserID &&
-          msg.receiverID === userID &&
-          !msg.isRead
-        );
-        conversation.unreadCount = unreadMessages.length;
+        conversations[conversationKey] = {
+          postID: message.postID,
+          otherUserID: otherUserID,
+          otherUserName: message.senderID === userID ? 
+            'Unknown' : // You'll need to fetch this from User model
+            message.senderName,
+          lastMessage: message,
+          unreadCount: 0
+        };
       }
+    });
 
-      // Convert to array and sort by last message time
-      return Object.values(conversations).sort((a, b) => 
-        new Date(b.lastMessage.sentAt) - new Date(a.lastMessage.sentAt)
+    // Calculate unread counts
+    for (let conversationKey in conversations) {
+      const conversation = conversations[conversationKey];
+      const unreadMessages = allMessages.filter(msg => 
+        msg.postID === conversation.postID &&
+        msg.senderID === conversation.otherUserID &&
+        msg.receiverID === userID &&
+        !msg.isRead
       );
-    } catch (error) {
-      throw new Error(`Failed to get user conversations: ${error.message}`);
+      conversation.unreadCount = unreadMessages.length;
     }
+
+    // Convert to array and sort by last message time
+    return Object.values(conversations).sort((a, b) => 
+      new Date(b.lastMessage.sentAt) - new Date(a.lastMessage.sentAt)
+    );
+  } catch (error) {
+    throw new Error(`Failed to get user conversations: ${error.message}`);
   }
+}
 
   // Mark conversation as read
   static async markConversationAsRead(userID, otherUserID, postID) {
