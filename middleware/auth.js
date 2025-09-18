@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const User = require('../models/Users'); // ← ADD THIS MISSING IMPORT
 
 const verifyToken = async (req, res, next) => {
   try {
