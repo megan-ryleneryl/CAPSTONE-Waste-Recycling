@@ -1,4 +1,10 @@
-/* client/src/pages/Profile.module.css */
+.container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: var(--font-family-primary);
+}
+
 .profileContainer {
   font-family: 'Raleway', sans-serif;
   padding: 2rem;
@@ -31,9 +37,10 @@
 /* Profile Card */
 .profileCard {
   background: white;
-  border-radius: 12px;
+  border-radius: var(--border-radius-xl, 20px);
   padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
+  min-height: 400px;
 }
 
 /* Profile Header */

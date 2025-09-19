@@ -1075,7 +1075,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
   return (
     <div className={styles.container}>
         {/* Main Content */}
-        <main className={styles.content}>
           <div className={styles.profileCard}>
             {/* Profile Header */}
             <div className={styles.profileHeader}>
@@ -1357,7 +1356,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                 </div>
             </div>
           </div>
-        </main>
 
       {/* MODALS RENDERED THROUGH PORTAL */}
       
