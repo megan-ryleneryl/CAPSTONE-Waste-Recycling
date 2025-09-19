@@ -130,6 +130,14 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Check if user is suspended
+    if (user.status === 'Suspended') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Your account has been suspended. Please contact support for more information.' 
+      });
+    }
+
     // Check password with bcrypt
     const isValidPassword = await bcrypt.compare(password, user.passwordHash);
     if (!isValidPassword) {
@@ -305,6 +313,14 @@ router.post('/google', async (req, res) => {
       await User.update(user.userID, { profilePictureUrl: picture });
       user.profilePictureUrl = picture;
     }
+  }
+
+  // Check if user is suspended (for existing users)
+  if (!isNewUser && user.status === 'Suspended') {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Your account has been suspended. Please contact support for more information.' 
+    });
   }
     
     // Generate JWT token

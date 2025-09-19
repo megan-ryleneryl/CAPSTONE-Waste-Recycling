@@ -585,17 +585,14 @@ app.put('/api/admin/users/:userId/suspend', async (req, res) => {
 
     // Update user status in Firebase Auth (disable the user)
     try {
-      await admin.auth().updateUser(userId, {
-        disabled: true
-      });
+      await authService.disableUser(userId);
     } catch (authError) {
-      console.error('Firebase Auth error:', authError);
+      console.error('Firebase Auth disable error:', authError);
       // Continue even if Firebase Auth update fails
     }
 
     // Update user status in Firestore
-    const userRef = db.collection('users').doc(userId);
-    await userRef.update({
+    await User.update(userId, {
       status: 'Suspended',
       suspensionReason: reason,
       suspendedAt: new Date().toISOString(),
@@ -620,36 +617,187 @@ app.put('/api/admin/users/:userId/unsuspend', async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Update user status in Firebase Auth (enable the user)
+    // Import Application model if not already imported at top of file
+    const Application = require('./models/Application');
+
+    // Use the auth service to enable the user in Firebase Auth
     try {
-      await admin.auth().updateUser(userId, {
-        disabled: false
-      });
+      await authService.enableUser(userId);
     } catch (authError) {
-      console.error('Firebase Auth error:', authError);
+      console.error('Firebase Auth enable error:', authError);
       // Continue even if Firebase Auth update fails
     }
 
     // Update user status in Firestore
-    const userRef = db.collection('users').doc(userId);
-    await userRef.update({
-      status: 'Active',
-      suspensionReason: admin.firestore.FieldValue.delete(),
-      suspendedAt: admin.firestore.FieldValue.delete(),
-      suspendedBy: admin.firestore.FieldValue.delete(),
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    // Check user's most recent Account_Verification application to determine correct status
+    const applications = await Application.findByUserID(userId);
+    const verificationApp = applications
+      .filter(app => app.applicationType === 'Account_Verification')
+      .sort((a, b) => {
+        const dateA = new Date(b.submittedAt || 0);
+        const dateB = new Date(a.submittedAt || 0);
+        return dateA - dateB;
+      })[0];
+
+    let userStatus = 'Pending'; // Default status
+
+    if (verificationApp) {
+      switch (verificationApp.status) {
+        case 'Approved':
+          userStatus = 'Verified';
+          break;
+        case 'Submitted':
+          userStatus = 'Submitted';
+          break;
+        case 'Rejected':
+          // If rejected, they need to reapply, so set to Pending
+          userStatus = 'Pending';
+          break;
+        case 'Pending':
+        default:
+          userStatus = 'Pending';
+          break;
+      }
+    }
+
+    await User.update(userId, {
+      status: userStatus,
+      suspensionReason: null,
+      suspendedAt: null,
+      suspendedBy: null,
       unsuspendedAt: new Date().toISOString(),
       unsuspendedBy: req.user.userID
     });
 
     res.json({ 
       success: true, 
-      message: 'User unsuspended successfully' 
+      message: `User unsuspended successfully. Status set to: ${userStatus}` 
     });
   } catch (error) {
     console.error('Error unsuspending user:', error);
     res.status(500).json({ 
       success: false, 
       error: 'Failed to unsuspend user' 
+    });
+  }
+});
+
+// Make user admin endpoint
+app.put('/api/admin/users/:userId/make-admin', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get current user
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    // Prevent making another admin an admin
+    if (currentUser.userType === 'Admin') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'User is already an admin' 
+      });
+    }
+
+    // Update user to admin
+    await User.update(userId, {
+      userType: 'Admin',
+      status: 'Verified', // Admins should always be verified
+      updatedAt: new Date().toISOString(),
+      elevatedBy: req.user.userID,
+      elevatedAt: new Date().toISOString()
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'User has been granted admin privileges' 
+    });
+  } catch (error) {
+    console.error('Error making user admin:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to grant admin privileges' 
+    });
+  }
+});
+
+// Revoke admin privileges endpoint
+app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get current user
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    // Prevent revoking if user is not an admin
+    if (currentUser.userType !== 'Admin') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'User is not an admin' 
+      });
+    }
+
+    // Prevent self-revocation
+    if (userId === req.user.userID) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'You cannot revoke your own admin privileges' 
+      });
+    }
+
+    // Check user's Collector_Privilege application to determine new userType
+    const applications = await Application.findByUserID(userId);
+    const collectorApp = applications
+      .filter(app => app.applicationType === 'Collector_Privilege')
+      .sort((a, b) => {
+        const dateA = new Date(b.submittedAt || 0);
+        const dateB = new Date(a.submittedAt || 0);
+        return dateA - dateB;
+      })[0];
+
+    let newUserType = 'Giver'; // Default to Giver
+
+    // If they have an approved collector application, make them a Collector
+    if (collectorApp && collectorApp.status === 'Approved') {
+      newUserType = 'Collector';
+    }
+
+    // Update user type from Admin to determined type
+    await User.update(userId, {
+      userType: newUserType,
+      updatedAt: new Date().toISOString(),
+      revokedBy: req.user.userID,
+      revokedAt: new Date().toISOString()
+    });
+
+    res.json({ 
+      success: true, 
+      message: `Admin privileges revoked. User is now a ${newUserType}` 
+    });
+  } catch (error) {
+    console.error('Error revoking admin privileges:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to revoke admin privileges' 
     });
   }
 });

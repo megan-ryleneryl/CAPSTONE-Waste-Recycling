@@ -24,7 +24,7 @@ const AllUsers = () => {
     if (!authLoading && currentUser) {
       if (currentUser.userType !== 'Admin') {
         alert('You do not have permission to view this page');
-        navigate('/dashboard');
+        navigate('/posts');
         return;
       }
       fetchUsers();
@@ -88,7 +88,7 @@ const AllUsers = () => {
         navigate('/login');
       } else if (error.response?.status === 403) {
         alert('You do not have permission to view this page');
-        navigate('/dashboard');
+        navigate('/posts');
       } else {
         alert('Failed to fetch users. Please try again.');
       }
@@ -134,7 +134,7 @@ const AllUsers = () => {
       const token = localStorage.getItem('token');
       const response = await axios.put(
         `http://localhost:3001/api/admin/users/${userId}/unsuspend`,
-        { status: 'Active' },
+        {},
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -149,6 +149,60 @@ const AllUsers = () => {
     } catch (error) {
       console.error('Error unsuspending user:', error);
       alert(error.response?.data?.error || 'Failed to unsuspend user');
+    }
+  };
+
+  const handleMakeAdmin = async (userId) => {
+    if (!window.confirm('Are you sure you want to make this user an admin? This action cannot be easily undone.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `http://localhost:3001/api/admin/users/${userId}/make-admin`,
+        {},
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data && response.data.success) {
+        alert('User has been granted admin privileges');
+        fetchUsers();
+        setShowModal(false);
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error('Error making user admin:', error);
+      alert(error.response?.data?.error || 'Failed to grant admin privileges');
+    }
+  };
+
+  const handleRevokeAdmin = async (userId) => {
+    if (!window.confirm('Are you sure you want to revoke admin privileges from this user? They will be set to their previous role based on their collector application status.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `http://localhost:3001/api/admin/users/${userId}/revoke-admin`,
+        {},
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data && response.data.success) {
+        alert(response.data.message);
+        fetchUsers();
+        setShowModal(false);
+        setSelectedUser(null);
+      }
+    } catch (error) {
+      console.error('Error revoking admin privileges:', error);
+      alert(error.response?.data?.error || 'Failed to revoke admin privileges');
     }
   };
 
@@ -194,7 +248,7 @@ const AllUsers = () => {
   const getUserTypeBadge = (userType) => {
     const typeStyles = {
       'Admin': styles.typeAdmin,
-      'User': styles.typeUser,
+      'Giver': styles.typeGiver,
       'Collector': styles.typeCollector,
       'Organization': styles.typeOrganization
     };
@@ -250,10 +304,10 @@ const AllUsers = () => {
               All Types
             </button>
             <button
-              className={filters.userType === 'User' ? styles.filterActive : styles.filterButton}
-              onClick={() => setFilters({ ...filters, userType: 'User' })}
+              className={filters.userType === 'Giver' ? styles.filterActive : styles.filterButton}
+              onClick={() => setFilters({ ...filters, userType: 'Giver' })}
             >
-              Users
+              Givers
             </button>
             <button
               className={filters.userType === 'Collector' ? styles.filterActive : styles.filterButton}
@@ -345,6 +399,21 @@ const AllUsers = () => {
                 </div>
 
                 <div className={styles.cardActions}>
+                  {user.userType === 'Admin' && currentUser?.userID !== user.userID ? (
+                    <button
+                      className={styles.revokeAdminButton}
+                      onClick={() => handleRevokeAdmin(user.userID || user.uid)}
+                    >
+                      Revoke Admin
+                    </button>
+                  ) : user.userType !== 'Admin' ? (
+                    <button
+                      className={styles.makeAdminButton}
+                      onClick={() => handleMakeAdmin(user.userID || user.uid)}
+                    >
+                      Make Admin
+                    </button>
+                  ) : null}
                   <button
                     className={styles.viewButton}
                     onClick={() => handleViewDetails(user)}
@@ -390,8 +459,7 @@ const AllUsers = () => {
                   <p><strong>Name:</strong> {selectedUser.firstName} {selectedUser.lastName}</p>
                   <p><strong>Email:</strong> {selectedUser.email}</p>
                   <p><strong>User Type:</strong> {selectedUser.userType}</p>
-                  <p><strong>Status:</strong> {selectedUser.status === 'Suspended' ? 'Suspended' : 'Active'}</p>
-                  <p><strong>Verified:</strong> {selectedUser.isVerified ? 'Yes' : 'No'}</p>
+                  <p><strong>Status:</strong> {selectedUser.status}</p>
                   <p><strong>User Since:</strong> {formatDate(selectedUser.createdAt)}</p>
                   {selectedUser.updatedAt && (
                     <p><strong>Last Updated:</strong> {formatDate(selectedUser.updatedAt)}</p>
@@ -402,15 +470,6 @@ const AllUsers = () => {
                   
                   {selectedUser.phone && (
                     <p><strong>Phone:</strong> {selectedUser.phone}</p>
-                  )}
-                  {selectedUser.location && (
-                    <p><strong>Location:</strong> {selectedUser.location}</p>
-                  )}
-                  {selectedUser.bio && (
-                    <div className={styles.bioSection}>
-                      <strong>Bio:</strong>
-                      <p>{selectedUser.bio}</p>
-                    </div>
                   )}
                   
                   {selectedUser.status === 'Suspended' && selectedUser.suspensionReason && (
@@ -438,6 +497,21 @@ const AllUsers = () => {
                 </div>
                 
                 <div className={styles.modalActions}>
+                  {selectedUser.userType === 'Admin' && currentUser?.userID !== selectedUser.userID ? (
+                    <button
+                      className={styles.revokeAdminModalButton}
+                      onClick={() => handleRevokeAdmin(selectedUser.userID || selectedUser.uid)}
+                    >
+                      Revoke Admin Privileges
+                    </button>
+                  ) : selectedUser.userType !== 'Admin' ? (
+                    <button
+                      className={styles.makeAdminModalButton}
+                      onClick={() => handleMakeAdmin(selectedUser.userID || selectedUser.uid)}
+                    >
+                      Make Admin
+                    </button>
+                  ) : null}
                   {selectedUser.status === 'Suspended' ? (
                     <>
                       <button
