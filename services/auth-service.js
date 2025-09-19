@@ -3,62 +3,6 @@ const User = require('../models/Users');
 const jwt = require('jsonwebtoken');
 
 class AuthService {
-  // Create Firebase user and sync with Firestore
-  async createUser(userData) {
-    try {
-      // Create user in Firebase Auth
-      const firebaseUser = await adminAuth.createUser({
-        email: userData.email,
-        password: userData.password,
-        displayName: `${userData.firstName} ${userData.lastName}`,
-        disabled: userData.status !== 'Verified'
-      });
-
-      // Create user in Firestore with Firebase UID
-      const firestoreUser = await User.create({
-        userID: firebaseUser.uid, // Use Firebase UID as Firestore userID
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
-        passwordHash: 'handled_by_firebase', // Firebase handles password
-        phone: userData.phone,
-        userType: userData.userType,
-        isOrganization: userData.isOrganization || false,
-        organizationName: userData.organizationName,
-        status: userData.status || 'Pending'
-      });
-
-      return {
-        firebaseUser,
-        firestoreUser,
-        success: true
-      };
-    } catch (error) {
-      throw new Error(`User creation failed: ${error.message}`);
-    }
-  }
-
-  // Verify Firebase token and get user data
-  async verifyToken(idToken) {
-    try {
-      const decodedToken = await adminAuth.verifyIdToken(idToken);
-      const user = await User.findById(decodedToken.uid);
-      
-      if (!user) {
-        throw new Error('User not found in database');
-      }
-
-      return {
-        firebaseUid: decodedToken.uid,
-        user,
-        email: decodedToken.email,
-        customClaims: decodedToken
-      };
-    } catch (error) {
-      throw new Error(`Token verification failed: ${error.message}`);
-    }
-  }
-
   // Add JWT verification method
   async verifyJWTToken(token) {
     try {
@@ -212,54 +156,6 @@ class AuthService {
     }
   }
 
-  // Delete user from both Firebase and Firestore
-  async deleteUser(userID) {
-    try {
-      // Delete from Firebase Auth
-      if (adminAuth) {
-        try {
-          await adminAuth.deleteUser(userID);
-        } catch (firebaseError) {
-          console.log('Firebase deletion skipped:', firebaseError.message);
-        }
-      }
-      
-      // Delete from Firestore
-      await User.delete(userID);
-
-      return { success: true, message: 'User deleted successfully' };
-    } catch (error) {
-      throw new Error(`User deletion failed: ${error.message}`);
-    }
-  }
-
-  // Get user by Firebase UID
-  async getUserByUid(uid) {
-    try {
-      const user = await User.findById(uid);
-      return user;
-    } catch (error) {
-      throw new Error(`Get user failed: ${error.message}`);
-    }
-  }
-
-  // Generate verification link (for email verification)
-  async generateVerificationLink(email, continueUrl = null) {
-    try {
-      if (!adminAuth) {
-        throw new Error('Firebase Admin not initialized');
-      }
-      
-      const link = await adminAuth.generateEmailVerificationLink(email, {
-        url: continueUrl || process.env.APP_URL
-      });
-
-      return link;
-    } catch (error) {
-      throw new Error(`Generate verification link failed: ${error.message}`);
-    }
-  }
-
   // Get all users (admin function)
   async getAllUsers(pageSize = 100, pageToken = null) {
     try {
@@ -319,40 +215,6 @@ class AuthService {
       return { success: true, message: 'User enabled successfully' };
     } catch (error) {
       throw new Error(`Enable user failed: ${error.message}`);
-    }
-  }
-
-  // Check if user has specific permission
-  hasPermission(user, permission) {
-    const permissions = {
-      'Admin': ['read', 'write', 'delete', 'admin'],
-      'Collector': ['read', 'write', 'collect'],
-      'Giver': ['read', 'write']
-    };
-
-    const userPermissions = permissions[user.userType] || [];
-    return userPermissions.includes(permission);
-  }
-
-  // Refresh user custom claims
-  async refreshUserClaims(userID) {
-    try {
-      const user = await User.findById(userID);
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      await this.setCustomClaims(userID, {
-        userType: user.userType,
-        status: user.status,
-        isAdmin: user.userType === 'Admin',
-        isCollector: user.userType === 'Collector' || user.userType === 'Admin',
-        isVerified: user.status === 'Verified'
-      });
-
-      return { success: true, message: 'User claims refreshed' };
-    } catch (error) {
-      throw new Error(`Refresh user claims failed: ${error.message}`);
     }
   }
 }

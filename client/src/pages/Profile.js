@@ -12,7 +12,6 @@ import PreferredLocationsModal from '../components/Profile/PreferredLocationsMod
 const OrganizationForm = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     organizationName: '',
-    organizationLocation: '',
     reason: '',
     proofDocument: null
   });
@@ -513,7 +512,7 @@ const ApplicationSelector = ({ applications, onSelect, onClose }) => {
 };
 
 // Main Profile Component
-const Profile = ({ user: propsUser, activeFilter }) => {
+const Profile = ({ user: propsUser }) => {
   const [user, setUser] = useState(propsUser || null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -521,12 +520,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
   const [submittedApplication, setSubmittedApplication] = useState(null);
   const [showStatusTracker, setShowStatusTracker] = useState(false);
   const [userApplications, setUserApplications] = useState([]);
-  const [editForm, setEditForm] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
-    address: ''
-  });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showApplicationSelector, setShowApplicationSelector] = useState(false);
   
@@ -578,24 +571,12 @@ const Profile = ({ user: propsUser, activeFilter }) => {
             preferredTimes: profileData.preferredTimes || [],
             preferredLocations: profileData.preferredLocations || []
           });
-          setEditForm({
-            firstName: profileData.firstName || '',
-            lastName: profileData.lastName || '',
-            phone: profileData.phone || '',
-            address: profileData.address || ''
-          });
           localStorage.setItem('user', JSON.stringify(profileData));
         }
       } catch (apiError) {
         console.log('Using cached user data');
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
-        setEditForm({
-          firstName: parsedUser.firstName || '',
-          lastName: parsedUser.lastName || '',
-          phone: parsedUser.phone || '',
-          address: parsedUser.address || ''
-        });
       }
     } catch (err) {
       console.error('Error loading profile:', err);
@@ -1086,7 +1067,10 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     className={styles.avatarImage}
                     onError={(e) => {
                       e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
+                      const fallback = e.target.parentElement.querySelector(`.${styles.avatarFallback}`);
+                      if (fallback) {
+                        fallback.style.display = 'flex';
+                      }
                     }}
                   />
                 ) : null}
@@ -1230,7 +1214,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                 <span>Points: {user.points || 0}</span>
               </div>
               <div className={styles.statItem}>
-                <strong>{user.totalDonations || '50 kg'}</strong> Donations
+                <strong>{user.totalDonations || '0 kg'}</strong> Donations
               </div>
             </div>
 
@@ -1337,7 +1321,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
             </div>
 
             {/* Badges Section */}
-            <div className={styles.badgesSection}>
+            {/* <div className={styles.badgesSection}>
               <h3>Badges:</h3>
                 <div className={styles.badgesList}>
                   {user.badges && user.badges.length > 0 ? (
@@ -1354,7 +1338,7 @@ const Profile = ({ user: propsUser, activeFilter }) => {
                     </>
                   )}
                 </div>
-            </div>
+            </div> */}
           </div>
 
       {/* MODALS RENDERED THROUGH PORTAL */}
@@ -1445,13 +1429,6 @@ const Profile = ({ user: propsUser, activeFilter }) => {
           onClose={() => setShowDeleteModal(false)}
           onConfirm={handleDeleteAccount}
         />
-      )}
-
-      {/* Error Message Toast */}
-      {error && (
-        <div className={styles.errorToast}>
-          {error}
-        </div>
       )}
     </div>
   );

@@ -5,13 +5,6 @@
   font-family: var(--font-family-primary);
 }
 
-.profileContainer {
-  font-family: 'Raleway', sans-serif;
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
 /* Loading State */
 .loadingContainer {
   display: flex;
@@ -80,17 +73,6 @@
   font-family: 'Raleway', sans-serif;
 }
 
-.userType {
-  display: inline-block;
-  background: #3B6535;
-  color: #B3F2AC;
-  padding: 0.3rem 1rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-top: 0.5rem;
-}
-
 .editButton {
   background: #F0924C;
   color: white;
@@ -115,16 +97,6 @@
   box-shadow: 0 4px 12px rgba(240, 146, 76, 0.3);
 }
 
-.verifiedBadge {
-  background: #d4edda;
-  color: #155724;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  border: 2px solid #c3e6cb;
-}
-
 /* Stats Grid */
 .stats {
   display: flex;
@@ -135,45 +107,6 @@
   margin-bottom: 2rem;
   align-items: center;
   justify-content: center;
-}
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.statCard {
-  background: #D9D9D9;
-  border-radius: 10px;
-  padding: 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.3s ease;
-}
-
-.statCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.statIcon {
-  font-size: 2rem;
-  opacity: 0.9;
-}
-
-.statContent strong {
-  display: block;
-  font-size: 1.8rem;
-  color: #3B6535;
-  margin-bottom: 0.25rem;
-}
-
-.statContent span {
-  color: #666;
-  font-size: 0.9rem;
 }
 
 /* Preferences Section */
@@ -274,38 +207,6 @@
   padding: 1rem 0;
 }
 
-/* Info Section */
-.infoSection {
-  margin-bottom: 2rem;
-}
-
-.infoSection h3 {
-  font-size: 1.3rem;
-  color: #333;
-  margin-bottom: 1rem;
-  font-weight: 600;
-}
-
-.infoGrid {
-  display: grid;
-  gap: 1rem;
-}
-
-.infoItem {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  color: #333;
-}
-
-.infoIcon {
-  font-size: 1.2rem;
-}
-
 /* Badges Section */
 .badgesSection {
   margin-bottom: 2rem;
@@ -336,26 +237,6 @@
   box-shadow: 0 2px 8px rgba(59, 101, 53, 0.3);
 }
 
-.badgeIcon {
-  font-size: 1.2rem;
-}
-
-.noBadges {
-  background: #f8f9fa;
-  border-radius: 10px;
-  padding: 2rem;
-  text-align: center;
-  color: #999;
-  width: 100%;
-}
-
-/* CTA Grid */
-.ctaGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
 .ctaCard {
   background: #f5f5f5;
   border-radius: 10px;
@@ -365,12 +246,6 @@
   border: 2px solid transparent;
   transition: all 0.3s ease;
 }
-
-/* .ctaCard:hover {
-  border-color: #3B6535;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-} */
 
 .ctaCard h4 {
   color: #3B6535;
@@ -405,21 +280,6 @@
 }
 
 /* Modal Styles */
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.3s ease;
-}
-
-/* Modal Backdrop */
 .modalBackdrop {
   position: fixed;
   top: 0;
@@ -501,10 +361,6 @@
   transform: rotate(90deg);
 }
 
-.profileIcon {
-  margin: 0 auto 10px;
-}
-
 .form {
   padding: 2rem;
   overflow-y: auto;
@@ -566,23 +422,6 @@
   background: white;
 }
 
-/* Select Dropdown */
-.select {
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 1.2em;
-  padding-right: 2.5rem;
-}
-
-/* File Input Styling */
-.fileInputWrapper {
-  position: relative;
-  width: 100%;
-}
-
 .fileInput {
   width: 100%;
   box-sizing: border-box;
@@ -618,14 +457,6 @@
   resize: vertical;
   min-height: 120px;
   line-height: 1.5;
-}
-
-.fileInput {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
 }
 
 .submitButton,
@@ -677,18 +508,7 @@
   object-fit: cover;
   border: 4px solid #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.profilePicturePlaceholder {
-  width: 120px;
-  height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f0f0f0;
-  border-radius: 50%;
-  border: 4px solid #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: block;
 }
 
 .changePictureButton {
@@ -769,22 +589,7 @@
   object-fit: cover;
   border: 5px solid #fff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.avatarFallback {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #3B6535, #2d4e29);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #B3F2AC;
-  font-size: 3rem;
-  font-weight: 700;
-  border: 5px solid #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  font-family: 'Raleway', sans-serif;
+  display: block;
 }
 
 .email {

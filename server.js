@@ -42,8 +42,6 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
@@ -97,58 +95,6 @@ app.use('/api/admin', (req, res, next) => {
 // ============================================================================
 // PUBLIC ROUTES (No authentication required)
 // ============================================================================
-
-// Authentication routes
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const result = await authService.createUser(req.body);
-    res.status(201).json({
-      success: true,
-      message: 'User created successfully',
-      user: {
-        uid: result.firebaseUser.uid,
-        email: result.firebaseUser.email,
-        userType: result.firestoreUser.userType,
-        firstName: result.firestoreUser.firstName,
-        lastName: result.firestoreUser.lastName
-      }
-    });
-  } catch (error) {
-    console.error('Registration error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { idToken } = req.body;
-    
-    if (!idToken) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Firebase ID token is required' 
-      });
-    }
-
-    const verificationResult = await authService.verifyToken(idToken);
-    
-    res.json({
-      success: true,
-      message: 'Login successful',
-      user: {
-        uid: verificationResult.firebaseUid,
-        email: verificationResult.email,
-        userType: verificationResult.user.userType,
-        firstName: verificationResult.user.firstName,
-        lastName: verificationResult.user.lastName,
-        points: verificationResult.user.points
-      }
-    });
-  } catch (error) {
-    console.error('Login error:', error.message);
-    res.status(401).json({ success: false, error: error.message });
-  }
-});
 
 // Get public posts (for browsing without login)
 app.get('/api/posts/public', async (req, res) => {
@@ -352,61 +298,6 @@ app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
   }
 });
 
-// File upload routes
-app.post('/api/protected/upload/application-documents', 
-  upload.array('documents', 5), 
-  async (req, res) => {
-    try {
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ success: false, error: 'No files uploaded' });
-      }
-
-      const applicationID = req.body.applicationID;
-      if (!applicationID) {
-        return res.status(400).json({ success: false, error: 'Application ID is required' });
-      }
-
-      const uploadedFiles = await StorageService.uploadApplicationDocuments(req.files, applicationID);
-      
-      res.json({ 
-        success: true, 
-        message: 'Documents uploaded successfully',
-        files: uploadedFiles 
-      });
-    } catch (error) {
-      console.error('Document upload error:', error.message);
-      res.status(500).json({ success: false, error: error.message });
-    }
-  }
-);
-
-app.post('/api/protected/upload/proof-of-pickup', 
-  upload.single('proof'), 
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ success: false, error: 'No file uploaded' });
-      }
-
-      const pickupID = req.body.pickupID;
-      if (!pickupID) {
-        return res.status(400).json({ success: false, error: 'Pickup ID is required' });
-      }
-
-      const uploadedFile = await StorageService.uploadProofOfPickup(req.file, pickupID);
-      
-      res.json({ 
-        success: true, 
-        message: 'Proof of pickup uploaded successfully',
-        fileUrl: uploadedFile 
-      });
-    } catch (error) {
-      console.error('Proof upload error:', error.message);
-      res.status(500).json({ success: false, error: error.message });
-    }
-  }
-);
-
 app.post('/api/protected/upload/profile-picture',
   upload.single('profilePicture'),
   async (req, res) => {
@@ -550,11 +441,6 @@ app.get('/api/collector/available-posts', async (req, res) => {
 app.use('/api/admin', authService.authenticateUser.bind(authService));
 app.use('/api/admin', authService.requireAdmin.bind(authService));
 
-// Add debug logging middleware
-app.use('/api/admin', (req, res, next) => {
-  next();
-});
-
 app.get('/api/admin/users', async (req, res) => {
   try {
     const result = await authService.getAllUsers();
@@ -681,16 +567,6 @@ app.put('/api/admin/applications/:applicationId/review', async (req, res) => {
   } catch (error) {
     console.error('Application review error:', error);
     console.error('Error stack:', error.stack);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.get('/api/admin/storage-stats', async (req, res) => {
-  try {
-    const stats = await StorageService.getStorageStats();
-    res.json({ success: true, stats });
-  } catch (error) {
-    console.error('Storage stats error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });

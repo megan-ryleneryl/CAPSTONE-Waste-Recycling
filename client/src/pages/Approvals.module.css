@@ -398,16 +398,6 @@
   font-family: var(--font-family-primary);
 }
 
-.closeButton {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.closeButton:hover {
-  background: var(--border-color);
-}
-
 .errorContainer {
   display: flex;
   justify-content: center;

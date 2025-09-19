@@ -1,6 +1,7 @@
 // Application.js - Firestore Application Model
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
+const User = require('./Users');
 
 class Application {
   constructor(data = {}) {
@@ -196,7 +197,6 @@ class Application {
 
     // If approved, update user status based on application type
     if (status === 'Approved') {
-      const User = require('./Users');
       const user = await User.findById(this.userID);
       
       if (user) {
@@ -229,12 +229,6 @@ class Application {
   // Add document to application
   async addDocument(documentURL) {
     this.documents.push(documentURL);
-    await this.update({ documents: this.documents });
-  }
-
-  // Remove document from application
-  async removeDocument(documentURL) {
-    this.documents = this.documents.filter(doc => doc !== documentURL);
     await this.update({ documents: this.documents });
   }
 }

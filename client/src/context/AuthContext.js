@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext();
@@ -16,20 +16,15 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
-  // Set axios default header when token changes
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // Fetch current user profile
-      fetchCurrentUser();
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      setCurrentUser(null);
-    }
-    setLoading(false);
-  }, [token]);
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('rememberedUser');
+    setToken(null);
+    setCurrentUser(null);
+  }, []);
 
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = useCallback(async () => {
     try {
       const response = await axios.get('http://localhost:3001/api/protected/profile');
       if (response.data.success) {
@@ -43,22 +38,27 @@ export const AuthProvider = ({ children }) => {
         logout();
       }
     }
-  };
+  }, [logout]);
 
-  const login = (token, user) => {
+  // Set axios default header when token changes
+  useEffect(() => {
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Fetch current user profile
+      fetchCurrentUser();
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+      setCurrentUser(null);
+    }
+    setLoading(false);
+  }, [token, fetchCurrentUser]);
+
+  const login = useCallback((token, user) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
     setToken(token);
     setCurrentUser(user);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('rememberedUser');
-    setToken(null);
-    setCurrentUser(null);
-  };
+  }, []);
 
   const value = {
     currentUser,
