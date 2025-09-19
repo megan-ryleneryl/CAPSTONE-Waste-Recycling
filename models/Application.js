@@ -11,7 +11,7 @@ class Application {
     this.justification = data.justification || null;
     this.organizationName = data.organizationName || '';
     this.documents = data.documents || []; // Array of file URLs
-    this.status = data.status || 'Pending'; // Pending, Approved, Rejected
+    this.status = data.status || 'Pending'; // Pending, Submitted, Approved, Rejected
     this.reviewedBy = data.reviewedBy || null;
     this.submittedAt = data.submittedAt || new Date();
     this.reviewedAt = data.reviewedAt || null;

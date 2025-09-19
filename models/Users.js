@@ -10,7 +10,7 @@ class User {
     this.email = data.email || '';
     this.phone = data.phone || '';
     this.passwordHash = data.passwordHash || '';
-    this.status = data.status || 'Pending'; // Pending, Verified, Submitted, Rejected
+    this.status = data.status || 'Pending'; // Pending, Verified, Rejected, Submitted
     this.userType = data.userType || ''; // Giver, Collector, Admin
     this.isOrganization = data.isOrganization || false;
     this.organizationName = data.organizationName || null;
@@ -18,9 +18,10 @@ class User {
     this.preferredLocations = data.preferredLocations || [];
     this.points = data.points || 0;
     this.badges = data.badges || []; // Array of {badgeId, earnedAt}
-    this.createdAt = data.createdAt || new Date();
     this.profilePictureUrl = data.profilePictureUrl || '';
+    this.createdAt = data.createdAt || new Date();
     this.deletedAt = null;
+    this.suspendedAt = null;
   }
 
   // Validation
