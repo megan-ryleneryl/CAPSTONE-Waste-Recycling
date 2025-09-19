@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Approvals.module.css';
-import ModalPortal from '../components/common/ModalPortal';
+import ModalPortal from '../components/modal/ModalPortal';
 
 const Approvals = () => {
   const [applications, setApplications] = useState([]);

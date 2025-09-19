@@ -194,14 +194,12 @@ class Application {
     }
 
     await this.update(updateData);
+    const user = await User.findById(this.userID);
 
-    // If approved, update user status based on application type
-    if (status === 'Approved') {
-      const user = await User.findById(this.userID);
+    if (user) {
+      let userUpdate = {};
       
-      if (user) {
-        let userUpdate = {};
-        
+      if (status === 'Approved') {
         switch (this.applicationType) {
           case 'Account_Verification':
             userUpdate.status = 'Verified';
@@ -209,7 +207,6 @@ class Application {
           case 'Org_Verification':
             userUpdate.status = 'Verified';
             userUpdate.isOrganization = true;
-            userUpdate.organizationName = this.organizationName;
             break;
           case 'Collector_Privilege':
             if (user.userType !== 'Collector') {
@@ -218,9 +215,13 @@ class Application {
             userUpdate.status = 'Verified';
             break;
         }
-        
-        await User.update(this.userID, userUpdate);
+      } else if (status === 'Rejected') {
+        // CRITICAL: Reset user status to Pending when rejected
+        // This allows them to resubmit verification
+        userUpdate.status = 'Pending';
       }
+      
+      await User.update(user.userID, userUpdate);
     }
 
     return this;

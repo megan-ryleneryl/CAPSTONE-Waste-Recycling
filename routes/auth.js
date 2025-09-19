@@ -139,14 +139,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Check if user is rejected
-    if (user.status === 'Rejected') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Your account has been rejected. Please contact support.' 
-      });
-    }
-
     // Generate token
     const token = generateToken(user);
 

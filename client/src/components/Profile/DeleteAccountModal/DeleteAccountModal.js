@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from './DeleteAccountModal.module.css';
-import ModalPortal from '../common/ModalPortal';
+import ModalPortal from '../../modal/ModalPortal';
 
 const DeleteAccountModal = ({ onClose, onConfirm }) => {
   const [confirmText, setConfirmText] = useState('');

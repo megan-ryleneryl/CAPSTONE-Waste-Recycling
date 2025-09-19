@@ -15,7 +15,6 @@ yarn-error.log*
 firebase-debug.log
 
 # File uploads (you can choose to commit sample files but not user uploads)
-uploads/
 !uploads/.gitkeep
 !uploads/temp/.gitkeep
 

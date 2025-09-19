@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Profile.module.css';
-import ModalPortal from '../components/common/ModalPortal';
-import DeleteAccountModal from '../components/DeleteAccountModal/DeleteAccountModal';
-import ApplicationStatusTracker from '../components/ApplicationStatusTracker/ApplicationStatusTracker';
-import PreferredTimesModal from '../components/Profile/PreferredTimesModal';
-import PreferredLocationsModal from '../components/Profile/PreferredLocationsModal';
+import ModalPortal from '../components/modal/ModalPortal';
+import DeleteAccountModal from '../components/profile/DeleteAccountModal/DeleteAccountModal';
+import ApplicationStatusTracker from '../components/profile/ApplicationStatusTracker/ApplicationStatusTracker';
+import PreferredTimesModal from '../components/profile/PreferredTimesModal';
+import PreferredLocationsModal from '../components/profile/PreferredLocationsModal';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {

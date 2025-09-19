@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './ApplicationStatusTracker.module.css';
-import ModalPortal from '../common/ModalPortal';
+import ModalPortal from '../../modal/ModalPortal';
 
 const ApplicationStatusTracker = ({ application, onClose }) => {
   const getStatusSteps = (applicationType) => {
