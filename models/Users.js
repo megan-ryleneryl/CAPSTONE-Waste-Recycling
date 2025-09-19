@@ -135,6 +135,23 @@ class User {
     }
   }
 
+  static async findAll() {
+    const db = getFirestore();
+    try {
+      const usersRef = collection(db, 'users');
+      const querySnapshot = await getDocs(usersRef);
+      
+      const users = [];
+      querySnapshot.forEach((doc) => {
+        users.push(new User(doc.data()));
+      });
+      
+      return users;
+    } catch (error) {
+      throw new Error(`Failed to fetch all users: ${error.message}`);
+    }
+  }
+
   static async update(userID, updateData) {
     const db = getFirestore();
     try {

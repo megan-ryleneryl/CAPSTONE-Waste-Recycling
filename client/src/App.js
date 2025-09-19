@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Chat from './pages/Chat';
 import Approvals from './pages/Approvals';
+import AllUsers from './pages/AllUsers';
 import CreatePost from './pages/CreatePost';
 import AppLayout from './components/layout/AppLayout/AppLayout';
 import './App.css';
@@ -123,6 +124,16 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+
+            <Route 
+              path="/admin/users" 
+              element={
+                <ProtectedRoute>
+                  <AllUsers />
+                </ProtectedRoute>
+              } 
+            />
+
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

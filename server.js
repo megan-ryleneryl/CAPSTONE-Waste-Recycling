@@ -571,6 +571,89 @@ app.put('/api/admin/applications/:applicationId/review', async (req, res) => {
   }
 });
 
+app.put('/api/admin/users/:userId/suspend', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status, reason } = req.body;
+
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Suspension reason is required' 
+      });
+    }
+
+    // Update user status in Firebase Auth (disable the user)
+    try {
+      await admin.auth().updateUser(userId, {
+        disabled: true
+      });
+    } catch (authError) {
+      console.error('Firebase Auth error:', authError);
+      // Continue even if Firebase Auth update fails
+    }
+
+    // Update user status in Firestore
+    const userRef = db.collection('users').doc(userId);
+    await userRef.update({
+      status: 'Suspended',
+      suspensionReason: reason,
+      suspendedAt: new Date().toISOString(),
+      suspendedBy: req.user.userID
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'User suspended successfully' 
+    });
+  } catch (error) {
+    console.error('Error suspending user:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to suspend user' 
+    });
+  }
+});
+
+// Unsuspend user endpoint
+app.put('/api/admin/users/:userId/unsuspend', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Update user status in Firebase Auth (enable the user)
+    try {
+      await admin.auth().updateUser(userId, {
+        disabled: false
+      });
+    } catch (authError) {
+      console.error('Firebase Auth error:', authError);
+      // Continue even if Firebase Auth update fails
+    }
+
+    // Update user status in Firestore
+    const userRef = db.collection('users').doc(userId);
+    await userRef.update({
+      status: 'Active',
+      suspensionReason: admin.firestore.FieldValue.delete(),
+      suspendedAt: admin.firestore.FieldValue.delete(),
+      suspendedBy: admin.firestore.FieldValue.delete(),
+      unsuspendedAt: new Date().toISOString(),
+      unsuspendedBy: req.user.userID
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'User unsuspended successfully' 
+    });
+  } catch (error) {
+    console.error('Error unsuspending user:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to unsuspend user' 
+    });
+  }
+});
+
 // ============================================================================
 // DEVELOPMENT ROUTES (Only available in development)
 // ============================================================================
