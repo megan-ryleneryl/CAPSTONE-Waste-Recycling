@@ -5,6 +5,7 @@ import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import ChatHeader from './ChatHeader';
 import styles from './ChatWindow.module.css';
+const [showPickupForm, setShowPickupForm] = useState(false);
 
 const ChatWindow = ({ 
   postID,
@@ -80,6 +81,23 @@ const ChatWindow = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleSchedulePickup = async (pickupDetails) => {
+  try {
+    await chatService.sendPickupRequest(
+      currentUser,
+      otherUser.userID,
+      postID,
+      'I would like to schedule a pickup for your recyclables',
+      pickupDetails
+    );
+    setShowPickupForm(false);
+    // Refresh messages
+    loadMessages();
+  } catch (error) {
+    console.error('Failed to send pickup request:', error);
+  }
+};
+
   if (loading) {
     return (
       <div className={styles.chatWindow}>
@@ -121,7 +139,17 @@ const ChatWindow = ({
       <MessageInput 
         onSendMessage={handleSendMessage}
         placeholder={`Message ${otherUser.firstName}...`}
+        showPickupButton={currentUser.userType === 'Collector'}
+        onPickupRequest={() => setShowPickupForm(true)}
       />
+
+      {showPickupForm && (
+        <PickupScheduleForm
+          onSubmit={handleSchedulePickup}
+          onCancel={() => setShowPickupForm(false)}
+          giverPreferences={postData?.pickupPreferences}
+        />
+      )}
     </div>
   );
 };
