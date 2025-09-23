@@ -31,11 +31,11 @@ const verifyToken = async (req, res, next) => {
         });
       }
       
-      // Check if user is active
-      if (user.status !== 'Active') {
+      // Check if user is verified
+      if (user.status !== 'Verified') {
         return res.status(403).json({ 
           success: false,
-          message: 'Your account is not active. Please contact support.' 
+          message: 'Your account is not verified. Please contact support.' 
         });
       }
       

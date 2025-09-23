@@ -421,6 +421,48 @@ app.get('/api/protected/leaderboard', async (req, res) => {
   }
 });
 
+// Add this endpoint to your server.js to fetch user details by ID
+// This goes in the PROTECTED ROUTES section after the authentication middleware
+
+app.get('/api/protected/users/:userId', async (req, res) => {
+  try {
+    const User = require('./models/Users');
+    const user = await User.findById(req.params.userId);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    // Return public user information only (not sensitive data)
+    const publicUserData = {
+      userID: user.userID,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      userType: user.userType,
+      isOrganization: user.isOrganization,
+      organizationName: user.organizationName,
+      profilePictureUrl: user.profilePictureUrl,
+      points: user.points,
+      badges: user.badges,
+      createdAt: user.createdAt
+    };
+    
+    res.json({ 
+      success: true, 
+      user: publicUserData 
+    });
+  } catch (error) {
+    console.error('User fetch error:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // ============================================================================
 // COLLECTOR ROUTES (Collector access required)
 // ============================================================================

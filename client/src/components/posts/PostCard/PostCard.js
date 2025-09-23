@@ -64,28 +64,28 @@ const PostCard = ({ postType = 'all', maxPosts = 10 }) => {
 
   const getPostTypeConfig = (type) => {
     const configs = {
-      'Waste Post': {
+      'Waste': {
         tagClass: styles.wasteTag,
         tagText: 'Waste Post',
-        tagIcon: '📋',
+        tagIcon: '',
         showDetails: true,
         showAction: true,
         actionText: 'Collect',
         actionClass: styles.collectButton
       },
-      'Initiative Post': {
+      'Initiative': {
         tagClass: styles.initiativeTag,
         tagText: 'Initiative Post',
-        tagIcon: '📋',
+        tagIcon: '',
         showDetails: true,
         showAction: true,
         actionText: 'Support',
         actionClass: styles.supportButton
       },
-      'Forum Post': {
+      'Forum': {
         tagClass: styles.forumTag,
         tagText: 'Forum Post',
-        tagIcon: '📋',
+        tagIcon: '',
         showDetails: false,
         showAction: false
       }
@@ -164,7 +164,7 @@ const PostCard = ({ postType = 'all', maxPosts = 10 }) => {
                   {post.authorImage ? (
                     <img src={post.authorImage} alt="User" />
                   ) : (
-                    <span>👤</span>
+                    <span></span>
                   )}
                 </div>
                 <div className={styles.userDetails}>
@@ -244,7 +244,7 @@ const PostCard = ({ postType = 'all', maxPosts = 10 }) => {
                   <div className={styles.detailItem}>
                     <span className={styles.detailIcon}>⚖️</span>
                     <span className={styles.detailText}>
-                      {post.postType === 'Initiative Post' 
+                      {post.postType === 'Initiative' 
                         ? `${post.currentWeight || 0}/${post.weight} kg`
                         : `${post.weight} kg`
                       }
@@ -262,7 +262,7 @@ const PostCard = ({ postType = 'all', maxPosts = 10 }) => {
             )}
 
             {/* Forum Interactions */}
-            {post.postType === 'Forum Post' && (
+            {post.postType === 'Forum' && (
               <div className={styles.interactions}>
                 <button 
                   className={styles.interactionButton}
