@@ -165,8 +165,8 @@ app.get('/api/protected/posts', async (req, res) => {
     } else if (location) {
       posts = await Post.findByLocation(location);
     } else {
-      // Get all waste posts by default
-      posts = await Post.findByType('Waste');
+      // Correct - gets all posts
+      posts = await Post.findAll();
     }
     
     res.json({ success: true, posts });
