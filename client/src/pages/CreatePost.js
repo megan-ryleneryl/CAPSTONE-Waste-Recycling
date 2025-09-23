@@ -1,15 +1,13 @@
-// Note from Megan: This is copy-pasted code, it's just here as a placeholder. 
-// Feel free to delete or change completely.
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios'; // or use fetch
+import axios from 'axios';
 import styles from './CreatePost.module.css';
 
 const CreatePost = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userType, setUserType] = useState('');
   const [postType, setPostType] = useState('Waste');
   
   // Form data state
@@ -17,18 +15,39 @@ const CreatePost = () => {
     title: '',
     description: '',
     location: '',
+    // Waste specific
     materials: '',
     quantity: '',
+    unit: 'kg',
     price: '',
+    condition: 'Good',
     pickupDate: '',
     pickupTime: '',
     // Initiative specific
     goal: '',
     targetAmount: '',
+    endDate: '',
     // Forum specific
-    category: 'Tips',
+    category: 'General',
     tags: ''
   });
+
+  // Get user type on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:3001/api/protected/profile', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setUserType(response.data.user.userType);
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+    
+    fetchUserProfile();
+  }, []);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -39,78 +58,176 @@ const CreatePost = () => {
     });
   };
 
+  // Validate form based on post type
+  const validateForm = () => {
+    // Common validation
+    if (!formData.title.trim()) {
+      setError('Title is required');
+      return false;
+    }
+    
+    if (!formData.description.trim()) {
+      setError('Description is required');
+      return false;
+    }
+    
+    if (!formData.location.trim()) {
+      setError('Location is required');
+      return false;
+    }
+    
+    // Type-specific validation
+    if (postType === 'Waste') {
+      if (!formData.materials.trim()) {
+        setError('Materials are required for Waste posts');
+        return false;
+      }
+      if (!formData.quantity || formData.quantity <= 0) {
+        setError('Valid quantity is required for Waste posts');
+        return false;
+      }
+    } else if (postType === 'Initiative') {
+      if (!formData.goal.trim()) {
+        setError('Goal is required for Initiative posts');
+        return false;
+      }
+      if (!formData.targetAmount || formData.targetAmount <= 0) {
+        setError('Target amount is required for Initiative posts');
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  e.preventDefault();
+  setError('');
+  
+  // Validate form
+  if (!validateForm()) {
+    return;
+  }
+  
+  setLoading(true);
+  
+  try {
+    const token = localStorage.getItem('token');
     
-    try {
-      const token = localStorage.getItem('token');
-      
-      // Prepare data based on post type
-      let postData = {
-        title: formData.title,
-        description: formData.description,
-        location: formData.location,
-        postType
-      };
-      
-      // Add type-specific fields
-      if (postType === 'Waste') {
-        postData = {
-          ...postData,
-          materials: formData.materials.split(',').map(m => m.trim()).filter(m => m),
-          quantity: parseFloat(formData.quantity) || 0,
-          price: parseFloat(formData.price) || 0,
-          pickupDate: formData.pickupDate,
-          pickupTime: formData.pickupTime,
-          status: 'Available'
-        };
-      } else if (postType === 'Initiative') {
-        postData = {
-          ...postData,
-          goal: formData.goal,
-          targetAmount: parseFloat(formData.targetAmount) || 0,
-          currentAmount: 0,
-          status: 'Active'
-        };
-      } else if (postType === 'Forum') {
-        postData = {
-          ...postData,
-          category: formData.category,
-          tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
-          status: 'Active'
-        };
-      }
-      
-      // Make API call
-      const response = await axios.post(
-        'http://localhost:3001/api/posts/create',
-        postData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      if (response.data.success) {
-        // Redirect to posts page
-        navigate('/posts');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create post. Please try again.');
-    } finally {
-      setLoading(false);
+    if (!token) {
+      setError('You must be logged in to create a post');
+      navigate('/login');
+      return;
     }
-  };
+    
+    // Log the token (remove in production)
+    console.log('Token exists:', !!token);
+    console.log('Token preview:', token.substring(0, 20) + '...');
+    
+    // Prepare data based on post type
+    let postData = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      location: formData.location.trim(),
+      postType
+    };
+    
+    // Add type-specific fields
+    if (postType === 'Waste') {
+      postData = {
+        ...postData,
+        materials: formData.materials.split(',').map(m => m.trim()).filter(m => m),
+        quantity: parseFloat(formData.quantity),
+        unit: formData.unit,
+        price: formData.price ? parseFloat(formData.price) : 0,
+        condition: formData.condition,
+        pickupDate: formData.pickupDate || null,
+        pickupTime: formData.pickupTime || null
+      };
+    } else if (postType === 'Initiative') {
+      postData = {
+        ...postData,
+        goal: formData.goal.trim(),
+        targetAmount: parseFloat(formData.targetAmount),
+        endDate: formData.endDate || null
+      };
+    } else if (postType === 'Forum') {
+      postData = {
+        ...postData,
+        category: formData.category,
+        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(t => t) : []
+      };
+    }
+    
+    // Log the data being sent (remove in production)
+    console.log('Sending post data:', postData);
+    
+    // Make API call to the correct endpoint
+    const response = await axios.post(
+      'http://localhost:3001/api/posts/create',
+      postData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    // Log successful response
+    console.log('Response received:', response.data);
+    
+    if (response.data.success) {
+      // Show success message if you have a toast/notification system
+      console.log(response.data.message);
+      
+      // Redirect to posts page or the created post
+      navigate('/posts');
+    }
+  } catch (err) {
+    // Enhanced error logging
+    console.error('Error creating post:', err);
+    
+    if (err.response) {
+      // The request was made and the server responded with an error status
+      console.error('Error response data:', err.response.data);
+      console.error('Error response status:', err.response.status);
+      console.error('Error response headers:', err.response.headers);
+      
+      // Check for specific error types
+      if (err.response.status === 401) {
+        setError('Authentication failed. Please login again.');
+        localStorage.removeItem('token'); // Clear invalid token
+        setTimeout(() => navigate('/login'), 2000);
+      } else if (err.response.status === 403) {
+        setError(err.response.data?.message || 'You do not have permission to create this type of post');
+      } else if (err.response.status === 400) {
+        setError(err.response.data?.message || 'Invalid data provided. Please check your inputs.');
+      } else {
+        setError(err.response.data?.message || 'Failed to create post. Please try again.');
+      }
+    } else if (err.request) {
+      // The request was made but no response was received
+      console.error('No response received:', err.request);
+      setError('No response from server. Please check your connection and try again.');
+    } else {
+      // Something happened in setting up the request
+      console.error('Request setup error:', err.message);
+      setError('Failed to send request. Please try again.');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Handle cancel
   const handleCancel = () => {
     navigate('/posts');
   };
+
+  // Check if user can create initiative posts
+  const canCreateInitiative = userType === 'Collector' || userType === 'Admin';
 
   return (
     <div className={styles.container}>
@@ -123,6 +240,13 @@ const CreatePost = () => {
           <h1 className={styles.title}>Create New Post</h1>
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <div className={styles.errorMessage}>
+            {error}
+          </div>
+        )}
+
         {/* Post Type Selector */}
         <div className={styles.postTypeSelector}>
           <button
@@ -130,7 +254,7 @@ const CreatePost = () => {
             className={`${styles.typeButton} ${postType === 'Waste' ? styles.active : ''}`}
             onClick={() => setPostType('Waste')}
           >
-            <span>Waste Post</span>
+            <span>♻️ Waste Post</span>
             <small>Offer recyclable materials</small>
           </button>
           
@@ -138,9 +262,11 @@ const CreatePost = () => {
             type="button"
             className={`${styles.typeButton} ${postType === 'Initiative' ? styles.active : ''}`}
             onClick={() => setPostType('Initiative')}
+            disabled={!canCreateInitiative}
+            title={!canCreateInitiative ? 'Only Collectors can create Initiative posts' : ''}
           >
-            <span>Initiative</span>
-            <small>Start a green project</small>
+            <span>🌱 Initiative</span>
+            <small>{canCreateInitiative ? 'Start a green project' : 'Collectors only'}</small>
           </button>
           
           <button
@@ -148,17 +274,10 @@ const CreatePost = () => {
             className={`${styles.typeButton} ${postType === 'Forum' ? styles.active : ''}`}
             onClick={() => setPostType('Forum')}
           >
-            <span>Forum Post</span>
-            <small>Share tips or news</small>
+            <span>💬 Forum Post</span>
+            <small>Share and discuss</small>
           </button>
         </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className={styles.errorMessage}>
-            {error}
-          </div>
-        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className={styles.form}>
@@ -174,13 +293,10 @@ const CreatePost = () => {
               value={formData.title}
               onChange={handleInputChange}
               className={styles.input}
-              placeholder="Enter a descriptive title"
+              placeholder="Give your post a clear title"
               required
-              maxLength={100}
+              maxLength="100"
             />
-            <span className={styles.charCount}>
-              {formData.title.length}/100
-            </span>
           </div>
 
           <div className={styles.formGroup}>
@@ -193,14 +309,11 @@ const CreatePost = () => {
               value={formData.description}
               onChange={handleInputChange}
               className={styles.textarea}
-              placeholder="Provide detailed information about your post"
+              placeholder="Provide details about your post"
+              rows="5"
               required
-              rows={5}
-              maxLength={500}
+              maxLength="1000"
             />
-            <span className={styles.charCount}>
-              {formData.description.length}/500
-            </span>
           </div>
 
           <div className={styles.formGroup}>
@@ -214,7 +327,7 @@ const CreatePost = () => {
               value={formData.location}
               onChange={handleInputChange}
               className={styles.input}
-              placeholder="e.g., Quezon City, Manila"
+              placeholder="e.g., Quezon City, Metro Manila"
               required
             />
           </div>
@@ -235,35 +348,66 @@ const CreatePost = () => {
                     value={formData.materials}
                     onChange={handleInputChange}
                     className={styles.input}
-                    placeholder="e.g., Plastic, Glass, Paper"
+                    placeholder="e.g., plastic bottles, cardboard, paper"
                     required
                   />
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="quantity" className={styles.label}>
-                    Quantity (kg) *
+                  <label htmlFor="condition" className={styles.label}>
+                    Condition
                   </label>
-                  <input
-                    type="number"
-                    id="quantity"
-                    name="quantity"
-                    value={formData.quantity}
+                  <select
+                    id="condition"
+                    name="condition"
+                    value={formData.condition}
                     onChange={handleInputChange}
-                    className={styles.input}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
+                    className={styles.select}
+                  >
+                    <option value="Excellent">Excellent</option>
+                    <option value="Good">Good</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Poor">Poor</option>
+                  </select>
                 </div>
               </div>
 
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
+                  <label htmlFor="quantity" className={styles.label}>
+                    Quantity *
+                  </label>
+                  <div className={styles.inputWithUnit}>
+                    <input
+                      type="number"
+                      id="quantity"
+                      name="quantity"
+                      value={formData.quantity}
+                      onChange={handleInputChange}
+                      className={styles.input}
+                      placeholder="0"
+                      min="0.1"
+                      step="0.1"
+                      required
+                    />
+                    <select
+                      name="unit"
+                      value={formData.unit}
+                      onChange={handleInputChange}
+                      className={styles.unitSelect}
+                    >
+                      <option value="kg">kg</option>
+                      <option value="pieces">pieces</option>
+                      <option value="bags">bags</option>
+                      <option value="boxes">boxes</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
                   <label htmlFor="price" className={styles.label}>
                     Price (₱)
-                    <span className={styles.hint}>Optional - leave blank if free</span>
+                    <span className={styles.hint}>Optional</span>
                   </label>
                   <input
                     type="number"
@@ -282,7 +426,8 @@ const CreatePost = () => {
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label htmlFor="pickupDate" className={styles.label}>
-                    Preferred Pickup Date *
+                    Preferred Pickup Date
+                    <span className={styles.hint}>Optional</span>
                   </label>
                   <input
                     type="date"
@@ -292,13 +437,13 @@ const CreatePost = () => {
                     onChange={handleInputChange}
                     className={styles.input}
                     min={new Date().toISOString().split('T')[0]}
-                    required
                   />
                 </div>
 
                 <div className={styles.formGroup}>
                   <label htmlFor="pickupTime" className={styles.label}>
-                    Preferred Pickup Time *
+                    Preferred Pickup Time
+                    <span className={styles.hint}>Optional</span>
                   </label>
                   <input
                     type="time"
@@ -307,7 +452,6 @@ const CreatePost = () => {
                     value={formData.pickupTime}
                     onChange={handleInputChange}
                     className={styles.input}
-                    required
                   />
                 </div>
               </div>
@@ -327,28 +471,47 @@ const CreatePost = () => {
                   value={formData.goal}
                   onChange={handleInputChange}
                   className={styles.textarea}
-                  placeholder="Describe what you aim to achieve with this initiative"
+                  placeholder="What do you want to achieve with this initiative?"
+                  rows="3"
                   required
-                  rows={3}
+                  maxLength="500"
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="targetAmount" className={styles.label}>
-                  Target Amount (₱)
-                  <span className={styles.hint}>If fundraising is involved</span>
-                </label>
-                <input
-                  type="number"
-                  id="targetAmount"
-                  name="targetAmount"
-                  value={formData.targetAmount}
-                  onChange={handleInputChange}
-                  className={styles.input}
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="targetAmount" className={styles.label}>
+                    Target Amount (kg) *
+                  </label>
+                  <input
+                    type="number"
+                    id="targetAmount"
+                    name="targetAmount"
+                    value={formData.targetAmount}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    placeholder="0"
+                    min="1"
+                    step="0.1"
+                    required
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="endDate" className={styles.label}>
+                    End Date
+                    <span className={styles.hint}>Optional</span>
+                  </label>
+                  <input
+                    type="date"
+                    id="endDate"
+                    name="endDate"
+                    value={formData.endDate}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
               </div>
             </>
           )}
@@ -368,17 +531,17 @@ const CreatePost = () => {
                   className={styles.select}
                   required
                 >
+                  <option value="General">General Discussion</option>
                   <option value="Tips">Tips & Guides</option>
                   <option value="News">News & Updates</option>
                   <option value="Questions">Questions</option>
-                  <option value="Discussion">General Discussion</option>
                 </select>
               </div>
 
               <div className={styles.formGroup}>
                 <label htmlFor="tags" className={styles.label}>
                   Tags
-                  <span className={styles.hint}>Separate with commas</span>
+                  <span className={styles.hint}>Separate with commas (optional)</span>
                 </label>
                 <input
                   type="text"
@@ -388,6 +551,7 @@ const CreatePost = () => {
                   onChange={handleInputChange}
                   className={styles.input}
                   placeholder="e.g., recycling, environment, tips"
+                  maxLength="200"
                 />
               </div>
             </>
@@ -415,7 +579,7 @@ const CreatePost = () => {
                   Creating...
                 </>
               ) : (
-                'Create Post'
+                `Create ${postType} Post`
               )}
             </button>
           </div>

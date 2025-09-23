@@ -28,6 +28,9 @@ const WastePost = require('./models/WastePost');
 const Application = require('./models/Application'); 
 const Pickup = require('./models/Pickup');
 
+// Import the middleware
+const { verifyToken } = require('./middleware/auth');
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -84,7 +87,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/posts', postRoutes);
+app.use('/api/posts', verifyToken, postRoutes);
 app.use('/api/protected/profile', profileRoutes);
 app.use('/api/messages', messageRoutes);
 
