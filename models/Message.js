@@ -163,68 +163,39 @@ class Message {
     return await Message.create(messageData);
   }
 
-  // Get conversation between two users for a specific post
-  static async getConversation(user1ID, user2ID, postID) {
-    const db = getFirestore();
-    try {
-      const messagesRef = collection(db, 'messages');
-      
-      // Query for messages from user1 to user2
-      const q1 = query(messagesRef, 
-        where('postID', '==', postID),
-        where('senderID', '==', user1ID),
-        where('receiverID', '==', user2ID),
-        where('isDeleted', '==', false),
-        orderBy('sentAt', 'asc')
-      );
-      
-      // Query for messages from user2 to user1
-      const q2 = query(messagesRef,
-        where('postID', '==', postID), 
-        where('senderID', '==', user2ID),
-        where('receiverID', '==', user1ID),
-        where('isDeleted', '==', false),
-        orderBy('sentAt', 'asc')
-      );
+static async getConversation(user1ID, user2ID, postID) {
+  const db = getFirestore();
+  try {
+    const messagesRef = collection(db, 'messages');
+    
+    // Simplified query - just get all messages for this post
+    // Then filter in JavaScript to avoid index requirements
+    const q = query(messagesRef, 
+      where('postID', '==', postID),
+      where('isDeleted', '==', false)
+    );
+    
+    const snapshot = await getDocs(q);
+    const messages = [];
+    
+    snapshot.forEach((doc) => {
+      const messageData = doc.data();
+      // Filter for messages between these two users
+      if ((messageData.senderID === user1ID && messageData.receiverID === user2ID) ||
+          (messageData.senderID === user2ID && messageData.receiverID === user1ID) ||
+          (messageData.messageType === 'system' && 
+           (messageData.receiverID === user1ID || messageData.receiverID === user2ID))) {
+        messages.push(new Message(messageData));
+      }
+    });
 
-      // Query for system messages for this post
-      const q3 = query(messagesRef,
-        where('postID', '==', postID),
-        where('messageType', '==', 'system'),
-        where('isDeleted', '==', false),
-        orderBy('sentAt', 'asc')
-      );
-
-      const [snapshot1, snapshot2, snapshot3] = await Promise.all([
-        getDocs(q1),
-        getDocs(q2),
-        getDocs(q3)
-      ]);
-
-      const messages = [];
-      
-      snapshot1.forEach((doc) => {
-        messages.push(new Message(doc.data()));
-      });
-      
-      snapshot2.forEach((doc) => {
-        messages.push(new Message(doc.data()));
-      });
-
-      snapshot3.forEach((doc) => {
-        const messageData = doc.data();
-        // Only include system messages relevant to both users
-        if (messageData.receiverID === user1ID || messageData.receiverID === user2ID) {
-          messages.push(new Message(messageData));
-        }
-      });
-
-      // Sort by timestamp
-      return messages.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
-    } catch (error) {
-      throw new Error(`Failed to get conversation: ${error.message}`);
-    }
+    // Sort by timestamp in JavaScript
+    return messages.sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+  } catch (error) {
+    console.error('Error in getConversation:', error);
+    throw new Error(`Failed to get conversation: ${error.message}`);
   }
+}
 
 // Simplified version of getUserConversations that doesn't require indexes
 static async getUserConversations(userID) {
