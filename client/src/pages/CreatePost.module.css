@@ -4,7 +4,6 @@
 /* Container and Layout */
 .container {
   min-height: 100vh;
-  background: #f5f5f5;
   padding: 2rem;
   font-family: 'Raleway', sans-serif;
 }
@@ -14,7 +13,6 @@
   margin: 0 auto;
   background: white;
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -30,7 +28,7 @@
   color: #B3F2AC;
   text-decoration: none;
   font-size: 0.9rem;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   margin-bottom: 1rem;
   transition: opacity 0.3s ease;
@@ -116,6 +114,9 @@
 }
 
 .formGroup {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   margin-bottom: 1.5rem;
   position: relative;
 }
@@ -132,6 +133,7 @@
   font-weight: 600;
   color: #333;
   font-size: 0.95rem;
+  text-align: left;
 }
 
 .hint {
@@ -147,7 +149,7 @@
   font-family: 'Raleway', sans-serif;
   border: 2px solid #e0e0e0;
   transition: all 0.3s ease;
-  width: 100%;
+  /* width: 100%; */
   padding: 0.75rem;
   border-radius: 6px;
   font-size: 1rem;
