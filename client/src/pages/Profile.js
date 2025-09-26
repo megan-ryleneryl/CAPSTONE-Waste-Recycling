@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
 import DeleteAccountModal from '../components/profile/DeleteAccountModal/DeleteAccountModal';
@@ -514,6 +515,7 @@ const ApplicationSelector = ({ applications, onSelect, onClose }) => {
 // Main Profile Component
 const Profile = ({ user: propsUser }) => {
   const [user, setUser] = useState(propsUser || null);
+  const [profilePictureUrl, setProfilePictureUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeModal, setActiveModal] = useState(null);
@@ -522,7 +524,7 @@ const Profile = ({ user: propsUser }) => {
   const [userApplications, setUserApplications] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showApplicationSelector, setShowApplicationSelector] = useState(false);
-  
+  const { refreshUser } = useAuth();
   const navigate = useNavigate();
 
   const fetchUserApplications = async () => {
@@ -587,7 +589,7 @@ const Profile = ({ user: propsUser }) => {
   }, [navigate]);
 
   // Helper function to construct full image URL
-  const getProfilePictureUrl = () => {
+  const getProfilePictureUrl = useCallback(() => {
     // First check profilePictureUrl (standard field), then profilePicture (legacy)
     const pictureField = user?.profilePictureUrl || user?.profilePicture;
     if (!pictureField) return null;
@@ -604,9 +606,12 @@ const Profile = ({ user: propsUser }) => {
       : '/' + pictureField;
     
     return baseUrl + pictureUrl;
-  };
+  }, [user]);
 
-  const profilePictureUrl = getProfilePictureUrl();
+  // Use effect to update profilePictureUrl when user changes
+  useEffect(() => {
+    setProfilePictureUrl(getProfilePictureUrl());
+  }, [user, getProfilePictureUrl]);
 
   const handleDeleteAccount = async () => {
     try {
@@ -694,106 +699,87 @@ const Profile = ({ user: propsUser }) => {
     }, [activeModal]);
 
     const handleEditSubmit = async (formData) => {
-      try {
-        const token = localStorage.getItem('token');
-        
-        // Check if formData is FormData object (with file upload) or regular object
-        if (formData instanceof FormData) {
-          // Handle profile picture upload if present
-          if (formData.get('profilePicture')) {
-            try {
-              const pictureResponse = await axios.post(
-                'http://localhost:3001/api/protected/upload/profile-picture',
-                formData,
-                {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                  }
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (formData instanceof FormData) {
+        // Handle profile picture upload if present
+        if (formData.get('profilePicture')) {
+          try {
+            const pictureResponse = await axios.post(
+              'http://localhost:3001/api/protected/upload/profile-picture',
+              formData,
+              {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'multipart/form-data'
                 }
-              );
-              
-              if (pictureResponse.data.success && pictureResponse.data.fileUrl) {
-                // Update the user object with new profile picture
-                setUser(prev => ({ 
-                  ...prev, 
-                  profilePicture: pictureResponse.data.fileUrl,  // For TopNav compatibility
-                  profilePictureUrl: pictureResponse.data.fileUrl
-                }));
               }
-            } catch (uploadError) {
-              console.error('Error uploading profile picture:', uploadError);
-            }
-          }
-          
-          // Now update the text fields
-          const updateData = {
-            firstName: formData.get('firstName'),
-            lastName: formData.get('lastName'),
-            phone: formData.get('phone')
-          };
-          
-          const response = await axios.put(
-            'http://localhost:3001/api/protected/profile',
-            updateData,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-          
-          if (response.data.success) {
-            const updatedUser = { 
-              ...user, 
-              ...response.data.user,
-              // Ensure profilePictureUrl is preserved if it exists
-              profilePicture: response.data.user.profilePictureUrl || user.profilePictureUrl,
-              profilePictureUrl: response.data.user.profilePictureUrl || user.profilePictureUrl
-            };
-            setUser(updatedUser);
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            setActiveModal(null);
-            setError('');
-            alert('Profile updated successfully!');
+            );
             
-            // Refresh profile to get latest data
-            fetchUserProfile();
-          }
-        } else {
-          // Handle old format (if still being used somewhere)
-          const nameParts = formData.userName ? formData.userName.split(' ') : [formData.firstName, formData.lastName];
-          const updateData = {
-            firstName: formData.firstName || nameParts[0] || '',
-            lastName: formData.lastName || nameParts.slice(1).join(' ') || '',
-            phone: formData.phone,
-            address: formData.address
-          };
-
-          const response = await axios.put(
-            'http://localhost:3001/api/protected/profile',
-            updateData,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`
+            if (pictureResponse.data.success) {
+              const updatedUser = pictureResponse.data.user;
+              
+              // Update local state
+              setUser(updatedUser);
+              setProfilePictureUrl(updatedUser.profilePicture || updatedUser.profilePictureUrl);
+              
+              // Update localStorage
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              
+              // Update auth context for TopNav refresh
+              if (refreshUser) {
+                refreshUser(); // This will trigger AuthContext to refresh
               }
             }
-          );
-
-          if (response.data.success) {
-            setUser(response.data.user);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
-            setActiveModal(null);
-            setError('');
-            alert('Profile updated successfully!');
+          } catch (uploadError) {
+            console.error('Error uploading profile picture:', uploadError);
+            alert('Failed to upload profile picture');
+            return;
           }
         }
-      } catch (error) {
-        console.error('Error updating profile:', error);
-        setError('Failed to update profile');
+        
+        // Now update the text fields
+        const updateData = {
+          firstName: formData.get('firstName'),
+          lastName: formData.get('lastName'),
+          phone: formData.get('phone')
+        };
+        
+        const response = await axios.put(
+          'http://localhost:3001/api/protected/profile',
+          updateData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (response.data.success) {
+          const updatedUser = { ...response.data.user };
+          setUser(updatedUser);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          // Update auth context
+          if (refreshUser) {
+            refreshUser();
+          }
+          
+          setActiveModal(null);
+          setError('');
+          alert('Profile updated successfully!');
+          
+          // Refresh profile to get latest data
+          fetchUserProfile();
+        }
       }
-    };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setError('Failed to update profile');
+    }
+  };
 
   const handleCollectorSubmit = async (formData) => {
     try {
@@ -1062,7 +1048,7 @@ const Profile = ({ user: propsUser }) => {
               <div className={styles.profileAvatar}>
                 {profilePictureUrl ? (
                   <img 
-                    src={profilePictureUrl} 
+                    src={profilePictureUrl}
                     alt={`${user?.firstName} ${user?.lastName}`}
                     className={styles.avatarImage}
                     onError={(e) => {

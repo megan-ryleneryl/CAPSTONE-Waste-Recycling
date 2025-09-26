@@ -28,7 +28,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.get('http://localhost:3001/api/protected/profile');
       if (response.data.success) {
-        setCurrentUser(response.data.user);
+        const userData = response.data.user;
+        // Ensure profile picture URL is consistent
+        if (userData.profilePictureUrl && !userData.profilePicture) {
+          userData.profilePicture = userData.profilePictureUrl;
+        }
+        setCurrentUser(userData);
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
     } catch (error) {

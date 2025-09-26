@@ -67,14 +67,15 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Static file serving
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+// Static file serving with proper CORS headers
 app.use('/uploads', (req, res, next) => {
+  // Set CORS headers BEFORE serving the static files
   res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
-});
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -302,7 +303,7 @@ app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
 });
 
 app.post('/api/protected/upload/profile-picture',
-  upload.single('profilePicture'),
+  upload.single('profilePicture'), // Changed from 'picture' to 'profilePicture'
   async (req, res) => {
     try {
       if (!req.file) {
@@ -311,13 +312,20 @@ app.post('/api/protected/upload/profile-picture',
 
       const uploadedFile = await StorageService.uploadProfilePicture(req.file, req.user.userID);
       
-      // Update user profile with new picture URL - using correct field name
-      await User.update(req.user.userID, { profilePictureUrl: uploadedFile });
+      // Update user profile with new picture URL
+      await User.update(req.user.userID, { 
+        profilePicture: uploadedFile,
+        profilePictureUrl: uploadedFile // Support both field names during transition
+      });
+      
+      // Get updated user data
+      const updatedUser = await User.findById(req.user.userID);
       
       res.json({ 
         success: true, 
         message: 'Profile picture uploaded successfully',
-        fileUrl: uploadedFile 
+        fileUrl: uploadedFile,
+        user: updatedUser // Return complete updated user
       });
     } catch (error) {
       console.error('Profile picture upload error:', error.message);

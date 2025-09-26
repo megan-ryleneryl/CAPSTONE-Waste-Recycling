@@ -252,9 +252,9 @@ const TopNav = ({ user: propUser }) => {
               aria-label="User menu"
             >
               <div className={styles.userAvatar}>
-                {profilePictureUrl ? (
+                {user?.profilePicture || user?.profilePictureUrl ? (
                   <img 
-                    src={profilePictureUrl} 
+                    src={`http://localhost:3001${user.profilePicture || user.profilePictureUrl}`}
                     alt={`${user?.firstName} ${user?.lastName}`}
                     className={styles.userAvatarImage}
                     onError={(e) => {
