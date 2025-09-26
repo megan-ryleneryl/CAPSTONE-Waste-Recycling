@@ -1,4 +1,6 @@
-// Post.js - Firestore Post Model (Base class for all post types)
+// TODO
+// Check for userType usage
+
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
 
@@ -6,58 +8,106 @@ class Post {
   constructor(data = {}) {
     this.postID = data.postID || uuidv4();
     this.userID = data.userID || '';
+    this.userType = data.userType || ''; // Add userType field
     this.postType = data.postType || ''; // Waste, Initiative, Forum
     this.title = data.title || '';
     this.description = data.description || '';
-    this.location = data.location || null;
-    this.status = data.status || 'Active'; // Active, Waiting, Scheduled, Collected, Inactive
+    this.location = data.location || '';
+    this.status = data.status || 'Active'; // Active, Available, Claimed, Completed, Cancelled, Inactive, Locked, Hidden
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
     
-    // Type-specific fields (will be populated by subclasses)
-    this.typeSpecificData = data.typeSpecificData || {};
+    // REMOVED typeSpecificData - fields should be added directly by subclasses
+    // This ensures consistent flat structure in Firestore
   }
 
   // Validation
   validate() {
-    const errors = [];
-    
-    if (!this.userID) errors.push('User ID is required');
-    if (!this.title) errors.push('Title is required');
-    if (!this.description) errors.push('Description is required');
-    if (!this.postType || !['Waste', 'Initiative', 'Forum'].includes(this.postType)) {
-      errors.push('Valid post type is required');
+  const errors = [];
+  
+  if (!this.userID) errors.push('User ID is required');
+  if (!this.title) errors.push('Title is required');
+  if (!this.description) errors.push('Description is required');
+  if (!this.location) errors.push('Location is required');
+  if (!this.postType || !['Waste', 'Initiative', 'Forum'].includes(this.postType)) {
+    errors.push('Valid post type is required (Waste, Initiative, or Forum)');
+  }
+  
+  // FIXED: More flexible status validation - set default if not provided
+  if (!this.status) {
+    // Set default status based on post type
+    switch(this.postType) {
+      case 'Waste':
+        this.status = 'Available';
+        break;
+      case 'Initiative':
+      case 'Forum':
+        this.status = 'Active';
+        break;
+      default:
+        this.status = 'Active';
     }
-    if (!['Active', 'Waiting', 'Scheduled', 'Collected', 'Inactive'].includes(this.status)) {
-      errors.push('Valid status is required');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
   }
 
-  // Convert to plain object for Firestore
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+  // Get valid statuses based on post type
+  getValidStatuses() {
+    switch(this.postType) {
+      case 'Waste':
+        return ['Available', 'Claimed', 'Completed', 'Cancelled'];
+      case 'Initiative':
+        return ['Active', 'Completed', 'Cancelled'];
+      case 'Forum':
+        return ['Active', 'Locked', 'Hidden'];
+      default:
+        return ['Active', 'Inactive'];
+    }
+  }
+
+  // Convert to plain object for Firestore - IMPORTANT: Flat structure
   toFirestore() {
+    // Return only base fields - subclasses will override to add their specific fields
     return {
       postID: this.postID,
       userID: this.userID,
+      userType: this.userType,
       postType: this.postType,
       title: this.title,
       description: this.description,
       location: this.location,
       status: this.status,
       createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
-      ...this.typeSpecificData
+      updatedAt: this.updatedAt
     };
   }
 
   // Static methods for database operations
   static async create(postData) {
     const db = getFirestore();
-    const post = new Post(postData);
+    
+    // Determine which subclass to use based on postType
+    let post;
+    switch(postData.postType) {
+      case 'Waste':
+        const WastePost = require('./WastePost');
+        post = new WastePost(postData);
+        break;
+      case 'Initiative':
+        const InitiativePost = require('./InitiativePost');
+        post = new InitiativePost(postData);
+        break;
+      case 'Forum':
+        const ForumPost = require('./ForumPost');
+        post = new ForumPost(postData);
+        break;
+      default:
+        post = new Post(postData);
+    }
     
     const validation = post.validate();
     if (!validation.isValid) {
@@ -66,9 +116,14 @@ class Post {
 
     try {
       const postRef = doc(db, 'posts', post.postID);
-      await setDoc(postRef, post.toFirestore());
+      const firestoreData = post.toFirestore();
+      
+      console.log('Creating post with data:', JSON.stringify(firestoreData, null, 2));
+      await setDoc(postRef, firestoreData);
+      
       return post;
     } catch (error) {
+      console.error('Firestore error in Post.create:', error);
       throw new Error(`Failed to create post: ${error.message}`);
     }
   }
@@ -103,6 +158,42 @@ class Post {
     }
   }
 
+  static async findAll() {
+    const db = getFirestore();
+    try {
+      const postsRef = collection(db, 'posts');
+      const q = query(postsRef, orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      
+      const posts = [];
+      querySnapshot.forEach((doc) => {
+        const postData = doc.data();
+        // Create appropriate subclass instance
+        switch (postData.postType) {
+          case 'Waste':
+            const WastePost = require('./WastePost');
+            posts.push(new WastePost(postData));
+            break;
+          case 'Initiative':
+            const InitiativePost = require('./InitiativePost');
+            posts.push(new InitiativePost(postData));
+            break;
+          case 'Forum':
+            const ForumPost = require('./ForumPost');
+            posts.push(new ForumPost(postData));
+            break;
+          default:
+            posts.push(new Post(postData));
+        }
+      });
+      
+      return posts;
+    } catch (error) {
+      console.error('Error in findAll:', error);
+      throw new Error(`Failed to find all posts: ${error.message}`);
+    }
+  }
+
   static async findByUserID(userID) {
     const db = getFirestore();
     try {
@@ -113,7 +204,23 @@ class Post {
       const posts = [];
       querySnapshot.forEach((doc) => {
         const postData = doc.data();
-        posts.push(new Post(postData));
+        // Create appropriate subclass instance
+        switch (postData.postType) {
+          case 'Waste':
+            const WastePost = require('./WastePost');
+            posts.push(new WastePost(postData));
+            break;
+          case 'Initiative':
+            const InitiativePost = require('./InitiativePost');
+            posts.push(new InitiativePost(postData));
+            break;
+          case 'Forum':
+            const ForumPost = require('./ForumPost');
+            posts.push(new ForumPost(postData));
+            break;
+          default:
+            posts.push(new Post(postData));
+        }
       });
       
       return posts;
@@ -132,7 +239,23 @@ class Post {
       const posts = [];
       querySnapshot.forEach((doc) => {
         const postData = doc.data();
-        posts.push(new Post(postData));
+        // Create appropriate subclass instance
+        switch (postData.postType) {
+          case 'Waste':
+            const WastePost = require('./WastePost');
+            posts.push(new WastePost(postData));
+            break;
+          case 'Initiative':
+            const InitiativePost = require('./InitiativePost');
+            posts.push(new InitiativePost(postData));
+            break;
+          case 'Forum':
+            const ForumPost = require('./ForumPost');
+            posts.push(new ForumPost(postData));
+            break;
+          default:
+            posts.push(new Post(postData));
+        }
       });
       
       return posts;
@@ -151,7 +274,23 @@ class Post {
       const posts = [];
       querySnapshot.forEach((doc) => {
         const postData = doc.data();
-        posts.push(new Post(postData));
+        // Create appropriate subclass instance
+        switch (postData.postType) {
+          case 'Waste':
+            const WastePost = require('./WastePost');
+            posts.push(new WastePost(postData));
+            break;
+          case 'Initiative':
+            const InitiativePost = require('./InitiativePost');
+            posts.push(new InitiativePost(postData));
+            break;
+          case 'Forum':
+            const ForumPost = require('./ForumPost');
+            posts.push(new ForumPost(postData));
+            break;
+          default:
+            posts.push(new Post(postData));
+        }
       });
       
       return posts;
@@ -170,7 +309,23 @@ class Post {
       const posts = [];
       querySnapshot.forEach((doc) => {
         const postData = doc.data();
-        posts.push(new Post(postData));
+        // Create appropriate subclass instance
+        switch (postData.postType) {
+          case 'Waste':
+            const WastePost = require('./WastePost');
+            posts.push(new WastePost(postData));
+            break;
+          case 'Initiative':
+            const InitiativePost = require('./InitiativePost');
+            posts.push(new InitiativePost(postData));
+            break;
+          case 'Forum':
+            const ForumPost = require('./ForumPost');
+            posts.push(new ForumPost(postData));
+            break;
+          default:
+            posts.push(new Post(postData));
+        }
       });
       
       return posts;
@@ -182,13 +337,23 @@ class Post {
   static async update(postID, updateData) {
     const db = getFirestore();
     try {
+      // Add timestamp
       updateData.updatedAt = new Date();
+      
+      // Remove fields that shouldn't be updated
+      delete updateData.postID;
+      delete updateData.userID;
+      delete updateData.createdAt;
+      
+      console.log('Updating post with data:', JSON.stringify(updateData, null, 2));
+      
       const postRef = doc(db, 'posts', postID);
       await updateDoc(postRef, updateData);
       
       // Return updated post
       return await Post.findById(postID);
     } catch (error) {
+      console.error('Error in Post.update:', error);
       throw new Error(`Failed to update post: ${error.message}`);
     }
   }
@@ -206,7 +371,9 @@ class Post {
 
   // Instance methods
   async save() {
-    return await Post.create(this.toFirestore());
+    // Use the static create method but with this instance's data
+    const firestoreData = this.toFirestore();
+    return await Post.create(firestoreData);
   }
 
   async update(updateData) {

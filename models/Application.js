@@ -1,6 +1,7 @@
 // Application.js - Firestore Application Model
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
+const User = require('./Users');
 
 class Application {
   constructor(data = {}) {
@@ -8,8 +9,9 @@ class Application {
     this.userID = data.userID || '';
     this.applicationType = data.applicationType || ''; // Account_Verification, Org_Verification, Collector_Privilege
     this.justification = data.justification || null;
+    this.organizationName = data.organizationName || '';
     this.documents = data.documents || []; // Array of file URLs
-    this.status = data.status || 'Pending'; // Pending, Approved, Rejected
+    this.status = data.status || 'Pending'; // Pending, Submitted, Approved, Rejected
     this.reviewedBy = data.reviewedBy || null;
     this.submittedAt = data.submittedAt || new Date();
     this.reviewedAt = data.reviewedAt || null;
@@ -23,7 +25,7 @@ class Application {
     if (!this.applicationType || !['Account_Verification', 'Org_Verification', 'Collector_Privilege'].includes(this.applicationType)) {
       errors.push('Valid application type is required');
     }
-    if (!['Pending', 'Approved', 'Rejected'].includes(this.status)) {
+    if (!['Pending', 'Submitted', 'Approved', 'Rejected'].includes(this.status)) {
       errors.push('Valid status is required');
     }
 
@@ -40,6 +42,7 @@ class Application {
       userID: this.userID,
       applicationType: this.applicationType,
       justification: this.justification,
+      organizationName: this.organizationName,
       documents: this.documents,
       status: this.status,
       reviewedBy: this.reviewedBy,
@@ -191,15 +194,12 @@ class Application {
     }
 
     await this.update(updateData);
+    const user = await User.findById(this.userID);
 
-    // If approved, update user status based on application type
-    if (status === 'Approved') {
-      const User = require('./User');
-      const user = await User.findById(this.userID);
+    if (user) {
+      let userUpdate = {};
       
-      if (user) {
-        let userUpdate = {};
-        
+      if (status === 'Approved') {
         switch (this.applicationType) {
           case 'Account_Verification':
             userUpdate.status = 'Verified';
@@ -209,15 +209,19 @@ class Application {
             userUpdate.isOrganization = true;
             break;
           case 'Collector_Privilege':
-            if (user.userType !== 'Collector') {
-              userUpdate.userType = 'Collector';
+            if (!user.isCollector) {
+              userUpdate.isCollector = true;
             }
             userUpdate.status = 'Verified';
             break;
         }
-        
-        await user.update(userUpdate);
+      } else if (status === 'Rejected') {
+        // CRITICAL: Reset user status to Pending when rejected
+        // This allows them to resubmit verification
+        userUpdate.status = 'Pending';
       }
+      
+      await User.update(user.userID, userUpdate);
     }
 
     return this;
@@ -226,12 +230,6 @@ class Application {
   // Add document to application
   async addDocument(documentURL) {
     this.documents.push(documentURL);
-    await this.update({ documents: this.documents });
-  }
-
-  // Remove document from application
-  async removeDocument(documentURL) {
-    this.documents = this.documents.filter(doc => doc !== documentURL);
     await this.update({ documents: this.documents });
   }
 }

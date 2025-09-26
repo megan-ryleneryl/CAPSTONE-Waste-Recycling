@@ -10,30 +10,23 @@ class User {
     this.email = data.email || '';
     this.phone = data.phone || '';
     this.passwordHash = data.passwordHash || '';
-    this.status = data.status || 'Pending'; // Pending, Verified, Rejected
-    this.userType = data.userType || ''; // Giver, Collector, Admin
+    this.status = data.status || 'Pending'; // Suspended, Pending, Verified, Submitted
+    this.isCollector = data.isCollector || false;
+    this.isAdmin = data.isAdmin || false; 
     this.isOrganization = data.isOrganization || false;
     this.organizationName = data.organizationName || null;
     this.preferredTimes = data.preferredTimes || [];
     this.preferredLocations = data.preferredLocations || [];
     this.points = data.points || 0;
     this.badges = data.badges || []; // Array of {badgeId, earnedAt}
+    this.profilePictureUrl = data.profilePictureUrl || '';
     this.createdAt = data.createdAt || new Date();
-
-    // this.userID = data.userID || '';
-    // this.firstName = data.firstName || '';
-    // this.lastName = data.lastName || '';
-    // this.email = data.email || '';
-    // this.phone = data.phone || '';
-    // this.address = data.address || '';
-    // this.userType = data.userType || 'Giver';
-    // this.status = data.status || 'pending';
-    // this.isOrganization = data.isOrganization || false;
-    // this.organizationName = data.organizationName || '';
-    // this.points = data.points || 0;
-    // this.totalDonations = data.totalDonations || 0;
-    // this.badges = data.badges || [];
-    // this.createdAt = data.createdAt || new Date();
+    this.deletedAt = null;
+    this.suspensionReason = data.suspensionReason || null;
+    this.suspendedAt = data.suspendedAt || null;
+    this.suspendedBy = data.suspendedBy || null;
+    this.unsuspendedAt = data.unsuspendedAt || null;
+    this.unsuspendedBy = data.unsuspendedBy || null;
   }
 
   // Validation
@@ -43,10 +36,10 @@ class User {
     if (!this.firstName) errors.push('First name is required');
     if (!this.lastName) errors.push('Last name is required');
     if (!this.email) errors.push('Email is required');
-    if (!this.userType || !['Giver', 'Collector', 'Admin'].includes(this.userType)) {
-      errors.push('Valid user type is required');
-    }
-    if (!['Pending', 'Verified', 'Rejected'].includes(this.status)) {
+    if (typeof this.isCollector !== 'boolean') errors.push('isCollector must be boolean');
+    if (typeof this.isAdmin !== 'boolean') errors.push('isAdmin must be boolean');
+    if (typeof this.isOrganization !== 'boolean') errors.push('isOrganization must be boolean');
+    if (!['Pending', 'Verified', 'Submitted', 'Rejected'].includes(this.status)) {
       errors.push('Valid status is required');
     }
 
@@ -66,14 +59,23 @@ class User {
       phone: this.phone,
       passwordHash: this.passwordHash,
       status: this.status,
-      userType: this.userType,
+      isCollector: this.isCollector,
+      isAdmin: this.isAdmin,
       isOrganization: this.isOrganization,
       organizationName: this.organizationName,
       preferredTimes: this.preferredTimes,
       preferredLocations: this.preferredLocations,
       points: this.points,
       badges: this.badges,
-      createdAt: this.createdAt
+      createdAt: this.createdAt,
+      profilePictureUrl: this.profilePictureUrl,
+      deletedAt: this.deletedAt,
+      status: this.status,
+      suspensionReason: this.suspensionReason,
+      suspendedAt: this.suspendedAt,
+      suspendedBy: this.suspendedBy,
+      unsuspendedAt: this.unsuspendedAt,
+      unsuspendedBy: this.unsuspendedBy
     };
   }
 
@@ -128,11 +130,25 @@ class User {
     }
   }
 
-  static async findByUserType(userType) {
+  static async findByFlags(filters = {}) {
     const db = getFirestore();
     try {
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('userType', '==', userType));
+      const conditions = [];
+      
+      if (filters.isAdmin !== undefined) {
+        conditions.push(where('isAdmin', '==', filters.isAdmin));
+      }
+      if (filters.isCollector !== undefined) {
+        conditions.push(where('isCollector', '==', filters.isCollector));
+      }
+      if (filters.isOrganization !== undefined) {
+        conditions.push(where('isOrganization', '==', filters.isOrganization));
+      }
+      
+      const q = conditions.length > 0 
+        ? query(usersRef, ...conditions) 
+        : usersRef;
       const querySnapshot = await getDocs(q);
       
       const users = [];
@@ -142,7 +158,24 @@ class User {
       
       return users;
     } catch (error) {
-      throw new Error(`Failed to find users by type: ${error.message}`);
+      throw new Error(`Failed to find users by flags: ${error.message}`);
+    }
+  }
+
+  static async findAll() {
+    const db = getFirestore();
+    try {
+      const usersRef = collection(db, 'users');
+      const querySnapshot = await getDocs(usersRef);
+      
+      const users = [];
+      querySnapshot.forEach((doc) => {
+        users.push(new User(doc.data()));
+      });
+      
+      return users;
+    } catch (error) {
+      throw new Error(`Failed to fetch all users: ${error.message}`);
     }
   }
 
@@ -167,6 +200,54 @@ class User {
       return { success: true, message: 'User deleted successfully' };
     } catch (error) {
       throw new Error(`Failed to delete user: ${error.message}`);
+    }
+  }
+
+  static async softDelete(userID) {
+    const db = getFirestore();
+    try {
+      const userRef = doc(db, 'users', userID);
+      const updateData = {
+        firstName: 'Deleted',
+        lastName: 'User',
+        status: 'Deleted',
+        email: 'Deleted',
+        deletedAt: new Date()
+      };
+
+      // Cancel all pickups where this user is either giver or collector
+      const Pickup = require('./Pickup');
+      
+      // Find pickups where user is the giver
+      const giverPickups = await Pickup.findByGiverID(userID);
+      for (const pickup of giverPickups) {
+        if (pickup.canBeCancelled()) {
+          await pickup.cancel('User account was deleted');
+        }
+      }
+      
+      // Find pickups where user is the collector
+      const collectorPickups = await Pickup.findByCollectorID(userID);
+      for (const pickup of collectorPickups) {
+        if (pickup.canBeCancelled()) {
+          await pickup.cancel('User account was deleted');
+        }
+      }
+
+      // Set all this user's posts to inactive
+      // const Post = require('./Post');
+      // const userPosts = await Post.findByUserID(userID);
+      // for (const post of userPosts) {
+      //   if (post.status !== 'Inactive') {
+      //     await post.update({ status: 'Inactive' });
+      //   }
+      // }
+      
+      await updateDoc(userRef, updateData);
+      
+      return { success: true, message: 'User soft deleted successfully' };
+    } catch (error) {
+      throw new Error(`Failed to soft delete user: ${error.message}`);
     }
   }
 

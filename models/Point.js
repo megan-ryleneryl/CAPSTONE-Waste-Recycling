@@ -1,4 +1,6 @@
-// Point.js - Firestore Point Model
+// TODO
+// Check for userType usage
+
 const { getFirestore, collection, doc, setDoc, getDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
 
@@ -56,7 +58,7 @@ class Point {
       await setDoc(pointRef, point.toFirestore());
       
       // Update user's total points
-      const User = require('./User');
+      const User = require('./Users');
       const user = await User.findById(point.userID);
       if (user) {
         await user.update({ 
@@ -161,7 +163,7 @@ class Point {
     const db = getFirestore();
     try {
       // Get all users and calculate their points
-      const User = require('./User');
+      const User = require('./Users');
       const allUsers = await collection(db, 'users');
       const usersSnapshot = await getDocs(allUsers);
       
@@ -226,7 +228,7 @@ class Point {
 
   // Get user information for this point transaction
   async getUser() {
-    const User = require('./User');
+    const User = require('./Users');
     return await User.findById(this.userID);
   }
 

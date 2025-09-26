@@ -1,4 +1,3 @@
-// config/firebase.js - Firebase Configuration for Capstone Project
 const { initializeApp } = require('firebase/app');
 const { getAuth } = require('firebase/auth');
 const { getFirestore } = require('firebase/firestore');
@@ -89,7 +88,6 @@ const FirebaseHelper = {
     try {
       if (adminDb) {
         // Test Firestore connection
-        console.log('Testing Firestore connection...');
         const testRef = adminDb.collection('_capstone_test').doc('connection');
         await testRef.set({ 
           timestamp: new Date(), 

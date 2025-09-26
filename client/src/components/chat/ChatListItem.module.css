@@ -1,0 +1,112 @@
+/* components/Chat/ChatListItem.module.css */
+.chatListItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  position: relative;
+}
+
+.chatListItem:hover {
+  background: #f8f9fa;
+}
+
+.chatListItem.selected {
+  background: #f0f7ed;
+  border-left: 3px solid #3B6535;
+}
+
+.chatListItem.unread {
+  background: #fafbff;
+  font-weight: 600;
+}
+
+.chatListItem.unread::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #3B6535;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3B6535, #B3F2AC);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.chatInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.userName {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.userType {
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.unreadBadge {
+  background: #3B6535;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.lastMessage {
+  color: #666;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.chatListItem.unread .lastMessage {
+  color: #333;
+  font-weight: 500;
+}
+
+.timestamp {
+  color: #999;
+  font-size: 0.75rem;
+  margin-top: 0.1rem;
+}
+
+.chatListItem.unread .timestamp {
+  color: #3B6535;
+  font-weight: 500;
+}

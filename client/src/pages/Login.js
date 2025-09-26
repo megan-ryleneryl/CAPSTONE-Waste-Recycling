@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/common/Logo/logo';
 import styles from './Login.module.css';
 import axios from 'axios';
+import GoogleLoginButton from '../components/common/Button/GoogleLoginButton';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -127,6 +128,19 @@ const Login = () => {
             {loading ? 'Logging in...' : 'Log In'}
           </button>
         </form>
+
+        {/* Google Login Button */}
+        <GoogleLoginButton 
+          onSuccess={(data) => {
+            // Navigate to posts or dashboard
+            navigate('/posts');
+          }}
+          onError={(errorMessage) => {
+            setError(errorMessage);
+          }}
+          text="signin_with"
+          isRegister={false}
+        />
 
         <div className={styles.signupPrompt}>
           <p>Don't have an account?</p>

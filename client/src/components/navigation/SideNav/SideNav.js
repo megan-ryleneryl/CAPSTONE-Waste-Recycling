@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styles from './SideNav.module.css';
 
@@ -9,11 +9,16 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
     filters: true,
     actions: true
   });
+  const [user, setUser] = useState(null);
   const location = useLocation();
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  useEffect(() => {
+    // Get user data from localStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -23,12 +28,17 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
   };
 
   const mainNavItems = [
-    { path: '/posts', label: 'Posts' },
-    { path: '/dashboard', label: 'Dashboard' },
-    { path: '/notifications', label: 'Notifications' },
-    { path: '/inbox', label: 'Inbox' },
+    { path: '/posts', label: 'Browse Posts' },
+    { path: '/dashboard', label: 'Dashboard'},
+    { path: '/chat', label: 'Messages' },
     { path: '/profile', label: 'Profile' },
   ];
+
+  // Add Approvals menu for Admin users
+  if (user?.isAdmin) {
+    mainNavItems.push({ path: '/admin/approvals', label: 'Approvals' });
+    mainNavItems.push({ path: '/admin/users', label: 'All Users' });
+  }
 
   const filterOptions = [
     { id: 'all', label: 'All Posts' },
@@ -39,25 +49,15 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
     { id: 'myPosts', label: 'My Posts' }
   ];
 
+  const quickActions = [
+    { id: 'pickups', label: 'My Pickups' },
+    { id: 'badges', label: 'My Badges' },
+    { id: 'settings', label: 'Settings' }
+  ];
+
   return (
-    <>
-      {/* Mobile Toggle Button */}
-      {/* <button 
-        className={styles.mobileToggle}
-        onClick={toggleCollapse}
-      >
-        ☰
-      </button> */}
-
-      <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
-        {/* Collapse Toggle */}
-        {/* <button 
-          className={styles.collapseButton}
-          onClick={toggleCollapse}
-        >
-          {isCollapsed ? '→' : '←'}
-        </button> */}
-
+    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
+      <div className={styles.sidebarContent}>
         {/* Main Navigation */}
         <div className={styles.section}>
           <button 
@@ -91,7 +91,7 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
           )}
         </div>
 
-        {/* Filters Section */}
+        {/* Filters Section - Only show on Posts page */}
         {location.pathname === '/posts' && (
           <div className={styles.section}>
             <button 
@@ -155,38 +155,35 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
                 {!isCollapsed && <span>Create Post</span>}
               </Link>
               
-              <button 
-                className={styles.actionButton}
-                title={isCollapsed ? 'View Pickups' : ''}
-              >
-                {!isCollapsed && <span>My Pickups</span>}
-              </button>
-
-              <button 
-                className={styles.actionButton}
-                title={isCollapsed ? 'View Badges' : ''}
-              >
-                {!isCollapsed && <span>My Badges</span>}
-              </button>
+              {quickActions.map(action => (
+                <button 
+                  key={action.id}
+                  className={styles.actionButton}
+                  title={isCollapsed ? action.label : ''}
+                >
+                  <span className={styles.icon}>{action.icon}</span>
+                  {!isCollapsed && <span className={styles.label}>{action.label}</span>}
+                </button>
+              ))}
             </div>
           )}
         </div>
+      </div>
 
-        {/* User Stats (Bottom) */}
-        {!isCollapsed && (
-          <div className={styles.userStats}>
-            <div className={styles.statItem}>
-              <span className={styles.statLabel}>Points</span>
-              <span className={styles.statValue}>1,250</span>
-            </div>
-            <div className={styles.statItem}>
-              <span className={styles.statLabel}>Rank</span>
-              <span className={styles.statValue}>Gold</span>
-            </div>
+      {/* User Stats (Bottom) - Fixed position */}
+      {!isCollapsed && (
+        <div className={styles.userStats}>
+          <div className={styles.statItem}>
+            <span className={styles.statLabel}>Points</span>
+            <span className={styles.statValue}>1,250</span>
           </div>
-        )}
-      </aside>
-    </>
+          <div className={styles.statItem}>
+            <span className={styles.statLabel}>Rank</span>
+            <span className={styles.statValue}>Gold</span>
+          </div>
+        </div>
+      )}
+    </aside>
   );
 };
 

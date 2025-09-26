@@ -1,0 +1,59 @@
+/* components/Chat/MessageInput.module.css */
+.messageInput {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  background: white;
+}
+
+.inputContainer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 20px;
+  padding: 0.5rem;
+  border: 1px solid #e0e0e0;
+}
+
+.textarea {
+  flex: 1;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  max-height: 120px;
+  line-height: 1.4;
+}
+
+.textarea::placeholder {
+  color: #999;
+}
+
+.sendButton {
+  background: #3B6535;
+  border: none;
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sendButton:hover:not(:disabled) {
+  background: #2d4e29;
+  transform: scale(1.05);
+}
+
+.sendButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}

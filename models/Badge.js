@@ -178,7 +178,7 @@ class Badge {
         return { qualifies: false, reason: 'Badge not found or inactive' };
       }
 
-      const User = require('./User');
+      const User = require('./Users');
       const Point = require('./Point');
       const user = await User.findById(userID);
       
@@ -250,7 +250,7 @@ class Badge {
         throw new Error(`User does not qualify for badge: ${qualification.reason}`);
       }
 
-      const User = require('./User');
+      const User = require('./Users');
       const user = await User.findById(userID);
       
       await user.addBadge(badgeID);

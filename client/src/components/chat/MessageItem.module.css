@@ -1,0 +1,183 @@
+/* components/Chat/MessageItem.module.css */
+.messageItem {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.25rem;
+}
+
+.messageItem.own {
+  align-items: flex-end;
+}
+
+.messageItem.other {
+  align-items: flex-start;
+}
+
+.messageItem.firstInGroup {
+  margin-top: 0.5rem;
+}
+
+.messageItem.lastInGroup {
+  margin-bottom: 1rem;
+}
+
+.senderName {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+  padding: 0 0.75rem;
+  font-weight: 500;
+}
+
+.senderType {
+  color: #999;
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+
+.messageContent {
+  display: flex;
+  flex-direction: column;
+  max-width: 70%;
+}
+
+.messageText {
+  background: #f0f0f0;
+  padding: 0.75rem 1rem;
+  border-radius: 18px;
+  word-wrap: break-word;
+  line-height: 1.4;
+  color: #333;
+}
+
+.messageItem.own .messageText {
+  background: #3B6535;
+  color: white;
+}
+
+.messageItem.other .messageText {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* Pickup request specific styles */
+.pickupRequest {
+  border-left: 4px solid #3B6535;
+  background: #f8fdf6 !important;
+  position: relative;
+}
+
+.messageItem.own .pickupRequest {
+  border-left: 4px solid #fff;
+  background: #2d4e29 !important;
+}
+
+.pickupDetails {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(59, 101, 53, 0.2);
+}
+
+.messageItem.own .pickupDetails {
+  border-top-color: rgba(255, 255, 255, 0.3);
+}
+
+.pickupItem {
+  display: flex;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.pickupItem:last-child {
+  margin-bottom: 0;
+}
+
+.pickupItem strong {
+  min-width: 70px;
+  margin-right: 0.5rem;
+  color: #3B6535;
+}
+
+.messageItem.own .pickupItem strong {
+  color: #B3F2AC;
+}
+
+.messageFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.25rem;
+  padding: 0 0.5rem;
+}
+
+.timestamp {
+  font-size: 0.7rem;
+  color: #999;
+}
+
+.readStatus {
+  font-size: 0.7rem;
+  color: #3B6535;
+  margin-left: 0.5rem;
+}
+
+.systemMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1rem 0;
+  padding: 0.5rem;
+}
+
+.systemText {
+  background: rgba(59, 101, 53, 0.1);
+  color: #3B6535;
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  text-align: center;
+  border: 1px solid rgba(59, 101, 53, 0.2);
+  max-width: 80%;
+}
+
+.systemTime {
+  font-size: 0.7rem;
+  color: #999;
+  margin-top: 0.25rem;
+}
+
+/* Animation for new messages */
+@keyframes fadeInMessage {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.messageItem {
+  animation: fadeInMessage 0.3s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .messageContent {
+    max-width: 85%;
+  }
+  
+  .messageText {
+    padding: 0.6rem 0.8rem;
+    border-radius: 16px;
+  }
+  
+  .pickupItem {
+    font-size: 0.85rem;
+  }
+  
+  .pickupItem strong {
+    min-width: 60px;
+  }
+}

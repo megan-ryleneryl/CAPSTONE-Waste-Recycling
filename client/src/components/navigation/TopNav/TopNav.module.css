@@ -6,6 +6,7 @@
   z-index: 1000;
   transition: all 0.3s ease;
   font-family: 'Raleway', sans-serif;
+  width: 100%;
 }
 
 .navbar.scrolled {
@@ -71,17 +72,26 @@
 .navIcon {
   background: transparent;
   border: none;
-  font-size: 1.3rem;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 50%;
   transition: all 0.3s ease;
   position: relative;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .navIcon:hover {
-  background-color: #f0f0f0;
+  background-color: rgba(59, 101, 53, 0.1);
+  color: #3B6535;
   transform: scale(1.1);
+}
+
+.navIcon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .badge {
@@ -205,23 +215,26 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: transparent;
-  border: 1px solid #e0e0e0;
+  background: white;
+  border: 2px solid var(--border-color);
   border-radius: 25px;
   padding: 0.4rem 1rem 0.4rem 0.4rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: var(--transition-all);
+  font-family: var(--font-family-primary);
 }
 
 .userButton:hover {
-  border-color: #3B6535;
-  background: #f8f8f8;
+  border-color: var(--primary-color);
+  background: var(--primary-alpha-10);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .userAvatar {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, #3B6535, #B3F2AC);
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -229,90 +242,169 @@
   color: white;
   font-weight: 600;
   font-size: 0.85rem;
+  font-family: var(--font-family-primary);
+  overflow: hidden;
+}
+
+.userAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .userName {
   font-size: 0.9rem;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
+  font-family: var(--font-family-primary);
 }
 
 .chevron {
   font-size: 0.7rem;
-  color: #999;
+  color: var(--text-muted);
   transition: transform 0.3s;
+  margin-left: 0.25rem;
 }
 
 .userButton:hover .chevron {
   transform: rotate(180deg);
+  color: var(--primary-color);
 }
 
+/* User Dropdown Menu */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  min-width: 280px;
+  z-index: 1001;
+  animation: dropdownSlide 0.3s ease;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+/* User Info Section */
 .userInfo {
-  padding: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 1.25rem;
+  background: var(--bg-gradient);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .userFullName {
   margin: 0;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-family: var(--font-family-primary);
 }
 
 .userEmail {
-  margin: 0.25rem 0;
+  margin: 0.25rem 0 0.75rem;
   font-size: 0.85rem;
-  color: #666;
+  color: var(--text-muted);
+  font-family: var(--font-family-primary);
 }
 
 .userStats {
   display: flex;
   gap: 1rem;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   font-size: 0.85rem;
+  font-family: var(--font-family-primary);
 }
 
-.userType {
-  background: #3B6535;
-  color: #B3F2AC;
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
+.userStats span {
+  color: var(--text-secondary);
+}
+
+.userStats strong {
+  color: var(--primary-color);
   font-weight: 600;
 }
 
-.dropdownDivider {
-  height: 1px;
-  background: #e0e0e0;
+/* Had a problem with this appearing as gray on green */
+.userType {
+  background: var(--primary-color) !important;
+  color: var(--text-on-primary) !important;
+  padding: 0.25rem 0.75rem !important;
+  border-radius: 12px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  font-family: var(--font-family-primary) !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  text-transform: capitalize !important;
+  border: none !important;
+  text-decoration: none !important;
+  line-height: 1.2 !important;
 }
 
+/* Dropdown Divider */
+.dropdownDivider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0;
+}
+
+/* Dropdown Items */
 .dropdownItem {
-  display: block;
-  padding: 0.75rem 1rem;
-  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  color: var(--text-primary);
   text-decoration: none;
   font-size: 0.9rem;
-  transition: background 0.2s;
+  font-family: var(--font-family-primary);
+  transition: var(--transition-all);
+  position: relative;
 }
 
 .dropdownItem:hover {
-  background: #f8f8f8;
-  color: #3B6535;
+  background: var(--primary-alpha-10);
+  color: var(--primary-color);
 }
 
+.dropdownItem::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--primary-color);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.dropdownItem:hover::before {
+  transform: scaleX(1);
+}
+
+/* Logout Button */
 .logoutButton {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1.25rem;
   background: none;
   border: none;
-  color: #dc3545;
+  color: var(--danger-color);
   text-align: left;
   cursor: pointer;
   font-size: 0.9rem;
-  transition: background 0.2s;
+  font-family: var(--font-family-primary);
+  transition: var(--transition-all);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .logoutButton:hover {
-  background: #fff5f5;
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--danger-hover);
 }
 
 /* Responsive */
@@ -327,5 +419,64 @@
   
   .dropdown {
     min-width: 280px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .mainContent {
+    margin-left: 0;
+  }
+  
+  /* Mobile menu toggle button */
+  .mobileMenuToggle {
+    display: block;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: var(--primary-color);
+    color: var(--text-on-primary);
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    transition: var(--transition-all);
+  }
+  
+  .mobileMenuToggle:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-xl);
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    max-width: 280px;
+    border-radius: 0;
+  }
+  
+  .dropdown {
+    min-width: 240px;
+    right: 10px;
+  }
+  
+  .userInfo {
+    padding: 1rem;
+  }
+  
+  .dropdownItem,
+  .logoutButton {
+    padding: 0.75rem 1rem;
   }
 }

@@ -7,11 +7,14 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
 
+// Import routes
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const profileRoutes = require('./routes/profileRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -24,6 +27,9 @@ const Post = require('./models/Posts');
 const WastePost = require('./models/WastePost');
 const Application = require('./models/Application'); 
 const Pickup = require('./models/Pickup');
+
+// Import the middleware
+const { verifyToken } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,18 +45,6 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
@@ -61,8 +55,27 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('combined'));
 }
 
-// Serve uploaded files statically
-app.use('/uploads', serveUploads, express.static(path.join(__dirname, 'uploads')));
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Skip rate limiting for static files
+  skip: (req) => req.path.startsWith('/uploads')
+});
+app.use('/api/', limiter);
+
+// Static file serving with proper CORS headers
+app.use('/uploads', (req, res, next) => {
+  // Set CORS headers BEFORE serving the static files
+  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -75,64 +88,17 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/posts', postRoutes);
+app.use('/api/posts', verifyToken, postRoutes);
 app.use('/api/protected/profile', profileRoutes);
+app.use('/api/messages', messageRoutes);
+
+app.use('/api/admin', (req, res, next) => {
+  next();
+});
 
 // ============================================================================
 // PUBLIC ROUTES (No authentication required)
 // ============================================================================
-
-// Authentication routes
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const result = await authService.createUser(req.body);
-    res.status(201).json({
-      success: true,
-      message: 'User created successfully',
-      user: {
-        uid: result.firebaseUser.uid,
-        email: result.firebaseUser.email,
-        userType: result.firestoreUser.userType,
-        firstName: result.firestoreUser.firstName,
-        lastName: result.firestoreUser.lastName
-      }
-    });
-  } catch (error) {
-    console.error('Registration error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { idToken } = req.body;
-    
-    if (!idToken) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Firebase ID token is required' 
-      });
-    }
-
-    const verificationResult = await authService.verifyToken(idToken);
-    
-    res.json({
-      success: true,
-      message: 'Login successful',
-      user: {
-        uid: verificationResult.firebaseUid,
-        email: verificationResult.email,
-        userType: verificationResult.user.userType,
-        firstName: verificationResult.user.firstName,
-        lastName: verificationResult.user.lastName,
-        points: verificationResult.user.points
-      }
-    });
-  } catch (error) {
-    console.error('Login error:', error.message);
-    res.status(401).json({ success: false, error: error.message });
-  }
-});
 
 // Get public posts (for browsing without login)
 app.get('/api/posts/public', async (req, res) => {
@@ -150,6 +116,12 @@ app.get('/api/posts/public', async (req, res) => {
       createdAt: post.createdAt,
       // Hide sensitive user data for public view
       userType: post.userType
+
+      // TODO
+      // isCollector: post.isCollector,
+      // isAdmin: post.isAdmin,
+      // isOrganization: post.isOrganization
+      // Remove userType, but need to update the Posts schema and Firebase
     }));
     
     res.json({ success: true, posts: publicPosts });
@@ -188,11 +160,11 @@ app.put('/api/protected/profile', async (req, res) => {
 // Posts routes
 app.get('/api/protected/posts', async (req, res) => {
   try {
-    const { type, status, location, userId } = req.query;
+    const { type, status, location, userID } = req.query;
     
     let posts;
-    if (userId) {
-      posts = await Post.findByUserID(userId);
+    if (userID) {
+      posts = await Post.findByUserID(userID);
     } else if (type) {
       posts = await Post.findByType(type);
     } else if (status) {
@@ -200,8 +172,8 @@ app.get('/api/protected/posts', async (req, res) => {
     } else if (location) {
       posts = await Post.findByLocation(location);
     } else {
-      // Get all waste posts by default
-      posts = await Post.findByType('Waste');
+      // Correct - gets all posts
+      posts = await Post.findAll();
     }
     
     res.json({ success: true, posts });
@@ -261,7 +233,7 @@ app.put('/api/protected/posts/:postId', async (req, res) => {
     }
     
     // Check if user owns the post or is admin
-    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (post.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({ success: false, error: 'Unauthorized to edit this post' });
     }
     
@@ -336,63 +308,8 @@ app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
   }
 });
 
-// File upload routes
-app.post('/api/protected/upload/application-documents', 
-  upload.array('documents', 5), 
-  async (req, res) => {
-    try {
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({ success: false, error: 'No files uploaded' });
-      }
-
-      const applicationID = req.body.applicationID;
-      if (!applicationID) {
-        return res.status(400).json({ success: false, error: 'Application ID is required' });
-      }
-
-      const uploadedFiles = await StorageService.uploadApplicationDocuments(req.files, applicationID);
-      
-      res.json({ 
-        success: true, 
-        message: 'Documents uploaded successfully',
-        files: uploadedFiles 
-      });
-    } catch (error) {
-      console.error('Document upload error:', error.message);
-      res.status(500).json({ success: false, error: error.message });
-    }
-  }
-);
-
-app.post('/api/protected/upload/proof-of-pickup', 
-  upload.single('proof'), 
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ success: false, error: 'No file uploaded' });
-      }
-
-      const pickupID = req.body.pickupID;
-      if (!pickupID) {
-        return res.status(400).json({ success: false, error: 'Pickup ID is required' });
-      }
-
-      const uploadedFile = await StorageService.uploadProofOfPickup(req.file, pickupID);
-      
-      res.json({ 
-        success: true, 
-        message: 'Proof of pickup uploaded successfully',
-        fileUrl: uploadedFile 
-      });
-    } catch (error) {
-      console.error('Proof upload error:', error.message);
-      res.status(500).json({ success: false, error: error.message });
-    }
-  }
-);
-
 app.post('/api/protected/upload/profile-picture',
-  upload.single('picture'),
+  upload.single('profilePicture'), // Changed from 'picture' to 'profilePicture'
   async (req, res) => {
     try {
       if (!req.file) {
@@ -402,12 +319,19 @@ app.post('/api/protected/upload/profile-picture',
       const uploadedFile = await StorageService.uploadProfilePicture(req.file, req.user.userID);
       
       // Update user profile with new picture URL
-      await User.update(req.user.userID, { profilePicture: uploadedFile });
+      await User.update(req.user.userID, { 
+        profilePicture: uploadedFile,
+        profilePictureUrl: uploadedFile // Support both field names during transition
+      });
+      
+      // Get updated user data
+      const updatedUser = await User.findById(req.user.userID);
       
       res.json({ 
         success: true, 
         message: 'Profile picture uploaded successfully',
-        fileUrl: uploadedFile 
+        fileUrl: uploadedFile,
+        user: updatedUser // Return complete updated user
       });
     } catch (error) {
       console.error('Profile picture upload error:', error.message);
@@ -511,6 +435,49 @@ app.get('/api/protected/leaderboard', async (req, res) => {
   }
 });
 
+// Add this endpoint to your server.js to fetch user details by ID
+// This goes in the PROTECTED ROUTES section after the authentication middleware
+
+app.get('/api/protected/users/:userId', async (req, res) => {
+  try {
+    const User = require('./models/Users');
+    const user = await User.findById(req.params.userId);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    // Return public user information only (not sensitive data)
+    const publicUserData = {
+      userID: user.userID,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      isCollector: user.isCollector,
+      isAdmin: user.isAdmin,
+      isOrganization: user.isOrganization,
+      organizationName: user.organizationName,
+      profilePictureUrl: user.profilePictureUrl,
+      points: user.points,
+      badges: user.badges,
+      createdAt: user.createdAt
+    };
+    
+    res.json({ 
+      success: true, 
+      user: publicUserData 
+    });
+  } catch (error) {
+    console.error('User fetch error:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 // ============================================================================
 // COLLECTOR ROUTES (Collector access required)
 // ============================================================================
@@ -531,6 +498,7 @@ app.get('/api/collector/available-posts', async (req, res) => {
 // ADMIN ROUTES (Admin access required)
 // ============================================================================
 
+app.use('/api/admin', authService.authenticateUser.bind(authService));
 app.use('/api/admin', authService.requireAdmin.bind(authService));
 
 app.get('/api/admin/users', async (req, res) => {
@@ -543,12 +511,95 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
-app.get('/api/admin/applications/pending', async (req, res) => {
-  try {
+app.get('/api/admin/applications', async (req, res) => {
+  try {    
+    const Application = require('./models/Application');
+    
+    // Fetch all applications regardless of status
     const pendingApplications = await Application.findByStatus('Pending');
-    res.json({ success: true, applications: pendingApplications });
+    const submittedApplications = await Application.findByStatus('Submitted');
+    const approvedApplications = await Application.findByStatus('Approved');
+    const rejectedApplications = await Application.findByStatus('Rejected');
+    
+    // Combine all arrays
+    const allApplications = [
+      ...pendingApplications,
+      ...submittedApplications,
+      ...approvedApplications,
+      ...rejectedApplications
+    ];
+    
+    // Sort by submittedAt date (most recent first)
+    allApplications.sort((a, b) => {
+      const dateA = new Date(a.reviewedAt || a.submittedAt);
+      const dateB = new Date(b.reviewedAt || b.submittedAt);
+      return dateB - dateA;
+    });
+        
+    res.json({ success: true, applications: allApplications });
   } catch (error) {
-    console.error('Pending applications fetch error:', error.message);
+    console.error('Applications fetch error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: 'Failed to fetch applications. Please check server logs.'
+    });
+  }
+});
+
+app.get('/api/admin/applications/pending', async (req, res) => {
+  try {   
+    // Import Application model if not already imported
+    const Application = require('./models/Application');
+    
+    // Fetch both 'Pending' and 'Submitted' status applications
+    const pendingApplications = await Application.findByStatus('Pending');
+    const submittedApplications = await Application.findByStatus('Submitted');
+    
+    // Combine both arrays
+    const allApplications = [...pendingApplications, ...submittedApplications];
+    
+    // Sort by submittedAt date (most recent first)
+    allApplications.sort((a, b) => {
+      const dateA = new Date(a.submittedAt);
+      const dateB = new Date(b.submittedAt);
+      return dateB - dateA;
+    });
+        
+    res.json({ success: true, applications: allApplications });
+  } catch (error) {
+    console.error('Pending applications fetch error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: 'Failed to fetch applications. Please check server logs.'
+    });
+  }
+});
+
+app.get('/api/admin/users/:userID', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userID);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+    res.json({ 
+      success: true, 
+      user: {
+        userID: user.userID,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        isCollector: user.isCollector,
+        isAdmin: user.isAdmin,
+        isOrganization: user.isOrganization,
+        organizationName: user.organizationName
+      }
+    });
+  } catch (error) {
+    console.error('User fetch error:', error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -556,39 +607,242 @@ app.get('/api/admin/applications/pending', async (req, res) => {
 app.put('/api/admin/applications/:applicationId/review', async (req, res) => {
   try {
     const { status, justification } = req.body;
+    const Application = require('./models/Application');
     const application = await Application.findById(req.params.applicationId);
     
     if (!application) {
       return res.status(404).json({ success: false, error: 'Application not found' });
     }
     
+    // Update both the application and the user model
     await application.review(req.user.userID, status, justification);
     
-    // Send notification to applicant
-    await notificationService.notifyApplicationStatus(
-      application.userID, 
-      application.applicationType, 
-      status
-    );
+    // Fetch the updated application to return current state
+    const updatedApplication = await Application.findById(req.params.applicationId);
     
     res.json({ 
       success: true, 
-      application, 
-      message: `Application ${status.toLowerCase()} successfully` 
+      message: `Application ${status.toLowerCase()} successfully`,
+      application: updatedApplication
     });
   } catch (error) {
-    console.error('Application review error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
+    console.error('Application review error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-app.get('/api/admin/storage-stats', async (req, res) => {
+app.put('/api/admin/users/:userId/suspend', async (req, res) => {
   try {
-    const stats = await StorageService.getStorageStats();
-    res.json({ success: true, stats });
+    const { userId } = req.params;
+    const { status, reason } = req.body;
+
+    if (!reason || reason.trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Suspension reason is required' 
+      });
+    }
+
+    // Update user status in Firebase Auth (disable the user)
+    try {
+      await authService.disableUser(userId);
+    } catch (authError) {
+      console.error('Firebase Auth disable error:', authError);
+      // Continue even if Firebase Auth update fails
+    }
+
+    // Update user status in Firestore
+    await User.update(userId, {
+      status: 'Suspended',
+      suspensionReason: reason,
+      suspendedAt: new Date().toISOString(),
+      suspendedBy: req.user.userID
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'User suspended successfully' 
+    });
   } catch (error) {
-    console.error('Storage stats error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Error suspending user:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to suspend user' 
+    });
+  }
+});
+
+// Unsuspend user endpoint
+app.put('/api/admin/users/:userId/unsuspend', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Import Application model if not already imported at top of file
+    const Application = require('./models/Application');
+
+    // Use the auth service to enable the user in Firebase Auth
+    try {
+      await authService.enableUser(userId);
+    } catch (authError) {
+      console.error('Firebase Auth enable error:', authError);
+      // Continue even if Firebase Auth update fails
+    }
+
+    // Update user status in Firestore
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    // Check user's most recent Account_Verification application to determine correct status
+    const applications = await Application.findByUserID(userId);
+    const verificationApp = applications
+      .filter(app => app.applicationType === 'Account_Verification')
+      .sort((a, b) => {
+        const dateA = new Date(b.submittedAt || 0);
+        const dateB = new Date(a.submittedAt || 0);
+        return dateA - dateB;
+      })[0];
+
+    let userStatus = 'Pending'; // Default status
+
+    if (verificationApp) {
+      switch (verificationApp.status) {
+        case 'Approved':
+          userStatus = 'Verified';
+          break;
+        case 'Submitted':
+          userStatus = 'Submitted';
+          break;
+        case 'Rejected':
+          // If rejected, they need to reapply, so set to Pending
+          userStatus = 'Pending';
+          break;
+        case 'Pending':
+        default:
+          userStatus = 'Pending';
+          break;
+      }
+    }
+
+    await User.update(userId, {
+      status: userStatus,
+      suspensionReason: null,
+      suspendedAt: null,
+      suspendedBy: null,
+      unsuspendedAt: new Date().toISOString(),
+      unsuspendedBy: req.user.userID
+    });
+
+    res.json({ 
+      success: true, 
+      message: `User unsuspended successfully. Status set to: ${userStatus}` 
+    });
+  } catch (error) {
+    console.error('Error unsuspending user:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to unsuspend user' 
+    });
+  }
+});
+
+// Make user admin endpoint
+app.put('/api/admin/users/:userId/make-admin', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get current user
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    // Prevent making another admin an admin
+    if (currentUser.isAdmin) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'User is already an admin' 
+      });
+    }
+
+    // Update user to admin
+    await User.update(userId, {
+      isAdmin: true,
+      status: 'Verified', // Admins should always be verified
+      updatedAt: new Date().toISOString(),
+      elevatedBy: req.user.userID,
+      elevatedAt: new Date().toISOString()
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'User has been granted admin privileges' 
+    });
+  } catch (error) {
+    console.error('Error making user admin:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to grant admin privileges' 
+    });
+  }
+});
+
+// Revoke admin privileges endpoint
+app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get current user
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    // Prevent revoking if user is not an admin
+    if (!currentUser.isAdmin) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'User is not an admin' 
+      });
+    }
+
+    // Prevent self-revocation
+    if (userId === req.user.userID) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'You cannot revoke your own admin privileges' 
+      });
+    }
+
+    // Update user type from Admin to determined type
+    await User.update(userId, {
+      isAdmin: false,
+      updatedAt: new Date().toISOString(),
+      revokedBy: req.user.userID,
+      revokedAt: new Date().toISOString()
+    });
+
+    res.json({ 
+      success: true, 
+      message: `Admin privileges revoked.` 
+    });
+  } catch (error) {
+    console.error('Error revoking admin privileges:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to revoke admin privileges' 
+    });
   }
 });
 
@@ -682,6 +936,9 @@ process.on('SIGINT', () => {
     process.exit(0);
   });
 });
+
+const { handleMulterError } = require('./services/storage-service');
+app.use(handleMulterError);
 
 // Start server
 const server = app.listen(PORT, () => {

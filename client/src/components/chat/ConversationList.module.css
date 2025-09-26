@@ -1,0 +1,108 @@
+/* client/src/components/chat/ConversationList.module.css */
+.conversationList {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: white;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #2d3436;
+}
+
+.refreshButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refreshButton:hover {
+  background-color: #e0e0e0;
+}
+
+.conversationItems {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.conversationItems::-webkit-scrollbar {
+  width: 6px;
+}
+
+.conversationItems::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.conversationItems::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.loading, .error, .emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: #636e72;
+}
+
+.loadingSpinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3B6535;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.retryButton {
+  background: #3B6535;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.retryButton:hover {
+  background: #2d4e29;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.emptyHint {
+  font-size: 0.85rem;
+  color: #95a5a6;
+  margin-top: 0.5rem;
+}
