@@ -1,503 +1,299 @@
-// client/src/components/pickup/PickupCompletionForm.js
+// client/src/components/chat/PickupScheduleForm.js
 import React, { useState } from 'react';
-import { Check, Package, DollarSign, Shield, Camera, AlertCircle } from 'lucide-react';
-import styles from './PickupCompletionForm.module.css';
+import styles from './PickupScheduleForm.module.css';
 
-const PickupCompletionForm = ({ pickup, onComplete, onCancel }) => {
-  const [step, setStep] = useState(1);
+const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
   const [formData, setFormData] = useState({
-    // Step 1: Verify Identity
-    identityVerified: false,
-    verificationMethod: '',
-    
-    // Step 2: Actual Waste Details
-    actualWaste: {
-      types: pickup.expectedWaste?.types || [],
-      finalAmount: pickup.expectedWaste?.estimatedAmount || 0,
-      unit: pickup.expectedWaste?.unit || 'kg',
-      notes: ''
-    },
-    
-    // Step 3: Payment Details
-    paymentReceived: 0,
-    paymentMethod: '',
-    
-    // Step 4: Final Notes
-    completionNotes: '',
-    rating: 0,
-    wouldRecommend: null
+    postID: post.postID,
+    pickupDate: '',
+    pickupTime: '',
+    pickupLocation: giverPreferences?.defaultLocation || '',
+    contactPerson: '',
+    contactNumber: '',
+    alternateContact: '',
+    specialInstructions: ''
   });
-  
+
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  const verificationMethods = [
-    { value: 'government_id', label: 'Government ID shown' },
-    { value: 'app_verification', label: 'Verified through app' },
-    { value: 'known_person', label: 'Known person' },
-    { value: 'other', label: 'Other method' }
-  ];
-
-  const paymentMethods = [
-    { value: 'cash', label: 'Cash' },
-    { value: 'gcash', label: 'GCash' },
-    { value: 'bank_transfer', label: 'Bank Transfer' },
-    { value: 'none', label: 'No payment' }
-  ];
-
-  const validateStep = () => {
+  const validateForm = () => {
     const newErrors = {};
     
-    switch(step) {
-      case 1:
-        if (!formData.identityVerified) {
-          newErrors.identity = 'Please confirm identity verification';
-        }
-        if (!formData.verificationMethod) {
-          newErrors.verificationMethod = 'Please select verification method';
-        }
-        break;
-        
-      case 2:
-        if (formData.actualWaste.finalAmount <= 0) {
-          newErrors.amount = 'Please enter the actual amount collected';
-        }
-        if (formData.actualWaste.types.length === 0) {
-          newErrors.types = 'Please select at least one waste type';
-        }
-        break;
-        
-      case 3:
-        if (formData.paymentReceived < 0) {
-          newErrors.payment = 'Payment amount cannot be negative';
-        }
-        if (formData.paymentReceived > 0 && !formData.paymentMethod) {
-          newErrors.paymentMethod = 'Please select payment method';
-        }
-        break;
-        
-      case 4:
-        if (formData.rating === 0) {
-          newErrors.rating = 'Please rate your experience';
-        }
-        break;
+    // Required field validation
+    if (!formData.pickupDate) {
+      newErrors.pickupDate = 'Pickup date is required';
+    } else {
+      // Check if date is in the future
+      const selectedDate = new Date(formData.pickupDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        newErrors.pickupDate = 'Pickup date must be in the future';
+      }
+    }
+    
+    if (!formData.pickupTime) {
+      newErrors.pickupTime = 'Pickup time is required';
+    }
+    
+    if (!formData.pickupLocation || formData.pickupLocation.trim().length < 10) {
+      newErrors.pickupLocation = 'Please provide a detailed pickup location (at least 10 characters)';
+    }
+    
+    if (!formData.contactPerson || formData.contactPerson.trim().length < 2) {
+      newErrors.contactPerson = 'Contact person name is required';
+    }
+    
+    if (!formData.contactNumber) {
+      newErrors.contactNumber = 'Contact number is required';
+    } else {
+      // Philippine phone number validation
+      const phoneRegex = /^(\+63|0)?9\d{9}$/;
+      const cleanedNumber = formData.contactNumber.replace(/[\s-]/g, '');
+      if (!phoneRegex.test(cleanedNumber)) {
+        newErrors.contactNumber = 'Please enter a valid Philippine mobile number';
+      }
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validateStep()) {
-      setStep(step + 1);
-      setErrors({});
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
   };
 
-  const handleBack = () => {
-    setStep(step - 1);
-    setErrors({});
-  };
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
 
-  const handleComplete = async () => {
-    if (!validateStep()) return;
-    
     setLoading(true);
     try {
-      await onComplete(pickup.pickupID, formData);
+      await onSubmit(formData);
     } catch (error) {
-      console.error('Error completing pickup:', error);
-      alert('Failed to complete pickup. Please try again.');
+      console.error('Error submitting pickup schedule:', error);
+      alert('Failed to schedule pickup. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  const updateWasteType = (type, checked) => {
-    const types = checked 
-      ? [...formData.actualWaste.types, type]
-      : formData.actualWaste.types.filter(t => t !== type);
-    
-    setFormData({
-      ...formData,
-      actualWaste: {
-        ...formData.actualWaste,
-        types
-      }
-    });
+  // Get minimum date (today)
+  const getMinDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
-  const wasteTypes = ['Plastic', 'Paper', 'Metal', 'Glass', 'E-waste', 'Organic', 'Other'];
+  // Get maximum date (30 days from now)
+  const getMaxDate = () => {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 30);
+    const year = maxDate.getFullYear();
+    const month = String(maxDate.getMonth() + 1).padStart(2, '0');
+    const day = String(maxDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.form}>
-        {/* Progress Bar */}
-        <div className={styles.progressBar}>
-          <div className={styles.progressSteps}>
-            {[1, 2, 3, 4].map((s) => (
-              <div 
-                key={s} 
-                className={`${styles.step} ${s <= step ? styles.active : ''} ${s < step ? styles.completed : ''}`}
-              >
-                <div className={styles.stepNumber}>{s}</div>
-                <span className={styles.stepLabel}>
-                  {s === 1 && 'Verify'}
-                  {s === 2 && 'Waste'}
-                  {s === 3 && 'Payment'}
-                  {s === 4 && 'Review'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Form Title */}
+    <div className={styles.modalOverlay}>
+      <div className={styles.modal}>
         <div className={styles.header}>
-          <h2>Complete Pickup</h2>
-          <p className={styles.pickupInfo}>
-            {pickup.postTitle} • {pickup.collectorName}
-          </p>
+          <h2 className={styles.title}>Schedule Pickup</h2>
+          <button 
+            className={styles.closeBtn}
+            onClick={onCancel}
+            aria-label="Close"
+          >
+            ×
+          </button>
         </div>
 
-        {/* Step 1: Identity Verification */}
-        {step === 1 && (
-          <div className={styles.stepContent}>
-            <h3>
-              <Shield className={styles.stepIcon} />
-              Identity Verification
-            </h3>
-            <p className={styles.stepDescription}>
-              Confirm that the collector's identity has been verified
-            </p>
+        {/* Post Information */}
+        <div className={styles.postInfo}>
+          <h3>{post.title}</h3>
+          <p>{post.wasteType} • {post.amount} {post.unit}</p>
+        </div>
 
-            <div className={styles.verificationCheck}>
-              <label className={styles.checkbox}>
-                <input
-                  type="checkbox"
-                  checked={formData.identityVerified}
-                  onChange={(e) => setFormData({
-                    ...formData, 
-                    identityVerified: e.target.checked
-                  })}
-                />
-                <span>I confirm that the collector showed proper identification</span>
-              </label>
-              {errors.identity && (
-                <p className={styles.error}>{errors.identity}</p>
-              )}
-            </div>
-
-            <div className={styles.field}>
-              <label>Verification Method:</label>
-              <div className={styles.radioGroup}>
-                {verificationMethods.map((method) => (
-                  <label key={method.value} className={styles.radio}>
-                    <input
-                      type="radio"
-                      name="verificationMethod"
-                      value={method.value}
-                      checked={formData.verificationMethod === method.value}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        verificationMethod: e.target.value
-                      })}
-                    />
-                    <span>{method.label}</span>
-                  </label>
-                ))}
-              </div>
-              {errors.verificationMethod && (
-                <p className={styles.error}>{errors.verificationMethod}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Actual Waste Details */}
-        {step === 2 && (
-          <div className={styles.stepContent}>
-            <h3>
-              <Package className={styles.stepIcon} />
-              Actual Waste Collected
-            </h3>
-            <p className={styles.stepDescription}>
-              Enter the actual details of waste collected
-            </p>
-
-            <div className={styles.field}>
-              <label>Waste Types Collected:</label>
-              <div className={styles.checkboxGroup}>
-                {wasteTypes.map((type) => (
-                  <label key={type} className={styles.checkbox}>
-                    <input
-                      type="checkbox"
-                      checked={formData.actualWaste.types.includes(type)}
-                      onChange={(e) => updateWasteType(type, e.target.checked)}
-                    />
-                    <span>{type}</span>
-                  </label>
-                ))}
-              </div>
-              {errors.types && (
-                <p className={styles.error}>{errors.types}</p>
-              )}
-            </div>
-
-            <div className={styles.row}>
-              <div className={styles.field}>
-                <label>Actual Amount:</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={formData.actualWaste.finalAmount}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    actualWaste: {
-                      ...formData.actualWaste,
-                      finalAmount: parseFloat(e.target.value) || 0
-                    }
-                  })}
-                  className={styles.input}
-                />
-                {errors.amount && (
-                  <p className={styles.error}>{errors.amount}</p>
-                )}
-              </div>
-
-              <div className={styles.field}>
-                <label>Unit:</label>
-                <select
-                  value={formData.actualWaste.unit}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    actualWaste: {
-                      ...formData.actualWaste,
-                      unit: e.target.value
-                    }
-                  })}
-                  className={styles.select}
-                >
-                  <option value="kg">Kilograms (kg)</option>
-                  <option value="lbs">Pounds (lbs)</option>
-                  <option value="pieces">Pieces</option>
-                  <option value="bags">Bags</option>
-                </select>
-              </div>
-            </div>
-
-            <div className={styles.field}>
-              <label>Notes about waste condition (optional):</label>
-              <textarea
-                value={formData.actualWaste.notes}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  actualWaste: {
-                    ...formData.actualWaste,
-                    notes: e.target.value
-                  }
-                })}
-                rows="3"
-                className={styles.textarea}
-                placeholder="e.g., Clean and sorted, mixed materials, etc."
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Payment Details */}
-        {step === 3 && (
-          <div className={styles.stepContent}>
-            <h3>
-              <DollarSign className={styles.stepIcon} />
-              Payment Details
-            </h3>
-            <p className={styles.stepDescription}>
-              Record any payment received for the waste
-            </p>
-
-            <div className={styles.field}>
-              <label>Payment Amount (₱):</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.paymentReceived}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  paymentReceived: parseFloat(e.target.value) || 0
-                })}
-                className={styles.input}
-                placeholder="0.00"
-              />
-              {errors.payment && (
-                <p className={styles.error}>{errors.payment}</p>
-              )}
-            </div>
-
-            {formData.paymentReceived > 0 && (
-              <div className={styles.field}>
-                <label>Payment Method:</label>
-                <div className={styles.radioGroup}>
-                  {paymentMethods.map((method) => (
-                    <label key={method.value} className={styles.radio}>
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value={method.value}
-                        checked={formData.paymentMethod === method.value}
-                        onChange={(e) => setFormData({
-                          ...formData,
-                          paymentMethod: e.target.value
-                        })}
-                      />
-                      <span>{method.label}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.paymentMethod && (
-                  <p className={styles.error}>{errors.paymentMethod}</p>
-                )}
-              </div>
+        {/* Giver Preferences (if available) */}
+        {giverPreferences && (
+          <div className={styles.preferences}>
+            <p className={styles.prefTitle}>Giver's Preferences:</p>
+            {giverPreferences.preferredDays && (
+              <p>Preferred days: {giverPreferences.preferredDays.join(', ')}</p>
             )}
-
-            <div className={styles.paymentSummary}>
-              <AlertCircle className={styles.infoIcon} />
-              <p>
-                {formData.paymentReceived > 0 
-                  ? `Total payment: ₱${formData.paymentReceived.toFixed(2)}`
-                  : 'No payment for this pickup'}
-              </p>
-            </div>
+            {giverPreferences.preferredTimeSlots && (
+              <p>Preferred time: {giverPreferences.preferredTimeSlots.join(', ')}</p>
+            )}
           </div>
         )}
 
-        {/* Step 4: Final Review */}
-        {step === 4 && (
-          <div className={styles.stepContent}>
-            <h3>
-              <Check className={styles.stepIcon} />
-              Final Review
-            </h3>
-            <p className={styles.stepDescription}>
-              Rate your experience and add any final notes
-            </p>
-
+        <div className={styles.formBody}>
+          {/* Date and Time Row */}
+          <div className={styles.row}>
             <div className={styles.field}>
-              <label>Rate your experience:</label>
-              <div className={styles.rating}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setFormData({...formData, rating: star})}
-                    className={`${styles.star} ${star <= formData.rating ? styles.filled : ''}`}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-              {errors.rating && (
-                <p className={styles.error}>{errors.rating}</p>
+              <label htmlFor="pickupDate">
+                Pickup Date <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="date"
+                id="pickupDate"
+                name="pickupDate"
+                value={formData.pickupDate}
+                onChange={handleChange}
+                min={getMinDate()}
+                max={getMaxDate()}
+                className={errors.pickupDate ? styles.errorInput : ''}
+              />
+              {errors.pickupDate && (
+                <span className={styles.errorMsg}>{errors.pickupDate}</span>
               )}
             </div>
 
             <div className={styles.field}>
-              <label>Would you recommend this collector?</label>
-              <div className={styles.recommendOptions}>
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, wouldRecommend: true})}
-                  className={`${styles.recommendBtn} ${formData.wouldRecommend === true ? styles.active : ''}`}
-                >
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, wouldRecommend: false})}
-                  className={`${styles.recommendBtn} ${formData.wouldRecommend === false ? styles.active : ''}`}
-                >
-                  No
-                </button>
-              </div>
+              <label htmlFor="pickupTime">
+                Time <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="time"
+                id="pickupTime"
+                name="pickupTime"
+                value={formData.pickupTime}
+                onChange={handleChange}
+                className={errors.pickupTime ? styles.errorInput : ''}
+              />
+              {errors.pickupTime && (
+                <span className={styles.errorMsg}>{errors.pickupTime}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Location */}
+          <div className={styles.field}>
+            <label htmlFor="pickupLocation">
+              Pickup Location <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="text"
+              id="pickupLocation"
+              name="pickupLocation"
+              value={formData.pickupLocation}
+              onChange={handleChange}
+              placeholder="Enter complete address or landmark"
+              className={errors.pickupLocation ? styles.errorInput : ''}
+            />
+            {errors.pickupLocation && (
+              <span className={styles.errorMsg}>{errors.pickupLocation}</span>
+            )}
+          </div>
+
+          {/* Contact Person */}
+          <div className={styles.field}>
+            <label htmlFor="contactPerson">
+              Contact Person <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="text"
+              id="contactPerson"
+              name="contactPerson"
+              value={formData.contactPerson}
+              onChange={handleChange}
+              placeholder="Name of person who will do the pickup"
+              className={errors.contactPerson ? styles.errorInput : ''}
+            />
+            {errors.contactPerson && (
+              <span className={styles.errorMsg}>{errors.contactPerson}</span>
+            )}
+          </div>
+
+          {/* Contact Numbers Row */}
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label htmlFor="contactNumber">
+                Contact Number <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="tel"
+                id="contactNumber"
+                name="contactNumber"
+                value={formData.contactNumber}
+                onChange={handleChange}
+                placeholder="09XX XXX XXXX"
+                className={errors.contactNumber ? styles.errorInput : ''}
+              />
+              {errors.contactNumber && (
+                <span className={styles.errorMsg}>{errors.contactNumber}</span>
+              )}
             </div>
 
             <div className={styles.field}>
-              <label>Additional notes (optional):</label>
-              <textarea
-                value={formData.completionNotes}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  completionNotes: e.target.value
-                })}
-                rows="4"
-                className={styles.textarea}
-                placeholder="Any feedback or comments about the pickup..."
+              <label htmlFor="alternateContact">
+                Alternate Contact
+              </label>
+              <input
+                type="tel"
+                id="alternateContact"
+                name="alternateContact"
+                value={formData.alternateContact}
+                onChange={handleChange}
+                placeholder="Optional"
               />
             </div>
-
-            {/* Summary */}
-            <div className={styles.summary}>
-              <h4>Pickup Summary</h4>
-              <div className={styles.summaryItem}>
-                <span>Identity Verified:</span>
-                <span>{formData.identityVerified ? 'Yes' : 'No'}</span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span>Waste Collected:</span>
-                <span>{formData.actualWaste.finalAmount} {formData.actualWaste.unit}</span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span>Types:</span>
-                <span>{formData.actualWaste.types.join(', ')}</span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span>Payment:</span>
-                <span>₱{formData.paymentReceived.toFixed(2)}</span>
-              </div>
-            </div>
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div className={styles.actions}>
-          {step > 1 && (
+          {/* Special Instructions */}
+          <div className={styles.field}>
+            <label htmlFor="specialInstructions">
+              Special Instructions
+            </label>
+            <textarea
+              id="specialInstructions"
+              name="specialInstructions"
+              value={formData.specialInstructions}
+              onChange={handleChange}
+              rows="3"
+              placeholder="Any additional details or instructions..."
+              className={styles.textarea}
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className={styles.actions}>
             <button
               type="button"
-              onClick={handleBack}
-              className={styles.backBtn}
-            >
-              Back
-            </button>
-          )}
-          
-          {step < 4 ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              className={styles.nextBtn}
-            >
-              Next
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleComplete}
+              onClick={handleSubmit}
               disabled={loading}
-              className={styles.completeBtn}
+              className={styles.submitBtn}
             >
-              {loading ? 'Completing...' : 'Complete Pickup'}
+              {loading ? 'Scheduling...' : 'Schedule Pickup'}
             </button>
-          )}
-          
-          <button
-            type="button"
-            onClick={onCancel}
-            className={styles.cancelBtn}
-          >
-            Cancel
-          </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className={styles.cancelBtn}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
+};
+
+export default PickupScheduleForm;
