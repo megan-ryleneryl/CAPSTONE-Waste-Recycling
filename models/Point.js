@@ -1,4 +1,6 @@
-// Point.js - Firestore Point Model
+// TODO
+// Check for userType usage
+
 const { getFirestore, collection, doc, setDoc, getDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
 

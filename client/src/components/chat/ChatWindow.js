@@ -8,7 +8,7 @@ import styles from './ChatWindow.module.css';
 
 const ChatWindow = ({ 
   postID,
-  otherUser, // { userID, firstName, lastName, userType }
+  otherUser, // { userID, firstName, lastName, userType, isCollector, isAdmin, isOrganization }
   currentUser, 
   onClose, 
   postData = null

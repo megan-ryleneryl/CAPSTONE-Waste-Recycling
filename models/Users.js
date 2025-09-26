@@ -11,7 +11,8 @@ class User {
     this.phone = data.phone || '';
     this.passwordHash = data.passwordHash || '';
     this.status = data.status || 'Pending'; // Suspended, Pending, Verified, Submitted
-    this.userType = data.userType || ''; // Giver, Collector, Admin
+    this.isCollector = data.isCollector || false;
+    this.isAdmin = data.isAdmin || false; 
     this.isOrganization = data.isOrganization || false;
     this.organizationName = data.organizationName || null;
     this.preferredTimes = data.preferredTimes || [];
@@ -35,9 +36,9 @@ class User {
     if (!this.firstName) errors.push('First name is required');
     if (!this.lastName) errors.push('Last name is required');
     if (!this.email) errors.push('Email is required');
-    if (!this.userType || !['Giver', 'Collector', 'Admin'].includes(this.userType)) {
-      errors.push('Valid user type is required');
-    }
+    if (typeof this.isCollector !== 'boolean') errors.push('isCollector must be boolean');
+    if (typeof this.isAdmin !== 'boolean') errors.push('isAdmin must be boolean');
+    if (typeof this.isOrganization !== 'boolean') errors.push('isOrganization must be boolean');
     if (!['Pending', 'Verified', 'Submitted', 'Rejected'].includes(this.status)) {
       errors.push('Valid status is required');
     }
@@ -58,7 +59,8 @@ class User {
       phone: this.phone,
       passwordHash: this.passwordHash,
       status: this.status,
-      userType: this.userType,
+      isCollector: this.isCollector,
+      isAdmin: this.isAdmin,
       isOrganization: this.isOrganization,
       organizationName: this.organizationName,
       preferredTimes: this.preferredTimes,
@@ -128,11 +130,25 @@ class User {
     }
   }
 
-  static async findByUserType(userType) {
+  static async findByFlags(filters = {}) {
     const db = getFirestore();
     try {
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('userType', '==', userType));
+      const conditions = [];
+      
+      if (filters.isAdmin !== undefined) {
+        conditions.push(where('isAdmin', '==', filters.isAdmin));
+      }
+      if (filters.isCollector !== undefined) {
+        conditions.push(where('isCollector', '==', filters.isCollector));
+      }
+      if (filters.isOrganization !== undefined) {
+        conditions.push(where('isOrganization', '==', filters.isOrganization));
+      }
+      
+      const q = conditions.length > 0 
+        ? query(usersRef, ...conditions) 
+        : usersRef;
       const querySnapshot = await getDocs(q);
       
       const users = [];
@@ -142,7 +158,7 @@ class User {
       
       return users;
     } catch (error) {
-      throw new Error(`Failed to find users by type: ${error.message}`);
+      throw new Error(`Failed to find users by flags: ${error.message}`);
     }
   }
 

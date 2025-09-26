@@ -224,7 +224,25 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
     phone: user.phone || '',
     profilePicture: null
   });
-  const [previewUrl, setPreviewUrl] = useState(user.profilePictureUrl || user.profilePicture || null);
+  
+  // Construct the initial profile picture URL
+  const getInitialPictureUrl = () => {
+    const pictureField = user?.profilePictureUrl || user?.profilePicture;
+    if (!pictureField) return null;
+    
+    if (pictureField.startsWith('http')) {
+      return pictureField;
+    }
+    
+    const baseUrl = 'http://localhost:3001';
+    const pictureUrl = pictureField.startsWith('/') 
+      ? pictureField 
+      : '/' + pictureField;
+    
+    return baseUrl + pictureUrl;
+  };
+  
+  const [previewUrl, setPreviewUrl] = useState(getInitialPictureUrl());
   const fileInputRef = useRef(null);
 
   // Format phone number: 09XX XXX XXXX
@@ -346,9 +364,15 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
             <div className={styles.profilePictureContainer}>
               {previewUrl ? (
                 <img 
+                  key={previewUrl}
                   src={previewUrl} 
                   alt="Profile" 
                   className={styles.profilePicturePreview}
+                  onError={(e) => {
+                    console.error('Preview image failed to load:', e.target.src);
+                    // If the current profile picture fails to load, show placeholder
+                    setPreviewUrl(null);
+                  }}
                 />
               ) : (
                 <div className={styles.profilePicturePlaceholder}>
@@ -1281,7 +1305,7 @@ const Profile = ({ user: propsUser }) => {
                 </div>
               )}
               
-              {user.userType === 'Giver' && !hasPendingCollectorApplication() && (
+              {!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication() && (
                 <div className={styles.ctaCard}>
                   <p>Join EcoTayo as a Collector and help close the loop on recycling in your community. Claim posts, manage pickups, and turn waste into a resource. Apply now and start earning points for every successful collection!</p>
                   <button 
@@ -1295,7 +1319,7 @@ const Profile = ({ user: propsUser }) => {
 
               {!user.isOrganization && !hasPendingOrganizationApplication() && (
                 <div className={styles.ctaCard}>
-                  <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects, collect materials at scale, and build your reputation as a leader in sustainable waste management.</p>
+                  <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects and build your reputation as a leader in sustainable waste management.</p>
                   <button 
                     className={styles.ctaButton}
                     onClick={() => setActiveModal('organization')}

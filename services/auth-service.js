@@ -67,7 +67,7 @@ class AuthService {
         return res.status(403).json({ error: 'Authentication required' });
       }
       
-      if (req.user.userType !== 'Admin') {
+      if (req.user.isAdmin) {
         console.error('Non-admin user attempting admin access:', req.user.email);
         return res.status(403).json({ error: 'Admin access required' });
       }
@@ -81,7 +81,7 @@ class AuthService {
   // Middleware for collector-only routes
   async requireCollector(req, res, next) {
     try {
-      if (!req.user || (req.user.userType !== 'Collector' && req.user.userType !== 'Admin')) {
+      if (!req.user || (req.user.isCollector && req.user.isAdmin)) {
         return res.status(403).json({ error: 'Collector access required' });
       }
       next();
@@ -138,21 +138,22 @@ class AuthService {
   }
 
   // Update user role and set custom claims
-  async updateUserRole(userID, newUserType) {
+  async updateUserFlags(userID, flags) {
     try {
       // Update in Firestore
-      const user = await User.update(userID, { userType: newUserType });
+      const user = await User.update(userID, flags);
       
-      // Set custom claims in Firebase Auth
-      await this.setCustomClaims(userID, { 
-        userType: newUserType,
-        isAdmin: newUserType === 'Admin',
-        isCollector: newUserType === 'Collector' || newUserType === 'Admin'
+      // Set custom claims
+      await this.setCustomClaims(userID, {
+        isAdmin: flags.isAdmin || false,
+        isCollector: flags.isCollector || false,
+        isOrganization: flags.isOrganization || false
       });
-
+      
       return user;
     } catch (error) {
-      throw new Error(`Role update failed: ${error.message}`);
+      console.error('Error updating user flags:', error);
+      throw error;
     }
   }
 

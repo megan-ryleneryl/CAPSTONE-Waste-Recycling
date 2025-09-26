@@ -79,7 +79,8 @@ router.get('/', async (req, res) => {
         email: req.user.email,
         phone: req.user.phone || '',
         address: req.user.address || '',
-        userType: req.user.userType,
+        isCollector: req.user.isCollector || false,
+        isAdmin: req.user.isAdmin || false,
         status: req.user.status || 'Pending',
         isOrganization: req.user.isOrganization || false,
         organizationName: req.user.organizationName || '',
@@ -174,10 +175,10 @@ router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
       });
     }
     
-    if (user.userType !== 'Giver') {
+    if (!user.isCollector || !user.isAdmin) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Only Givers can apply to be Collectors' 
+        message: 'Only Givers and Organizations can apply to be Collectors' 
       });
     }
     

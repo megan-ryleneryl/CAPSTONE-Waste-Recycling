@@ -27,7 +27,7 @@ const AppLayout = ({ children }) => {
     const path = window.location.pathname;
     if (path.startsWith('/admin')) {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.userType !== 'Admin') {
+      if (user.isAdmin) {
         console.error('Non-admin user attempting to access admin route');
         navigate('/posts');
       }

@@ -1,3 +1,6 @@
+// TODO
+// Check for userType usage
+
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Posts');
@@ -45,7 +48,8 @@ router.get('/', verifyToken, async (req, res) => {
             profilePictureUrl: user.profilePictureUrl,
             isOrganization: user.isOrganization,
             organizationName: user.organizationName,
-            userType: user.userType
+            isCollector: user.isCollector,
+            isAdmin: user.isAdmin,
           };
         }
       } catch (err) {
@@ -158,6 +162,11 @@ router.post('/create', verifyToken, async (req, res) => {
       ...postData,
       userID: user.userID,
       userType: user.userType,
+      // TODO
+      // isCollector: user.isCollector,
+      // isAdmin: user.isAdmin,
+      // isOrganization: user.isOrganization
+      // Remove userType, but need to update Post schema
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -214,7 +223,7 @@ router.post('/create', verifyToken, async (req, res) => {
         
       case 'Initiative':
         // Only Collectors can create Initiative posts
-        if (user.userType !== 'Collector' && user.userType !== 'Admin') {
+        if (!user.isCollector && !user.isAdmin) {
           return res.status(403).json({
             success: false,
             message: 'Only Collectors can create Initiative posts'
@@ -290,7 +299,7 @@ router.put('/:postId', verifyToken, async (req, res) => {
     }
     
     // Check ownership (only owner or admin can update)
-    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (post.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to update this post'
@@ -298,7 +307,7 @@ router.put('/:postId', verifyToken, async (req, res) => {
     }
     
     // Prepare update data (exclude fields that shouldn't be updated)
-    const { postID, userID, userType, createdAt, postType, ...updateData } = req.body;
+    const { postID, userID, createdAt, postType, ...updateData } = req.body;
     
     // Handle array fields properly
     if (updateData.materials && typeof updateData.materials === 'string') {
@@ -338,7 +347,7 @@ router.patch('/:postId/status', verifyToken, async (req, res) => {
     }
     
     // Check ownership
-    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (post.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to update this post status'
@@ -390,7 +399,7 @@ router.delete('/:postId', verifyToken, async (req, res) => {
     }
     
     // Check ownership (only owner or admin can delete)
-    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (post.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to delete this post'
@@ -583,7 +592,7 @@ router.delete('/comments/:commentId', verifyToken, async (req, res) => {
     }
     
     // Check ownership (only owner or admin can delete)
-    if (comment.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (comment.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to delete this comment'

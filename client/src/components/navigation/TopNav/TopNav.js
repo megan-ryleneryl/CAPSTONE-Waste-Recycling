@@ -289,7 +289,9 @@ const TopNav = ({ user: propUser }) => {
                   <p className={styles.userEmail}>{user?.email}</p>
                   <div className={styles.userStats}>
                     <span><strong>{user?.points || 0}</strong> points</span>
-                    <span className={styles.userType}>{user?.userType}</span>
+                    <span className={styles.userType}>
+                      {user?.isAdmin ? 'Admin' : user?.isCollector ? 'Collector' : 'Giver'}
+                    </span>
                   </div>
                 </div>
                 

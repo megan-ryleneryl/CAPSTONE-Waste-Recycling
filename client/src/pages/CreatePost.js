@@ -7,7 +7,9 @@ const CreatePost = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [userType, setUserType] = useState('');
+  const [isCollector, setIsCollector] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isOrganization, setIsOrganization] = useState(false);
   const [postType, setPostType] = useState('Waste');
   
   // Form data state
@@ -37,7 +39,9 @@ const CreatePost = () => {
         const response = await axios.get('http://localhost:3001/api/protected/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        setUserType(response.data.user.userType);
+        setIsCollector(response.data.user.isCollector || false);
+        setIsAdmin(response.data.user.isAdmin || false);
+        setIsOrganization(response.data.user.isOrganization || false);
       } catch (error) {
         console.error('Error fetching user profile:', error);
       }
@@ -221,7 +225,7 @@ const CreatePost = () => {
   };
 
   // Check if user can create initiative posts
-  const canCreateInitiative = userType === 'Collector' || userType === 'Admin';
+  const canCreateInitiative = isCollector || isAdmin;
 
   return (
     <div className={styles.container}>

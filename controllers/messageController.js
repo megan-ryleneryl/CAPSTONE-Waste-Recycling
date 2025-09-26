@@ -1,4 +1,6 @@
-// controllers/messageController.js - Updated to work with extended Message model
+// TODO
+// Check for userType usage
+
 const Message = require('../models/Message');
 
 class MessageController {

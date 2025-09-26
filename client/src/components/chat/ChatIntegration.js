@@ -32,7 +32,9 @@ const ChatIntegration = ({ currentUser, initialPostID = null, initialOtherUser =
       userID: conversation.otherUserID,
       firstName: conversation.otherUserName.split(' ')[0] || 'Unknown',
       lastName: conversation.otherUserName.split(' ')[1] || 'User',
-      userType: 'User' // You'll need to fetch this from your User model
+      isCollector: false,  // You'll need to fetch from User model
+      isAdmin: false, // You'll need to fetch from User model
+      isOrganization: false // You'll need to fetch from User model
     };
 
     setSelectedConversation({
