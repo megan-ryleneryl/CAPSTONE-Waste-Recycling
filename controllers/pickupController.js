@@ -6,151 +6,130 @@ const Message = require('../models/Message');
 
 class PickupController {
   // Create a new pickup schedule
-  static async createPickup(req, res) {
-    try {
-      const user = req.user;
-      const {
-        postID,
-        pickupDate,
-        pickupTime,
-        pickupLocation,
-        contactPerson,
-        contactNumber,
-        alternateContact,
-        specialInstructions
-      } = req.body;
+static async createPickup(req, res) {
+  try {
+    const user = req.user;
+    const {
+      postID,
+      pickupDate,
+      pickupTime,
+      pickupLocation,
+      contactPerson,
+      contactNumber,
+      alternateContact,
+      specialInstructions
+    } = req.body;
 
-      // Validate required fields
-      if (!postID || !pickupDate || !pickupTime || !pickupLocation || !contactPerson || !contactNumber) {
-        return res.status(400).json({
-          success: false,
-          message: 'Missing required fields'
-        });
-      }
-
-      // Get the post details
-      const post = await Post.findById(postID);
-      if (!post) {
-        return res.status(404).json({
-          success: false,
-          message: 'Post not found'
-        });
-      }
-
-      // Check if there's already an active pickup for this post
-      const existingPickup = await Pickup.getActiveForPost(postID);
-      if (existingPickup) {
-        return res.status(400).json({
-          success: false,
-          message: 'An active pickup already exists for this post'
-        });
-      }
-
-      // Determine giver and collector based on post type
-      let giverID, collectorID, giverName, collectorName;
-      
-      if (post.postType === 'Waste') {
-        // For Waste posts, the post creator is the giver
-        giverID = post.userID;
-        collectorID = user.userID;
-        
-        // Only collectors can schedule pickups for waste posts
-        if (user.userType !== 'Collector') {
-          return res.status(403).json({
-            success: false,
-            message: 'Only collectors can schedule pickups for waste posts'
-          });
-        }
-      } else if (post.postType === 'Initiative') {
-        // For Initiative posts, the post creator is the collector
-        giverID = user.userID;
-        collectorID = post.userID;
-        
-        // For initiatives, we need to check if the giver's donation was accepted
-        // This would require additional logic to track initiative support
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid post type for pickup'
-        });
-      }
-
-      // Get user names
-      const [giver, collector] = await Promise.all([
-        User.findById(giverID),
-        User.findById(collectorID)
-      ]);
-      
-      giverName = `${giver.firstName} ${giver.lastName}`;
-      collectorName = `${collector.firstName} ${collector.lastName}`;
-
-      // Get expected waste details from post
-      const expectedWaste = {
-        types: post.wasteType || [],
-        estimatedAmount: post.amount || 0,
-        unit: post.unit || 'kg',
-        description: post.description
-      };
-
-      // Create the pickup
-      const pickupData = {
-        postID,
-        postType: post.postType,
-        postTitle: post.title,
-        giverID,
-        giverName,
-        collectorID,
-        collectorName,
-        proposedBy: user.userID,
-        pickupDate,
-        pickupTime,
-        pickupLocation,
-        contactPerson,
-        contactNumber,
-        alternateContact,
-        specialInstructions,
-        expectedWaste,
-        status: 'Proposed'
-      };
-
-      const pickup = await Pickup.create(pickupData);
-
-      // Send notification message to the other party
-      const recipientID = user.userID === giverID ? collectorID : giverID;
-      await Message.create({
-        senderID: user.userID,
-        senderName: user.userID === giverID ? giverName : collectorName,
-        senderType: user.userType,
-        receiverID: recipientID,
-        postID,
-        messageType: 'pickup_request',
-        message: `Pickup scheduled for ${pickupDate} at ${pickupTime}`,
-        metadata: {
-          pickupID: pickup.pickupID,
-          pickupDetails: {
-            date: pickupDate,
-            time: pickupTime,
-            location: pickupLocation,
-            contactPerson,
-            contactNumber
-          }
-        }
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'Pickup schedule created successfully',
-        data: pickup
-      });
-
-    } catch (error) {
-      console.error('Error creating pickup:', error);
-      res.status(500).json({
+    // Validate required fields
+    if (!postID || !pickupDate || !pickupTime || !pickupLocation || !contactPerson || !contactNumber) {
+      return res.status(400).json({
         success: false,
-        message: error.message || 'Failed to create pickup schedule'
+        message: 'Missing required fields'
       });
     }
+
+    // Get the post details
+    const post = await Post.findById(postID);
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
+    // Check if there's already an active pickup for this post
+    const existingPickup = await Pickup.getActiveForPost(postID);
+    if (existingPickup) {
+      return res.status(400).json({
+        success: false,
+        message: 'An active pickup already exists for this post'
+      });
+    }
+
+    // Determine giver and collector based on post type
+    let giverID, collectorID, giverName, collectorName;
+    
+    if (post.postType === 'Waste') {
+      // For Waste posts, the post creator is the giver
+      giverID = post.userID;
+      collectorID = user.userID;
+      
+      // FIXED: Check isCollector instead of userType
+      if (!user.isCollector) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only collectors can schedule pickups for waste posts'
+        });
+      }
+    } else if (post.postType === 'Initiative') {
+      // For Initiative posts, the post creator is the collector
+      giverID = user.userID;
+      collectorID = post.userID;
+      
+      // For initiatives, we need to check if the giver's donation was accepted
+      // This would require additional logic to track initiative support
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid post type for pickup scheduling'
+      });
+    }
+
+    // Get user names for the pickup record
+    const giverUser = await User.findById(giverID);
+    const collectorUser = await User.findById(collectorID);
+    
+    giverName = `${giverUser.firstName} ${giverUser.lastName}`;
+    collectorName = `${collectorUser.firstName} ${collectorUser.lastName}`;
+
+    // Create the pickup
+    const pickupData = {
+      postID,
+      postType: post.postType,
+      giverID,
+      collectorID,
+      giverName,
+      collectorName,
+      pickupDate,
+      pickupTime,
+      pickupLocation,
+      contactPerson,
+      contactNumber,
+      alternateContact,
+      specialInstructions,
+      status: 'Proposed',
+      createdBy: user.userID
+    };
+
+    const pickup = await Pickup.create(pickupData);
+
+    // Send notification to the giver
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      userID: giverID,
+      type: Notification.TYPES.PICKUP_SCHEDULED,
+      title: 'New Pickup Schedule Proposed',
+      message: `${collectorName} has proposed a pickup schedule for "${post.title}"`,
+      referenceID: pickup.pickupID,
+      referenceType: 'pickup',
+      actionURL: `/pickups/${pickup.pickupID}`,
+      priority: 'high'
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Pickup schedule created successfully',
+      data: pickup
+    });
+
+  } catch (error) {
+    console.error('Error creating pickup:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create pickup schedule'
+    });
   }
+}
 
   // Get pickup by ID
   static async getPickupById(req, res) {

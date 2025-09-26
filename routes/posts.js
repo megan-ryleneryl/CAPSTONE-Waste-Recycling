@@ -226,7 +226,7 @@ router.post('/create', verifyToken, async (req, res) => {
         
       case 'Initiative':
         // Only Collectors can create Initiative posts
-        if (!user.isCollector && !user.isAdmin) {
+        if (!user.isCollector) {
           return res.status(403).json({
             success: false,
             message: 'Only Collectors can create Initiative posts'
@@ -622,16 +622,16 @@ router.delete('/comments/:commentId', verifyToken, async (req, res) => {
 // These trigger the pickup management flow
 
 // Claim a Waste Post (Collectors only)
-router.post('/:postID/claim', async (req, res) => {
+router.post('/:postID/claim', verifyToken, async (req, res) => {
   try {
     const { postID } = req.params;
     const collectorID = req.user.userID;
     
-    // Verify user is a Collector
-    if (req.user.userType !== 'Collector') {
+    // FIXED: Check isCollector instead of userType
+    if (!req.user.isCollector) {
       return res.status(403).json({
         success: false,
-        message: 'Only Collectors can claim Waste posts'
+        message: 'Only Collectors can claim Waste posts. Please apply to become a Collector first.'
       });
     }
     
@@ -683,11 +683,13 @@ router.post('/:postID/claim', async (req, res) => {
     
     // Send notification to post owner
     const Notification = require('../models/Notification');
+    const collectorName = `${req.user.firstName} ${req.user.lastName}`;
+    
     await Notification.create({
       userID: post.userID,
       type: Notification.TYPES.POST_CLAIMED,
       title: 'Your post has been claimed!',
-      message: `${req.user.name} wants to claim your post "${post.title}"`,
+      message: `${collectorName} wants to claim your post "${post.title}"`,
       referenceID: postID,
       referenceType: 'post',
       actionURL: `/chat/${postID}/${collectorID}`,
@@ -713,13 +715,15 @@ router.post('/:postID/claim', async (req, res) => {
 });
 
 // Support an Initiative Post (Givers only)
-router.post('/:postID/support', async (req, res) => {
+router.post('/:postID/support', verifyToken, async (req, res) => {
   try {
     const { postID } = req.params;
-    const { message, offeredMaterials } = req.body;
     const giverID = req.user.userID;
+    const { materials, quantity, notes } = req.body;
     
-    // Get the post
+    // No need to check for specific user type for supporting initiatives
+    // Any user can support an initiative
+    
     const Post = require('../models/Posts');
     const post = await Post.findById(postID);
     
@@ -737,28 +741,39 @@ router.post('/:postID/support', async (req, res) => {
       });
     }
     
-    // Create support request message
+    if (post.status !== 'Active') {
+      return res.status(400).json({
+        success: false,
+        message: 'Initiative is not active'
+      });
+    }
+    
+    // Create support message
     const Message = require('../models/Message');
     await Message.create({
       senderID: giverID,
       receiverID: post.userID,
       postID: postID,
       messageType: 'support',
-      message: message || `I'd like to support your initiative "${post.title}" with recyclable materials.`,
+      message: `I'd like to support your initiative "${post.title}" with ${quantity} ${materials}. ${notes || ''}`,
       metadata: {
         action: 'initiative_support',
         postTitle: post.title,
-        offeredMaterials: offeredMaterials
+        materials,
+        quantity,
+        notes
       }
     });
     
     // Send notification to initiative owner
     const Notification = require('../models/Notification');
+    const supporterName = `${req.user.firstName} ${req.user.lastName}`;
+    
     await Notification.create({
       userID: post.userID,
-      type: Notification.TYPES.POST_SUPPORT,
+      type: Notification.TYPES.INITIATIVE_SUPPORT,
       title: 'New support for your initiative!',
-      message: `${req.user.name} wants to support "${post.title}"`,
+      message: `${supporterName} wants to support "${post.title}"`,
       referenceID: postID,
       referenceType: 'post',
       actionURL: `/chat/${postID}/${giverID}`,

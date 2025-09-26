@@ -281,7 +281,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
       return;
     }
 
-    if (currentUser.isCollector !== true) {
+    if (!currentUser.isCollector) {
       alert('Only Collectors can claim Waste posts. Please apply to become a Collector.');
       return;
     }
@@ -378,7 +378,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
         <button
           className="btn btn-success"
           onClick={handleCollect}
-          disabled={loading || currentUser.isCollector !== true}
+          disabled={loading || !currentUser.isCollector}
         >
           {loading ? 'Processing...' : 'Claim Post'}
         </button>
