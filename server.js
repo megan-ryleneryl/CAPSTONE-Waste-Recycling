@@ -15,6 +15,8 @@ const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const profileRoutes = require('./routes/profileRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const pickupRoutes = require('./routes/pickupRoutes');
+
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -27,6 +29,7 @@ const Post = require('./models/Posts');
 const WastePost = require('./models/WastePost');
 const Application = require('./models/Application'); 
 const Pickup = require('./models/Pickup');
+const Notification = require('./models/Notification');
 
 // Import the middleware
 const { verifyToken } = require('./middleware/auth');
@@ -91,6 +94,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', verifyToken, postRoutes);
 app.use('/api/protected/profile', profileRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/pickups', verifyToken);
+app.use('/api/pickups', pickupRoutes);
 
 app.use('/api/admin', (req, res, next) => {
   next();
@@ -246,67 +251,217 @@ app.put('/api/protected/posts/:postId', async (req, res) => {
 });
 
 // Pickup routes
-app.get('/api/protected/pickups', async (req, res) => {
+// Get active pickup for a post (if any)
+app.get('/api/posts/:postID/pickup', verifyToken, async (req, res) => {
   try {
-    const { type = 'all' } = req.query;
-    let pickups;
+    const { postID } = req.params;
+    const pickup = await Pickup.getActiveForPost(postID);
     
-    if (type === 'given') {
-      pickups = await Pickup.findByGiverID(req.user.userID);
-    } else if (type === 'collected') {
-      pickups = await Pickup.findByCollectorID(req.user.userID);
-    } else {
-      // Get all pickups for this user (both given and collected)
-      const givenPickups = await Pickup.findByGiverID(req.user.userID);
-      const collectedPickups = await Pickup.findByCollectorID(req.user.userID);
-      pickups = [...givenPickups, ...collectedPickups];
+    if (!pickup) {
+      return res.json({ 
+        success: true, 
+        pickup: null,
+        message: 'No active pickup for this post'
+      });
     }
     
-    res.json({ success: true, pickups });
-  } catch (error) {
-    console.error('Pickups fetch error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-app.post('/api/protected/pickups', async (req, res) => {
-  try {
-    const pickupData = {
-      ...req.body,
-      collectorID: req.user.userID
-    };
+    // Check if user is authorized to view this pickup
+    const userID = req.user.userID;
+    if (pickup.giverID !== userID && pickup.collectorID !== userID) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to view this pickup'
+      });
+    }
     
-    const pickup = await Pickup.create(pickupData);
-    res.status(201).json({ 
+    res.json({ 
       success: true, 
-      pickup, 
-      message: 'Pickup request created successfully' 
+      pickup 
     });
   } catch (error) {
-    console.error('Pickup creation error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
+    console.error('Error fetching post pickup:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 });
 
-app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
+// Get pickup history for a post
+app.get('/api/posts/:postID/pickup-history', verifyToken, async (req, res) => {
   try {
-    const pickup = await Pickup.findById(req.params.pickupId);
-    if (!pickup) {
-      return res.status(404).json({ success: false, error: 'Pickup not found' });
+    const { postID } = req.params;
+    const post = await Post.findById(postID);
+    
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
     }
     
-    // Only the giver can confirm pickups
-    if (pickup.giverID !== req.user.userID) {
-      return res.status(403).json({ success: false, error: 'Unauthorized to confirm this pickup' });
+    // Check if user is authorized (post owner or admin)
+    const userID = req.user.userID;
+    if (post.userID !== userID && !req.user.isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to view pickup history'
+      });
     }
     
-    await pickup.confirm();
-    res.json({ success: true, pickup, message: 'Pickup confirmed successfully' });
+    const pickups = await Pickup.findByPost(postID);
+    
+    res.json({ 
+      success: true, 
+      pickups,
+      count: pickups.length
+    });
   } catch (error) {
-    console.error('Pickup confirm error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
+    console.error('Error fetching pickup history:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
   }
 });
+
+// Notification endpoints for pickup management
+app.get('/api/notifications/pickup', verifyToken, async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    const pickupNotifications = await Notification.findByUserAndType(
+      userID, 
+      [
+        Notification.TYPES.PICKUP_SCHEDULED,
+        Notification.TYPES.PICKUP_CONFIRMED,
+        Notification.TYPES.PICKUP_CANCELLED,
+        Notification.TYPES.PICKUP_REMINDER,
+        Notification.TYPES.PICKUP_COMPLETED
+      ]
+    );
+    
+    res.json({ 
+      success: true, 
+      notifications: pickupNotifications 
+    });
+  } catch (error) {
+    console.error('Error fetching pickup notifications:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Dashboard endpoint that includes pickup data
+app.get('/api/dashboard/pickup-summary', verifyToken, async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    
+    // Get different pickup counts based on user type
+    const summary = {
+      upcoming: 0,
+      inProgress: 0,
+      completed: 0,
+      cancelled: 0
+    };
+    
+    // Get all user's pickups
+    const pickups = await Pickup.findByUser(userID);
+    
+    // Count by status
+    pickups.forEach(pickup => {
+      switch(pickup.status) {
+        case 'Proposed':
+        case 'Confirmed':
+          summary.upcoming++;
+          break;
+        case 'In-Progress':
+          summary.inProgress++;
+          break;
+        case 'Completed':
+          summary.completed++;
+          break;
+        case 'Cancelled':
+          summary.cancelled++;
+          break;
+      }
+    });
+    
+    // Get next upcoming pickup
+    const nextPickup = await Pickup.getNextUpcoming(userID);
+    
+    res.json({ 
+      success: true, 
+      summary,
+      nextPickup,
+      totalPickups: pickups.length
+    });
+  } catch (error) {
+    console.error('Error fetching pickup summary:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Webhook for pickup reminders (can be called by a cron job)
+app.post('/api/webhooks/pickup-reminders', async (req, res) => {
+  try {
+    // This would typically be protected by a secret key
+    const secretKey = req.headers['x-webhook-secret'];
+    if (secretKey !== process.env.WEBHOOK_SECRET) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid webhook secret' 
+      });
+    }
+    
+    // Find pickups happening in the next 24 hours
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const upcomingPickups = await Pickup.findUpcomingWithin24Hours();
+    
+    // Send reminders for each pickup
+    for (const pickup of upcomingPickups) {
+      // Send notification to giver
+      await Notification.create({
+        userID: pickup.giverID,
+        type: Notification.TYPES.PICKUP_REMINDER,
+        title: 'Pickup Tomorrow',
+        message: `Reminder: You have a pickup scheduled for tomorrow at ${pickup.pickupTime}`,
+        referenceID: pickup.pickupID,
+        referenceType: 'pickup',
+        priority: 'high'
+      });
+      
+      // Send notification to collector
+      await Notification.create({
+        userID: pickup.collectorID,
+        type: Notification.TYPES.PICKUP_REMINDER,
+        title: 'Collection Tomorrow',
+        message: `Reminder: You have a collection scheduled for tomorrow at ${pickup.pickupTime} at ${pickup.pickupLocation}`,
+        referenceID: pickup.pickupID,
+        referenceType: 'pickup',
+        priority: 'high'
+      });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Sent reminders for ${upcomingPickups.length} pickups` 
+    });
+  } catch (error) {
+    console.error('Error sending pickup reminders:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 
 app.post('/api/protected/upload/profile-picture',
   upload.single('profilePicture'), // Changed from 'picture' to 'profilePicture'

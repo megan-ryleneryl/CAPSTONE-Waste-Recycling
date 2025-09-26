@@ -11,6 +11,9 @@ const Comment = require('../models/Comment');
 const Like = require('../models/Like');
 const { verifyToken } = require('../middleware/auth');
 
+// Apply authentication
+router.use(verifyToken);
+
 // ============= READ OPERATIONS =============
 
 // Get all posts (with filters)
@@ -610,6 +613,220 @@ router.delete('/comments/:commentId', verifyToken, async (req, res) => {
       success: false,
       message: 'Error deleting comment',
       error: error.message
+    });
+  }
+});
+
+
+// Module 2 Integration: Claim and Support Actions
+// These trigger the pickup management flow
+
+// Claim a Waste Post (Collectors only)
+router.post('/:postID/claim', async (req, res) => {
+  try {
+    const { postID } = req.params;
+    const collectorID = req.user.userID;
+    
+    // Verify user is a Collector
+    if (req.user.userType !== 'Collector') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only Collectors can claim Waste posts'
+      });
+    }
+    
+    // Get the post
+    const Post = require('../models/Posts');
+    const post = await Post.findById(postID);
+    
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+    
+    if (post.postType !== 'Waste') {
+      return res.status(400).json({
+        success: false,
+        message: 'Can only claim Waste posts'
+      });
+    }
+    
+    if (post.status !== 'Active') {
+      return res.status(400).json({
+        success: false,
+        message: 'Post is not available for claiming'
+      });
+    }
+    
+    // Update post status to Claimed
+    await post.update({ 
+      status: 'Claimed',
+      claimedBy: collectorID,
+      claimedAt: new Date()
+    });
+    
+    // Create initial message for coordination
+    const Message = require('../models/Message');
+    await Message.create({
+      senderID: collectorID,
+      receiverID: post.userID,
+      postID: postID,
+      messageType: 'claim',
+      message: `I'm interested in claiming your ${post.title}. Let's coordinate the pickup details.`,
+      metadata: {
+        action: 'post_claimed',
+        postTitle: post.title
+      }
+    });
+    
+    // Send notification to post owner
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      userID: post.userID,
+      type: Notification.TYPES.POST_CLAIMED,
+      title: 'Your post has been claimed!',
+      message: `${req.user.name} wants to claim your post "${post.title}"`,
+      referenceID: postID,
+      referenceType: 'post',
+      actionURL: `/chat/${postID}/${collectorID}`,
+      priority: 'high'
+    });
+    
+    res.json({
+      success: true,
+      message: 'Post claimed successfully. You can now chat with the giver to arrange pickup.',
+      data: {
+        postID: postID,
+        chatURL: `/chat/${postID}/${post.userID}`
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error claiming post:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to claim post'
+    });
+  }
+});
+
+// Support an Initiative Post (Givers only)
+router.post('/:postID/support', async (req, res) => {
+  try {
+    const { postID } = req.params;
+    const { message, offeredMaterials } = req.body;
+    const giverID = req.user.userID;
+    
+    // Get the post
+    const Post = require('../models/Posts');
+    const post = await Post.findById(postID);
+    
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+    
+    if (post.postType !== 'Initiative') {
+      return res.status(400).json({
+        success: false,
+        message: 'Can only support Initiative posts'
+      });
+    }
+    
+    // Create support request message
+    const Message = require('../models/Message');
+    await Message.create({
+      senderID: giverID,
+      receiverID: post.userID,
+      postID: postID,
+      messageType: 'support',
+      message: message || `I'd like to support your initiative "${post.title}" with recyclable materials.`,
+      metadata: {
+        action: 'initiative_support',
+        postTitle: post.title,
+        offeredMaterials: offeredMaterials
+      }
+    });
+    
+    // Send notification to initiative owner
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      userID: post.userID,
+      type: Notification.TYPES.POST_SUPPORT,
+      title: 'New support for your initiative!',
+      message: `${req.user.name} wants to support "${post.title}"`,
+      referenceID: postID,
+      referenceType: 'post',
+      actionURL: `/chat/${postID}/${giverID}`,
+      priority: 'high'
+    });
+    
+    res.json({
+      success: true,
+      message: 'Support request sent. The initiative owner will review and respond.',
+      data: {
+        postID: postID,
+        chatURL: `/chat/${postID}/${post.userID}`
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error supporting initiative:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to support initiative'
+    });
+  }
+});
+
+// Get claim/support status for a post
+router.get('/:postID/status', async (req, res) => {
+  try {
+    const { postID } = req.params;
+    const userID = req.user.userID;
+    
+    const Post = require('../models/Posts');
+    const post = await Post.findById(postID);
+    
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+    
+    // Check if user has already claimed/supported
+    const Message = require('../models/Message');
+    const interactions = await Message.findByPostAndUser(postID, userID);
+    
+    const hasClaimed = interactions.some(m => 
+      m.messageType === 'claim' && m.senderID === userID
+    );
+    
+    const hasSupported = interactions.some(m => 
+      m.messageType === 'support' && m.senderID === userID
+    );
+    
+    res.json({
+      success: true,
+      data: {
+        postStatus: post.status,
+        userHasClaimed: hasClaimed,
+        userHasSupported: hasSupported,
+        isOwner: post.userID === userID,
+        claimedBy: post.claimedBy || null
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error getting post status:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get post status'
     });
   }
 });

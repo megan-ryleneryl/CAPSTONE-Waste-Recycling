@@ -4,12 +4,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './PostCard.module.css';
 
-const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
+const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [imageIndexes, setImageIndexes] = useState({});
+  const [actionStatus, setActionStatus] = useState(null);
+  const [showPickupModal, setShowPickupModal] = useState(false);
   const navigate = useNavigate();
+  
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     fetchPosts();
@@ -258,23 +263,151 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
   };
 
   // Handle action button clicks
-  const handleCollect = async (postId) => {
+  const checkActionStatus = async () => {
     try {
-      console.log('Collecting post:', postId);
-      // For now, just navigate to the post details
-      navigate(`/posts/${postId}`);
-    } catch (err) {
-      console.error('Error collecting post:', err);
+      const response = await axios.get(
+        `http://localhost:3001/api/posts/${post.postID}/status`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setActionStatus(response.data.data);
+    } catch (error) {
+      console.error('Error checking action status:', error);
     }
   };
 
-  const handleSupport = async (postId) => {
-    try {
-      console.log('Supporting initiative:', postId);
-      navigate(`/posts/${postId}`);
-    } catch (err) {
-      console.error('Error supporting initiative:', err);
+  const handleCollect = async () => {
+    if (!currentUser.userID) {
+      navigate('/login');
+      return;
     }
+
+    if (currentUser.isCollector !== true) {
+      alert('Only Collectors can claim Waste posts. Please apply to become a Collector.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `http://localhost:3001/api/posts/${post.postID}/claim`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        alert('Post claimed successfully! Redirecting to chat...');
+        navigate(response.data.data.chatURL);
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to claim post');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSupportInitiative = async () => {
+    if (!currentUser.userID) {
+      navigate('/login');
+      return;
+    }
+
+    setShowPickupModal(true);
+  };
+
+  const submitSupport = async (supportData) => {
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        `http://localhost:3001/api/posts/${post.postID}/support`,
+        supportData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        setShowPickupModal(false);
+        alert('Support request sent! The initiative owner will contact you.');
+        onActionComplete && onActionComplete();
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to send support request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getActionButton = () => {
+    if (!actionStatus) return null;
+
+    if (actionStatus.isOwner) {
+      if (post.status === 'Claimed') {
+        return (
+          <button
+            className="btn btn-info"
+            onClick={() => navigate(`/pickups/${post.postID}`)}
+          >
+            View Pickup Schedule
+          </button>
+        );
+      }
+      return (
+        <button className="btn btn-secondary" disabled>
+          Your Post
+        </button>
+      );
+    }
+
+    if (post.postType === 'Waste') {
+      if (post.status === 'Claimed') {
+        return (
+          <button className="btn btn-secondary" disabled>
+            Already Claimed {actionStatus.claimedBy === currentUser.userID && '(by you)'}
+          </button>
+        );
+      }
+      if (actionStatus.userHasClaimed) {
+        return (
+          <button 
+            className="btn btn-info"
+            onClick={() => navigate(`/chat/${post.postID}/${post.userID}`)}
+          >
+            View Chat
+          </button>
+        );
+      }
+      return (
+        <button
+          className="btn btn-success"
+          onClick={handleCollect}
+          disabled={loading || currentUser.isCollector !== true}
+        >
+          {loading ? 'Processing...' : 'Claim Post'}
+        </button>
+      );
+    }
+
+    if (post.postType === 'Initiative') {
+      if (actionStatus.userHasSupported) {
+        return (
+          <button 
+            className="btn btn-info"
+            onClick={() => navigate(`/chat/${post.postID}/${post.userID}`)}
+          >
+            View Support Chat
+          </button>
+        );
+      }
+      return (
+        <button
+          className="btn btn-primary"
+          onClick={handleSupportInitiative}
+          disabled={loading}
+        >
+          {loading ? 'Processing...' : 'Support Initiative'}
+        </button>
+      );
+    }
+
+    return null;
   };
 
   const handleLike = async (postId) => {
@@ -634,7 +767,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
               {post.postType === 'Initiative' && (
                 <button 
                   className={`${styles.actionButton} ${styles.supportButton}`}
-                  onClick={() => handleSupport(post.postID)}
+                  onClick={() => handleSupportInitiative(post.postID)}
                 >
                   Support
                 </button>

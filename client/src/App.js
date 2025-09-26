@@ -12,6 +12,7 @@ import Approvals from './pages/Approvals';
 import AllUsers from './pages/AllUsers';
 import CreatePost from './pages/CreatePost';
 import AppLayout from './components/layout/AppLayout/AppLayout';
+import PickupManagement from './pages/PickupManagement';
 import './App.css';
 
 // Protected Route Component
@@ -111,6 +112,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Chat />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/pickups" 
+              element={
+                <ProtectedRoute>
+                  <PickupManagement />
                 </ProtectedRoute>
               } 
             />
