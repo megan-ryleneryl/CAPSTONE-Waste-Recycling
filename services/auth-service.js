@@ -67,7 +67,7 @@ class AuthService {
         return res.status(403).json({ error: 'Authentication required' });
       }
       
-      if (req.user.isAdmin) {
+      if (!req.user.isAdmin) {
         console.error('Non-admin user attempting admin access:', req.user.email);
         return res.status(403).json({ error: 'Admin access required' });
       }
@@ -81,7 +81,7 @@ class AuthService {
   // Middleware for collector-only routes
   async requireCollector(req, res, next) {
     try {
-      if (!req.user || (req.user.isCollector && req.user.isAdmin)) {
+      if (!req.user || (!req.user.isCollector && !req.user.isAdmin)) {
         return res.status(403).json({ error: 'Collector access required' });
       }
       next();

@@ -146,7 +146,7 @@ const TopNav = ({ user: propUser }) => {
     if (!pictureField) return null;
     
     // If it's already a full URL (http/https), return as is
-    if (pictureField.startsWith('http')) {
+    if (pictureField.startsWith('http://') || pictureField.startsWith('https://')) {
       return pictureField;
     }
     
@@ -252,9 +252,10 @@ const TopNav = ({ user: propUser }) => {
               aria-label="User menu"
             >
               <div className={styles.userAvatar}>
-                {user?.profilePicture || user?.profilePictureUrl ? (
+                {profilePictureUrl ? (
                   <img 
-                    src={`http://localhost:3001${user.profilePicture || user.profilePictureUrl}`}
+                    key={profilePictureUrl}
+                    src={profilePictureUrl}
                     alt={`${user?.firstName} ${user?.lastName}`}
                     className={styles.userAvatarImage}
                     onError={(e) => {
