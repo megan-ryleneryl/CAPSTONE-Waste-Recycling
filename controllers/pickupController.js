@@ -1,7 +1,7 @@
 // controllers/pickupController.js - Complete controller for Pickup Management
 const Pickup = require('../models/Pickup');
 const Post = require('../models/Posts');
-const User = require('../models/User');
+const User = require('../models/Users');
 const Message = require('../models/Message');
 
 class PickupController {

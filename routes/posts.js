@@ -622,18 +622,43 @@ router.delete('/comments/:commentId', verifyToken, async (req, res) => {
 // These trigger the pickup management flow
 
 // Claim a Waste Post (Collectors only)
-router.post('/:postID/claim', verifyToken, async (req, res) => {
+router.post('/:postID/claim', async (req, res) => {
   try {
     const { postID } = req.params;
     const collectorID = req.user.userID;
     
-    // FIXED: Check isCollector instead of userType
-    if (!req.user.isCollector) {
+    // DEBUG: Log user details
+    console.log('=== CLAIM POST DEBUG ===');
+    console.log('User ID:', req.user.userID);
+    console.log('User Name:', req.user.firstName, req.user.lastName);
+    console.log('User Email:', req.user.email);
+    console.log('isCollector:', req.user.isCollector);
+    console.log('isAdmin:', req.user.isAdmin);
+    console.log('User Status:', req.user.status);
+    console.log('Full user object keys:', Object.keys(req.user));
+    console.log('======================');
+    
+    // Check isCollector with detailed error
+    if (!req.user.isCollector && !req.user.isAdmin) {
+      console.log('USER FAILED COLLECTOR CHECK');
+      console.log('isCollector value:', req.user.isCollector);
+      console.log('isCollector type:', typeof req.user.isCollector);
+      console.log('isAdmin value:', req.user.isAdmin);
+      console.log('isAdmin type:', typeof req.user.isAdmin);
+      
       return res.status(403).json({
         success: false,
-        message: 'Only Collectors can claim Waste posts. Please apply to become a Collector first.'
+        message: 'Only Collectors can claim Waste posts. Please apply to become a Collector first.',
+        debug: {
+          userID: req.user.userID,
+          isCollector: req.user.isCollector,
+          isAdmin: req.user.isAdmin,
+          userStatus: req.user.status
+        }
       });
     }
+    
+    console.log('USER PASSED COLLECTOR CHECK - Proceeding with claim');
     
     // Get the post
     const Post = require('../models/Posts');
@@ -645,6 +670,8 @@ router.post('/:postID/claim', verifyToken, async (req, res) => {
         message: 'Post not found'
       });
     }
+    
+    console.log('Post found:', post.postID, 'Type:', post.postType, 'Status:', post.status);
     
     if (post.postType !== 'Waste') {
       return res.status(400).json({
@@ -667,6 +694,8 @@ router.post('/:postID/claim', verifyToken, async (req, res) => {
       claimedAt: new Date()
     });
     
+    console.log('Post updated successfully');
+    
     // Create initial message for coordination
     const Message = require('../models/Message');
     await Message.create({
@@ -680,6 +709,8 @@ router.post('/:postID/claim', verifyToken, async (req, res) => {
         postTitle: post.title
       }
     });
+    
+    console.log('Message created successfully');
     
     // Send notification to post owner
     const Notification = require('../models/Notification');
@@ -696,6 +727,8 @@ router.post('/:postID/claim', verifyToken, async (req, res) => {
       priority: 'high'
     });
     
+    console.log('Notification sent successfully');
+    
     res.json({
       success: true,
       message: 'Post claimed successfully. You can now chat with the giver to arrange pickup.',
@@ -706,10 +739,48 @@ router.post('/:postID/claim', verifyToken, async (req, res) => {
     });
     
   } catch (error) {
+    console.error('=== CLAIM POST ERROR ===');
     console.error('Error claiming post:', error);
+    console.error('Error stack:', error.stack);
+    console.error('=======================');
+    
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to claim post'
+    });
+  }
+});
+
+// ============================================
+// ADDITIONAL DEBUGGING ENDPOINT
+// ============================================
+// Add this temporary endpoint to check user status
+router.get('/debug/user-status', async (req, res) => {
+  try {
+    const User = require('../models/Users');
+    const freshUser = await User.findById(req.user.userID);
+    
+    res.json({
+      success: true,
+      tokenUser: {
+        userID: req.user.userID,
+        email: req.user.email,
+        isCollector: req.user.isCollector,
+        isAdmin: req.user.isAdmin,
+        status: req.user.status
+      },
+      databaseUser: freshUser ? {
+        userID: freshUser.userID,
+        email: freshUser.email,
+        isCollector: freshUser.isCollector,
+        isAdmin: freshUser.isAdmin,
+        status: freshUser.status
+      } : null
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
