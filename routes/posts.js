@@ -1,3 +1,6 @@
+// TODO
+// Check for userType usage
+
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Posts');
@@ -14,6 +17,7 @@ const { verifyToken } = require('../middleware/auth');
 router.get('/', verifyToken, async (req, res) => {
   try {
     const { type, status, location, userID } = req.query;
+    const User = require('../models/Users');
     
     let posts;
     if (userID) {
@@ -28,18 +32,61 @@ router.get('/', verifyToken, async (req, res) => {
       posts = await Post.findAll();
     }
     
-    // Add user info and interaction data
+    // Create a map of user IDs to fetch
+    const userIds = [...new Set(posts.map(post => post.userID))];
+    
+    // Batch fetch all users
+    const usersMap = {};
+    for (const userId of userIds) {
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          usersMap[userId] = {
+            userID: user.userID,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profilePictureUrl: user.profilePictureUrl,
+            isOrganization: user.isOrganization,
+            organizationName: user.organizationName,
+            isCollector: user.isCollector,
+            isAdmin: user.isAdmin,
+          };
+        }
+      } catch (err) {
+        console.error(`Failed to fetch user ${userId}:`, err.message);
+        usersMap[userId] = null;
+      }
+    }
+    
+    // Add user data and interaction data to posts
     const enrichedPosts = await Promise.all(posts.map(async (post) => {
-      const likeCount = await post.getLikeCount();
-      const isLiked = await post.isLikedByUser(req.user.userID);
-      const comments = await post.getComments();
+      const postData = post.toFirestore ? post.toFirestore() : post;
+      
+      // Get interaction data with error handling
+      let likeCount = 0;
+      let isLiked = false;
+      let commentCount = 0;
+      
+      try {
+        likeCount = await post.getLikeCount();
+        isLiked = await post.isLikedByUser(req.user.userID);
+        const comments = await post.getComments();
+        commentCount = comments.length;
+      } catch (err) {
+        // Silently handle if these methods don't exist
+      }
       
       return {
-        ...post,
+        ...postData,
+        user: usersMap[postData.userID] || {
+          firstName: 'Unknown',
+          lastName: 'User',
+          profilePictureUrl: null
+        },
         likeCount,
         isLiked,
-        commentCount: comments.length,
-        isOwner: post.userID === req.user.userID
+        commentCount,
+        isOwner: postData.userID === req.user.userID
       };
     }));
     
@@ -115,6 +162,11 @@ router.post('/create', verifyToken, async (req, res) => {
       ...postData,
       userID: user.userID,
       userType: user.userType,
+      // TODO
+      // isCollector: user.isCollector,
+      // isAdmin: user.isAdmin,
+      // isOrganization: user.isOrganization
+      // Remove userType, but need to update Post schema
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -171,7 +223,7 @@ router.post('/create', verifyToken, async (req, res) => {
         
       case 'Initiative':
         // Only Collectors can create Initiative posts
-        if (user.userType !== 'Collector' && user.userType !== 'Admin') {
+        if (!user.isCollector && !user.isAdmin) {
           return res.status(403).json({
             success: false,
             message: 'Only Collectors can create Initiative posts'
@@ -247,7 +299,7 @@ router.put('/:postId', verifyToken, async (req, res) => {
     }
     
     // Check ownership (only owner or admin can update)
-    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (post.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to update this post'
@@ -255,7 +307,7 @@ router.put('/:postId', verifyToken, async (req, res) => {
     }
     
     // Prepare update data (exclude fields that shouldn't be updated)
-    const { postID, userID, userType, createdAt, postType, ...updateData } = req.body;
+    const { postID, userID, createdAt, postType, ...updateData } = req.body;
     
     // Handle array fields properly
     if (updateData.materials && typeof updateData.materials === 'string') {
@@ -295,7 +347,7 @@ router.patch('/:postId/status', verifyToken, async (req, res) => {
     }
     
     // Check ownership
-    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (post.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to update this post status'
@@ -347,7 +399,7 @@ router.delete('/:postId', verifyToken, async (req, res) => {
     }
     
     // Check ownership (only owner or admin can delete)
-    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (post.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to delete this post'
@@ -540,7 +592,7 @@ router.delete('/comments/:commentId', verifyToken, async (req, res) => {
     }
     
     // Check ownership (only owner or admin can delete)
-    if (comment.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (comment.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to delete this comment'

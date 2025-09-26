@@ -23,7 +23,9 @@ const ChatListItem = ({ chatRoom, currentUser, onClick, isSelected = false }) =>
       <div className={styles.chatInfo}>
         <div className={styles.header}>
           <span className={styles.userName}>{otherUser.name}</span>
-          <span className={styles.userType}>({otherUser.type})</span>
+          <span className={styles.userType}>
+            ({otherUser.isAdmin ? 'Admin' : otherUser.isCollector ? 'Collector' : 'Giver'})
+          </span>
           {hasUnread && (
             <span className={styles.unreadBadge}>{unreadCount}</span>
           )}

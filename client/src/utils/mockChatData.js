@@ -1,4 +1,6 @@
-// client/src/utils/mockChatData.js
+// TODO
+// Check for userType usage
+
 export const mockConversations = [
   {
     postID: 'post_001',

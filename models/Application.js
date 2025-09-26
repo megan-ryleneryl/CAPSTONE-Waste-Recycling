@@ -209,8 +209,8 @@ class Application {
             userUpdate.isOrganization = true;
             break;
           case 'Collector_Privilege':
-            if (user.userType !== 'Collector') {
-              userUpdate.userType = 'Collector';
+            if (!user.isCollector) {
+              userUpdate.isCollector = true;
             }
             userUpdate.status = 'Verified';
             break;

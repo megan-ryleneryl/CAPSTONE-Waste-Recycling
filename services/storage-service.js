@@ -40,8 +40,25 @@ class StorageService {
 
   static async uploadProfilePicture(file, userID) {
     try {
-      const result = await this.saveFile(file, `profile-pictures/${userID}`);
-      return result.url;
+      // Create profile pictures directory if it doesn't exist
+      const uploadsDir = path.join(process.cwd(), 'uploads', 'profile-pictures', userID);
+      await fs.mkdir(uploadsDir, { recursive: true });
+      
+      // Generate unique filename
+      const timestamp = Date.now();
+      const randomSuffix = Math.round(Math.random() * 1E9);
+      const extension = path.extname(file.originalname);
+      const filename = `profilePicture-${timestamp}-${randomSuffix}${extension}`;
+      
+      const filePath = path.join(uploadsDir, filename);
+      
+      // Save file
+      await fs.writeFile(filePath, file.buffer);
+      
+      // Return the URL that will be served by static middleware
+      const url = `/uploads/profile-pictures/${userID}/${filename}`.replace(/\\/g, '/');
+      
+      return url;
     } catch (error) {
       console.error('Error uploading profile picture:', error);
       throw new Error(`Failed to upload profile picture: ${error.message}`);

@@ -35,7 +35,7 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
   ];
 
   // Add Approvals menu for Admin users
-  if (user?.userType === 'Admin') {
+  if (user?.isAdmin) {
     mainNavItems.push({ path: '/admin/approvals', label: 'Approvals' });
     mainNavItems.push({ path: '/admin/users', label: 'All Users' });
   }

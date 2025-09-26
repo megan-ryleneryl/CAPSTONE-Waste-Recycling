@@ -146,7 +146,7 @@ const TopNav = ({ user: propUser }) => {
     if (!pictureField) return null;
     
     // If it's already a full URL (http/https), return as is
-    if (pictureField.startsWith('http')) {
+    if (pictureField.startsWith('http://') || pictureField.startsWith('https://')) {
       return pictureField;
     }
     
@@ -254,7 +254,8 @@ const TopNav = ({ user: propUser }) => {
               <div className={styles.userAvatar}>
                 {profilePictureUrl ? (
                   <img 
-                    src={profilePictureUrl} 
+                    key={profilePictureUrl}
+                    src={profilePictureUrl}
                     alt={`${user?.firstName} ${user?.lastName}`}
                     className={styles.userAvatarImage}
                     onError={(e) => {
@@ -289,7 +290,9 @@ const TopNav = ({ user: propUser }) => {
                   <p className={styles.userEmail}>{user?.email}</p>
                   <div className={styles.userStats}>
                     <span><strong>{user?.points || 0}</strong> points</span>
-                    <span className={styles.userType}>{user?.userType}</span>
+                    <span className={styles.userType}>
+                      {user?.isAdmin ? 'Admin' : user?.isCollector ? 'Collector' : 'Giver'}
+                    </span>
                   </div>
                 </div>
                 

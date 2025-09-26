@@ -1,4 +1,6 @@
-// models/Posts.js - Fixed Base Post Model
+// TODO
+// Check for userType usage
+
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
 

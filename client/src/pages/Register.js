@@ -53,7 +53,6 @@ const SignUp = () => {
         lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        userType: 'Giver' // Default as specified
       });
       
       if (response.data.success) {

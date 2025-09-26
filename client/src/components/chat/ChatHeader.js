@@ -14,9 +14,14 @@ const ChatHeader = ({ otherUser, postData, onClose }) => {
   };
 
   const getUserType = (user) => {
-    return user.userType || user.type || 'User';
+    if (user.isAdmin) return 'Admin';
+    if (user.isCollector) return 'Collector';
+    if (user.isOrganization) return 'Organization';
+    return 'Giver';
   };
 
+  // This is ok since they will use the function call
+  // Can use userType in the rest of this file
   const userName = getUserName(otherUser);
   const userType = getUserType(otherUser);
 

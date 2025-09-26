@@ -67,14 +67,15 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Static file serving
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+// Static file serving with proper CORS headers
 app.use('/uploads', (req, res, next) => {
+  // Set CORS headers BEFORE serving the static files
   res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
-});
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -115,6 +116,12 @@ app.get('/api/posts/public', async (req, res) => {
       createdAt: post.createdAt,
       // Hide sensitive user data for public view
       userType: post.userType
+
+      // TODO
+      // isCollector: post.isCollector,
+      // isAdmin: post.isAdmin,
+      // isOrganization: post.isOrganization
+      // Remove userType, but need to update the Posts schema and Firebase
     }));
     
     res.json({ success: true, posts: publicPosts });
@@ -226,7 +233,7 @@ app.put('/api/protected/posts/:postId', async (req, res) => {
     }
     
     // Check if user owns the post or is admin
-    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (post.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({ success: false, error: 'Unauthorized to edit this post' });
     }
     
@@ -302,7 +309,7 @@ app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
 });
 
 app.post('/api/protected/upload/profile-picture',
-  upload.single('profilePicture'),
+  upload.single('profilePicture'), // Changed from 'picture' to 'profilePicture'
   async (req, res) => {
     try {
       if (!req.file) {
@@ -311,13 +318,20 @@ app.post('/api/protected/upload/profile-picture',
 
       const uploadedFile = await StorageService.uploadProfilePicture(req.file, req.user.userID);
       
-      // Update user profile with new picture URL - using correct field name
-      await User.update(req.user.userID, { profilePictureUrl: uploadedFile });
+      // Update user profile with new picture URL
+      await User.update(req.user.userID, { 
+        profilePicture: uploadedFile,
+        profilePictureUrl: uploadedFile // Support both field names during transition
+      });
+      
+      // Get updated user data
+      const updatedUser = await User.findById(req.user.userID);
       
       res.json({ 
         success: true, 
         message: 'Profile picture uploaded successfully',
-        fileUrl: uploadedFile 
+        fileUrl: uploadedFile,
+        user: updatedUser // Return complete updated user
       });
     } catch (error) {
       console.error('Profile picture upload error:', error.message);
@@ -441,7 +455,8 @@ app.get('/api/protected/users/:userId', async (req, res) => {
       userID: user.userID,
       firstName: user.firstName,
       lastName: user.lastName,
-      userType: user.userType,
+      isCollector: user.isCollector,
+      isAdmin: user.isAdmin,
       isOrganization: user.isOrganization,
       organizationName: user.organizationName,
       profilePictureUrl: user.profilePictureUrl,
@@ -577,7 +592,8 @@ app.get('/api/admin/users/:userID', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        userType: user.userType,
+        isCollector: user.isCollector,
+        isAdmin: user.isAdmin,
         isOrganization: user.isOrganization,
         organizationName: user.organizationName
       }
@@ -750,7 +766,7 @@ app.put('/api/admin/users/:userId/make-admin', async (req, res) => {
     }
 
     // Prevent making another admin an admin
-    if (currentUser.userType === 'Admin') {
+    if (currentUser.isAdmin) {
       return res.status(400).json({ 
         success: false, 
         error: 'User is already an admin' 
@@ -759,7 +775,7 @@ app.put('/api/admin/users/:userId/make-admin', async (req, res) => {
 
     // Update user to admin
     await User.update(userId, {
-      userType: 'Admin',
+      isAdmin: true,
       status: 'Verified', // Admins should always be verified
       updatedAt: new Date().toISOString(),
       elevatedBy: req.user.userID,
@@ -794,7 +810,7 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
     }
 
     // Prevent revoking if user is not an admin
-    if (currentUser.userType !== 'Admin') {
+    if (!currentUser.isAdmin) {
       return res.status(400).json({ 
         success: false, 
         error: 'User is not an admin' 
@@ -809,26 +825,9 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
       });
     }
 
-    // Check user's Collector_Privilege application to determine new userType
-    const applications = await Application.findByUserID(userId);
-    const collectorApp = applications
-      .filter(app => app.applicationType === 'Collector_Privilege')
-      .sort((a, b) => {
-        const dateA = new Date(b.submittedAt || 0);
-        const dateB = new Date(a.submittedAt || 0);
-        return dateA - dateB;
-      })[0];
-
-    let newUserType = 'Giver'; // Default to Giver
-
-    // If they have an approved collector application, make them a Collector
-    if (collectorApp && collectorApp.status === 'Approved') {
-      newUserType = 'Collector';
-    }
-
     // Update user type from Admin to determined type
     await User.update(userId, {
-      userType: newUserType,
+      isAdmin: false,
       updatedAt: new Date().toISOString(),
       revokedBy: req.user.userID,
       revokedAt: new Date().toISOString()
@@ -836,7 +835,7 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: `Admin privileges revoked. User is now a ${newUserType}` 
+      message: `Admin privileges revoked.` 
     });
   } catch (error) {
     console.error('Error revoking admin privileges:', error);

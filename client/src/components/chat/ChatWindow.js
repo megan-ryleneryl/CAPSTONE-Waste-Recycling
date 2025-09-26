@@ -7,6 +7,7 @@ import MessageInput from './MessageInput';
 import styles from './ChatWindow.module.css';
 // Note: Icons can be replaced with emoji or custom SVG if lucide-react is not installed
 
+
 const ChatWindow = ({ currentUser, post }) => {
   const { postID, otherUserID } = useParams();
   const [messages, setMessages] = useState([]);

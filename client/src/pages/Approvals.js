@@ -72,7 +72,7 @@ const Approvals = () => {
           displayName: user.isOrganization && user.organizationName 
             ? `${user.organizationName} (${user.firstName} ${user.lastName})`
             : `${user.firstName} ${user.lastName}`,
-          isAdmin: user.userType === 'Admin',
+          isAdmin: user.isAdmin || false,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName

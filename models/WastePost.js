@@ -1,4 +1,6 @@
-// models/WastePost.js - Fixed version with consistent schema
+// TODO
+// Check for userType usage
+
 const Post = require('./Posts');
 const { getFirestore, collection, doc, setDoc } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');

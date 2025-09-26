@@ -28,8 +28,17 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios.get('http://localhost:3001/api/protected/profile');
       if (response.data.success) {
-        setCurrentUser(response.data.user);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        const userData = response.data.user;
+        // Ensure profile picture URL is consistent
+        if (userData.profilePictureUrl && !userData.profilePicture) {
+          userData.profilePicture = userData.profilePictureUrl;
+        }
+        // Ensure isAdmin is properly set
+        if (!userData.hasOwnProperty('isAdmin')) {
+          userData.isAdmin = false;
+        }
+        setCurrentUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
       }
     } catch (error) {
       console.error('Error fetching current user:', error);
@@ -54,6 +63,10 @@ export const AuthProvider = ({ children }) => {
   }, [token, fetchCurrentUser]);
 
   const login = useCallback((token, user) => {
+    // Ensure isAdmin field exists
+    if (!user.hasOwnProperty('isAdmin')) {
+      user.isAdmin = false;
+    }
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
     setToken(token);

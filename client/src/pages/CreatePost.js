@@ -7,7 +7,9 @@ const CreatePost = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [userType, setUserType] = useState('');
+  const [isCollector, setIsCollector] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isOrganization, setIsOrganization] = useState(false);
   const [postType, setPostType] = useState('Waste');
   
   // Form data state
@@ -18,9 +20,6 @@ const CreatePost = () => {
     // Waste specific
     materials: '',
     quantity: '',
-    unit: 'kg',
-    price: '',
-    condition: 'Good',
     pickupDate: '',
     pickupTime: '',
     // Initiative specific
@@ -40,7 +39,9 @@ const CreatePost = () => {
         const response = await axios.get('http://localhost:3001/api/protected/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        setUserType(response.data.user.userType);
+        setIsCollector(response.data.user.isCollector || false);
+        setIsAdmin(response.data.user.isAdmin || false);
+        setIsOrganization(response.data.user.isOrganization || false);
       } catch (error) {
         console.error('Error fetching user profile:', error);
       }
@@ -139,9 +140,6 @@ const CreatePost = () => {
         ...postData,
         materials: formData.materials.split(',').map(m => m.trim()).filter(m => m),
         quantity: parseFloat(formData.quantity),
-        unit: formData.unit,
-        price: formData.price ? parseFloat(formData.price) : 0,
-        condition: formData.condition,
         pickupDate: formData.pickupDate || null,
         pickupTime: formData.pickupTime || null
       };
@@ -227,7 +225,7 @@ const CreatePost = () => {
   };
 
   // Check if user can create initiative posts
-  const canCreateInitiative = userType === 'Collector' || userType === 'Admin';
+  const canCreateInitiative = isCollector || isAdmin;
 
   return (
     <div className={styles.container}>
@@ -354,30 +352,9 @@ const CreatePost = () => {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label htmlFor="condition" className={styles.label}>
-                    Condition
-                  </label>
-                  <select
-                    id="condition"
-                    name="condition"
-                    value={formData.condition}
-                    onChange={handleInputChange}
-                    className={styles.select}
-                  >
-                    <option value="Excellent">Excellent</option>
-                    <option value="Good">Good</option>
-                    <option value="Fair">Fair</option>
-                    <option value="Poor">Poor</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
                   <label htmlFor="quantity" className={styles.label}>
                     Quantity *
                   </label>
-                  <div className={styles.inputWithUnit}>
                     <input
                       type="number"
                       id="quantity"
@@ -390,37 +367,8 @@ const CreatePost = () => {
                       step="0.1"
                       required
                     />
-                    <select
-                      name="unit"
-                      value={formData.unit}
-                      onChange={handleInputChange}
-                      className={styles.unitSelect}
-                    >
-                      <option value="kg">kg</option>
-                      <option value="pieces">pieces</option>
-                      <option value="bags">bags</option>
-                      <option value="boxes">boxes</option>
-                    </select>
-                  </div>
                 </div>
 
-                <div className={styles.formGroup}>
-                  <label htmlFor="price" className={styles.label}>
-                    Price (₱)
-                    <span className={styles.hint}>Optional</span>
-                  </label>
-                  <input
-                    type="number"
-                    id="price"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
               </div>
 
               <div className={styles.formRow}>

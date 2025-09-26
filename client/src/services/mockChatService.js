@@ -1,6 +1,9 @@
 // client/src/services/mockChatService.js
 // Use this for development/testing when backend is not available
 
+// TODO
+// Check for userType usage
+
 class MockChatService {
   static conversations = [
     {

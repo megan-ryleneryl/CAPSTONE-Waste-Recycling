@@ -79,7 +79,7 @@ const requireCollector = async (req, res, next) => {
       });
     }
     
-    if (req.user.userType !== 'Collector' && req.user.userType !== 'Admin') {
+    if (!req.user.isCollector && !req.user.isAdmin) {
       return res.status(403).json({ 
         success: false,
         message: 'Access denied. Only Collectors and Admins can perform this action.' 
@@ -108,7 +108,7 @@ const requireAdmin = async (req, res, next) => {
       });
     }
     
-    if (req.user.userType !== 'Admin') {
+    if (!req.user.isAdmin) {
       return res.status(403).json({ 
         success: false,
         message: 'Access denied. Admin privileges required.' 

@@ -14,7 +14,7 @@ const AllUsers = () => {
   const [showModal, setShowModal] = useState(false);
   const [suspendReason, setSuspendReason] = useState('');
   const [filters, setFilters] = useState({
-    userType: 'all',
+    role: 'all',
     status: 'all',
     searchTerm: ''
   });
@@ -22,7 +22,7 @@ const AllUsers = () => {
   useEffect(() => {
     // Check if user is admin before fetching
     if (!authLoading && currentUser) {
-      if (currentUser.userType !== 'Admin') {
+      if (!currentUser.isAdmin) {
         alert('You do not have permission to view this page');
         navigate('/posts');
         return;
@@ -220,7 +220,11 @@ const AllUsers = () => {
 
   const filteredUsers = users.filter(user => {
     // Filter by user type
-    const typeMatch = filters.userType === 'all' || user.userType === filters.userType;
+    const roleMatch = filters.role === 'all' || 
+      (filters.role === 'admin' && user.isAdmin) ||
+      (filters.role === 'collector' && user.isCollector && !user.isAdmin) ||
+      (filters.role === 'giver' && !user.isCollector && !user.isAdmin) ||
+      (filters.role === 'organization' && user.isOrganization);
     
     // Filter by status
     const statusMatch = filters.status === 'all' || 
@@ -233,7 +237,7 @@ const AllUsers = () => {
       user.firstName?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
       user.lastName?.toLowerCase().includes(filters.searchTerm.toLowerCase());
     
-    return typeMatch && statusMatch && searchMatch;
+    return roleMatch && statusMatch && searchMatch;
   });
 
   // Get status badge styling
@@ -245,14 +249,11 @@ const AllUsers = () => {
   };
 
   // Get user type badge styling
-  const getUserTypeBadge = (userType) => {
-    const typeStyles = {
-      'Admin': styles.typeAdmin,
-      'Giver': styles.typeGiver,
-      'Collector': styles.typeCollector,
-      'Organization': styles.typeOrganization
-    };
-    return typeStyles[userType] || styles.typeDefault;
+  const getUserRoleBadge = (user) => {
+    if (user.isAdmin) return styles.typeAdmin;
+    if (user.isCollector) return styles.typeCollector;
+    if (user.isOrganization) return styles.typeOrganization;
+    return styles.typeGiver;
   };
 
   if (loading) {
@@ -296,34 +297,34 @@ const AllUsers = () => {
         {/* Filter Buttons */}
         <div className={styles.filterRow}>
           <div className={styles.filterGroup}>
-            <span className={styles.filterLabel}>User Type:</span>
+            <span className={styles.filterLabel}>Role:</span>
             <button
-              className={filters.userType === 'all' ? styles.filterActive : styles.filterButton}
-              onClick={() => setFilters({ ...filters, userType: 'all' })}
+              className={filters.role === 'all' ? styles.filterActive : styles.filterButton}
+              onClick={() => setFilters({ ...filters, role: 'all' })}
             >
-              All Types
+              All Roles
             </button>
             <button
-              className={filters.userType === 'Giver' ? styles.filterActive : styles.filterButton}
-              onClick={() => setFilters({ ...filters, userType: 'Giver' })}
+              className={filters.role === 'giver' ? styles.filterActive : styles.filterButton}
+              onClick={() => setFilters({ ...filters, role: 'giver' })}
             >
               Givers
             </button>
             <button
-              className={filters.userType === 'Collector' ? styles.filterActive : styles.filterButton}
-              onClick={() => setFilters({ ...filters, userType: 'Collector' })}
+              className={filters.role === 'collector' ? styles.filterActive : styles.filterButton}
+              onClick={() => setFilters({ ...filters, role: 'collector' })}
             >
               Collectors
             </button>
             <button
-              className={filters.userType === 'Organization' ? styles.filterActive : styles.filterButton}
-              onClick={() => setFilters({ ...filters, userType: 'Organization' })}
+              className={filters.role === 'organization' ? styles.filterActive : styles.filterButton}
+              onClick={() => setFilters({ ...filters, role: 'organization' })}
             >
               Organizations
             </button>
             <button
-              className={filters.userType === 'Admin' ? styles.filterActive : styles.filterButton}
-              onClick={() => setFilters({ ...filters, userType: 'Admin' })}
+              className={filters.role === 'admin' ? styles.filterActive : styles.filterButton}
+              onClick={() => setFilters({ ...filters, role: 'admin' })}
             >
               Admins
             </button>
@@ -376,8 +377,8 @@ const AllUsers = () => {
             {filteredUsers.map(user => (
               <div key={user.userID || user.uid} className={styles.userCard}>
                 <div className={styles.cardHeader}>
-                  <span className={getUserTypeBadge(user.userType)}>
-                    {user.userType}
+                  <span className={getUserRoleBadge(user)}>
+                    {user.isAdmin ? 'Admin' : user.isCollector ? 'Collector' : user.isOrganization ? 'Organization' : 'Giver'}
                   </span>
                   <span className={getStatusBadge(user.status)}>
                     {user.status === 'Suspended' ? 'Suspended' : 'Active'}
@@ -399,14 +400,14 @@ const AllUsers = () => {
                 </div>
 
                 <div className={styles.cardActions}>
-                  {user.userType === 'Admin' && currentUser?.userID !== user.userID ? (
+                  {user.isAdmin && currentUser?.userID !== user.userID ? (
                     <button
                       className={styles.revokeAdminButton}
                       onClick={() => handleRevokeAdmin(user.userID || user.uid)}
                     >
                       Revoke Admin
                     </button>
-                  ) : user.userType !== 'Admin' ? (
+                  ) : !user.isAdmin ? (
                     <button
                       className={styles.makeAdminButton}
                       onClick={() => handleMakeAdmin(user.userID || user.uid)}
@@ -458,7 +459,7 @@ const AllUsers = () => {
                 <div className={styles.detailsContent}>
                   <p><strong>Name:</strong> {selectedUser.firstName} {selectedUser.lastName}</p>
                   <p><strong>Email:</strong> {selectedUser.email}</p>
-                  <p><strong>User Type:</strong> {selectedUser.userType}</p>
+                  <p><strong>Role:</strong> {selectedUser.isAdmin ? 'Admin' : selectedUser.isCollector ? 'Collector' : selectedUser.isOrganization ? 'Organization' : 'Giver'}</p>
                   <p><strong>Status:</strong> {selectedUser.status}</p>
                   <p><strong>User Since:</strong> {formatDate(selectedUser.createdAt)}</p>
                   {selectedUser.updatedAt && (
@@ -497,14 +498,14 @@ const AllUsers = () => {
                 </div>
                 
                 <div className={styles.modalActions}>
-                  {selectedUser.userType === 'Admin' && currentUser?.userID !== selectedUser.userID ? (
+                  {selectedUser.isAdmin && currentUser?.userID !== selectedUser.userID ? (
                     <button
                       className={styles.revokeAdminModalButton}
                       onClick={() => handleRevokeAdmin(selectedUser.userID || selectedUser.uid)}
                     >
                       Revoke Admin Privileges
                     </button>
-                  ) : selectedUser.userType !== 'Admin' ? (
+                  ) : !selectedUser.isAdmin ? (
                     <button
                       className={styles.makeAdminModalButton}
                       onClick={() => handleMakeAdmin(selectedUser.userID || selectedUser.uid)}

@@ -67,7 +67,9 @@ const Chat = () => {
       userID: conversation.otherUserID,
       firstName: conversation.otherUserName?.split(' ')[0] || 'Unknown',
       lastName: conversation.otherUserName?.split(' ')[1] || 'User',
-      userType: 'User' // You might want to fetch this from your User model
+      isCollector: false, // You might want to fetch from User model
+      isAdmin: false, // You might want to fetch from User model
+      isOrganization: false // You might want to fetch from User model
     };
 
     handleOpenChat(conversation.postID, otherUser);

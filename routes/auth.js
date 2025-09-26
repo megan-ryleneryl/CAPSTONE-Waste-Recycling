@@ -15,7 +15,6 @@ const generateToken = (user) => {
     { 
       userID: user.userID,
       email: user.email,
-      userType: user.userType,
       status: user.status
     },
     process.env.JWT_SECRET || 'your-secret-key',
@@ -26,7 +25,7 @@ const generateToken = (user) => {
 // Register endpoint
 router.post('/register', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, userType = 'Giver' } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({
@@ -54,11 +53,12 @@ router.post('/register', async (req, res) => {
       lastName: lastName.trim(),
       email: email.toLowerCase().trim(),
       passwordHash,
-      userType,
       status: 'Pending', // Default status
       points: 0, // Default points
       badges: [], // Empty badges array
       phone: '', // Default empty phone
+      isCollector: false, // Default not collector
+      isAdmin: false, // Default not admin
       isOrganization: false, // Default not organization
       organizationName: null,
       preferredTimes: [],
@@ -96,11 +96,12 @@ router.post('/register', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        userType: user.userType,
         status: user.status,
         points: user.points,
         badges: user.badges,
-        isAdmin: user.userType === 'Admin',
+        isCollector: user.isCollector,
+        isAdmin: user.isAdmin,
+        isOrganization: user.isOrganization,
         profilePicture: user.profilePictureUrl,  // For backward compatibility
         profilePictureUrl: user.profilePictureUrl,
       }
@@ -159,7 +160,9 @@ router.post('/login', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        userType: user.userType,
+        isCollector: user.isCollector,
+        isAdmin: user.isAdmin,
+        isOrganization: user.isOrganization,
         status: user.status,
         points: user.points,
         badges: user.badges,
@@ -278,11 +281,12 @@ router.post('/google', async (req, res) => {
       lastName: lastName,
       email: email.toLowerCase().trim(),
       passwordHash,
-      userType: 'Giver',
       status: 'Pending',
       points: 0,
       badges: [],
       phone: '',
+      isCollector: false,
+      isAdmin: false,
       isOrganization: false,
       organizationName: null,
       preferredTimes: [],
@@ -336,7 +340,9 @@ router.post('/google', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        userType: user.userType,
+        isCollector: user.isCollector,
+        isAdmin: user.isAdmin,
+        isOrganization: user.isOrganization,
         status: user.status,
         points: user.points,
         badges: user.badges,
