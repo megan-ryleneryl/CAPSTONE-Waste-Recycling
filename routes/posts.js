@@ -14,6 +14,7 @@ const { verifyToken } = require('../middleware/auth');
 router.get('/', verifyToken, async (req, res) => {
   try {
     const { type, status, location, userID } = req.query;
+    const User = require('../models/Users');
     
     let posts;
     if (userID) {
@@ -28,18 +29,60 @@ router.get('/', verifyToken, async (req, res) => {
       posts = await Post.findAll();
     }
     
-    // Add user info and interaction data
+    // Create a map of user IDs to fetch
+    const userIds = [...new Set(posts.map(post => post.userID))];
+    
+    // Batch fetch all users
+    const usersMap = {};
+    for (const userId of userIds) {
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          usersMap[userId] = {
+            userID: user.userID,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profilePictureUrl: user.profilePictureUrl,
+            isOrganization: user.isOrganization,
+            organizationName: user.organizationName,
+            userType: user.userType
+          };
+        }
+      } catch (err) {
+        console.error(`Failed to fetch user ${userId}:`, err.message);
+        usersMap[userId] = null;
+      }
+    }
+    
+    // Add user data and interaction data to posts
     const enrichedPosts = await Promise.all(posts.map(async (post) => {
-      const likeCount = await post.getLikeCount();
-      const isLiked = await post.isLikedByUser(req.user.userID);
-      const comments = await post.getComments();
+      const postData = post.toFirestore ? post.toFirestore() : post;
+      
+      // Get interaction data with error handling
+      let likeCount = 0;
+      let isLiked = false;
+      let commentCount = 0;
+      
+      try {
+        likeCount = await post.getLikeCount();
+        isLiked = await post.isLikedByUser(req.user.userID);
+        const comments = await post.getComments();
+        commentCount = comments.length;
+      } catch (err) {
+        // Silently handle if these methods don't exist
+      }
       
       return {
-        ...post,
+        ...postData,
+        user: usersMap[postData.userID] || {
+          firstName: 'Unknown',
+          lastName: 'User',
+          profilePictureUrl: null
+        },
         likeCount,
         isLiked,
-        commentCount: comments.length,
-        isOwner: post.userID === req.user.userID
+        commentCount,
+        isOwner: postData.userID === req.user.userID
       };
     }));
     

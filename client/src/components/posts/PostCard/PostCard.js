@@ -33,8 +33,23 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
       let url = 'http://localhost:3001/api/protected/posts';
       
       // Add filter for post type if not 'all'
-      if (postType !== 'all') {
-        url += `?type=${postType}`;
+      // Only add type filter if a specific type is requested
+      if (postType && postType !== 'all') {
+        // Map component prop values to database values
+        const typeMap = {
+          'Waste Post': 'Waste',
+          'Initiative Post': 'Initiative',
+          'Forum Post': 'Forum',
+          'Waste': 'Waste',
+          'Initiative': 'Initiative',
+          'Forum': 'Forum'
+        };
+        
+        const mappedType = typeMap[postType] || postType;
+        url += `?type=${mappedType}`;
+        console.log('Filtering by type:', mappedType);
+      } else {
+        console.log('Fetching all post types');
       }
       
       console.log('Fetching posts from:', url);
@@ -47,14 +62,61 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
       });
       
       console.log('Posts response:', response.data);
+      console.log('Number of posts:', response.data.posts?.length);
+      console.log('Post types:', response.data.posts?.map(p => p.postType));
       
       if (response.data.success) {
         // Limit posts based on maxPosts prop
         const limitedPosts = response.data.posts.slice(0, maxPosts);
         
-        // For now, use posts without fetching additional user details
-        // since the posts should already have user info
-        setPosts(limitedPosts);
+        // Log the types of posts received
+        const postTypes = limitedPosts.reduce((acc, post) => {
+          acc[post.postType] = (acc[post.postType] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('Post type distribution:', postTypes);
+        console.log('Sample post with user:', limitedPosts[0]);
+        
+        // Check if posts already have user data
+        if (limitedPosts.length > 0 && !limitedPosts[0].user) {
+          console.log('Posts do not have user data, fetching separately...');
+          
+          // Fetch user details for each post if not included
+          const postsWithUsers = await Promise.all(
+            limitedPosts.map(async (post) => {
+              try {
+                const userResponse = await axios.get(
+                  `http://localhost:3001/api/protected/users/${post.userID}`,
+                  {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  }
+                );
+                
+                return {
+                  ...post,
+                  user: userResponse.data.user
+                };
+              } catch (err) {
+                console.error(`Failed to fetch user for post ${post.postID}:`, err.message);
+                return {
+                  ...post,
+                  user: {
+                    firstName: 'Unknown',
+                    lastName: 'User',
+                    profilePictureUrl: null,
+                    organizationName: null
+                  }
+                };
+              }
+            })
+          );
+          
+          setPosts(postsWithUsers);
+        } else {
+          // Posts already have user data
+          console.log('Posts already include user data');
+          setPosts(limitedPosts);
+        }
       } else {
         setError('Failed to load posts');
       }
@@ -294,15 +356,21 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
         const postImages = post.images || [];
         
         // Extract user info - handle both embedded user data and separate user field
-        const userName = post.user?.organizationName || 
-                        `${post.user?.firstName || ''} ${post.user?.lastName || ''}`.trim() ||
-                        post.userName ||
-                        'Anonymous';
+        const user = post.user || {};
         
-        const userInitial = post.user?.firstName?.[0]?.toUpperCase() || 
-                           userName[0]?.toUpperCase() || 
+        // Determine display name
+        const displayName = user.organizationName || 
+                           (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : null) ||
+                           'Anonymous User';
+        
+        // Get user initial for avatar
+        const userInitial = user.firstName?.[0]?.toUpperCase() || 
+                           user.organizationName?.[0]?.toUpperCase() || 
+                           displayName[0]?.toUpperCase() || 
                            'U';
         
+        // Get profile picture
+        const profilePicture = user.profilePictureUrl || post.profilePictureUrl || null;
         return (
           <div key={post.postID} className={styles.postCard}>
 
@@ -310,18 +378,23 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
                 <div className={styles.header}>
                   <div className={styles.userInfo}>
                     <div className={styles.avatar}>
-                      {post.user?.profilePictureUrl || post.profilePictureUrl ? (
+                      {profilePicture ? (
                         <img 
-                          src={post.user?.profilePictureUrl || post.profilePictureUrl} 
-                          alt={userName}
+                          src={profilePicture} 
+                          alt={displayName}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
                         />
-                      ) : (
-                        <span>{userInitial}</span>
-                      )}
+                        ) : null}
+                        <span style={profilePicture ? {display: 'none'} : {}}>
+                          {userInitial}
+                        </span>
                     </div>
                     <div className={styles.userDetails}>
                       <h3 className={styles.authorName}>
-                        {userName}
+                        {displayName}
                       </h3>
                       {post.user?.organizationName && (
                         <span className={styles.username}>
