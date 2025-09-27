@@ -109,6 +109,7 @@ router.get('/', verifyToken, async (req, res) => {
 // Get single post by ID
 router.get('/:postId', verifyToken, async (req, res) => {
   try {
+    const User = require('../models/Users');
     const post = await Post.findById(req.params.postId);
     
     if (!post) {
@@ -118,19 +119,59 @@ router.get('/:postId', verifyToken, async (req, res) => {
       });
     }
     
-    // Get additional post data
-    const likeCount = await post.getLikeCount();
-    const isLiked = await post.isLikedByUser(req.user.userID);
-    const comments = await post.getComments();
+    // Get the post data
+    const postData = post.toFirestore ? post.toFirestore() : post;
+    
+    // Fetch user data
+    let userData = null;
+    try {
+      const postUser = await User.findById(postData.userID);
+      if (postUser) {
+        userData = {
+          userID: postUser.userID,
+          firstName: postUser.firstName,
+          lastName: postUser.lastName,
+          profilePictureUrl: postUser.profilePictureUrl,
+          isOrganization: postUser.isOrganization,
+          organizationName: postUser.organizationName,
+          userType: postUser.userType,
+          badges: postUser.badges,
+          points: postUser.points
+        };
+      }
+      console.log('Fetched user data for post:', userData);
+    } catch (userError) {
+      console.error('Error fetching user:', userError);
+      userData = {
+        firstName: 'Unknown',
+        lastName: 'User',
+        profilePictureUrl: null
+      };
+    }
+    
+    // Get interactions
+    let likeCount = 0;
+    let isLiked = false;
+    let comments = [];
+    
+    try {
+      likeCount = await post.getLikeCount();
+      isLiked = await post.isLikedByUser(req.user.userID);
+      comments = await post.getComments();
+    } catch (err) {
+      console.error('Error fetching interactions:', err);
+    }
     
     res.json({
       success: true,
       post: {
-        ...post,
+        ...postData,
+        user: userData,
         likeCount,
         isLiked,
         comments,
-        isOwner: post.userID === req.user.userID
+        commentCount: comments.length,
+        isOwner: postData.userID === req.user.userID
       }
     });
   } catch (error) {
@@ -361,7 +402,7 @@ router.patch('/:postId/status', verifyToken, async (req, res) => {
     const validStatuses = {
       'Waste': ['Active', 'Claimed', 'Completed', 'Cancelled'],
       'Initiative': ['Active', 'Completed', 'Cancelled'],
-      'Forum': ['Active', 'Locked', 'Hidden']
+      'Forum': ['Active', 'Cancelled']
     };
     
     if (!validStatuses[post.postType]?.includes(status)) {

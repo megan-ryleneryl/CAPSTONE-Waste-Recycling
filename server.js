@@ -15,8 +15,6 @@ const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const profileRoutes = require('./routes/profileRoutes');
 const messageRoutes = require('./routes/messageRoutes');
-const pickupRoutes = require('./routes/pickupRoutes');
-
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -29,7 +27,6 @@ const Post = require('./models/Posts');
 const WastePost = require('./models/WastePost');
 const Application = require('./models/Application'); 
 const Pickup = require('./models/Pickup');
-const Notification = require('./models/Notification');
 
 // Import the middleware
 const { verifyToken } = require('./middleware/auth');
@@ -70,15 +67,14 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Static file serving with proper CORS headers
+// Static file serving
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.use('/uploads', (req, res, next) => {
-  // Set CORS headers BEFORE serving the static files
   res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
-}, express.static(path.join(__dirname, 'uploads')));
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -94,7 +90,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', verifyToken, postRoutes);
 app.use('/api/protected/profile', profileRoutes);
 app.use('/api/messages', messageRoutes);
-app.use('/api/pickups', pickupRoutes);
 
 app.use('/api/admin', (req, res, next) => {
   next();
@@ -120,12 +115,6 @@ app.get('/api/posts/public', async (req, res) => {
       createdAt: post.createdAt,
       // Hide sensitive user data for public view
       userType: post.userType
-
-      // TODO
-      // isCollector: post.isCollector,
-      // isAdmin: post.isAdmin,
-      // isOrganization: post.isOrganization
-      // Remove userType, but need to update the Posts schema and Firebase
     }));
     
     res.json({ success: true, posts: publicPosts });
@@ -176,7 +165,6 @@ app.get('/api/protected/posts', async (req, res) => {
     } else if (location) {
       posts = await Post.findByLocation(location);
     } else {
-      // Correct - gets all posts
       posts = await Post.findAll();
     }
     
@@ -187,16 +175,90 @@ app.get('/api/protected/posts', async (req, res) => {
   }
 });
 
+// Get single post by ID with user data
 app.get('/api/protected/posts/:postId', async (req, res) => {
   try {
+    const Post = require('./models/Posts');
+    const User = require('./models/Users');
+    
+    // Fetch the post
     const post = await Post.findById(req.params.postId);
+    
     if (!post) {
-      return res.status(404).json({ success: false, error: 'Post not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
     }
-    res.json({ success: true, post });
+    
+    // Get the post data
+    const postData = post.toFirestore ? post.toFirestore() : post;
+    
+    // Fetch the user who created this post
+    let userData = null;
+    try {
+      const postUser = await User.findById(postData.userID);
+      if (postUser) {
+        userData = {
+          userID: postUser.userID,
+          firstName: postUser.firstName,
+          lastName: postUser.lastName,
+          profilePictureUrl: postUser.profilePictureUrl,
+          isOrganization: postUser.isOrganization,
+          organizationName: postUser.organizationName,
+          userType: postUser.userType,
+          badges: postUser.badges,
+          points: postUser.points
+        };
+      }
+    } catch (userError) {
+      console.error(`Failed to fetch user ${postData.userID}:`, userError);
+      // Provide fallback user data
+      userData = {
+        firstName: 'Unknown',
+        lastName: 'User',
+        profilePictureUrl: null,
+        userType: postData.userType || 'Giver'
+      };
+    }
+    
+    // Get interaction data
+    let likeCount = 0;
+    let isLiked = false;
+    let commentCount = 0;
+    let comments = [];
+    
+    try {
+      likeCount = await post.getLikeCount();
+      isLiked = await post.isLikedByUser(req.user.userID);
+      comments = await post.getComments();
+      commentCount = comments.length;
+    } catch (interactionError) {
+      console.error('Error getting interactions:', interactionError);
+    }
+    
+    // Combine everything
+    const enrichedPost = {
+      ...postData,
+      user: userData,
+      likeCount,
+      isLiked,
+      comments,
+      commentCount,
+      isOwner: postData.userID === req.user.userID
+    };
+    
+    res.json({
+      success: true,
+      post: enrichedPost
+    });
   } catch (error) {
-    console.error('Post fetch error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Single post fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching post',
+      error: error.message
+    });
   }
 });
 
@@ -237,7 +299,7 @@ app.put('/api/protected/posts/:postId', async (req, res) => {
     }
     
     // Check if user owns the post or is admin
-    if (post.userID !== req.user.userID && !req.user.isAdmin) {
+    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
       return res.status(403).json({ success: false, error: 'Unauthorized to edit this post' });
     }
     
@@ -249,10 +311,71 @@ app.put('/api/protected/posts/:postId', async (req, res) => {
   }
 });
 
+// Pickup routes
+app.get('/api/protected/pickups', async (req, res) => {
+  try {
+    const { type = 'all' } = req.query;
+    let pickups;
+    
+    if (type === 'given') {
+      pickups = await Pickup.findByGiverID(req.user.userID);
+    } else if (type === 'collected') {
+      pickups = await Pickup.findByCollectorID(req.user.userID);
+    } else {
+      // Get all pickups for this user (both given and collected)
+      const givenPickups = await Pickup.findByGiverID(req.user.userID);
+      const collectedPickups = await Pickup.findByCollectorID(req.user.userID);
+      pickups = [...givenPickups, ...collectedPickups];
+    }
+    
+    res.json({ success: true, pickups });
+  } catch (error) {
+    console.error('Pickups fetch error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
+app.post('/api/protected/pickups', async (req, res) => {
+  try {
+    const pickupData = {
+      ...req.body,
+      collectorID: req.user.userID
+    };
+    
+    const pickup = await Pickup.create(pickupData);
+    res.status(201).json({ 
+      success: true, 
+      pickup, 
+      message: 'Pickup request created successfully' 
+    });
+  } catch (error) {
+    console.error('Pickup creation error:', error.message);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
+  try {
+    const pickup = await Pickup.findById(req.params.pickupId);
+    if (!pickup) {
+      return res.status(404).json({ success: false, error: 'Pickup not found' });
+    }
+    
+    // Only the giver can confirm pickups
+    if (pickup.giverID !== req.user.userID) {
+      return res.status(403).json({ success: false, error: 'Unauthorized to confirm this pickup' });
+    }
+    
+    await pickup.confirm();
+    res.json({ success: true, pickup, message: 'Pickup confirmed successfully' });
+  } catch (error) {
+    console.error('Pickup confirm error:', error.message);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
 
 app.post('/api/protected/upload/profile-picture',
-  upload.single('profilePicture'), // Changed from 'picture' to 'profilePicture'
+  upload.single('profilePicture'),
   async (req, res) => {
     try {
       if (!req.file) {
@@ -261,20 +384,13 @@ app.post('/api/protected/upload/profile-picture',
 
       const uploadedFile = await StorageService.uploadProfilePicture(req.file, req.user.userID);
       
-      // Update user profile with new picture URL
-      await User.update(req.user.userID, { 
-        profilePicture: uploadedFile,
-        profilePictureUrl: uploadedFile // Support both field names during transition
-      });
-      
-      // Get updated user data
-      const updatedUser = await User.findById(req.user.userID);
+      // Update user profile with new picture URL - using correct field name
+      await User.update(req.user.userID, { profilePictureUrl: uploadedFile });
       
       res.json({ 
         success: true, 
         message: 'Profile picture uploaded successfully',
-        fileUrl: uploadedFile,
-        user: updatedUser // Return complete updated user
+        fileUrl: uploadedFile 
       });
     } catch (error) {
       console.error('Profile picture upload error:', error.message);
@@ -398,8 +514,7 @@ app.get('/api/protected/users/:userId', async (req, res) => {
       userID: user.userID,
       firstName: user.firstName,
       lastName: user.lastName,
-      isCollector: user.isCollector,
-      isAdmin: user.isAdmin,
+      userType: user.userType,
       isOrganization: user.isOrganization,
       organizationName: user.organizationName,
       profilePictureUrl: user.profilePictureUrl,
@@ -535,8 +650,7 @@ app.get('/api/admin/users/:userID', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        isCollector: user.isCollector,
-        isAdmin: user.isAdmin,
+        userType: user.userType,
         isOrganization: user.isOrganization,
         organizationName: user.organizationName
       }
@@ -709,7 +823,7 @@ app.put('/api/admin/users/:userId/make-admin', async (req, res) => {
     }
 
     // Prevent making another admin an admin
-    if (currentUser.isAdmin) {
+    if (currentUser.userType === 'Admin') {
       return res.status(400).json({ 
         success: false, 
         error: 'User is already an admin' 
@@ -718,7 +832,7 @@ app.put('/api/admin/users/:userId/make-admin', async (req, res) => {
 
     // Update user to admin
     await User.update(userId, {
-      isAdmin: true,
+      userType: 'Admin',
       status: 'Verified', // Admins should always be verified
       updatedAt: new Date().toISOString(),
       elevatedBy: req.user.userID,
@@ -753,7 +867,7 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
     }
 
     // Prevent revoking if user is not an admin
-    if (!currentUser.isAdmin) {
+    if (currentUser.userType !== 'Admin') {
       return res.status(400).json({ 
         success: false, 
         error: 'User is not an admin' 
@@ -768,9 +882,26 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
       });
     }
 
+    // Check user's Collector_Privilege application to determine new userType
+    const applications = await Application.findByUserID(userId);
+    const collectorApp = applications
+      .filter(app => app.applicationType === 'Collector_Privilege')
+      .sort((a, b) => {
+        const dateA = new Date(b.submittedAt || 0);
+        const dateB = new Date(a.submittedAt || 0);
+        return dateA - dateB;
+      })[0];
+
+    let newUserType = 'Giver'; // Default to Giver
+
+    // If they have an approved collector application, make them a Collector
+    if (collectorApp && collectorApp.status === 'Approved') {
+      newUserType = 'Collector';
+    }
+
     // Update user type from Admin to determined type
     await User.update(userId, {
-      isAdmin: false,
+      userType: newUserType,
       updatedAt: new Date().toISOString(),
       revokedBy: req.user.userID,
       revokedAt: new Date().toISOString()
@@ -778,7 +909,7 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: `Admin privileges revoked.` 
+      message: `Admin privileges revoked. User is now a ${newUserType}` 
     });
   } catch (error) {
     console.error('Error revoking admin privileges:', error);

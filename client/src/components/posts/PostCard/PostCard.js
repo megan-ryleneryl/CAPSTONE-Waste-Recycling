@@ -4,20 +4,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './PostCard.module.css';
 
-const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) => {
+const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [imageIndexes, setImageIndexes] = useState({});
-  const [actionStatus, setActionStatus] = useState(null);
-  const [showPickupModal, setShowPickupModal] = useState(false);
   const navigate = useNavigate();
-  
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const token = localStorage.getItem('token');
 
   useEffect(() => {
     fetchPosts();
+    
+    // Cleanup function to ensure posts is reset properly
+    return () => {
+      setPosts([]);
+    };
   }, [postType]);
 
   const fetchPosts = async () => {
@@ -67,12 +67,20 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
       });
       
       console.log('Posts response:', response.data);
+      console.log('Posts is array?', Array.isArray(response.data.posts));
       console.log('Number of posts:', response.data.posts?.length);
-      console.log('Post types:', response.data.posts?.map(p => p.postType));
       
       if (response.data.success) {
+        // Ensure posts is always an array
+        const postsData = response.data.posts;
+        if (!Array.isArray(postsData)) {
+          console.error('Posts data is not an array:', postsData);
+          setPosts([]);
+          return;
+        }
+        
         // Limit posts based on maxPosts prop
-        const limitedPosts = response.data.posts.slice(0, maxPosts);
+        const limitedPosts = postsData.slice(0, maxPosts);
         
         // Log the types of posts received
         const postTypes = limitedPosts.reduce((acc, post) => {
@@ -91,6 +99,8 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
             limitedPosts.map(async (post) => {
               try {
                 const userResponse = await axios.get(
+                  
+
                   `http://localhost:3001/api/protected/users/${post.userID}`,
                   {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -123,6 +133,8 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
           setPosts(limitedPosts);
         }
       } else {
+        console.error('Response not successful:', response.data);
+        setPosts([]); // Set empty array on failure
         setError('Failed to load posts');
       }
     } catch (err) {
@@ -208,15 +220,26 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
     return postDate.toLocaleDateString();
   };
 
+  // Handle clicking on the post card
+  const handlePostClick = (postId, event) => {
+    // Prevent navigation if clicking on buttons or interactive elements
+    if (event.target.closest('button') || event.target.closest('a')) {
+      return;
+    }
+    navigate(`/posts/${postId}`);
+  };
+
   // Handle image carousel navigation
-  const handlePrevImage = (postId, totalImages) => {
+  const handlePrevImage = (event, postId, totalImages) => {
+    event.stopPropagation(); // Prevent post navigation
     setImageIndexes(prev => ({
       ...prev,
       [postId]: prev[postId] > 0 ? prev[postId] - 1 : totalImages - 1
     }));
   };
 
-  const handleNextImage = (postId, totalImages) => {
+  const handleNextImage = (event, postId, totalImages) => {
+    event.stopPropagation(); // Prevent post navigation
     setImageIndexes(prev => ({
       ...prev,
       [postId]: (prev[postId] || 0) < totalImages - 1 ? (prev[postId] || 0) + 1 : 0
@@ -263,154 +286,28 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
   };
 
   // Handle action button clicks
-  const checkActionStatus = async () => {
+  const handleCollect = async (event, postId) => {
+    event.stopPropagation(); // Prevent post navigation
     try {
-      const response = await axios.get(
-        `http://localhost:3001/api/posts/${post.postID}/status`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setActionStatus(response.data.data);
-    } catch (error) {
-      console.error('Error checking action status:', error);
+      console.log('Collecting post:', postId);
+      navigate(`/posts/${postId}`);
+    } catch (err) {
+      console.error('Error collecting post:', err);
     }
   };
 
-  const handleCollect = async () => {
-    if (!currentUser.userID) {
-      navigate('/login');
-      return;
-    }
-
-    if (!currentUser.isCollector) {
-      alert('Only Collectors can claim Waste posts. Please apply to become a Collector.');
-      return;
-    }
-
-    setLoading(true);
+  const handleSupport = async (event, postId) => {
+    event.stopPropagation(); // Prevent post navigation
     try {
-      const response = await axios.post(
-        `http://localhost:3001/api/posts/${post.postID}/claim`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        alert('Post claimed successfully! Redirecting to chat...');
-        navigate(response.data.data.chatURL);
-      }
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to claim post');
-    } finally {
-      setLoading(false);
+      console.log('Supporting initiative:', postId);
+      navigate(`/posts/${postId}`);
+    } catch (err) {
+      console.error('Error supporting initiative:', err);
     }
   };
 
-  const handleSupportInitiative = async () => {
-    if (!currentUser.userID) {
-      navigate('/login');
-      return;
-    }
-
-    setShowPickupModal(true);
-  };
-
-  const submitSupport = async (supportData) => {
-    setLoading(true);
-    try {
-      const response = await axios.post(
-        `http://localhost:3001/api/posts/${post.postID}/support`,
-        supportData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        setShowPickupModal(false);
-        alert('Support request sent! The initiative owner will contact you.');
-        onActionComplete && onActionComplete();
-      }
-    } catch (error) {
-      alert(error.response?.data?.message || 'Failed to send support request');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getActionButton = () => {
-    if (!actionStatus) return null;
-
-    if (actionStatus.isOwner) {
-      if (post.status === 'Claimed') {
-        return (
-          <button
-            className="btn btn-info"
-            onClick={() => navigate(`/pickups/${post.postID}`)}
-          >
-            View Pickup Schedule
-          </button>
-        );
-      }
-      return (
-        <button className="btn btn-secondary" disabled>
-          Your Post
-        </button>
-      );
-    }
-
-    if (post.postType === 'Waste') {
-      if (post.status === 'Claimed') {
-        return (
-          <button className="btn btn-secondary" disabled>
-            Already Claimed {actionStatus.claimedBy === currentUser.userID && '(by you)'}
-          </button>
-        );
-      }
-      if (actionStatus.userHasClaimed) {
-        return (
-          <button 
-            className="btn btn-info"
-            onClick={() => navigate(`/chat/${post.postID}/${post.userID}`)}
-          >
-            View Chat
-          </button>
-        );
-      }
-      return (
-        <button
-          className="btn btn-success"
-          onClick={handleCollect}
-          disabled={loading || !currentUser.isCollector}
-        >
-          {loading ? 'Processing...' : 'Claim Post'}
-        </button>
-      );
-    }
-
-    if (post.postType === 'Initiative') {
-      if (actionStatus.userHasSupported) {
-        return (
-          <button 
-            className="btn btn-info"
-            onClick={() => navigate(`/chat/${post.postID}/${post.userID}`)}
-          >
-            View Support Chat
-          </button>
-        );
-      }
-      return (
-        <button
-          className="btn btn-primary"
-          onClick={handleSupportInitiative}
-          disabled={loading}
-        >
-          {loading ? 'Processing...' : 'Support Initiative'}
-        </button>
-      );
-    }
-
-    return null;
-  };
-
-  const handleLike = async (postId) => {
+  const handleLike = async (event, postId) => {
+    event.stopPropagation(); // Prevent post navigation
     try {
       const token = localStorage.getItem('token');
       await axios.post(
@@ -427,8 +324,9 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
     }
   };
 
-  const handleComment = (postId) => {
-    navigate(`/posts/${postId}`);
+  const handleComment = (event, postId) => {
+    event.stopPropagation(); // Prevent post navigation
+    navigate(`/posts/${postId}#comments`);
   };
 
   // Loading state
@@ -463,7 +361,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
   }
 
   // Empty state
-  if (!posts || posts.length === 0) {
+  if (!posts || !Array.isArray(posts) || posts.length === 0) {
     return (
       <div className={styles.container}>
         <div className={styles.empty}>
@@ -484,7 +382,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
 
   return (
     <div className={styles.container}>
-      {posts.map((post) => {
+      {Array.isArray(posts) && posts.map((post) => {
         const currentImageIndex = imageIndexes[post.postID] || 0;
         const postImages = post.images || [];
         
@@ -504,73 +402,82 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
         
         // Get profile picture
         const profilePicture = user.profilePictureUrl || post.profilePictureUrl || null;
+        
         return (
-          <div key={post.postID} className={styles.postCard}>
-
-                {/* Post Header with User Info */}
-                <div className={styles.header}>
-                  <div className={styles.userInfo}>
-                    <div className={styles.avatar}>
-                      {profilePicture ? (
-                        <img 
-                          src={profilePicture} 
-                          alt={displayName}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                        ) : null}
-                        <span style={profilePicture ? {display: 'none'} : {}}>
-                          {userInitial}
-                        </span>
-                    </div>
-                    <div className={styles.userDetails}>
-                      <h3 className={styles.authorName}>
-                        {displayName}
-                      </h3>
-                      {post.user?.organizationName && (
-                        <span className={styles.username}>
-                          {`${post.user.firstName} ${post.user.lastName}`}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className={styles.timestamp}>
-                    {formatTimestamp(post.createdAt)}
+          <div 
+            key={post.postID} 
+            className={styles.postCard}
+            onClick={(e) => handlePostClick(post.postID, e)}
+            style={{ cursor: 'pointer' }}
+          >
+            {/* Post Header with User Info */}
+            <div className={styles.header}>
+              <div className={styles.userInfo}>
+                <div className={styles.avatar}>
+                  {profilePicture ? (
+                    <img 
+                      src={profilePicture} 
+                      alt={displayName}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <span style={profilePicture ? {display: 'none'} : {}}>
+                    {userInitial}
                   </span>
                 </div>
-
-            {/* Top Section of the post card */}
-            <div className={styles.topSection}>
-
-                {/* Post Type Tag */}
-                <div className={styles.tagContainer}>
-                  <span className={`${styles.tag} ${
-                    post.postType === 'Waste' ? styles.wasteTag :
-                    post.postType === 'Initiative' ? styles.initiativeTag :
-                    styles.forumTag
-                  }`}>
-                    <span className={styles.tagIcon}>
-                      {post.postType === 'Waste' ? '♻️' :
-                      post.postType === 'Initiative' ? '🌱' : '💬'}
-                    </span>
-                    {post.postType} Post
-                  </span>
-                </div>
-
-                {/* Post Title and Description */}
-                <h2 className={styles.title}>{post.title}</h2>
-                <p className={styles.description}>
-                  {post.description?.length > 100 
-                    ? `${post.description.substring(0, 100)}...` 
-                    : post.description}
-                  {post.description?.length > 100 && (
-                    <span className={styles.seeMore} onClick={() => navigate(`/posts/${post.postID}`)}>
-                      See more
+                <div className={styles.userDetails}>
+                  <h3 className={styles.authorName}>
+                    {displayName}
+                  </h3>
+                  {user.organizationName && user.firstName && (
+                    <span className={styles.username}>
+                      {`${user.firstName} ${user.lastName}`}
                     </span>
                   )}
-                </p>
+                </div>
+              </div>
+              <span className={styles.timestamp}>
+                {formatTimestamp(post.createdAt)}
+              </span>
+            </div>
+
+            {/* Top Section */}
+              <div className={styles.topSection}>
+              
+              {/* Post Type Tag */}
+              <div className={styles.tagContainer}>
+                <span className={`${styles.tag} ${
+                  post.postType === 'Waste' ? styles.wasteTag :
+                  post.postType === 'Initiative' ? styles.initiativeTag :
+                  styles.forumTag
+                }`}>
+                  <span className={styles.tagIcon}>
+                    {post.postType === 'Waste' ? '♻️' :
+                    post.postType === 'Initiative' ? '🌱' : '💬'}
+                  </span>
+                  {post.postType} Post
+                </span>
+              </div>
+
+              {/* Post Title and Description */}
+              <h2 className={styles.title}>{post.title}</h2>
+              <p className={styles.description}>
+                {post.description?.length > 200 
+                  ? `${post.description.substring(0, 200)}...` 
+                  : post.description}
+                {post.description?.length > 200 && (
+                  <Link 
+                    to={`/posts/${post.postID}`} 
+                    className={styles.seeMore}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    See more
+                  </Link>
+                )}
+              </p>
 
             </div>
 
@@ -586,14 +493,14 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
                   <>
                     <button 
                       className={`${styles.navButton} ${styles.prevButton}`}
-                      onClick={() => handlePrevImage(post.postID, postImages.length)}
+                      onClick={(e) => handlePrevImage(e, post.postID, postImages.length)}
                       aria-label="Previous image"
                     >
                       ←
                     </button>
                     <button 
                       className={`${styles.navButton} ${styles.nextButton}`}
-                      onClick={() => handleNextImage(post.postID, postImages.length)}
+                      onClick={(e) => handleNextImage(e, post.postID, postImages.length)}
                       aria-label="Next image"
                     >
                       →
@@ -730,14 +637,14 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
               <div className={styles.interactions}>
                 <button 
                   className={styles.interactionButton}
-                  onClick={() => handleLike(post.postID)}
+                  onClick={(e) => handleLike(e, post.postID)}
                 >
                   <span>{post.isLiked ? '❤️' : '🤍'}</span>
                   <span>{post.likeCount || 0} Likes</span>
                 </button>
                 <button 
                   className={styles.interactionButton}
-                  onClick={() => handleComment(post.postID)}
+                  onClick={(e) => handleComment(e, post.postID)}
                 >
                   <span>💬</span>
                   <span>{post.commentCount || 0} Comments</span>
@@ -750,7 +657,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
               {post.postType === 'Waste' && post.status === 'Active' && (
                 <button 
                   className={`${styles.actionButton} ${styles.collectButton}`}
-                  onClick={() => handleCollect(post.postID)}
+                  onClick={(e) => handleCollect(e, post.postID)}
                 >
                   Collect
                 </button>
@@ -760,6 +667,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
                   className={`${styles.actionButton} ${styles.claimedButton}`}
                   disabled
                   style={{ background: '#9CA3AF', cursor: 'not-allowed' }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   Claimed
                 </button>
@@ -767,7 +675,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
               {post.postType === 'Initiative' && (
                 <button 
                   className={`${styles.actionButton} ${styles.supportButton}`}
-                  onClick={() => handleSupportInitiative(post.postID)}
+                  onClick={(e) => handleSupport(e, post.postID)}
                 >
                   Support
                 </button>
@@ -775,7 +683,10 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
               {post.postType === 'Forum' && (
                 <button 
                   className={`${styles.actionButton} ${styles.viewButton}`}
-                  onClick={() => navigate(`/posts/${post.postID}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/posts/${post.postID}`);
+                  }}
                 >
                   Join Discussion
                 </button>
@@ -783,7 +694,10 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
               {post.isOwner && (
                 <button 
                   className={`${styles.actionButton} ${styles.editButton}`}
-                  onClick={() => navigate(`/posts/edit/${post.postID}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/posts/edit/${post.postID}`);
+                  }}
                   style={{ marginLeft: 'auto', background: '#F0924C' }}
                 >
                   Edit
