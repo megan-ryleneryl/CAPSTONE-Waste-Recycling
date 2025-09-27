@@ -5,6 +5,7 @@ import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Posts from './pages/Posts';
+import SinglePost from './pages/SinglePost';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Chat from './pages/Chat';
@@ -76,6 +77,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Posts />
+                </ProtectedRoute>
+              } 
+            />
+            
+              <Route 
+              path="/posts/:postId" 
+              element={
+                <ProtectedRoute>
+                  <SinglePost />
                 </ProtectedRoute>
               } 
             />

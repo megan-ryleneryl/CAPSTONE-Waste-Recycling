@@ -18,9 +18,23 @@ const AppLayout = ({ children }) => {
   const noLayoutPages = ['/login', '/register', '/'];
 
   // Define which pages should show the right section
-  const pagesWithRightSection = ['/posts', '/dashboard'];
-  const showRightSection = pagesWithRightSection.includes(location.pathname) && !isMobile;
- 
+  const shouldShowRightSection = () => {
+    if (isMobile) return false;
+    
+    // Show on posts feed
+    if (location.pathname === '/posts') return true;    
+    
+    // Show on single post pages
+    if (location.pathname.startsWith('/posts/') && location.pathname !== '/posts/') return true;
+    
+    // Show on dashboard
+    if (location.pathname === '/dashboard') return true;
+    
+    return false;
+  };
+  
+  const showRightSection = shouldShowRightSection();
+
 
   useEffect(() => {
     // Load user data from localStorage
