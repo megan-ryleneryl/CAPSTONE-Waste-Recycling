@@ -2,7 +2,7 @@ const API_BASE_URL = 'http://localhost:3001/api';
 
 class ApiService {
   async request(endpoint, options = {}) {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     
     const config = {
       headers: {

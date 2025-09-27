@@ -311,68 +311,68 @@ app.put('/api/protected/posts/:postId', async (req, res) => {
   }
 });
 
-// Pickup routes
-app.get('/api/protected/pickups', async (req, res) => {
-  try {
-    const { type = 'all' } = req.query;
-    let pickups;
+// // Pickup routes
+// app.get('/api/protected/pickups', async (req, res) => {
+//   try {
+//     const { type = 'all' } = req.query;
+//     let pickups;
     
-    if (type === 'given') {
-      pickups = await Pickup.findByGiverID(req.user.userID);
-    } else if (type === 'collected') {
-      pickups = await Pickup.findByCollectorID(req.user.userID);
-    } else {
-      // Get all pickups for this user (both given and collected)
-      const givenPickups = await Pickup.findByGiverID(req.user.userID);
-      const collectedPickups = await Pickup.findByCollectorID(req.user.userID);
-      pickups = [...givenPickups, ...collectedPickups];
-    }
+//     if (type === 'given') {
+//       pickups = await Pickup.findByGiverID(req.user.userID);
+//     } else if (type === 'collected') {
+//       pickups = await Pickup.findByCollectorID(req.user.userID);
+//     } else {
+//       // Get all pickups for this user (both given and collected)
+//       const givenPickups = await Pickup.findByGiverID(req.user.userID);
+//       const collectedPickups = await Pickup.findByCollectorID(req.user.userID);
+//       pickups = [...givenPickups, ...collectedPickups];
+//     }
     
-    res.json({ success: true, pickups });
-  } catch (error) {
-    console.error('Pickups fetch error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+//     res.json({ success: true, pickups });
+//   } catch (error) {
+//     console.error('Pickups fetch error:', error.message);
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// });
 
-app.post('/api/protected/pickups', async (req, res) => {
-  try {
-    const pickupData = {
-      ...req.body,
-      collectorID: req.user.userID
-    };
+// app.post('/api/protected/pickups', async (req, res) => {
+//   try {
+//     const pickupData = {
+//       ...req.body,
+//       collectorID: req.user.userID
+//     };
     
-    const pickup = await Pickup.create(pickupData);
-    res.status(201).json({ 
-      success: true, 
-      pickup, 
-      message: 'Pickup request created successfully' 
-    });
-  } catch (error) {
-    console.error('Pickup creation error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
+//     const pickup = await Pickup.create(pickupData);
+//     res.status(201).json({ 
+//       success: true, 
+//       pickup, 
+//       message: 'Pickup request created successfully' 
+//     });
+//   } catch (error) {
+//     console.error('Pickup creation error:', error.message);
+//     res.status(400).json({ success: false, error: error.message });
+//   }
+// });
 
-app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
-  try {
-    const pickup = await Pickup.findById(req.params.pickupId);
-    if (!pickup) {
-      return res.status(404).json({ success: false, error: 'Pickup not found' });
-    }
+// app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
+//   try {
+//     const pickup = await Pickup.findById(req.params.pickupId);
+//     if (!pickup) {
+//       return res.status(404).json({ success: false, error: 'Pickup not found' });
+//     }
     
-    // Only the giver can confirm pickups
-    if (pickup.giverID !== req.user.userID) {
-      return res.status(403).json({ success: false, error: 'Unauthorized to confirm this pickup' });
-    }
+//     // Only the giver can confirm pickups
+//     if (pickup.giverID !== req.user.userID) {
+//       return res.status(403).json({ success: false, error: 'Unauthorized to confirm this pickup' });
+//     }
     
-    await pickup.confirm();
-    res.json({ success: true, pickup, message: 'Pickup confirmed successfully' });
-  } catch (error) {
-    console.error('Pickup confirm error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
+//     await pickup.confirm();
+//     res.json({ success: true, pickup, message: 'Pickup confirmed successfully' });
+//   } catch (error) {
+//     console.error('Pickup confirm error:', error.message);
+//     res.status(400).json({ success: false, error: error.message });
+//   }
+// });
 
 app.post('/api/protected/upload/profile-picture',
   upload.single('profilePicture'),
@@ -433,7 +433,7 @@ app.post('/api/protected/applications', async (req, res) => {
 app.get('/api/protected/notifications', async (req, res) => {
   try {
     const Notification = require('./models/Notification');
-    const notifications = await Notification.findByUserID(req.user.userID);
+    const notifications = await Notification.findByUser(req.user.userID);
     res.json({ success: true, notifications });
   } catch (error) {
     console.error('Notifications fetch error:', error.message);

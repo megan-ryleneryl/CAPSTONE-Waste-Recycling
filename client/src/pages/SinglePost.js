@@ -187,7 +187,7 @@ const SinglePost = ({ onDataUpdate }) => {
                 post.status === 'Claimed' ? styles.claimedBadge :
                 styles.completedBadge
               }`}>
-                {post.status === 'Active' ? 'Unclaimed' : post.status}
+                {post.status === 'Active' ? 'Active' : post.status}
               </span>
               {isOwner && (
                 <button className={styles.moreButton}>•••</button>

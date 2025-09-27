@@ -35,7 +35,6 @@ const AppLayout = ({ children }) => {
   
   const showRightSection = shouldShowRightSection();
 
-
   useEffect(() => {
     // Load user data from localStorage
     const path = window.location.pathname;
