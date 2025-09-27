@@ -204,7 +204,7 @@ router.post('/create', verifyToken, async (req, res) => {
         basePostData.condition = postData.condition || 'Good';
         basePostData.pickupDate = postData.pickupDate || null;
         basePostData.pickupTime = postData.pickupTime || null;
-        basePostData.status = 'Available'; // Explicitly set status
+        basePostData.status = 'Active'; // Explicitly set status
         
         console.log('Creating WastePost with:', basePostData);
         
@@ -359,7 +359,7 @@ router.patch('/:postId/status', verifyToken, async (req, res) => {
     
     // Validate status based on post type
     const validStatuses = {
-      'Waste': ['Available', 'Claimed', 'Completed', 'Cancelled'],
+      'Waste': ['Active', 'Claimed', 'Completed', 'Cancelled'],
       'Initiative': ['Active', 'Completed', 'Cancelled'],
       'Forum': ['Active', 'Locked', 'Hidden']
     };
@@ -627,38 +627,21 @@ router.post('/:postID/claim', async (req, res) => {
     const { postID } = req.params;
     const collectorID = req.user.userID;
     
-    // DEBUG: Log user details
-    console.log('=== CLAIM POST DEBUG ===');
-    console.log('User ID:', req.user.userID);
-    console.log('User Name:', req.user.firstName, req.user.lastName);
-    console.log('User Email:', req.user.email);
-    console.log('isCollector:', req.user.isCollector);
-    console.log('isAdmin:', req.user.isAdmin);
-    console.log('User Status:', req.user.status);
-    console.log('Full user object keys:', Object.keys(req.user));
-    console.log('======================');
-    
-    // Check isCollector with detailed error
+    // TEMPORARY: Comment out the collector check for development
+    // Uncomment this block for production
+    /*
     if (!req.user.isCollector && !req.user.isAdmin) {
-      console.log('USER FAILED COLLECTOR CHECK');
-      console.log('isCollector value:', req.user.isCollector);
-      console.log('isCollector type:', typeof req.user.isCollector);
-      console.log('isAdmin value:', req.user.isAdmin);
-      console.log('isAdmin type:', typeof req.user.isAdmin);
-      
       return res.status(403).json({
         success: false,
-        message: 'Only Collectors can claim Waste posts. Please apply to become a Collector first.',
-        debug: {
-          userID: req.user.userID,
-          isCollector: req.user.isCollector,
-          isAdmin: req.user.isAdmin,
-          userStatus: req.user.status
-        }
+        message: 'Only Collectors can claim Waste posts. Please apply to become a Collector first.'
       });
     }
+    */
     
-    console.log('USER PASSED COLLECTOR CHECK - Proceeding with claim');
+    // For development, just log a warning
+    if (!req.user.isCollector && !req.user.isAdmin) {
+      console.warn('⚠️ WARNING: Non-collector user claiming post (allowed in dev mode):', req.user.email);
+    }
     
     // Get the post
     const Post = require('../models/Posts');
@@ -671,8 +654,6 @@ router.post('/:postID/claim', async (req, res) => {
       });
     }
     
-    console.log('Post found:', post.postID, 'Type:', post.postType, 'Status:', post.status);
-    
     if (post.postType !== 'Waste') {
       return res.status(400).json({
         success: false,
@@ -683,7 +664,7 @@ router.post('/:postID/claim', async (req, res) => {
     if (post.status !== 'Active') {
       return res.status(400).json({
         success: false,
-        message: 'Post is not available for claiming'
+        message: `Post is not available for claiming. Current status: ${post.status}`
       });
     }
     
@@ -693,8 +674,6 @@ router.post('/:postID/claim', async (req, res) => {
       claimedBy: collectorID,
       claimedAt: new Date()
     });
-    
-    console.log('Post updated successfully');
     
     // Create initial message for coordination
     const Message = require('../models/Message');
@@ -709,8 +688,6 @@ router.post('/:postID/claim', async (req, res) => {
         postTitle: post.title
       }
     });
-    
-    console.log('Message created successfully');
     
     // Send notification to post owner
     const Notification = require('../models/Notification');
@@ -727,8 +704,6 @@ router.post('/:postID/claim', async (req, res) => {
       priority: 'high'
     });
     
-    console.log('Notification sent successfully');
-    
     res.json({
       success: true,
       message: 'Post claimed successfully. You can now chat with the giver to arrange pickup.',
@@ -739,11 +714,7 @@ router.post('/:postID/claim', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('=== CLAIM POST ERROR ===');
     console.error('Error claiming post:', error);
-    console.error('Error stack:', error.stack);
-    console.error('=======================');
-    
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to claim post'

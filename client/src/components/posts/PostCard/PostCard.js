@@ -747,7 +747,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20, post, onActionComplete }) =
 
             {/* Action Buttons */}
             <div className={styles.actionContainer}>
-              {post.postType === 'Waste' && post.status === 'Available' && (
+              {post.postType === 'Waste' && post.status === 'Active' && (
                 <button 
                   className={`${styles.actionButton} ${styles.collectButton}`}
                   onClick={() => handleCollect(post.postID)}

@@ -13,7 +13,7 @@ class Post {
     this.title = data.title || '';
     this.description = data.description || '';
     this.location = data.location || '';
-    this.status = data.status || 'Active'; // Active, Available, Claimed, Completed, Cancelled, Inactive, Locked, Hidden
+    this.status = data.status || 'Active'; // Active, Claimed, Completed, Cancelled, Inactive, Locked, Hidden
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
     
@@ -38,7 +38,7 @@ class Post {
     // Set default status based on post type
     switch(this.postType) {
       case 'Waste':
-        this.status = 'Available';
+        this.status = 'Active';
         break;
       case 'Initiative':
       case 'Forum':
@@ -59,7 +59,7 @@ class Post {
   getValidStatuses() {
     switch(this.postType) {
       case 'Waste':
-        return ['Available', 'Claimed', 'Completed', 'Cancelled'];
+        return ['Active', 'Claimed', 'Completed', 'Cancelled'];
       case 'Initiative':
         return ['Active', 'Completed', 'Cancelled'];
       case 'Forum':
