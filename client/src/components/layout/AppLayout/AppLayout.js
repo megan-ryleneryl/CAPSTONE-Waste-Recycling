@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext'; // Add this import
 import TopNav from '../../navigation/TopNav/TopNav';
 import SideNav from '../../navigation/SideNav/SideNav';
 import RightSection from '../RightSection/RightSection';
 import styles from './AppLayout.module.css';
 
 const AppLayout = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const { currentUser, loading } = useAuth(); // Use AuthContext instead of local state
   const [activeFilter, setActiveFilter] = useState('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -36,16 +37,15 @@ const AppLayout = ({ children }) => {
   const showRightSection = shouldShowRightSection();
 
   useEffect(() => {
-    // Load user data from localStorage
+    // Check admin routes
     const path = window.location.pathname;
     if (path.startsWith('/admin')) {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.isAdmin) {
+      if (!currentUser?.isAdmin) {
         console.error('Non-admin user attempting to access admin route');
         navigate('/posts');
       }
     }
-  }, []);
+  }, [currentUser, navigate]);
 
   useEffect(() => {
     // Handle responsive behavior
@@ -61,14 +61,33 @@ const AppLayout = ({ children }) => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
+  // Handle data updates from child components
+  const handleDataUpdate = (data) => {
+    setRightSectionData(data);
+  };
+
   // Don't show layout on certain pages
   if (noLayoutPages.includes(location.pathname)) {
     return children;
   }
 
+  // Show loading state while user is loading
+  if (loading) {
+    return (
+      <div className={styles.appContainer}>
+        <div className={styles.loading}>Loading...</div>
+      </div>
+    );
+  }
+
+  // Clone children and pass handleDataUpdate if needed
+  const childrenWithProps = React.cloneElement(children, {
+    onDataUpdate: handleDataUpdate
+  });
+
   return (
     <div className={styles.appContainer}>
-      <TopNav user={user} />
+      <TopNav user={currentUser} />
       
       <div className={styles.mainLayout}>
         <SideNav 
@@ -76,34 +95,18 @@ const AppLayout = ({ children }) => {
           onFilterChange={setActiveFilter}
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={toggleSidebar}
-          user={user}
+          user={currentUser}
         />
         
-        <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''} ${showRightSection ? styles.hasRightSection : ''}`}>
-          {React.cloneElement(children, { 
-            user, 
-            activeFilter,
-            onDataUpdate: setRightSectionData // Pass data update function to pages
-          })}
+        <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''} ${showRightSection ? styles.withRightSection : ''}`}>
+          {childrenWithProps}
         </main>
-
-        {/* Right Section with Components */}
+        
         {showRightSection && (
           <RightSection 
-            user={user} 
+            user={currentUser} 
             data={rightSectionData}
           />
-        )}
-
-        {/* Mobile Menu Toggle Button */}
-        {isMobile && (
-          <button 
-            className={styles.mobileMenuToggle}
-            onClick={toggleSidebar}
-            aria-label="Toggle menu"
-          >
-            ☰
-          </button>
         )}
       </div>
     </div>

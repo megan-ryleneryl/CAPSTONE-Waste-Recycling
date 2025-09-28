@@ -1,10 +1,8 @@
-// PostDetails.js - Right sidebar component for SinglePost page
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import ModalPortal from '../../modal/ModalPortal'; // Using your existing ModalPortal
 import styles from './PostDetails.module.css';
-import RequestPickupModal from '../../RequestPickupModal/RequestPickupModal';
-import ChatService from '../../../services/chatService';
 
 const PostDetails = ({ post, user: currentUser }) => {
   const navigate = useNavigate();
@@ -13,286 +11,267 @@ const PostDetails = ({ post, user: currentUser }) => {
   const [postClaimed, setPostClaimed] = useState(false);
   const [claimDetails, setClaimDetails] = useState(null);
 
-  //Check if currentUser details are loaded
+  // Debug logging
   console.log('Current User:', currentUser);
+  console.log('User Type:', currentUser?.userType);
+  console.log('Is Collector:', currentUser?.isCollector);
+  console.log('Post:', post);
 
-  // Check if current user is the owner
-  const isOwner = currentUser?.userID === post?.userID;
-
-  
-  // Check if current user is a collector
-  const isCollector = currentUser?.isCollector || currentUser?.userType === 'Collector';
-  
   useEffect(() => {
-    // Check if post has been claimed
-    if (post?.postID && currentUser?.userID) {
-      checkPostStatus();
+    if (post && post.postType === 'Waste') {
+      checkClaimStatus();
     }
-  }, [post?.postID, currentUser?.userID]);
+  }, [post]);
 
-  const checkPostStatus = async () => {
+  const checkClaimStatus = async () => {
+    if (!post) return;
+    
     try {
-      // Safety check
-      if (!post?.postID) return;
-      
-      // Check if post is already claimed
-      if (post.status === 'Claimed' || post.claimedBy) {
-        setPostClaimed(true);
-        setClaimDetails({
-          claimedBy: post.claimedBy,
-          isCurrentUserClaim: post.claimedBy === currentUser?.userID
-        });
-        return;
-      }
-
-      // Check if there's an existing conversation for this post
-      const conversations = await ChatService.getConversations();
-      const existingConvo = conversations.find(
-        conv => conv.postID === post.postID
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `http://localhost:3001/api/protected/posts/${post.postID}/claim-status`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
       );
       
-      if (existingConvo) {
-        setPostClaimed(true);
-        setClaimDetails({
-          claimedBy: existingConvo.participant1ID === currentUser?.userID ? 
-                      existingConvo.participant2ID : existingConvo.participant1ID,
-          isCurrentUserClaim: true
-        });
+      if (response.data.success) {
+        setPostClaimed(response.data.claimed);
+        setClaimDetails(response.data.claimDetails);
       }
     } catch (error) {
-      console.error('Error checking post status:', error);
+      console.error('Error checking claim status:', error);
     }
   };
 
-  const handleRequestPickup = async (message) => {
+  const handleRequestPickup = async () => {
+    if (!currentUser) {
+      alert('Please log in to request pickup');
+      navigate('/login');
+      return;
+    }
+
     setIsRequestingPickup(true);
-    
     try {
-      // Step 1: Claim the post (this will mark it as claimed)
-      const claimResponse = await fetch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/posts/${post.postID}/claim`,
+      const token = localStorage.getItem('token');
+      
+      // Call the claim endpoint instead of request-pickup
+      const response = await axios.post(
+        `http://localhost:3001/api/protected/posts/${post.postID}/request-pickup`,
+        {},
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         }
       );
 
-      if (!claimResponse.ok) {
-        const errorData = await claimResponse.json();
-        throw new Error(errorData.message || 'Failed to claim post');
+      if (response.data.success) {
+        alert('Pickup request sent successfully! You can now chat with the giver to arrange pickup details.');
+        setShowRequestModal(false);
+        
+        // Navigate to chat with the post owner
+        if (response.data.data?.chatURL) {
+          navigate(response.data.data.chatURL);
+        } else {
+          // Fallback: navigate to chat with post owner
+          navigate(`/chat`, { 
+            state: { 
+              postID: post.postID, 
+              otherUser: post.user,
+              postData: post
+            } 
+          });
+        }
+        
+        // Refresh the page data
+        checkClaimStatus();
+        
+        // If there's a parent function to refresh post data, call it
+        if (window.location.pathname.includes('/posts/')) {
+          window.location.reload(); // Simple reload to refresh post status
+        }
       }
-
-      // Step 2: Send the initial message
-      await ChatService.startConversation(
-        post,
-        { userID: post.userID, firstName: post.user?.firstName || 'User', lastName: post.user?.lastName || '' },
-        { userID: currentUser.userID, firstName: currentUser.firstName || 'User', lastName: currentUser.lastName || '' },
-        message
-      );
-
-      // Step 3: Navigate to chat
-      navigate(`/chat?postId=${post.postID}&userId=${post.userID}`);
-      
     } catch (error) {
       console.error('Error requesting pickup:', error);
-      alert(error.message || 'Failed to request pickup. Please try again.');
+      alert(error.response?.data?.message || 'Failed to send pickup request');
     } finally {
       setIsRequestingPickup(false);
     }
   };
 
-  const handleOpenChat = () => {
-    navigate(`/chat?postId=${post.postID}&userId=${post.userID}`);
+  if (!post) return null;
+
+  // Check if user is a collector (multiple ways to verify)
+  const isCollector = currentUser?.userType === 'Collector' || 
+                     currentUser?.isCollector === true ||
+                     currentUser?.userType === 'Admin';
+  
+  const isGiver = currentUser?.userType === 'Giver';
+  const isOwner = currentUser?.userID === post.userID;
+
+  // Show button conditions for Waste posts
+  const showRequestButton = post.postType === 'Waste' && 
+                           isCollector && 
+                           !isOwner && 
+                           !postClaimed &&
+                           post.status !== 'Claimed';
+
+  // Format materials for display
+  const formatMaterials = (materials) => {
+    if (!materials) return 'Not specified';
+    if (Array.isArray(materials)) {
+      return materials.join(', ');
+    }
+    return materials;
   };
 
-  // Determine what to show based on user type and post status
-  const showRequestButton = 
-    post?.postType === 'Waste' && 
-    !isOwner && 
-    isCollector && 
-    !postClaimed &&
-    (post?.status === 'Active' || !post?.status);  // Default to Active if no status
-
-  const showChatButton = 
-    postClaimed && 
-    claimDetails?.isCurrentUserClaim &&
-    !isOwner;
-
-  const showClaimedMessage = 
-    postClaimed && 
-    !claimDetails?.isCurrentUserClaim &&
-    !isOwner;
-
-  // Safety check for post data
-  if (!post) {
-    return (
-      <div className={styles.sidebar}>
-        <p>Loading post details...</p>
-      </div>
-    );
-  }
+  // Format pickup time
+  const formatPickupTime = (date, time) => {
+    if (!date && !time) return 'Flexible';
+    
+    let result = '';
+    if (date) {
+      const d = new Date(date);
+      result = d.toLocaleDateString();
+    }
+    if (time) {
+      result += result ? ' at ' : '';
+      result += time;
+    }
+    return result || 'Flexible';
+  };
 
   return (
-    <div className={styles.sidebar}>
-      <h3 className={styles.sidebarTitle}>Post Details:</h3>
+    <>
+      <div className={styles.container}>
+      <h2 className={styles.header}>Post Details:</h2>
       
       {/* Status Badge */}
-      <div className={styles.statusSection}>
-        <span className={`${styles.badge} ${postClaimed ? styles.claimed : styles.active}`}>
-          {postClaimed ? 'Claimed' : 'Active'}
-        </span>
-      </div>
-      
-      {/* Details List */}
-      <div className={styles.detailsList}>
-        {post.materials && (
-          <div className={styles.detailItem}>
-            <span className={styles.detailIcon}>♻️</span>
-            <div>
-              <span className={styles.detailLabel}>Materials:</span>
-              <span className={styles.detailValue}>{post.materials}</span>
-            </div>
-          </div>
-        )}
-        
-        {post.quantity && (
-          <div className={styles.detailItem}>
-            <span className={styles.detailIcon}>📦</span>
-            <div>
-              <span className={styles.detailLabel}>Quantity:</span>
-              <span className={styles.detailValue}>{post.quantity} kg</span>
-            </div>
-          </div>
-        )}
-        
-        {post.location && (
-          <div className={styles.detailItem}>
-            <span className={styles.detailIcon}>📍</span>
-            <div>
-              <span className={styles.detailLabel}>Location:</span>
-              <span className={styles.detailValue}>{post.location}</span>
-            </div>
-          </div>
-        )}
-        
-        {post.condition && (
-          <div className={styles.detailItem}>
-            <span className={styles.detailIcon}>✨</span>
-            <div>
-              <span className={styles.detailLabel}>Condition:</span>
-              <span className={styles.detailValue}>{post.condition}</span>
-            </div>
-          </div>
-        )}
-        
-        {post.preferredPickup && (
-          <div className={styles.detailItem}>
-            <span className={styles.detailIcon}>⏰</span>
-            <div>
-              <span className={styles.detailLabel}>Preferred Pickup:</span>
-              <span className={styles.detailValue}>{post.preferredPickup}</span>
-            </div>
-          </div>
-        )}
-        
-        <div className={styles.detailItem}>
-          <span className={styles.detailIcon}>📅</span>
-          <div>
-            <span className={styles.detailLabel}>Posted:</span>
-            <span className={styles.detailValue}>
-              {post.createdAt ? new Date(post.createdAt).toLocaleDateString() : 'Invalid Date'}
-            </span>
-          </div>
+      {post.status && (
+        <div className={styles.statusBadge} data-status={post.status}>
+          {post.status}
         </div>
-      </div>
+      )}
 
-      {/* Divider */}
-      <div className={styles.divider}></div>
-
-      {/* Action Section */}
-      <div className={styles.actionSection}>
-        {/* For Collectors - Show Request Button */}
-        {showRequestButton && (
+      {/* Basic Details */}
+      <div className={styles.detailsSection}>
+        {post.postType === 'Waste' && (
           <>
-            <h4 className={styles.actionTitle}>Pickup Request:</h4>
-            <div className={styles.pickupMessage}>
-              <p>
-                Hi, I'm interested in collecting your recyclables.
-                When would be a good time for me to pick them up?
-              </p>
+            <div className={styles.detailItem}>
+              <span className={styles.icon}>📦</span>
+              <span className={styles.label}>Materials:</span>
+              <span className={styles.value}>{formatMaterials(post.materials)}</span>
             </div>
-            <button
-              className={styles.requestButton}
-              onClick={() => setShowRequestModal(true)}
-              disabled={isRequestingPickup}
-            >
-              {isRequestingPickup ? 'Processing...' : 'Request'}
-            </button>
-          </>
-        )}
-
-        {/* For Collectors who already claimed - Show Chat Button */}
-        {showChatButton && (
-          <>
-            <p className={styles.successMessage}>
-              ✅ You have claimed this post
-            </p>
-            <button
-              className={styles.chatButton}
-              onClick={handleOpenChat}
-            >
-              Open Chat
-            </button>
-          </>
-        )}
-
-        {/* For other users when post is claimed */}
-        {showClaimedMessage && (
-          <div className={styles.claimedByOther}>
-            <p className={styles.claimedMessage}>
-              This post has already been claimed by another collector.
-            </p>
-          </div>
-        )}
-
-        {/* For Owner - Show management options */}
-        {isOwner && (
-          <div className={styles.ownerSection}>
-            {postClaimed ? (
-              <>
-                <p className={styles.claimedNotice}>
-                  A collector has claimed your post
-                </p>
-                <button
-                  className={styles.viewChatButton}
-                  onClick={() => navigate('/messages')}
-                >
-                  View Messages
-                </button>
-              </>
-            ) : (
-              <p className={styles.waitingMessage}>
-                Waiting for collectors to request pickup...
-              </p>
+            
+            <div className={styles.detailItem}>
+              <span className={styles.icon}>⚖️</span>
+              <span className={styles.label}>Quantity:</span>
+              <span className={styles.value}>{post.quantity} {post.unit || 'kg'}</span>
+            </div>
+            
+            <div className={styles.detailItem}>
+              <span className={styles.icon}>📍</span>
+              <span className={styles.label}>Location:</span>
+              <span className={styles.value}>{post.location}</span>
+            </div>
+            
+            <div className={styles.detailItem}>
+              <span className={styles.icon}>🕐</span>
+              <span className={styles.label}>Preferred Pickup:</span>
+              <span className={styles.value}>
+                {formatPickupTime(post.pickupDate, post.pickupTime)}
+              </span>
+            </div>
+            
+            {post.condition && (
+              <div className={styles.detailItem}>
+                <span className={styles.icon}>✨</span>
+                <span className={styles.label}>Condition:</span>
+                <span className={styles.value}>{post.condition}</span>
+              </div>
             )}
-          </div>
+            
+            {post.price > 0 && (
+              <div className={styles.detailItem}>
+                <span className={styles.icon}>💰</span>
+                <span className={styles.label}>Price:</span>
+                <span className={styles.value}>₱{post.price}</span>
+              </div>
+            )}
+          </>
         )}
+
+        {/* Add other post types details here if needed */}
       </div>
 
-      {/* Request Pickup Modal */}
-      <RequestPickupModal
-        isOpen={showRequestModal}
-        onClose={() => setShowRequestModal(false)}
-        onSubmit={handleRequestPickup}
-        postTitle={post.title}
-        giverName={post.user ? 
-          `${post.user.firstName || ''} ${post.user.lastName || ''}`.trim() || 'Giver' 
-          : 'Giver'}
-      />
-    </div>
+      {/* Action Buttons for Waste Posts */}
+      {showRequestButton && (
+        <div className={styles.actionButtons}>
+          <button 
+            className={styles.requestButton}
+            onClick={() => setShowRequestModal(true)}
+            disabled={isRequestingPickup}
+          >
+            {isRequestingPickup ? 'Requesting...' : 'Request Pickup'}
+          </button>
+        </div>
+      )}
+
+      {/* Claim Status */}
+      {postClaimed && claimDetails && (
+        <div className={styles.claimInfo}>
+          <p className={styles.claimedText}>
+            This post has been claimed by {claimDetails.collectorName}
+          </p>
+        </div>
+      )}
+
+      </div>
+
+      {/* Request Modal - Rendered through portal to appear above everything */}
+      {showRequestModal && (
+        <ModalPortal>
+          <div className={styles.modalOverlay} onClick={() => setShowRequestModal(false)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3>Request Pickup</h3>
+                <button 
+                  className={styles.modalClose}
+                  onClick={() => setShowRequestModal(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <div className={styles.modalBody}>
+                <p>Are you sure you want to request pickup for this waste material?</p>
+                <div className={styles.postSummary}>
+                  <p><strong>Title:</strong> {post.title}</p>
+                  <p><strong>Materials:</strong> {formatMaterials(post.materials)}</p>
+                  <p><strong>Quantity:</strong> {post.quantity} {post.unit || 'kg'}</p>
+                  <p><strong>Location:</strong> {post.location}</p>
+                </div>
+              </div>
+              <div className={styles.modalActions}>
+                <button 
+                  className={styles.confirmButton}
+                  onClick={handleRequestPickup}
+                  disabled={isRequestingPickup}
+                >
+                  {isRequestingPickup ? 'Sending Request...' : 'Confirm Request'}
+                </button>
+                <button 
+                  className={styles.cancelButton}
+                  onClick={() => setShowRequestModal(false)}
+                  disabled={isRequestingPickup}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+    </>
   );
 };
 
