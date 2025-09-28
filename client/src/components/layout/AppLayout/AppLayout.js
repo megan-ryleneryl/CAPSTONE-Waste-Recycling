@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext'; // Add this import
+import { useAuth } from '../../../context/AuthContext';
 import TopNav from '../../navigation/TopNav/TopNav';
 import SideNav from '../../navigation/SideNav/SideNav';
 import RightSection from '../RightSection/RightSection';
 import styles from './AppLayout.module.css';
 
 const AppLayout = ({ children }) => {
-  const { currentUser, loading } = useAuth(); // Use AuthContext instead of local state
+  const { currentUser, loading } = useAuth();
   const [activeFilter, setActiveFilter] = useState('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -18,8 +18,8 @@ const AppLayout = ({ children }) => {
   // Pages that don't need the layout
   const noLayoutPages = ['/login', '/register', '/'];
 
-  // Define which pages should show the right section
-  const shouldShowRightSection = () => {
+  // Define which pages should show the right section - memoize this function
+  const shouldShowRightSection = useCallback(() => {
     if (isMobile) return false;
     
     // Show on posts feed
@@ -32,20 +32,21 @@ const AppLayout = ({ children }) => {
     if (location.pathname === '/dashboard') return true;
     
     return false;
-  };
+  }, [isMobile, location.pathname]);
   
   const showRightSection = shouldShowRightSection();
 
+  // Memoize the admin route check to prevent unnecessary re-renders
   useEffect(() => {
-    // Check admin routes
-    const path = window.location.pathname;
+    // Check admin routes only when currentUser or path changes
+    const path = location.pathname;
     if (path.startsWith('/admin')) {
-      if (!currentUser?.isAdmin) {
+      if (currentUser && !currentUser.isAdmin) {
         console.error('Non-admin user attempting to access admin route');
         navigate('/posts');
       }
     }
-  }, [currentUser, navigate]);
+  }, [currentUser?.isAdmin, location.pathname, navigate]);
 
   useEffect(() => {
     // Handle responsive behavior
@@ -57,14 +58,15 @@ const AppLayout = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
+  // Memoize the sidebar toggle function
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => !prev);
+  }, []);
 
-  // Handle data updates from child components
-  const handleDataUpdate = (data) => {
+  // Memoize the data update handler to prevent infinite re-renders
+  const handleDataUpdate = useCallback((data) => {
     setRightSectionData(data);
-  };
+  }, []);
 
   // Don't show layout on certain pages
   if (noLayoutPages.includes(location.pathname)) {

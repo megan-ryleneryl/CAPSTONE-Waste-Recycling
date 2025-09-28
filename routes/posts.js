@@ -663,30 +663,19 @@ router.delete('/comments/:commentId', verifyToken, async (req, res) => {
 // These trigger the pickup management flow
 
 // Claim a Waste Post (Collectors only)
-router.post('/:postID/claim', async (req, res) => {
+router.post('/:postId/claim', verifyToken, async (req, res) => {
   try {
-    const { postID } = req.params;
+    const { postId } = req.params;
     const collectorID = req.user.userID;
     
-    // TEMPORARY: Comment out the collector check for development
-    // Uncomment this block for production
-    /*
-    if (!req.user.isCollector && !req.user.isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only Collectors can claim Waste posts. Please apply to become a Collector first.'
-      });
-    }
-    */
-    
-    // For development, just log a warning
-    if (!req.user.isCollector && !req.user.isAdmin) {
-      console.warn('⚠️ WARNING: Non-collector user claiming post (allowed in dev mode):', req.user.email);
-    }
+    console.log('Claim attempt by user:', {
+      userID: collectorID,
+      isCollector: req.user.isCollector,
+      isAdmin: req.user.isAdmin
+    });
     
     // Get the post
-    const Post = require('../models/Posts');
-    const post = await Post.findById(postID);
+    const post = await Post.findById(postId);
     
     if (!post) {
       return res.status(404).json({
@@ -695,62 +684,96 @@ router.post('/:postID/claim', async (req, res) => {
       });
     }
     
+    // Check if it's a Waste post
     if (post.postType !== 'Waste') {
       return res.status(400).json({
         success: false,
-        message: 'Can only claim Waste posts'
+        message: 'Only Waste posts can be claimed'
       });
     }
     
-    if (post.status !== 'Active') {
+    // Check if user is a collector (using isCollector boolean)
+    if (!req.user.isCollector && !req.user.isAdmin) {
+      console.log('User is not a collector:', req.user);
+      return res.status(403).json({
+        success: false,
+        message: 'Only collectors can claim waste posts. Please apply for collector privileges in your profile.'
+      });
+    }
+    
+    // Check if the collector is not the post owner
+    if (post.userID === collectorID) {
       return res.status(400).json({
         success: false,
-        message: `Post is not available for claiming. Current status: ${post.status}`
+        message: 'You cannot claim your own post'
+      });
+    }
+    
+    // Check if post is already claimed
+    if (post.status === 'Claimed' || post.status === 'Completed') {
+      return res.status(400).json({
+        success: false,
+        message: `This post has already been ${post.status.toLowerCase()}.`
       });
     }
     
     // Update post status to Claimed
-    await post.update({ 
+    const updateData = { 
       status: 'Claimed',
       claimedBy: collectorID,
       claimedAt: new Date()
-    });
+    };
+    
+    await Post.update(postId, updateData);
+    
+    // Get collector's name for the message
+    const collector = await User.findById(collectorID);
+    const collectorName = `${collector.firstName} ${collector.lastName}`;
     
     // Create initial message for coordination
-    const Message = require('../models/Message');
-    await Message.create({
+    const newMessage = await Message.create({
       senderID: collectorID,
       receiverID: post.userID,
-      postID: postID,
+      postID: postId,
       messageType: 'claim',
-      message: `I'm interested in claiming your ${post.title}. Let's coordinate the pickup details.`,
+      message: `Hi! I'm interested in collecting your ${post.title}. Let's coordinate the pickup details.`,
       metadata: {
         action: 'post_claimed',
-        postTitle: post.title
+        postTitle: post.title,
+        collectorName: collectorName
       }
     });
     
     // Send notification to post owner
-    const Notification = require('../models/Notification');
-    const collectorName = `${req.user.firstName} ${req.user.lastName}`;
-    
     await Notification.create({
       userID: post.userID,
-      type: Notification.TYPES.POST_CLAIMED,
+      type: 'Pickup',
       title: 'Your post has been claimed!',
-      message: `${collectorName} wants to claim your post "${post.title}"`,
-      referenceID: postID,
+      message: `${collectorName} wants to collect your "${post.title}"`,
+      referenceID: postId,
       referenceType: 'post',
-      actionURL: `/chat/${postID}/${collectorID}`,
-      priority: 'high'
+      actionURL: `/chat?postId=${postId}&userId=${collectorID}`,
+      priority: 'high',
+      metadata: {
+        collectorID: collectorID,
+        collectorName: collectorName,
+        postID: postId
+      }
+    });
+    
+    console.log('Post claimed successfully:', {
+      postID: postId,
+      collectorID: collectorID,
+      status: 'Claimed'
     });
     
     res.json({
       success: true,
-      message: 'Post claimed successfully. You can now chat with the giver to arrange pickup.',
+      message: 'Post claimed successfully! You can now chat with the giver to arrange pickup.',
       data: {
-        postID: postID,
-        chatURL: `/chat/${postID}/${post.userID}`
+        postID: postId,
+        chatURL: `/chat?postId=${postId}&userId=${post.userID}`,
+        messageID: newMessage.messageID
       }
     });
     
@@ -758,44 +781,53 @@ router.post('/:postID/claim', async (req, res) => {
     console.error('Error claiming post:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to claim post'
+      message: error.message || 'Failed to claim post. Please try again.'
     });
   }
 });
 
-// ============================================
-// ADDITIONAL DEBUGGING ENDPOINT
-// ============================================
-// Add this temporary endpoint to check user status
-router.get('/debug/user-status', async (req, res) => {
+router.get('/:postId/claim-status', verifyToken, async (req, res) => {
   try {
-    const User = require('../models/Users');
-    const freshUser = await User.findById(req.user.userID);
+    const { postId } = req.params;
+    const post = await Post.findById(postId);
+    
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+    
+    const claimed = post.status === 'Claimed' || post.status === 'Completed';
+    let claimDetails = null;
+    
+    if (claimed && post.claimedBy) {
+      const collector = await User.findById(post.claimedBy);
+      if (collector) {
+        claimDetails = {
+          collectorID: collector.userID,
+          collectorName: `${collector.firstName} ${collector.lastName}`,
+          claimedAt: post.claimedAt
+        };
+      }
+    }
     
     res.json({
       success: true,
-      tokenUser: {
-        userID: req.user.userID,
-        email: req.user.email,
-        isCollector: req.user.isCollector,
-        isAdmin: req.user.isAdmin,
-        status: req.user.status
-      },
-      databaseUser: freshUser ? {
-        userID: freshUser.userID,
-        email: freshUser.email,
-        isCollector: freshUser.isCollector,
-        isAdmin: freshUser.isAdmin,
-        status: freshUser.status
-      } : null
+      claimed: claimed,
+      claimDetails: claimDetails,
+      postStatus: post.status
     });
+    
   } catch (error) {
+    console.error('Error checking claim status:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      message: error.message || 'Failed to check claim status'
     });
   }
 });
+
 
 // Support an Initiative Post (Givers only)
 router.post('/:postID/support', verifyToken, async (req, res) => {
@@ -881,52 +913,6 @@ router.post('/:postID/support', verifyToken, async (req, res) => {
   }
 });
 
-// Get claim/support status for a post
-router.get('/:postID/status', async (req, res) => {
-  try {
-    const { postID } = req.params;
-    const userID = req.user.userID;
-    
-    const Post = require('../models/Posts');
-    const post = await Post.findById(postID);
-    
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found'
-      });
-    }
-    
-    // Check if user has already claimed/supported
-    const Message = require('../models/Message');
-    const interactions = await Message.findByPostAndUser(postID, userID);
-    
-    const hasClaimed = interactions.some(m => 
-      m.messageType === 'claim' && m.senderID === userID
-    );
-    
-    const hasSupported = interactions.some(m => 
-      m.messageType === 'support' && m.senderID === userID
-    );
-    
-    res.json({
-      success: true,
-      data: {
-        postStatus: post.status,
-        userHasClaimed: hasClaimed,
-        userHasSupported: hasSupported,
-        isOwner: post.userID === userID,
-        claimedBy: post.claimedBy || null
-      }
-    });
-    
-  } catch (error) {
-    console.error('Error getting post status:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to get post status'
-    });
-  }
-});
+
 
 module.exports = router;

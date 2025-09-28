@@ -25,6 +25,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const fetchCurrentUser = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await axios.get('http://localhost:3001/api/protected/profile');
       if (response.data.success) {
@@ -46,8 +51,10 @@ export const AuthProvider = ({ children }) => {
       if (error.response?.status === 401) {
         logout();
       }
+    } finally {
+      setLoading(false);
     }
-  }, [logout]);
+  }, [token, logout]); // Only depend on token and logout
 
   // Set axios default header when token changes
   useEffect(() => {
@@ -58,8 +65,8 @@ export const AuthProvider = ({ children }) => {
     } else {
       delete axios.defaults.headers.common['Authorization'];
       setCurrentUser(null);
+      setLoading(false);
     }
-    setLoading(false);
   }, [token, fetchCurrentUser]);
 
   const login = useCallback((token, user) => {
