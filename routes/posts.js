@@ -3,12 +3,17 @@
 
 const express = require('express');
 const router = express.Router();
+
 const Post = require('../models/Posts');
 const WastePost = require('../models/WastePost');
 const InitiativePost = require('../models/InitiativePost');
 const ForumPost = require('../models/ForumPost');
 const Comment = require('../models/Comment');
 const Like = require('../models/Like');
+const User = require('../models/Users');  // CRITICAL FIX
+const Message = require('../models/Message');  
+const Notification = require('../models/Notification');
+const Point = require('../models/Point');
 const { verifyToken } = require('../middleware/auth');
 
 // Apply authentication
@@ -668,6 +673,11 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
     const { postId } = req.params;
     const collectorID = req.user.userID;
     
+    // Import required models at the beginning of the handler
+    const User = require('../models/Users');
+    const Message = require('../models/Message');
+    const Notification = require('../models/Notification');
+    
     console.log('Claim attempt by user:', {
       userID: collectorID,
       isCollector: req.user.isCollector,
@@ -721,13 +731,21 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
     const updateData = { 
       status: 'Claimed',
       claimedBy: collectorID,
-      claimedAt: new Date()
+      claimedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
+    
+    console.log('Updating post with data:', JSON.stringify(updateData, null, 2));
     
     await Post.update(postId, updateData);
     
     // Get collector's name for the message
     const collector = await User.findById(collectorID);
+    
+    if (!collector) {
+      throw new Error(`Collector with ID ${collectorID} not found`);
+    }
+    
     const collectorName = `${collector.firstName} ${collector.lastName}`;
     
     // Create initial message for coordination
