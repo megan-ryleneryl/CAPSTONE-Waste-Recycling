@@ -161,56 +161,62 @@ static async createPickup(req, res) {
     }
   }
 
-  // Get all pickups for current user
-  static async getUserPickups(req, res) {
-    try {
-      const userID = req.user.userID;
-      const { role, status } = req.query;
+static async getUserPickups(req, res) {
+  try {
+    const userID = req.user.userID;
+    const { role = 'both', status } = req.query;
 
-      let pickups = await Pickup.findByUser(userID, role || 'both');
-      
-      // Filter by status if provided
-      if (status) {
-        pickups = pickups.filter(p => p.status === status);
-      }
-
-      res.json({
-        success: true,
-        data: pickups,
-        count: pickups.length
-      });
-
-    } catch (error) {
-      console.error('Error fetching user pickups:', error);
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Failed to fetch pickups'
-      });
+    const pickups = await Pickup.findByUser(userID, role);
+    
+    // Filter by status if provided
+    let filteredPickups = pickups;
+    if (status) {
+      filteredPickups = pickups.filter(p => p.status === status);
     }
+
+    res.status(200).json({
+      success: true,
+      data: filteredPickups,
+      count: filteredPickups.length
+    });
+  } catch (error) {
+    console.error('Error fetching user pickups:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch pickups'
+    });
   }
+}
 
-  // Get upcoming pickups
-  static async getUpcomingPickups(req, res) {
-    try {
-      const userID = req.user.userID;
-      const { role } = req.query;
+static async getUpcomingPickups(req, res) {
+  try {
+    const userID = req.user.userID;
+    const pickups = await Pickup.findByUser(userID, 'both');
+    
+    // Filter for upcoming pickups (Proposed or Confirmed)
+    const upcomingPickups = pickups.filter(p => 
+      ['Proposed', 'Confirmed'].includes(p.status) &&
+      new Date(p.pickupDate) >= new Date()
+    );
 
-      const pickups = await Pickup.getUpcoming(userID, role || 'both');
+    // Sort by date
+    upcomingPickups.sort((a, b) => 
+      new Date(a.pickupDate) - new Date(b.pickupDate)
+    );
 
-      res.json({
-        success: true,
-        data: pickups,
-        count: pickups.length
-      });
-
-    } catch (error) {
-      console.error('Error fetching upcoming pickups:', error);
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Failed to fetch upcoming pickups'
-      });
-    }
+    res.status(200).json({
+      success: true,
+      data: upcomingPickups.slice(0, 5), // Return top 5
+      count: upcomingPickups.length
+    });
+  } catch (error) {
+    console.error('Error fetching upcoming pickups:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch upcoming pickups'
+    });
   }
+}
 
   // Get pickups for a specific post
   static async getPostPickups(req, res) {

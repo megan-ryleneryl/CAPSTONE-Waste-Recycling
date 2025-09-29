@@ -50,9 +50,9 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
   ];
 
   const quickActions = [
-    { id: 'pickups', label: 'My Pickups' },
-    { id: 'badges', label: 'My Badges' },
-    { id: 'settings', label: 'Settings' }
+    { id: 'pickups', label: 'My Pickups', path: '/pickups' },
+    { id: 'badges', label: 'My Badges', path: '/badges' },
+    { id: 'settings', label: 'Settings', path: '/settings' }
   ];
 
   return (

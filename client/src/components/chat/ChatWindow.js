@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import PickupScheduleForm from './PickupScheduleForm';
+import PickupCard from './PickupCard';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
+import pickupService from '../../services/pickupService';
+import { chatService } from '../../config/services';
 import styles from './ChatWindow.module.css';
-// Note: Icons can be replaced with emoji or custom SVG if lucide-react is not installed
-
 
 const ChatWindow = ({ currentUser, post }) => {
   const { postID, otherUserID } = useParams();
@@ -19,7 +20,18 @@ const ChatWindow = ({ currentUser, post }) => {
 
   useEffect(() => {
     loadChatData();
-  }, [postID, otherUserID]);
+    // Subscribe to pickup updates
+    const unsubscribe = pickupService.subscribeToUserPickups(
+      currentUser.userID,
+      currentUser.userType === 'Collector' ? 'collector' : 'giver',
+      (pickups) => {
+        const pickup = pickups.find(p => p.postID === postID);
+        setActivePickup(pickup || null);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [postID, otherUserID, currentUser]);
 
   useEffect(() => {
     scrollToBottom();
@@ -28,40 +40,17 @@ const ChatWindow = ({ currentUser, post }) => {
   const loadChatData = async () => {
     try {
       setLoading(true);
-      // Load messages, other user info, and active pickup
-      // Replace with actual API calls
-      const messagesData = await fetchMessages(postID, otherUserID);
-      const userInfo = await fetchUserInfo(otherUserID);
-      const pickup = await fetchActivePickup(postID);
+      // Load messages from Firebase
+      const messagesData = await chatService.getMessages(postID, otherUserID);
+      const userInfo = await chatService.getUserInfo(otherUserID);
       
       setMessages(messagesData);
       setOtherUser(userInfo);
-      setActivePickup(pickup);
     } catch (error) {
       console.error('Error loading chat data:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchMessages = async (postID, otherUserID) => {
-    // Replace with actual API call
-    return [];
-  };
-
-  const fetchUserInfo = async (userID) => {
-    // Replace with actual API call
-    return {
-      userID,
-      firstName: 'John',
-      lastName: 'Doe',
-      userType: 'Collector'
-    };
-  };
-
-  const fetchActivePickup = async (postID) => {
-    // Replace with actual API call
-    return null;
   };
 
   const scrollToBottom = () => {
@@ -72,159 +61,107 @@ const ChatWindow = ({ currentUser, post }) => {
     if (!messageText.trim()) return;
 
     const newMessage = {
-      messageID: Date.now().toString(),
       senderID: currentUser.userID,
       senderName: `${currentUser.firstName} ${currentUser.lastName}`,
-      senderType: currentUser.userType,
       receiverID: otherUserID,
       postID,
       message: messageText,
-      sentAt: new Date(),
-      messageType: 'text',
-      isRead: false
+      messageType: 'text'
     };
 
     try {
-      // Replace with actual API call
-      setMessages(prev => [...prev, newMessage]);
-      
-      // Here you would typically send to your backend
-      // await messageService.sendMessage(newMessage);
+      await chatService.sendMessage(newMessage);
+      // Message will be added via real-time listener
     } catch (error) {
       console.error('Error sending message:', error);
     }
   };
 
-  const handleSchedulePickup = async (scheduleData) => {
-    try {
-      // Replace with actual API call to create pickup
-      console.log('Creating pickup with data:', scheduleData);
-      
-      // Send system message about pickup
-      const systemMessage = {
-        messageID: 'sys_' + Date.now(),
-        senderID: 'system',
-        messageType: 'pickup_request',
-        message: 'Pickup has been scheduled',
-        metadata: scheduleData,
-        sentAt: new Date()
-      };
-      
-      setMessages(prev => [...prev, systemMessage]);
+  const handleSchedulePickup = async (formData) => {
+    const pickupData = {
+      postID,
+      postType: post?.postType || 'Waste',
+      postTitle: post?.title || 'Waste Post',
+      giverID: post?.userID || otherUserID,
+      giverName: otherUser?.name || 'Unknown',
+      collectorID: currentUser.userID,
+      collectorName: `${currentUser.firstName} ${currentUser.lastName}`,
+      proposedBy: currentUser.userID,
+      ...formData
+    };
+
+    const result = await pickupService.createPickup(pickupData);
+    
+    if (result.success) {
       setShowScheduleForm(false);
-      
-      // Refresh pickup status
-      const newPickup = await fetchActivePickup(postID);
-      setActivePickup(newPickup);
-    } catch (error) {
-      console.error('Error scheduling pickup:', error);
+      // Send system message
+      await sendMessage(`Pickup scheduled for ${formData.pickupDate} at ${formData.pickupTime}`);
+    } else {
       alert('Failed to schedule pickup. Please try again.');
     }
   };
 
-  // Format time helper function
-  const formatTime = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    let hours = d.getHours();
-    let minutes = d.getMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    minutes = minutes < 10 ? '0' + minutes : minutes;
-    return hours + ':' + minutes + ' ' + ampm;
-  };
-
   if (loading) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
-        <p>Loading conversation...</p>
+      <div className={styles.loading}>
+        <div className={styles.loadingSpinner}></div>
+        <p>Loading chat...</p>
       </div>
     );
   }
 
   return (
-    <div className={styles.chatContainer}>
-      {/* Chat Header */}
-      <div className={styles.chatHeader}>
+    <div className={styles.chatWindow}>
+      <div className={styles.header}>
         <div className={styles.userInfo}>
           <div className={styles.avatar}>
-            {otherUser?.firstName?.charAt(0) || '?'}
+            {otherUser?.name?.charAt(0).toUpperCase() || 'U'}
           </div>
-          <div className={styles.userDetails}>
-            <h3>{otherUser ? `${otherUser.firstName} ${otherUser.lastName}` : 'Loading...'}</h3>
-            <p className={styles.userType}>
-              {otherUser?.userType} • {post?.title || 'Post'}
-            </p>
+          <div>
+            <h3 className={styles.userName}>{otherUser?.name || 'Unknown User'}</h3>
+            <p className={styles.postTitle}>{post?.title || 'Loading...'}</p>
           </div>
         </div>
         
-        {/* Schedule Pickup Button (for Collectors on Waste posts) */}
-        {currentUser?.userType === 'Collector' && 
-         post?.postType === 'Waste' && 
-         !activePickup && (
+        {!activePickup && currentUser.userType === 'Collector' && (
           <button
             onClick={() => setShowScheduleForm(true)}
-            className={styles.scheduleBtn}
+            className={styles.scheduleButton}
           >
             📅 Schedule Pickup
           </button>
         )}
       </div>
 
-      {/* Pickup Status Banner */}
       {activePickup && (
-        <div className={styles.pickupBanner}>
-          <div className={styles.pickupInfo}>
-            <span className={styles.pickupStatus}>
-              {activePickup.status === 'Proposed' && '⏳'}
-              {activePickup.status === 'Confirmed' && '✅'}
-              {activePickup.status === 'In-Progress' && '🚛'}
-              {activePickup.status === 'Completed' && '✓'}
-              Pickup {activePickup.status}
-            </span>
-            <span className={styles.pickupDetails}>
-              {activePickup.pickupDate} at {activePickup.pickupTime} • {activePickup.pickupLocation}
-            </span>
-          </div>
-          
-          {/* Action buttons based on status and user type */}
-          {activePickup.status === 'Proposed' && currentUser?.userType === 'Giver' && (
-            <div className={styles.pickupActions}>
-              <button className={styles.confirmBtn}>Confirm</button>
-              <button className={styles.declineBtn}>Decline</button>
-            </div>
-          )}
-        </div>
+        <PickupCard 
+          pickup={activePickup} 
+          currentUser={currentUser}
+          onUpdateStatus={async (status) => {
+            await pickupService.updatePickupStatus(activePickup.pickupID, status);
+          }}
+        />
       )}
 
-      {/* Messages Area */}
-      <div className={styles.messagesContainer}>
-        {messages.length === 0 ? (
-          <div className={styles.noMessages}>
-            <p>No messages yet. Start the conversation!</p>
-          </div>
-        ) : (
-          <MessageList 
-            messages={messages}
-            currentUserID={currentUser?.userID}
-            formatTime={formatTime}
-          />
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+      <MessageList 
+        messages={messages} 
+        currentUser={currentUser} 
+        className={styles.messagesList}
+      />
+      
+      <div ref={messagesEndRef} />
 
-      {/* Message Input */}
-      <MessageInput onSendMessage={sendMessage} />
+      <MessageInput 
+        onSendMessage={sendMessage}
+        disabled={!otherUser}
+      />
 
-      {/* Pickup Schedule Form Modal */}
-      {showScheduleForm && post && (
+      {showScheduleForm && (
         <PickupScheduleForm
           post={post}
+          giverPreferences={otherUser?.preferences}
           onSubmit={handleSchedulePickup}
           onCancel={() => setShowScheduleForm(false)}
-          giverPreferences={otherUser?.preferences}
         />
       )}
     </div>
