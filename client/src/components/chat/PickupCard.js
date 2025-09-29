@@ -5,19 +5,18 @@ import styles from './PickupCard.module.css';
 const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
   const getStatusColor = (status) => {
     const colors = {
-      'Proposed': 'orange',
-      'Confirmed': 'green',
-      'In-Progress': 'blue',
-      'Completed': 'gray',
-      'Cancelled': 'red'
+      'Proposed': '#f59e0b',
+      'Confirmed': '#10b981',
+      'In-Progress': '#3b82f6',
+      'Completed': '#6b7280',
+      'Cancelled': '#ef4444'
     };
-    return colors[status] || 'gray';
+    return colors[status] || '#6b7280';
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -25,13 +24,11 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
     });
   };
 
-  const canConfirm = pickup.status === 'Proposed' && 
-    pickup.proposedBy !== currentUser.userID &&
-    currentUser.userID === pickup.giverID;
-
-  const canCancel = pickup.status !== 'Completed' && 
-    pickup.status !== 'Cancelled' &&
-    (currentUser.userID === pickup.giverID || currentUser.userID === pickup.collectorID);
+  const isGiver = currentUser?.userID === pickup.giverID;
+  const canConfirm = pickup.status === 'Proposed' && isGiver;
+  const canCancel = pickup.status !== 'Completed' && pickup.status !== 'Cancelled';
+  const canComplete = pickup.status === 'In-Progress' && isGiver;
+  const canStartPickup = pickup.status === 'Confirmed' && !isGiver;
 
   return (
     <div className={styles.pickupCard} style={{ borderLeftColor: getStatusColor(pickup.status) }}>
@@ -39,7 +36,10 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
         <h4 className={styles.title}>
           🚚 Pickup Schedule
         </h4>
-        <span className={`${styles.statusBadge} ${styles[pickup.status.toLowerCase()]}`}>
+        <span 
+          className={styles.statusBadge} 
+          style={{ backgroundColor: `${getStatusColor(pickup.status)}20`, color: getStatusColor(pickup.status) }}
+        >
           {pickup.status}
         </span>
       </div>
@@ -67,34 +67,51 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
         </div>
       </div>
 
-      {(canConfirm || canCancel) && (
-        <div className={styles.actions}>
-          {canConfirm && (
-            <>
-              <button 
-                className={styles.confirmButton}
-                onClick={() => onUpdateStatus('Confirmed')}
-              >
-                ✅ Confirm
-              </button>
-              <button 
-                className={styles.declineButton}
-                onClick={() => onUpdateStatus('Cancelled')}
-              >
-                ❌ Decline
-              </button>
-            </>
-          )}
-          {canCancel && !canConfirm && (
+      <div className={styles.actions}>
+        {canConfirm && (
+          <>
             <button 
-              className={styles.cancelButton}
+              className={styles.confirmButton}
+              onClick={() => onUpdateStatus('Confirmed')}
+            >
+              ✅ Confirm
+            </button>
+            <button 
+              className={styles.declineButton}
               onClick={() => onUpdateStatus('Cancelled')}
             >
-              Cancel Pickup
+              ❌ Decline
             </button>
-          )}
-        </div>
-      )}
+          </>
+        )}
+        
+        {canStartPickup && (
+          <button 
+            className={styles.startButton}
+            onClick={() => onUpdateStatus('In-Progress')}
+          >
+            🚚 Start Pickup
+          </button>
+        )}
+        
+        {canComplete && (
+          <button 
+            className={styles.completeButton}
+            onClick={() => onUpdateStatus('Completed')}
+          >
+            ✔️ Complete
+          </button>
+        )}
+        
+        {canCancel && !canConfirm && (
+          <button 
+            className={styles.cancelButton}
+            onClick={() => onUpdateStatus('Cancelled')}
+          >
+            Cancel Pickup
+          </button>
+        )}
+      </div>
     </div>
   );
 };

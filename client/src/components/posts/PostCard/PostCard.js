@@ -3,8 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './PostCard.module.css';
+// Add these imports at the top of PostCard.js
+import { db } from '../../../services/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '../../../context/AuthContext';
 
 const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
+
+  const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -328,6 +334,65 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
     event.stopPropagation(); // Prevent post navigation
     navigate(`/posts/${postId}#comments`);
   };
+
+const handleMessageOwner = async (post, event) => {
+  // Stop event propagation
+  if (event) {
+    event.stopPropagation();
+  }
+
+  // Check if user is logged in
+  if (!currentUser || !currentUser.userID) {
+    alert("Please log in to message the post owner");
+    navigate('/login');
+    return;
+  }
+
+  // Check if trying to message yourself
+  if (currentUser.userID === post.userID) {
+    alert("You can't message yourself!");
+    return;
+  }
+
+  try {
+    // Create initial message
+    const messageData = {
+      messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      senderID: currentUser.userID,
+      senderName: `${currentUser.firstName} ${currentUser.lastName}`,
+      senderType: currentUser.userType || 'User',
+      receiverID: post.userID,
+      receiverName: post.user?.firstName ? `${post.user.firstName} ${post.user.lastName}` : 'User',
+      postID: post.postID || post.id,
+      postTitle: post.title,
+      postType: post.postType,
+      message: `Hi! I'm interested in your post "${post.title}". When would be a good time to discuss this?`,
+      messageType: 'text',
+      isRead: false,
+      sentAt: serverTimestamp(),
+      createdAt: serverTimestamp()
+    };
+
+    await addDoc(collection(db, 'messages'), messageData);
+    
+    // Navigate to chat
+    navigate('/chat', {
+      state: {
+        postID: post.postID || post.id,
+        otherUser: {
+          userID: post.userID,
+          name: post.user?.firstName ? `${post.user.firstName} ${post.user.lastName}` : 'User',
+          firstName: post.user?.firstName || 'Unknown',
+          lastName: post.user?.lastName || 'User'
+        },
+        postData: post
+      }
+    });
+  } catch (error) {
+    console.error('Error creating message:', error);
+    alert('Failed to start conversation. Please try again.');
+  }
+};
 
   // Loading state
   if (loading) {
@@ -701,6 +766,15 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
                   style={{ marginLeft: 'auto', background: '#F0924C' }}
                 >
                   Edit
+                </button>
+              )}
+              {currentUser && currentUser.userID !== post.userID && (
+                <button 
+                  className={`${styles.actionButton} ${styles.messageButton}`}
+                  onClick={(e) => handleMessageOwner(post, e)}
+                  style={{ background: '#4B5563' }}
+                >
+                  💬 Message
                 </button>
               )}
             </div>
