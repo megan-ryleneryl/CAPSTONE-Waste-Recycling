@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
+import styles from './PickupScheduleForm.module.css';
 
-const PickupScheduleForm = ({ onSubmit, onCancel, giverPreferences = {} }) => {
+const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
   const [formData, setFormData] = useState({
     pickupDate: '',
     pickupTime: '',
-    location: giverPreferences.preferredLocation || '',
+    pickupLocation: giverPreferences?.preferredLocation || '',
     contactPerson: '',
     contactNumber: '',
-    notes: ''
+    alternateContact: '',
+    specialInstructions: ''
   });
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,186 +48,245 @@ const PickupScheduleForm = ({ onSubmit, onCancel, giverPreferences = {} }) => {
       newErrors.pickupTime = 'Pickup time is required';
     }
     
-    if (!formData.location) {
-      newErrors.location = 'Pickup location is required';
+    if (!formData.pickupLocation || formData.pickupLocation.trim().length < 10) {
+      newErrors.pickupLocation = 'Please provide a detailed pickup location';
     }
     
-    if (!formData.contactPerson) {
+    if (!formData.contactPerson || formData.contactPerson.trim().length < 2) {
       newErrors.contactPerson = 'Contact person name is required';
     }
     
     if (!formData.contactNumber) {
       newErrors.contactNumber = 'Contact number is required';
-    } else if (!/^[\d\s\+\-\(\)]+$/.test(formData.contactNumber)) {
-      newErrors.contactNumber = 'Please enter a valid phone number';
+    } else {
+      const phoneRegex = /^(\+63|0)?9\d{9}$/;
+      const cleanedNumber = formData.contactNumber.replace(/[\s-]/g, '');
+      if (!phoneRegex.test(cleanedNumber)) {
+        newErrors.contactNumber = 'Please enter a valid Philippine mobile number';
+      }
     }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      // Combine date and time
-      const pickupDateTime = new Date(`${formData.pickupDate}T${formData.pickupTime}`);
-      
-      onSubmit({
-        pickupTime: pickupDateTime.toISOString(),
-        location: formData.location,
-        contactPerson: formData.contactPerson,
-        contactNumber: formData.contactNumber,
-        notes: formData.notes
-      });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSubmit(formData);
+    } catch (error) {
+      console.error('Error submitting pickup schedule:', error);
+      alert('Failed to schedule pickup. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Get tomorrow's date as minimum date
+  // Get tomorrow's date as minimum
   const getTomorrowDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().split('T')[0];
   };
 
+  // Get date 30 days from now as maximum
+  const getMaxDate = () => {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 30);
+    return maxDate.toISOString().split('T')[0];
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Schedule Pickup</h2>
-        
-        {/* Show giver preferences if available */}
-        {giverPreferences.preferredTimes && (
-          <div className="bg-blue-50 p-3 rounded mb-4">
-            <p className="text-sm text-blue-800">
-              <strong>Giver's preferred times:</strong> {giverPreferences.preferredTimes}
+    <div className={styles.modalOverlay}>
+      <div className={styles.modal}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>Schedule Pickup</h2>
+          <button 
+            className={styles.closeBtn}
+            onClick={onCancel}
+            type="button"
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Post Information */}
+        {post && (
+          <div className={styles.postInfo}>
+            <h3>{post.title}</h3>
+            <p className={styles.postMeta}>
+              {post.wasteType || post.materials} • {post.quantity || post.amount} {post.unit || 'items'}
             </p>
           </div>
         )}
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Pickup Date *
-            </label>
-            <input
-              type="date"
-              name="pickupDate"
-              value={formData.pickupDate}
-              onChange={handleChange}
-              min={getTomorrowDate()}
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.pickupDate ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {errors.pickupDate && (
-              <p className="mt-1 text-sm text-red-600">{errors.pickupDate}</p>
+
+        {/* Giver Preferences if available */}
+        {giverPreferences && (giverPreferences.preferredDays || giverPreferences.preferredTimeSlots) && (
+          <div className={styles.preferences}>
+            <p className={styles.prefTitle}>📅 Giver's Preferences:</p>
+            {giverPreferences.preferredDays && (
+              <p>Preferred days: {giverPreferences.preferredDays.join(', ')}</p>
+            )}
+            {giverPreferences.preferredTimeSlots && (
+              <p>Preferred time: {giverPreferences.preferredTimeSlots.join(', ')}</p>
             )}
           </div>
+        )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Pickup Time *
-            </label>
-            <input
-              type="time"
-              name="pickupTime"
-              value={formData.pickupTime}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.pickupTime ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {errors.pickupTime && (
-              <p className="mt-1 text-sm text-red-600">{errors.pickupTime}</p>
-            )}
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label htmlFor="pickupDate">
+                Pickup Date <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="date"
+                id="pickupDate"
+                name="pickupDate"
+                value={formData.pickupDate}
+                onChange={handleChange}
+                min={getTomorrowDate()}
+                max={getMaxDate()}
+                className={errors.pickupDate ? styles.errorInput : ''}
+                required
+              />
+              {errors.pickupDate && (
+                <span className={styles.errorMsg}>{errors.pickupDate}</span>
+              )}
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="pickupTime">
+                Time <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="time"
+                id="pickupTime"
+                name="pickupTime"
+                value={formData.pickupTime}
+                onChange={handleChange}
+                className={errors.pickupTime ? styles.errorInput : ''}
+                required
+              />
+              {errors.pickupTime && (
+                <span className={styles.errorMsg}>{errors.pickupTime}</span>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Pickup Location *
-            </label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="e.g., Front gate, Building A"
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.location ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {errors.location && (
-              <p className="mt-1 text-sm text-red-600">{errors.location}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contact Person *
+          <div className={styles.field}>
+            <label htmlFor="pickupLocation">
+              Pickup Location <span className={styles.required}>*</span>
             </label>
             <input
               type="text"
-              name="contactPerson"
-              value={formData.contactPerson}
+              id="pickupLocation"
+              name="pickupLocation"
+              value={formData.pickupLocation}
               onChange={handleChange}
-              placeholder="Name of person who will pickup"
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.contactPerson ? 'border-red-500' : 'border-gray-300'
-              }`}
+              placeholder="Complete address or landmark"
+              className={errors.pickupLocation ? styles.errorInput : ''}
+              required
             />
-            {errors.contactPerson && (
-              <p className="mt-1 text-sm text-red-600">{errors.contactPerson}</p>
+            {errors.pickupLocation && (
+              <span className={styles.errorMsg}>{errors.pickupLocation}</span>
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contact Number *
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label htmlFor="contactPerson">
+                Contact Person <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="text"
+                id="contactPerson"
+                name="contactPerson"
+                value={formData.contactPerson}
+                onChange={handleChange}
+                placeholder="Name of person doing the pickup"
+                className={errors.contactPerson ? styles.errorInput : ''}
+                required
+              />
+              {errors.contactPerson && (
+                <span className={styles.errorMsg}>{errors.contactPerson}</span>
+              )}
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="contactNumber">
+                Contact Number <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="tel"
+                id="contactNumber"
+                name="contactNumber"
+                value={formData.contactNumber}
+                onChange={handleChange}
+                placeholder="09XX XXX XXXX"
+                className={errors.contactNumber ? styles.errorInput : ''}
+                required
+              />
+              {errors.contactNumber && (
+                <span className={styles.errorMsg}>{errors.contactNumber}</span>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="alternateContact">
+              Alternate Contact (Optional)
             </label>
             <input
               type="tel"
-              name="contactNumber"
-              value={formData.contactNumber}
+              id="alternateContact"
+              name="alternateContact"
+              value={formData.alternateContact}
               onChange={handleChange}
-              placeholder="e.g., 09123456789"
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                errors.contactNumber ? 'border-red-500' : 'border-gray-300'
-              }`}
+              placeholder="Backup contact number"
             />
-            {errors.contactNumber && (
-              <p className="mt-1 text-sm text-red-600">{errors.contactNumber}</p>
-            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Additional Notes
+          <div className={styles.field}>
+            <label htmlFor="specialInstructions">
+              Special Instructions (Optional)
             </label>
             <textarea
-              name="notes"
-              value={formData.notes}
+              id="specialInstructions"
+              name="specialInstructions"
+              value={formData.specialInstructions}
               onChange={handleChange}
               rows="3"
-              placeholder="Any special instructions..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              placeholder="Any special instructions or notes for the pickup..."
+              className={styles.textarea}
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors"
-            >
-              Schedule Pickup
-            </button>
+          <div className={styles.actions}>
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors"
+              className={styles.cancelButton}
+              disabled={loading}
             >
               Cancel
             </button>
+            <button
+              type="submit"
+              className={styles.submitButton}
+              disabled={loading}
+            >
+              {loading ? 'Scheduling...' : 'Schedule Pickup'}
+            </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
