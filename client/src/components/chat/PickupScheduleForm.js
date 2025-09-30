@@ -21,7 +21,6 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -88,18 +87,21 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
     }
   };
 
-  // Get tomorrow's date as minimum
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+  const getMinDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
-  // Get date 30 days from now as maximum
   const getMaxDate = () => {
     const maxDate = new Date();
     maxDate.setDate(maxDate.getDate() + 30);
-    return maxDate.toISOString().split('T')[0];
+    const year = maxDate.getFullYear();
+    const month = String(maxDate.getMonth() + 1).padStart(2, '0');
+    const day = String(maxDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   return (
@@ -113,11 +115,10 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
             type="button"
             aria-label="Close"
           >
-            ✕
+            ×
           </button>
         </div>
 
-        {/* Post Information */}
         {post && (
           <div className={styles.postInfo}>
             <h3>{post.title}</h3>
@@ -127,7 +128,6 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
           </div>
         )}
 
-        {/* Giver Preferences if available */}
         {giverPreferences && (giverPreferences.preferredDays || giverPreferences.preferredTimeSlots) && (
           <div className={styles.preferences}>
             <p className={styles.prefTitle}>📅 Giver's Preferences:</p>
@@ -152,7 +152,7 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
                 name="pickupDate"
                 value={formData.pickupDate}
                 onChange={handleChange}
-                min={getTomorrowDate()}
+                min={getMinDate()}
                 max={getMaxDate()}
                 className={errors.pickupDate ? styles.errorInput : ''}
                 required
@@ -200,26 +200,26 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
             )}
           </div>
 
-          <div className={styles.row}>
-            <div className={styles.field}>
-              <label htmlFor="contactPerson">
-                Contact Person <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                id="contactPerson"
-                name="contactPerson"
-                value={formData.contactPerson}
-                onChange={handleChange}
-                placeholder="Name of person doing the pickup"
-                className={errors.contactPerson ? styles.errorInput : ''}
-                required
-              />
-              {errors.contactPerson && (
-                <span className={styles.errorMsg}>{errors.contactPerson}</span>
-              )}
-            </div>
+          <div className={styles.field}>
+            <label htmlFor="contactPerson">
+              Contact Person <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="text"
+              id="contactPerson"
+              name="contactPerson"
+              value={formData.contactPerson}
+              onChange={handleChange}
+              placeholder="Name of person doing the pickup"
+              className={errors.contactPerson ? styles.errorInput : ''}
+              required
+            />
+            {errors.contactPerson && (
+              <span className={styles.errorMsg}>{errors.contactPerson}</span>
+            )}
+          </div>
 
+          <div className={styles.row}>
             <div className={styles.field}>
               <label htmlFor="contactNumber">
                 Contact Number <span className={styles.required}>*</span>
@@ -238,20 +238,20 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
                 <span className={styles.errorMsg}>{errors.contactNumber}</span>
               )}
             </div>
-          </div>
 
-          <div className={styles.field}>
-            <label htmlFor="alternateContact">
-              Alternate Contact (Optional)
-            </label>
-            <input
-              type="tel"
-              id="alternateContact"
-              name="alternateContact"
-              value={formData.alternateContact}
-              onChange={handleChange}
-              placeholder="Backup contact number"
-            />
+            <div className={styles.field}>
+              <label htmlFor="alternateContact">
+                Alternate Contact (Optional)
+              </label>
+              <input
+                type="tel"
+                id="alternateContact"
+                name="alternateContact"
+                value={formData.alternateContact}
+                onChange={handleChange}
+                placeholder="Backup contact number"
+              />
+            </div>
           </div>
 
           <div className={styles.field}>

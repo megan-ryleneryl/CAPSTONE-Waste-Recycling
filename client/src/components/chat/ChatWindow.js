@@ -32,110 +32,112 @@ const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData 
     scrollToBottom();
   }, [messages]);
 
-  const loadChatData = async () => {
-    if (!postID || !otherUser?.userID || !currentUser?.userID) {
-      console.log('Missing required data:', { postID, otherUserID: otherUser?.userID, currentUserID: currentUser?.userID });
-      setLoading(false);
-      return;
+const loadChatData = async () => {
+  if (!postID || !otherUser?.userID || !currentUser?.userID) {
+    console.log('Missing required data:', { postID, otherUserID: otherUser?.userID, currentUserID: currentUser?.userID });
+    setLoading(false);
+    return;
+  }
+
+  try {
+    // Fetch post data if not provided
+    if (!post) {
+      const postDocRef = doc(db, 'posts', postID);
+      const postDoc = await getDoc(postDocRef);
+      if (postDoc.exists()) {
+        setPost({ postID: postDoc.id, ...postDoc.data() });
+      } else {
+        console.error('Post not found');
+        setPost({ postID, title: 'Post Not Found', postType: 'Unknown' });
+      }
     }
 
-    try {
-      setLoading(true);
-      
-      // Load post data if not provided
-      if (!postData && postID) {
-        const postDoc = await getDoc(doc(db, 'posts', postID));
-        if (postDoc.exists()) {
-          setPost({ id: postDoc.id, ...postDoc.data() });
-        }
+    // Fetch other user data if not complete
+    if (!otherUserData || !otherUserData.firstName) {
+      const userDocRef = doc(db, 'users', otherUser.userID);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setOtherUserData({ userID: userDoc.id, ...userDoc.data() });
       }
+    }
 
-      // Load other user data if needed
-      if (otherUser?.userID) {
-        const userDoc = await getDoc(doc(db, 'users', otherUser.userID));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setOtherUserData({
-            userID: otherUser.userID,
-            firstName: userData.firstName || 'Unknown',
-            lastName: userData.lastName || 'User',
-            name: `${userData.firstName || 'Unknown'} ${userData.lastName || 'User'}`,
-            userType: userData.userType || 'User',
-            email: userData.email
-          });
-        }
-      }
+    // Subscribe to messages
+    const messagesRef = collection(db, 'messages');
+    const q = query(
+      messagesRef,
+      where('postID', '==', postID),
+      where('isDeleted', '==', false),
+      orderBy('sentAt', 'asc')
+    );
 
-      // Set up real-time message listener
-      const messagesQuery = query(
-        collection(db, 'messages'),
-        where('postID', '==', postID),
-        orderBy('sentAt', 'asc')
-      );
-
-      unsubscribeRef.current = onSnapshot(messagesQuery, (snapshot) => {
-        const messagesData = snapshot.docs
-          .map(doc => ({
+    unsubscribeRef.current = onSnapshot(q, (snapshot) => {
+      const messagesData = [];
+      snapshot.forEach((doc) => {
+        const messageData = doc.data();
+        // Filter messages between current user and other user
+        if (
+          (messageData.senderID === currentUser.userID && messageData.receiverID === otherUser.userID) ||
+          (messageData.senderID === otherUser.userID && messageData.receiverID === currentUser.userID) ||
+          messageData.messageType === 'system'
+        ) {
+          messagesData.push({
             id: doc.id,
-            ...doc.data(),
-            sentAt: doc.data().sentAt?.toDate() || new Date()
-          }))
-          .filter(msg => {
-            // Only show messages between current user and other user
-            return (msg.senderID === currentUser.userID && msg.receiverID === otherUser.userID) ||
-                   (msg.senderID === otherUser.userID && msg.receiverID === currentUser.userID);
+            ...messageData
           });
-        
-        setMessages(messagesData);
-        setLoading(false);
+        }
       });
-
-      // Check for existing pickup
-      const pickupsQuery = query(
-        collection(db, 'pickups'),
-        where('postID', '==', postID)
-      );
-      
-      const pickupsSnapshot = await getDocs(pickupsQuery);
-      if (!pickupsSnapshot.empty) {
-        const pickupData = pickupsSnapshot.docs[0].data();
-        setActivePickup({ id: pickupsSnapshot.docs[0].id, ...pickupData });
-      }
-
-    } catch (error) {
-      console.error('Error loading chat data:', error);
+      setMessages(messagesData);
       setLoading(false);
-    }
-  };
+    });
 
+    // Check for active pickup
+    const pickupsRef = collection(db, 'pickups');
+    const pickupQuery = query(
+      pickupsRef,
+      where('postID', '==', postID),
+      where('status', 'in', ['Proposed', 'Confirmed', 'In-Progress'])
+    );
+    
+    const pickupSnapshot = await getDocs(pickupQuery);
+    if (!pickupSnapshot.empty) {
+      const pickupDoc = pickupSnapshot.docs[0];
+      setActivePickup({ pickupID: pickupDoc.id, ...pickupDoc.data() });
+    }
+  } catch (error) {
+    console.error('Error loading chat data:', error);
+    setLoading(false);
+  }
+};
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const sendMessage = async (messageText) => {
-    if (!messageText.trim() || !postID || !otherUser?.userID) return;
+const sendMessage = async (messageText, messageType = 'text', metadata = {}) => {
+  try {
+    const newMessage = {
+      messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      senderID: currentUser.userID,
+      senderName: `${currentUser.firstName} ${currentUser.lastName}`,
+      receiverID: otherUser.userID,
+      receiverName: otherUserData ? `${otherUserData.firstName} ${otherUserData.lastName}` : otherUser.userName,
+      postID: postID,
+      postTitle: post?.title || postData?.title || 'Post', // Always include title
+      postType: post?.postType || postData?.postType || 'Waste',
+      message: messageText,
+      messageType: messageType,
+      metadata: metadata,
+      isRead: false,
+      isDeleted: false,
+      sentAt: serverTimestamp(),
+      createdAt: serverTimestamp()
+    };
 
-    try {
-      const newMessage = {
-        senderID: currentUser.userID,
-        senderName: `${currentUser.firstName} ${currentUser.lastName}`,
-        senderType: currentUser.userType || 'User',
-        receiverID: otherUser.userID,
-        postID,
-        message: messageText,
-        messageType: 'text',
-        isRead: false,
-        sentAt: serverTimestamp(),
-        readAt: null
-      };
-
-      await addDoc(collection(db, 'messages'), newMessage);
-      // Message will appear via real-time listener
-    } catch (error) {
-      console.error('Error sending message:', error);
-      alert('Failed to send message. Please try again.');
-    }
-  };
+    await addDoc(collection(db, 'messages'), newMessage);
+  } catch (error) {
+    console.error('Error sending message:', error);
+    throw error;
+  }
+};
 
   const handleSchedulePickup = async (formData) => {
     try {

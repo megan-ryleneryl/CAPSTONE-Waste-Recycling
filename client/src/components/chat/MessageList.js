@@ -22,9 +22,12 @@ const MessageList = ({ messages, currentUser, className = '' }) => {
         const isFirstInGroup = index === 0 || 
           messages[index - 1]?.senderID !== message.senderID;
 
+        // Create a unique key - use messageID if available, otherwise use index with timestamp
+        const uniqueKey = message.messageID || `msg-${index}-${message.sentAt?.seconds || Date.now()}`;
+
         return (
           <MessageItem
-            key={message.messageID}
+            key={uniqueKey}
             message={message}
             isOwn={message.senderID === currentUser.userID}
             isLastInGroup={isLastInGroup}
