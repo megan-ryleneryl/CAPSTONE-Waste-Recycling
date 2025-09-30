@@ -8,10 +8,40 @@ const ConversationListItem = ({
   onClick, 
   isSelected 
 }) => {
-  const formatTime = (date) => {
-    if (!date) return '';
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
     
-    const messageDate = new Date(date);
+    let messageDate;
+    
+    // Handle Firestore Timestamp objects
+    if (timestamp?.seconds) {
+      // Firestore Timestamp format with seconds
+      messageDate = new Date(timestamp.seconds * 1000);
+    } else if (timestamp?.toDate && typeof timestamp.toDate === 'function') {
+      // Firestore Timestamp with toDate method
+      messageDate = timestamp.toDate();
+    } else if (typeof timestamp === 'string') {
+      // String date
+      messageDate = new Date(timestamp);
+    } else if (timestamp instanceof Date) {
+      // Already a Date object
+      messageDate = timestamp;
+    } else {
+      // Try to parse it anyway
+      try {
+        messageDate = new Date(timestamp);
+      } catch (e) {
+        console.error('Invalid timestamp format:', timestamp);
+        return '';
+      }
+    }
+    
+    // Check if date is valid
+    if (!messageDate || isNaN(messageDate.getTime())) {
+      console.error('Invalid date after conversion:', timestamp);
+      return '';
+    }
+    
     const now = new Date();
     const diffMs = now - messageDate;
     const diffMins = Math.floor(diffMs / 60000);

@@ -19,8 +19,16 @@ const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData 
   const messagesEndRef = useRef(null);
   const unsubscribeRef = useRef(null);
 
-  useEffect(() => {
+useEffect(() => {
+    // Reset state when switching conversations
+    setMessages([]);
+    setPost(postData);
+    setOtherUserData(otherUser);
+    setActivePickup(null);
+    setLoading(true);
+    
     loadChatData();
+    
     return () => {
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
@@ -40,28 +48,54 @@ const loadChatData = async () => {
   }
 
   try {
-    // Fetch post data if not provided
-    if (!post) {
-      const postDocRef = doc(db, 'posts', postID);
-      const postDoc = await getDoc(postDocRef);
-      if (postDoc.exists()) {
-        setPost({ postID: postDoc.id, ...postDoc.data() });
-      } else {
-        console.error('Post not found');
-        setPost({ postID, title: 'Post Not Found', postType: 'Unknown' });
-      }
-    }
-
-    // Fetch other user data if not complete
-    if (!otherUserData || !otherUserData.firstName) {
+    // 1. Fetch other user data properly
+    let userDataToSet = otherUser;
+    
+    if (!otherUser.firstName || !otherUser.lastName) {
+      console.log('Fetching complete user data for:', otherUser.userID);
       const userDocRef = doc(db, 'users', otherUser.userID);
       const userDoc = await getDoc(userDocRef);
+      
       if (userDoc.exists()) {
-        setOtherUserData({ userID: userDoc.id, ...userDoc.data() });
+        const userData = userDoc.data();
+        userDataToSet = { 
+          userID: userDoc.id, 
+          ...userData,
+          name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User'
+        };
+        console.log('Loaded user data:', userDataToSet);
+      } else {
+        console.warn('User document not found for:', otherUser.userID);
+        userDataToSet = {
+          ...otherUser,
+          name: otherUser.userName || 'Unknown User',
+          firstName: otherUser.userName || 'Unknown',
+          lastName: 'User'
+        };
       }
+    } else {
+      userDataToSet = {
+        ...otherUser,
+        name: `${otherUser.firstName} ${otherUser.lastName}`.trim()
+      };
+    }
+    
+    setOtherUserData(userDataToSet);
+    
+    // 2. Fetch post data - ALWAYS fetch fresh to ensure correct post is shown
+    console.log('Fetching post data for:', postID);
+    const postDocRef = doc(db, 'posts', postID);
+    const postDoc = await getDoc(postDocRef);
+    if (postDoc.exists()) {
+      const postData = { postID: postDoc.id, ...postDoc.data() };
+      setPost(postData);
+      console.log('Loaded post data:', postData);
+    } else {
+      console.error('Post not found');
+      setPost({ postID, title: 'Post Not Found', postType: 'Unknown' });
     }
 
-    // Subscribe to messages
+    // 3. Subscribe to messages
     const messagesRef = collection(db, 'messages');
     const q = query(
       messagesRef,
@@ -70,7 +104,7 @@ const loadChatData = async () => {
       orderBy('sentAt', 'asc')
     );
 
-    unsubscribeRef.current = onSnapshot(q, (snapshot) => {
+    const unsubscribeMessages = onSnapshot(q, (snapshot) => {
       const messagesData = [];
       snapshot.forEach((doc) => {
         const messageData = doc.data();
@@ -90,19 +124,47 @@ const loadChatData = async () => {
       setLoading(false);
     });
 
-    // Check for active pickup
+    // 4. Subscribe to pickup updates for this specific conversation
     const pickupsRef = collection(db, 'pickups');
     const pickupQuery = query(
       pickupsRef,
-      where('postID', '==', postID),
-      where('status', 'in', ['Proposed', 'Confirmed', 'In-Progress'])
+      where('postID', '==', postID)
     );
+
+    const unsubscribePickup = onSnapshot(pickupQuery, (snapshot) => {
+      if (!snapshot.empty) {
+        // Find the pickup that matches this specific conversation
+        const relevantPickup = snapshot.docs.find(doc => {
+          const data = doc.data();
+          const isRelevant = 
+            (data.giverID === otherUser.userID && data.collectorID === currentUser.userID) ||
+            (data.collectorID === otherUser.userID && data.giverID === currentUser.userID);
+          
+          const isActive = ['Proposed', 'Confirmed', 'In-Progress'].includes(data.status);
+          
+          return isRelevant && isActive;
+        });
+        
+        if (relevantPickup) {
+          const pickupData = { id: relevantPickup.id, ...relevantPickup.data() };
+          console.log('Active pickup found:', pickupData);
+          setActivePickup(pickupData);
+        } else {
+          console.log('No active pickup for this conversation');
+          setActivePickup(null);
+        }
+      } else {
+        console.log('No pickups found for this post');
+        setActivePickup(null);
+      }
+    });
+
+    // Store combined unsubscribe function
+    unsubscribeRef.current = () => {
+      unsubscribeMessages();
+      unsubscribePickup();
+    };
     
-    const pickupSnapshot = await getDocs(pickupQuery);
-    if (!pickupSnapshot.empty) {
-      const pickupDoc = pickupSnapshot.docs[0];
-      setActivePickup({ pickupID: pickupDoc.id, ...pickupDoc.data() });
-    }
   } catch (error) {
     console.error('Error loading chat data:', error);
     setLoading(false);
@@ -119,9 +181,9 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       senderID: currentUser.userID,
       senderName: `${currentUser.firstName} ${currentUser.lastName}`,
       receiverID: otherUser.userID,
-      receiverName: otherUserData ? `${otherUserData.firstName} ${otherUserData.lastName}` : otherUser.userName,
+      receiverName: otherUserData?.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim() || 'Unknown User',
       postID: postID,
-      postTitle: post?.title || postData?.title || 'Post', // Always include title
+      postTitle: post?.title || postData?.title || 'Post',
       postType: post?.postType || postData?.postType || 'Waste',
       message: messageText,
       messageType: messageType,
@@ -213,40 +275,53 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
   return (
     <div className={styles.chatWindow}>
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          {onBack && (
-            <button onClick={onBack} className={styles.backButton}>
-              ← Back
-            </button>
-          )}
-          <div className={styles.userInfo}>
-            <div className={styles.avatar}>
-              {otherUserData?.name?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div>
-              <h3 className={styles.userName}>{otherUserData?.name || 'Unknown User'}</h3>
-              <p className={styles.postTitle}>{post?.title || 'Loading...'}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className={styles.headerActions}>
-          {canSchedulePickup && (
-            <button
-              onClick={() => setShowScheduleForm(true)}
-              className={styles.scheduleButton}
-            >
-              📅 Schedule Pickup
-            </button>
-          )}
-          {onClose && (
-            <button onClick={onClose} className={styles.closeButton}>
-              ✕
-            </button>
-          )}
-        </div>
+<div className={styles.header}>
+  <div className={styles.headerLeft}>
+    {onBack && (
+      <button onClick={onBack} className={styles.backButton}>
+        ← Back
+      </button>
+    )}
+    <div className={styles.userInfo}>
+      <div className={styles.avatar}>
+        {otherUserData?.profilePicture ? (
+          <img 
+            src={otherUserData.profilePicture} 
+            alt={otherUserData?.name || 'User'} 
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.parentElement.textContent = (otherUserData?.name || otherUserData?.firstName || 'U').charAt(0).toUpperCase();
+            }}
+          />
+        ) : (
+          (otherUserData?.name || otherUserData?.firstName || 'U').charAt(0).toUpperCase()
+        )}
       </div>
+      <div>
+        <h3 className={styles.userName}>
+          {otherUserData?.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim() || 'Unknown User'}
+        </h3>
+        <p className={styles.postTitle}>{post?.title || 'Loading...'}</p>
+      </div>
+    </div>
+  </div>
+  
+  <div className={styles.headerActions}>
+    {canSchedulePickup && (
+      <button
+        onClick={() => setShowScheduleForm(true)}
+        className={styles.scheduleButton}
+      >
+        📅 Schedule Pickup
+      </button>
+    )}
+    {onClose && (
+      <button onClick={onClose} className={styles.closeButton}>
+        ✕
+      </button>
+    )}
+  </div>
+</div>
 
       {activePickup && (
         <PickupCard 

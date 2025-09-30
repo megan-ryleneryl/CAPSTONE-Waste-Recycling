@@ -1,11 +1,13 @@
+// client/src/components/chat/PickupScheduleForm.js
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import styles from './PickupScheduleForm.module.css';
 
-const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
+const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     pickupDate: '',
     pickupTime: '',
-    pickupLocation: giverPreferences?.preferredLocation || '',
+    pickupLocation: '',
     contactPerson: '',
     contactNumber: '',
     alternateContact: '',
@@ -21,6 +23,8 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
       ...prev,
       [name]: value
     }));
+    
+    // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -31,52 +35,42 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.pickupDate) {
       newErrors.pickupDate = 'Pickup date is required';
-    } else {
-      const selectedDate = new Date(formData.pickupDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        newErrors.pickupDate = 'Pickup date cannot be in the past';
-      }
     }
-    
+
     if (!formData.pickupTime) {
       newErrors.pickupTime = 'Pickup time is required';
     }
-    
-    if (!formData.pickupLocation || formData.pickupLocation.trim().length < 10) {
-      newErrors.pickupLocation = 'Please provide a detailed pickup location';
+
+    if (!formData.pickupLocation.trim()) {
+      newErrors.pickupLocation = 'Pickup location is required';
     }
-    
-    if (!formData.contactPerson || formData.contactPerson.trim().length < 2) {
+
+    if (!formData.contactPerson.trim()) {
       newErrors.contactPerson = 'Contact person name is required';
     }
-    
-    if (!formData.contactNumber) {
+
+    if (!formData.contactNumber.trim()) {
       newErrors.contactNumber = 'Contact number is required';
-    } else {
-      const phoneRegex = /^(\+63|0)?9\d{9}$/;
-      const cleanedNumber = formData.contactNumber.replace(/[\s-]/g, '');
-      if (!phoneRegex.test(cleanedNumber)) {
-        newErrors.contactNumber = 'Please enter a valid Philippine mobile number';
-      }
+    } else if (!/^[0-9]{10,11}$/.test(formData.contactNumber.replace(/\s/g, ''))) {
+      newErrors.contactNumber = 'Please enter a valid 10-11 digit phone number';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setLoading(true);
+    
     try {
       await onSubmit(formData);
     } catch (error) {
@@ -104,9 +98,10 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
     return `${year}-${month}-${day}`;
   };
 
-  return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modal}>
+  // Render the modal using a portal
+  return ReactDOM.createPortal(
+    <div className={styles.modalOverlay} onClick={onCancel}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2 className={styles.title}>Schedule Pickup</h2>
           <button 
@@ -155,7 +150,6 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
                 min={getMinDate()}
                 max={getMaxDate()}
                 className={errors.pickupDate ? styles.errorInput : ''}
-                required
               />
               {errors.pickupDate && (
                 <span className={styles.errorMsg}>{errors.pickupDate}</span>
@@ -173,7 +167,6 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
                 value={formData.pickupTime}
                 onChange={handleChange}
                 className={errors.pickupTime ? styles.errorInput : ''}
-                required
               />
               {errors.pickupTime && (
                 <span className={styles.errorMsg}>{errors.pickupTime}</span>
@@ -189,11 +182,10 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
               type="text"
               id="pickupLocation"
               name="pickupLocation"
+              placeholder="Complete address or landmark"
               value={formData.pickupLocation}
               onChange={handleChange}
-              placeholder="Complete address or landmark"
               className={errors.pickupLocation ? styles.errorInput : ''}
-              required
             />
             {errors.pickupLocation && (
               <span className={styles.errorMsg}>{errors.pickupLocation}</span>
@@ -208,11 +200,10 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
               type="text"
               id="contactPerson"
               name="contactPerson"
+              placeholder="Name of person doing the pickup"
               value={formData.contactPerson}
               onChange={handleChange}
-              placeholder="Name of person doing the pickup"
               className={errors.contactPerson ? styles.errorInput : ''}
-              required
             />
             {errors.contactPerson && (
               <span className={styles.errorMsg}>{errors.contactPerson}</span>
@@ -228,11 +219,10 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
                 type="tel"
                 id="contactNumber"
                 name="contactNumber"
+                placeholder="09XX XXX XXXX"
                 value={formData.contactNumber}
                 onChange={handleChange}
-                placeholder="09XX XXX XXXX"
                 className={errors.contactNumber ? styles.errorInput : ''}
-                required
               />
               {errors.contactNumber && (
                 <span className={styles.errorMsg}>{errors.contactNumber}</span>
@@ -247,9 +237,9 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
                 type="tel"
                 id="alternateContact"
                 name="alternateContact"
+                placeholder="Backup contact number"
                 value={formData.alternateContact}
                 onChange={handleChange}
-                placeholder="Backup contact number"
               />
             </div>
           </div>
@@ -261,11 +251,11 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
             <textarea
               id="specialInstructions"
               name="specialInstructions"
+              placeholder="Any special instructions or notes for the pickup..."
               value={formData.specialInstructions}
               onChange={handleChange}
-              rows="3"
-              placeholder="Any special instructions or notes for the pickup..."
               className={styles.textarea}
+              rows="4"
             />
           </div>
 
@@ -288,7 +278,8 @@ const PickupScheduleForm = ({ post, onSubmit, onCancel, giverPreferences }) => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
