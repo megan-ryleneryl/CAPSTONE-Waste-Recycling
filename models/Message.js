@@ -18,7 +18,6 @@ class Message {
     // Extended fields for Module 2 chat functionality
     this.messageType = data.messageType || 'text'; // 'text', 'system', 'pickup_request', 'pickup_confirmation'
     this.senderName = data.senderName || '';
-    this.senderType = data.senderType || ''; // 'Giver', 'Collector', 'system'
     this.metadata = data.metadata || {}; // For storing pickup details, system actions, etc.
   }
 
@@ -58,7 +57,6 @@ class Message {
       isDeleted: this.isDeleted,
       messageType: this.messageType,
       senderName: this.senderName,
-      senderType: this.senderType,
       metadata: this.metadata
     };
   }
@@ -138,7 +136,6 @@ class Message {
     const messageData = {
       senderID: senderData.userID,
       senderName: `${senderData.firstName} ${senderData.lastName}`,
-      senderType: senderData.userType,
       receiverID,
       postID,
       message: messageText,
@@ -154,7 +151,6 @@ class Message {
     const messageData = {
       senderID: 'system',
       senderName: 'System',
-      senderType: 'system',
       receiverID,
       postID,
       message: messageText,
