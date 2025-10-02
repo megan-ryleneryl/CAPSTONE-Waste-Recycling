@@ -1139,37 +1139,41 @@ const Profile = ({ user: propsUser }) => {
                     </p>
                   )}
                   
-                  <div className={styles.statusContainer}>
-                    <span 
-                      className={styles.statusBadge}
-                      style={{
-                        backgroundColor: 
-                          user?.status === 'Verified' ? '#E8F5E9' :
-                          user?.status === 'Pending' ? '#FFF3E0' :
-                          user?.status === 'Submitted' ? '#FFF3E0' :
-                          user?.status === 'Rejected' ? '#FFEBEE' : '#FFF3E0',
-                        color: 
-                          user?.status === 'Verified' ? '#2E7D32' :
-                          user?.status === 'Pending' ? '#E65100' :
-                          user?.status === 'Submitted' ? '#E65100' :
-                          user?.status === 'Rejected' ? '#C62828' : '#E65100'
-                      }}
-                    >
-                      <span 
-                        className={styles.statusDot} 
-                        style={{ 
-                          backgroundColor: 
-                            user?.status === 'Verified' ? '#2E7D32' :
-                            user?.status === 'Pending' ? '#E65100' :
-                            user?.status === 'Submitted' ? '#E65100' :
-                            user?.status === 'Rejected' ? '#C62828' : '#E65100'
-                        }}
-                      ></span>
+                  <div className={styles.badgesContainer}>
+                    {/* User Status Badge */}
+                    <span className={`${styles.badge} ${styles[`status${user?.status || 'Pending'}`]}`}>
                       {user?.status === 'Verified' ? 'Verified' :
-                      user?.status === 'Pending' ? 'Pending Verification' :
-                      user?.status === 'Submitted' ? 'Waiting for Admin Approval' :
-                      user?.status === 'Rejected' ? 'Verification Rejected' : 'Pending Verification'}
+                      user?.status === 'Submitted' ? 'Submitted' :
+                      user?.status === 'Suspended' ? 'Suspended' :
+                      user?.status === 'Rejected' ? 'Rejected' : 'Pending'}
                     </span>
+                    
+                    {/* Giver Badge - All users have this */}
+                    <span className={`${styles.badge} ${styles.roleGiver}`}>
+                      Giver
+                    </span>
+                    
+                    {/* Collector Badge */}
+                    {user?.isCollector && (
+                      <span className={`${styles.badge} ${styles.roleCollector}`}>
+                        Collector
+                      </span>
+                    )}
+                    
+                    {/* Admin Badge */}
+                    {user?.isAdmin && (
+                      <span className={`${styles.badge} ${styles.roleAdmin}`}>
+                        Admin
+                      </span>
+                    )}
+                    
+                    {/* Organization Badge */}
+                    {user?.isOrganization && (
+                      <span className={`${styles.badge} ${styles.roleOrganization}`}>
+                        Organization
+                      </span>
+                    )}
+                  </div>
 
                     {user?.isOrganization && (
                       <span className={styles.organizationBadge}>
@@ -1177,7 +1181,6 @@ const Profile = ({ user: propsUser }) => {
                       </span>
                     )}
                   </div>
-                </div>
                 
                 <div className={styles.profileActions}>
                   <button 
