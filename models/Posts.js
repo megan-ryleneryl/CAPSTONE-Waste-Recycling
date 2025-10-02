@@ -1,5 +1,4 @@
-// TODO
-// Check for userType usage
+
 
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
@@ -8,7 +7,6 @@ class Post {
   constructor(data = {}) {
     this.postID = data.postID || uuidv4();
     this.userID = data.userID || '';
-    this.userType = data.userType || ''; // Add userType field
     this.postType = data.postType || ''; // Waste, Initiative, Forum
     this.title = data.title || '';
     this.description = data.description || '';
@@ -17,8 +15,13 @@ class Post {
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
     
-    // REMOVED typeSpecificData - fields should be added directly by subclasses
-    // This ensures consistent flat structure in Firestore
+    // For Waste posts - claim tracking
+    this.claimedBy = data.claimedBy || null;
+    this.claimedAt = data.claimedAt || null;
+    
+    // For Initiative posts - support tracking
+    this.supporters = data.supporters || [];
+    this.supportCount = data.supportCount || 0;
   }
 
   // Validation
@@ -75,14 +78,19 @@ class Post {
     return {
       postID: this.postID,
       userID: this.userID,
-      userType: this.userType,
       postType: this.postType,
       title: this.title,
       description: this.description,
       location: this.location,
       status: this.status,
       createdAt: this.createdAt,
-      updatedAt: this.updatedAt
+      updatedAt: this.updatedAt,
+      // Include claim tracking fields
+      claimedBy: this.claimedBy,
+      claimedAt: this.claimedAt,
+      // Include support tracking fields
+      supporters: this.supporters,
+      supportCount: this.supportCount
     };
   }
 

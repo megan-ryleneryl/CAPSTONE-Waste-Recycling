@@ -69,6 +69,14 @@ router.get('/', verifyToken, async (req, res) => {
     // Add user data and interaction data to posts
     const enrichedPosts = await Promise.all(posts.map(async (post) => {
       const postData = post.toFirestore ? post.toFirestore() : post;
+
+            // Debug log to check what fields are present
+      console.log('Post data for', postData.postID, ':', {
+        hasClaimedBy: 'claimedBy' in postData,
+        claimedBy: postData.claimedBy,
+        status: postData.status,
+        supporters: postData.supporters
+      });
       
       // Get interaction data with error handling
       let likeCount = 0;
@@ -94,7 +102,11 @@ router.get('/', verifyToken, async (req, res) => {
         likeCount,
         isLiked,
         commentCount,
-        isOwner: postData.userID === req.user.userID
+        isOwner: postData.userID === req.user.userID,
+        claimedBy: postData.claimedBy || null,
+        claimedAt: postData.claimedAt || null,
+        supporters: postData.supporters || [],
+        supportCount: postData.supportCount || 0
       };
     }));
     
@@ -176,7 +188,11 @@ router.get('/:postId', verifyToken, async (req, res) => {
         isLiked,
         comments,
         commentCount: comments.length,
-        isOwner: postData.userID === req.user.userID
+        isOwner: postData.userID === req.user.userID,
+        claimedBy: postData.claimedBy || null,
+        claimedAt: postData.claimedAt || null,
+        supporters: postData.supporters || [],
+        supportCount: postData.supportCount || 0
       }
     });
   } catch (error) {
