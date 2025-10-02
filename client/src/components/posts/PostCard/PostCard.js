@@ -355,26 +355,6 @@ const handleMessageOwner = async (post, event) => {
   }
 
   try {
-    // Create initial message
-    const messageData = {
-      messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      senderID: currentUser.userID,
-      senderName: `${currentUser.firstName} ${currentUser.lastName}`,
-      senderType: currentUser.userType || 'User',
-      receiverID: post.userID,
-      receiverName: post.user?.firstName ? `${post.user.firstName} ${post.user.lastName}` : 'User',
-      postID: post.postID || post.id,
-      postTitle: post.title,
-      postType: post.postType,
-      message: `Hi! I'm interested in your post "${post.title}". When would be a good time to discuss this?`,
-      messageType: 'text',
-      isRead: false,
-      sentAt: serverTimestamp(),
-      createdAt: serverTimestamp()
-    };
-
-    await addDoc(collection(db, 'messages'), messageData);
-    
     // Navigate to chat
     navigate('/chat', {
       state: {
