@@ -1,6 +1,3 @@
-// TODO
-// Check for userType usage
-
 const Post = require('./Posts');
 const { getFirestore, collection, doc, setDoc } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
@@ -12,14 +9,15 @@ class InitiativePost extends Post {
     // Ensure this is an Initiative post
     this.postType = 'Initiative';
     
-    // Initiative-specific fields - STORE DIRECTLY
+    // Initiative-specific fields
     this.goal = data.goal || '';
     this.targetAmount = data.targetAmount || 0;
     this.currentAmount = data.currentAmount || 0;
     this.endDate = data.endDate || null;
     
-    // Add userType if provided
-    this.userType = data.userType || '';
+    // IMPORTANT: Explicitly set support tracking fields
+    this.supporters = data.supporters || [];
+    this.supportCount = data.supportCount || 0;
   }
 
   // Override validation
@@ -42,12 +40,11 @@ class InitiativePost extends Post {
     };
   }
 
-  // Override toFirestore - Return flat structure
+  // Override toFirestore - MUST INCLUDE ALL FIELDS
   toFirestore() {
     return {
       postID: this.postID,
       userID: this.userID,
-      userType: this.userType,
       postType: this.postType,
       title: this.title,
       description: this.description,
@@ -55,11 +52,14 @@ class InitiativePost extends Post {
       status: this.status,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
-      // Initiative-specific fields at root level
+      // Initiative-specific fields
       goal: this.goal,
       targetAmount: this.targetAmount,
       currentAmount: this.currentAmount,
-      endDate: this.endDate
+      endDate: this.endDate,
+      // CRITICAL: Include support tracking fields
+      supporters: this.supporters,
+      supportCount: this.supportCount
     };
   }
 

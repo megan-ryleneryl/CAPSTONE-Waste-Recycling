@@ -1,5 +1,4 @@
-// TODO
-// Check for userType usage
+
 
 const Post = require('./Posts');
 const { getFirestore, collection, doc, setDoc } = require('firebase/firestore');
@@ -18,8 +17,7 @@ class ForumPost extends Post {
     this.isPinned = data.isPinned || false;
     this.isLocked = data.isLocked || false;
     
-    // Add userType if provided
-    this.userType = data.userType || '';
+
   }
 
   // Override validation
@@ -48,7 +46,6 @@ class ForumPost extends Post {
     return {
       postID: this.postID,
       userID: this.userID,
-      userType: this.userType,
       postType: this.postType,
       title: this.title,
       description: this.description,

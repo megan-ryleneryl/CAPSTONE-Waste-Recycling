@@ -1,5 +1,5 @@
-// TODO
-// Check for userType usage
+// models/WastePost.js
+// Updated WastePost model to include claimedBy and claimedAt fields
 
 const Post = require('./Posts');
 const { getFirestore, collection, doc, setDoc } = require('firebase/firestore');
@@ -21,47 +21,48 @@ class WastePost extends Post {
     this.pickupDate = data.pickupDate || null;
     this.pickupTime = data.pickupTime || null;
     
-    // Add userType if provided
-    this.userType = data.userType || '';
+    // ADD THESE FIELDS FOR CLAIM TRACKING
+    this.claimedBy = data.claimedBy || null;
+    this.claimedAt = data.claimedAt || null;
+    
   }
 
   // Override validation
   validate() {
-  const errors = [];
-  
-  // Base validation
-  if (!this.userID) errors.push('User ID is required');
-  if (!this.title) errors.push('Title is required');
-  if (!this.description) errors.push('Description is required');
-  if (!this.location) errors.push('Location is required');
-  
-  // FIXED: Check materials properly
-  if (!this.materials || (Array.isArray(this.materials) && this.materials.length === 0)) {
-    errors.push('At least one material must be specified');
-  }
-  
-  // FIXED: More flexible quantity validation
-  if (this.quantity === undefined || this.quantity === null || this.quantity <= 0) {
-    this.quantity = 1; // Set default if not provided
-  }
-  
-  // Set defaults for optional fields
-  if (!this.unit) this.unit = 'kg';
-  if (!this.condition) this.condition = 'Good';
-  if (!this.status) this.status = 'Available';
+    const errors = [];
+    
+    // Base validation
+    if (!this.userID) errors.push('User ID is required');
+    if (!this.title) errors.push('Title is required');
+    if (!this.description) errors.push('Description is required');
+    if (!this.location) errors.push('Location is required');
+    
+    // FIXED: Check materials properly
+    if (!this.materials || (Array.isArray(this.materials) && this.materials.length === 0)) {
+      errors.push('At least one material must be specified');
+    }
+    
+    // FIXED: More flexible quantity validation
+    if (this.quantity === undefined || this.quantity === null || this.quantity <= 0) {
+      this.quantity = 1; // Set default if not provided
+    }
+    
+    // Set defaults for optional fields
+    if (!this.unit) this.unit = 'kg';
+    if (!this.condition) this.condition = 'Good';
+    if (!this.status) this.status = 'Available';
 
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
 
-  // Override toFirestore - IMPORTANT: Return flat structure
+  // Override toFirestore - IMPORTANT: Return flat structure INCLUDING claimedBy fields
   toFirestore() {
     return {
       postID: this.postID,
       userID: this.userID,
-      userType: this.userType,
       postType: this.postType,
       title: this.title,
       description: this.description,
@@ -76,7 +77,10 @@ class WastePost extends Post {
       price: this.price,
       condition: this.condition,
       pickupDate: this.pickupDate,
-      pickupTime: this.pickupTime
+      pickupTime: this.pickupTime,
+      // INCLUDE CLAIM TRACKING FIELDS
+      claimedBy: this.claimedBy,
+      claimedAt: this.claimedAt
     };
   }
 
