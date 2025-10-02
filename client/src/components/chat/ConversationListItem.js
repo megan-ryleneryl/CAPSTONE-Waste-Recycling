@@ -13,27 +13,32 @@ const ConversationListItem = ({
     
     let messageDate;
     
-    // Handle Firestore Timestamp objects
-    if (timestamp?.seconds) {
-      // Firestore Timestamp format with seconds
-      messageDate = new Date(timestamp.seconds * 1000);
-    } else if (timestamp?.toDate && typeof timestamp.toDate === 'function') {
-      // Firestore Timestamp with toDate method
-      messageDate = timestamp.toDate();
-    } else if (typeof timestamp === 'string') {
-      // String date
-      messageDate = new Date(timestamp);
-    } else if (timestamp instanceof Date) {
-      // Already a Date object
-      messageDate = timestamp;
-    } else {
-      // Try to parse it anyway
-      try {
+    try {
+      // Handle Firestore Timestamp objects
+      if (timestamp?.seconds) {
+        // Firestore Timestamp format with seconds
+        messageDate = new Date(timestamp.seconds * 1000);
+      } else if (timestamp?.toDate && typeof timestamp.toDate === 'function') {
+        // Firestore Timestamp with toDate method
+        messageDate = timestamp.toDate();
+      } else if (typeof timestamp === 'string') {
+        // String date
         messageDate = new Date(timestamp);
-      } catch (e) {
-        console.error('Invalid timestamp format:', timestamp);
-        return '';
+      } else if (timestamp instanceof Date) {
+        // Already a Date object
+        messageDate = timestamp;
+      } else {
+        // Try to parse it anyway
+        try {
+          messageDate = new Date(timestamp);
+        } catch (e) {
+          console.error('Invalid timestamp format:', timestamp);
+          return '';
+        }
       }
+    } catch (error) {
+      console.error('Error parsing timestamp:', error);
+      return '';
     }
     
     // Check if date is valid
@@ -44,16 +49,30 @@ const ConversationListItem = ({
     
     const now = new Date();
     const diffMs = now - messageDate;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
     
-    return messageDate.toLocaleDateString();
+    // More accurate time display
+    if (diffSeconds < 60) return 'Just now';
+    if (diffMins === 1) return '1 min ago';
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    if (diffHours === 1) return '1 hour ago';
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+    }
+    
+    // For older messages, show the actual date
+    const options = { month: 'short', day: 'numeric' };
+    if (messageDate.getFullYear() !== now.getFullYear()) {
+      options.year = 'numeric';
+    }
+    return messageDate.toLocaleDateString('en-US', options);
   };
 
   const handleClick = () => {
@@ -70,9 +89,12 @@ const ConversationListItem = ({
   const unreadCount = conversation.unreadCount || 0;
   const postTitle = conversation.postTitle || 'Untitled Post';
 
+  // Check if last message is from current user
+  const isOwnMessage = lastMessage.senderID === currentUser?.userID;
+
   return (
     <div 
-      className={`${styles.conversationItem} ${isSelected ? styles.selected : ''}`}
+      className={`${styles.conversationItem} ${isSelected ? styles.selected : ''} ${unreadCount > 0 ? styles.unread : ''}`}
       onClick={handleClick}
     >
       <div className={styles.avatar}>
@@ -91,12 +113,15 @@ const ConversationListItem = ({
         
         <div className={styles.lastMessage}>
           <span className={styles.messagePreview}>
+            {isOwnMessage ? 'You: ' : ''}
             {messageText.length > 50 
-              ? messageText.substring(0, 50) + '...' 
+              ? `${messageText.substring(0, 50)}...` 
               : messageText}
           </span>
           {unreadCount > 0 && (
-            <span className={styles.unreadBadge}>{unreadCount}</span>
+            <span className={styles.unreadBadge}>
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
           )}
         </div>
       </div>

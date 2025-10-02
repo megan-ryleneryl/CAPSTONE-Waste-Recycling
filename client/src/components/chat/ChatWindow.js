@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { useNavigate } from 'react-router-dom';
 import PickupScheduleForm from './PickupScheduleForm';
 import PickupCard from './PickupCard';
 import MessageList from './MessageList';
@@ -39,6 +40,8 @@ useEffect(() => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const navigate = useNavigate();
 
 const loadChatData = async () => {
   if (!postID || !otherUser?.userID || !currentUser?.userID) {
@@ -259,6 +262,34 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
     }
   };
 
+  const editPickup = async (pickupId, updatedData) => {
+  if (!pickupId) return;
+  
+  try {
+    const pickupRef = doc(db, 'pickups', pickupId);
+    await updateDoc(pickupRef, {
+      ...updatedData,
+      status: 'Proposed', // Reset to proposed when edited
+      updatedAt: serverTimestamp()
+    });
+    
+    // Update local state
+    setActivePickup(prev => ({ 
+      ...prev, 
+      ...updatedData,
+      status: 'Proposed'
+    }));
+    
+    // Send system message about the edit
+    await sendMessage(`📝 Pickup schedule has been edited and set back to Proposed status`);
+    
+    alert('Pickup schedule updated successfully. The giver needs to confirm the new details.');
+  } catch (error) {
+    console.error('Error editing pickup:', error);
+    throw error;
+  }
+};
+
   if (loading) {
     return (
       <div className={styles.chatWindow}>
@@ -273,63 +304,68 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
   const isCollector = currentUser?.userType === 'Collector' || currentUser?.isCollector;
   const canSchedulePickup = isCollector && !activePickup && post;
 
-  return (
-    <div className={styles.chatWindow}>
-<div className={styles.header}>
-  <div className={styles.headerLeft}>
-    {onBack && (
-      <button onClick={onBack} className={styles.backButton}>
-        ← Back
-      </button>
-    )}
-    <div className={styles.userInfo}>
-      <div className={styles.avatar}>
-        {otherUserData?.profilePicture ? (
-          <img 
-            src={otherUserData.profilePicture} 
-            alt={otherUserData?.name || 'User'} 
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.parentElement.textContent = (otherUserData?.name || otherUserData?.firstName || 'U').charAt(0).toUpperCase();
-            }}
-          />
-        ) : (
-          (otherUserData?.name || otherUserData?.firstName || 'U').charAt(0).toUpperCase()
+return (
+  <div className={styles.chatWindow}>
+    <div className={styles.header}>
+      <div className={styles.headerInfo}>
+        {onBack && (
+          <button onClick={onBack} className={styles.backButton}>
+            ← Back
+          </button>
+        )}
+        <div className={styles.userInfo}>
+          <div className={styles.avatar}>
+            {otherUserData?.profilePicture ? (
+              <img 
+                src={otherUserData.profilePicture} 
+                alt={otherUserData?.name || 'User'} 
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.textContent = (otherUserData?.name || otherUserData?.firstName || 'U').charAt(0).toUpperCase();
+                }}
+              />
+            ) : (
+              (otherUserData?.name || otherUserData?.firstName || 'U').charAt(0).toUpperCase()
+            )}
+          </div>
+          <div className={styles.userDetails}>
+            <h3 className={styles.userName}>
+              {otherUserData?.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim() || 'Unknown User'}
+            </h3>
+            <p className={styles.postTitle}>{post?.title || 'Loading...'}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className={styles.headerActions}>
+        {canSchedulePickup && !activePickup && (
+          <button
+            onClick={() => setShowScheduleForm(true)}
+            className={styles.scheduleButton}
+          >
+            <span className={styles.buttonIcon}>📅</span>
+            <span className={styles.buttonText}>Schedule Pickup</span>
+          </button>
+        )}
+        {onClose && (
+          <button onClick={onClose} className={styles.closeButton} aria-label="Close chat">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         )}
       </div>
-      <div>
-        <h3 className={styles.userName}>
-          {otherUserData?.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim() || 'Unknown User'}
-        </h3>
-        <p className={styles.postTitle}>{post?.title || 'Loading...'}</p>
-      </div>
     </div>
-  </div>
-  
-  <div className={styles.headerActions}>
-    {canSchedulePickup && (
-      <button
-        onClick={() => setShowScheduleForm(true)}
-        className={styles.scheduleButton}
-      >
-        📅 Schedule Pickup
-      </button>
-    )}
-    {onClose && (
-      <button onClick={onClose} className={styles.closeButton}>
-        ✕
-      </button>
-    )}
-  </div>
-</div>
 
-      {activePickup && (
-        <PickupCard 
-          pickup={activePickup} 
-          currentUser={currentUser}
-          onUpdateStatus={updatePickupStatus}
-        />
-      )}
+    {activePickup && (
+      <PickupCard 
+        pickup={activePickup} 
+        currentUser={currentUser}
+        onUpdateStatus={updatePickupStatus}
+        onEditPickup={editPickup}
+      />
+    )}
 
       <MessageList 
         messages={messages} 
