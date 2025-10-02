@@ -651,28 +651,67 @@
   font-family: 'Raleway', sans-serif;
 }
 
-.statusContainer {
-  margin-top: 0.75rem;
-  text-align: left;
+.badgesContainer {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.statusBadge {
+/* Base Badge Style */
+.badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
   font-weight: 600;
-  transition: all 0.3s ease;
-  font-family: 'Raleway', sans-serif;
+  font-family: var(--font-family-primary, 'Raleway', sans-serif);
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  border: 1.5px solid transparent;
 }
 
-.statusDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
+/* Status Badges */
+.statusVerified, 
+.roleGiver, 
+.roleCollector, 
+.roleAdmin, 
+.roleOrganization {
+  background: var(--success-bg, #E8F5E9);
+  color: var(--success-color, #2E7D32);
+  border-color: var(--success-border, #A5D6A7);
+}
+
+.statusPending {
+  background: var(--warning-bg, #FFF3E0);
+  color: var(--warning-color, #E65100);
+  border-color: var(--warning-border, #FFCC80);
+}
+
+.statusSubmitted {
+  background: #FFF3E0;
+  color: #F57C00;
+  border-color: #f9a95a;
+}
+
+.statusSuspended {
+  background: var(--danger-bg, #FFEBEE);
+  color: var(--danger-color, #B71C1C);
+  border-color: var(--danger-border, #EF9A9A);
+}
+
+.statusRejected {
+  background: var(--danger-bg, #FFEBEE);
+  color: var(--danger-color, #C62828);
+  border-color: var(--danger-border, #EF9A9A);
+}
+
+/* Hover Effects */
+.badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .deleteButton {

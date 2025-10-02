@@ -222,14 +222,16 @@ const AllUsers = () => {
     // Filter by user type
     const roleMatch = filters.role === 'all' || 
       (filters.role === 'admin' && user.isAdmin) ||
-      (filters.role === 'collector' && user.isCollector && !user.isAdmin) ||
-      (filters.role === 'giver' && !user.isCollector && !user.isAdmin) ||
+      (filters.role === 'collector' && user.isCollector) ||
+      (filters.role === 'giver' && !user.isCollector) ||
       (filters.role === 'organization' && user.isOrganization);
     
     // Filter by status
     const statusMatch = filters.status === 'all' || 
-      (filters.status === 'active' && user.status !== 'Suspended') ||
-      (filters.status === 'suspended' && user.status === 'Suspended');
+      (filters.status === 'verified' && user.status === 'Verified') ||
+      (filters.status === 'submitted' && user.status === 'Submitted') ||
+      (filters.status === 'suspended' && user.status === 'Suspended') ||
+      (filters.status === 'pending' && user.status === 'Pending');
     
     // Filter by search term
     const searchMatch = filters.searchTerm === '' || 
@@ -254,6 +256,21 @@ const AllUsers = () => {
     if (user.isCollector) return styles.typeCollector;
     if (user.isOrganization) return styles.typeOrganization;
     return styles.typeGiver;
+  };
+
+  // Get all roles for a user
+  const getUserRoles = (user) => {
+    const roles = [];
+    if (user.isAdmin) roles.push({ label: 'Admin', className: styles.typeAdmin });
+    if (user.isCollector) roles.push({ label: 'Collector', className: styles.typeCollector });
+    if (user.isOrganization) roles.push({ label: 'Organization', className: styles.typeOrganization });
+    
+    // If no special roles, user is a Giver
+    if (roles.length === 0) {
+      roles.push({ label: 'Giver', className: styles.typeGiver });
+    }
+    
+    return roles;
   };
 
   if (loading) {
@@ -339,18 +356,6 @@ const AllUsers = () => {
               All Status
             </button>
             <button
-              className={filters.status === 'active' ? styles.filterActive : styles.filterButton}
-              onClick={() => setFilters({ ...filters, status: 'active' })}
-            >
-              Active
-            </button>
-            <button
-              className={filters.status === 'suspended' ? styles.filterActive : styles.filterButton}
-              onClick={() => setFilters({ ...filters, status: 'suspended' })}
-            >
-              Suspended
-            </button>
-            <button
               className={filters.status === 'pending' ? styles.filterActive : styles.filterButton}
               onClick={() => setFilters({ ...filters, status: 'pending' })}
             >
@@ -362,83 +367,119 @@ const AllUsers = () => {
             >
               Submitted
             </button>
+             <button
+              className={filters.status === 'active' ? styles.filterActive : styles.filterButton}
+              onClick={() => setFilters({ ...filters, status: 'verified' })}
+            >
+              Verified
+            </button>
+            <button
+              className={filters.status === 'suspended' ? styles.filterActive : styles.filterButton}
+              onClick={() => setFilters({ ...filters, status: 'suspended' })}
+            >
+              Suspended
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Users Grid */}
+      {/* Users Table */}
       <div className={styles.usersContainer}>
         {filteredUsers.length === 0 ? (
           <div className={styles.noUsers}>
             <p>No users found matching your filters.</p>
           </div>
         ) : (
-          <div className={styles.usersGrid}>
-            {filteredUsers.map(user => (
-              <div key={user.userID || user.uid} className={styles.userCard}>
-                <div className={styles.cardHeader}>
-                  <span className={getUserRoleBadge(user)}>
-                    {user.isAdmin ? 'Admin' : user.isCollector ? 'Collector' : user.isOrganization ? 'Organization' : 'Giver'}
-                  </span>
-                  <span className={getStatusBadge(user.status)}>
-                    {user.status === 'Suspended' ? 'Suspended' : 'Active'}
-                  </span>
-                </div>
-                
-                <div className={styles.cardBody}>
-                  <h3>{user.firstName} {user.lastName}</h3>
-                  <p className={styles.userEmail}>{user.email}</p>
-                  
-                  <div className={styles.userStats}>
-                    <div className={styles.statRow}>
-                      <span className={styles.statLabel}>User Since:</span>
-                      <span className={styles.statValue}>
-                        {formatDate(user.createdAt)}
+          <div className={styles.tableWrapper}>
+            <table className={styles.usersTable}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>User Since</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map(user => (
+                  <tr key={user.userID || user.uid} className={styles.userRow}>
+                    <td className={styles.nameCell}>
+                      <strong>{user.firstName} {user.lastName}</strong>
+                    </td>
+                    <td className={styles.emailCell}>
+                      {user.email}
+                    </td>
+                    <td>
+                      <div className={styles.rolesContainer}>
+                        {getUserRoles(user).map((role, index) => (
+                          <span key={index} className={role.className}>
+                            {role.label}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={getStatusBadge(user.status)}>
+                        {user?.status === 'Verified' ? 'Verified' :
+                        user?.status === 'Submitted' ? 'Submitted' :
+                        user?.status === 'Suspended' ? 'Suspended' :
+                        user?.status === 'Rejected' ? 'Rejected' : 'Pending'}
                       </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.cardActions}>
-                  {user.isAdmin && currentUser?.userID !== user.userID ? (
-                    <button
-                      className={styles.revokeAdminButton}
-                      onClick={() => handleRevokeAdmin(user.userID || user.uid)}
-                    >
-                      Revoke Admin
-                    </button>
-                  ) : !user.isAdmin ? (
-                    <button
-                      className={styles.makeAdminButton}
-                      onClick={() => handleMakeAdmin(user.userID || user.uid)}
-                    >
-                      Make Admin
-                    </button>
-                  ) : null}
-                  <button
-                    className={styles.viewButton}
-                    onClick={() => handleViewDetails(user)}
-                  >
-                    View Details
-                  </button>
-                  {user.status === 'Suspended' ? (
-                    <button
-                      className={styles.unsuspendButton}
-                      onClick={() => handleUnsuspendUser(user.userID || user.uid)}
-                    >
-                      Unsuspend
-                    </button>
-                  ) : (
-                    <button
-                      className={styles.suspendButton}
-                      onClick={() => handleViewDetails(user)}
-                    >
-                      Suspend
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                    </td>
+                    <td className={styles.dateCell}>
+                      {formatDate(user.createdAt)}
+                    </td>
+                    <td className={styles.actionsCell}>
+                      <div className={styles.tableActions}>
+                        {user.isAdmin && currentUser?.userID !== user.userID ? (
+                          <button
+                            className={styles.actionBtn}
+                            onClick={() => handleRevokeAdmin(user.userID || user.uid)}
+                            title="Revoke Admin"
+                          >
+                            Revoke
+                          </button>
+                        ) : !user.isAdmin ? (
+                          <button
+                            className={styles.actionBtn}
+                            onClick={() => handleMakeAdmin(user.userID || user.uid)}
+                            title="Make Admin"
+                          >
+                            Admin
+                          </button>
+                        ) : null}
+                        <button
+                          className={styles.viewBtn}
+                          onClick={() => handleViewDetails(user)}
+                          title="View Details"
+                        >
+                          View
+                        </button>
+                        {user.status === 'Suspended' ? (
+                          <button
+                            className={styles.unsuspendBtn}
+                            onClick={() => handleUnsuspendUser(user.userID || user.uid)}
+                            title="Unsuspend User"
+                          >
+                            Unsuspend
+                          </button>
+                        ) : (
+                          <button
+                            className={styles.suspendBtn}
+                            onClick={() => handleViewDetails(user)}
+                            title="Suspend User"
+                          >
+                            Suspend
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
