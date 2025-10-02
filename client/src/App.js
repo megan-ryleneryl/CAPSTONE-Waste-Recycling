@@ -14,6 +14,7 @@ import AllUsers from './pages/AllUsers';
 import CreatePost from './pages/CreatePost';
 import AppLayout from './components/layout/AppLayout/AppLayout';
 import PickupManagement from './pages/PickupManagement';
+import PickupTracking from './pages/PickupTracking';
 import './App.css';
 
 // Protected Route Component
@@ -153,6 +154,16 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+
+            <Route 
+              path="/tracking/:pickupId" 
+              element={
+                <ProtectedRoute>
+                  <PickupTracking />
+                </ProtectedRoute>
+              } 
+            />
+
 
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
