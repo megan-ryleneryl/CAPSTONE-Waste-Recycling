@@ -227,11 +227,10 @@ router.post('/create', verifyToken, async (req, res) => {
       ...postData,
       userID: user.userID,
       userType: user.userType,
-      // TODO
-      // isCollector: user.isCollector,
-      // isAdmin: user.isAdmin,
-      // isOrganization: user.isOrganization
-      // Remove userType, but need to update Post schema
+        // Use the new boolean flag system instead of userType
+      isCollector: user.isCollector || false,
+      isAdmin: user.isAdmin || false,
+      isOrganization: user.isOrganization || false,
       createdAt: new Date(),
       updatedAt: new Date()
     };

@@ -14,7 +14,17 @@ class Post {
     this.status = data.status || 'Active'; // Active, Claimed, Completed, Cancelled, Inactive, Locked, Hidden
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
+    // For Initiative posts - support tracking
+    this.supporters = data.supporters || [];
+    this.supportCount = data.supportCount || 0;
     
+    // ADD THESE THREE LINES:
+    // User flags for post permissions
+    this.isCollector = data.isCollector || false;
+    this.isAdmin = data.isAdmin || false;
+    this.isOrganization = data.isOrganization || false;
+  
+      
     // For Waste posts - claim tracking
     this.claimedBy = data.claimedBy || null;
     this.claimedAt = data.claimedAt || null;
@@ -73,26 +83,31 @@ class Post {
   }
 
   // Convert to plain object for Firestore - IMPORTANT: Flat structure
-  toFirestore() {
-    // Return only base fields - subclasses will override to add their specific fields
-    return {
-      postID: this.postID,
-      userID: this.userID,
-      postType: this.postType,
-      title: this.title,
-      description: this.description,
-      location: this.location,
-      status: this.status,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
-      // Include claim tracking fields
-      claimedBy: this.claimedBy,
-      claimedAt: this.claimedAt,
-      // Include support tracking fields
-      supporters: this.supporters,
-      supportCount: this.supportCount
-    };
-  }
+toFirestore() {
+  // Return only base fields - subclasses will override to add their specific fields
+  return {
+    postID: this.postID,
+    userID: this.userID,
+    postType: this.postType,
+    title: this.title,
+    description: this.description,
+    location: this.location,
+    status: this.status,
+    createdAt: this.createdAt,
+    updatedAt: this.updatedAt,
+    // Include claim tracking fields
+    claimedBy: this.claimedBy,
+    claimedAt: this.claimedAt,
+    // Include support tracking fields
+    supporters: this.supporters,
+    supportCount: this.supportCount,
+    // ADD THESE THREE LINES:
+    // User flags
+    isCollector: this.isCollector,
+    isAdmin: this.isAdmin,
+    isOrganization: this.isOrganization
+  };
+}
 
   // Static methods for database operations
   static async create(postData) {

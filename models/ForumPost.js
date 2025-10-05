@@ -57,7 +57,12 @@ class ForumPost extends Post {
       category: this.category,
       tags: this.tags,
       isPinned: this.isPinned,
-      isLocked: this.isLocked
+      isLocked: this.isLocked,
+      // ADD THESE THREE LINES:
+      // User flags
+      isCollector: this.isCollector,
+      isAdmin: this.isAdmin,
+      isOrganization: this.isOrganization
     };
   }
 

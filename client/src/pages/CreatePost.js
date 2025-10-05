@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import styles from './CreatePost.module.css';
+import PSGCService from '../services/psgcService';
+
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -11,15 +13,28 @@ const CreatePost = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrganization, setIsOrganization] = useState(false);
   const [postType, setPostType] = useState('Waste');
+
+  // PSGC Location states
+  const [regions, setRegions] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [barangays, setBarangays] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  
   
   // Form data state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    location: '',
+    // Location fields (PSGC)
+    region: '',
+    province: '',
+    city: '',
+    barangay: '',
     // Waste specific
     materials: '',
     quantity: '',
+    unit: 'kg',
     pickupDate: '',
     pickupTime: '',
     // Initiative specific
@@ -50,6 +65,129 @@ const CreatePost = () => {
     fetchUserProfile();
   }, []);
 
+  // Load regions on component mount
+  useEffect(() => {
+    loadRegions();
+  }, []);
+
+  const loadRegions = async () => {
+    setLoadingLocations(true);
+    try {
+      const data = await PSGCService.getRegions();
+      setRegions(data);
+    } catch (error) {
+      console.error('Error loading regions:', error);
+      setError('Failed to load regions. Please refresh the page.');
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  const handleRegionChange = async (e) => {
+    const regionCode = e.target.value;
+    const selectedRegion = regions.find(r => r.code === regionCode);
+  
+    // Check if selected region is NCR (National Capital Region)
+    const isNCR = selectedRegion && (
+      selectedRegion.name.includes('NCR') || 
+      selectedRegion.name.includes('National Capital Region') ||
+      regionCode === '130000000' // NCR's region code
+    );
+    
+    setFormData({
+      ...formData,
+      region: regionCode,
+      province: isNCR ? 'NCR' : '', // Auto-set province to 'NCR' if it's NCR
+      city: '',
+      barangay: ''
+  });
+    
+    // Reset dependent dropdowns
+    setProvinces([]);
+    setCities([]);
+    setBarangays([]);
+      
+    if (regionCode) {
+        setLoadingLocations(true);
+        try {
+          if (isNCR) {
+            // For NCR, directly load cities/municipalities from region
+            console.log('Loading NCR cities for region:', regionCode);
+            const data = await PSGCService.getCitiesFromRegion(regionCode);
+            console.log('NCR cities loaded:', data);
+            setCities(data);
+          } else {
+            // For other regions, load provinces first
+            const data = await PSGCService.getProvinces(regionCode);
+            setProvinces(data);
+          }
+        } catch (error) {
+          console.error('Error loading location data:', error);
+          setError('Failed to load location data. Please try again.');
+        } finally {
+          setLoadingLocations(false);
+        }
+      }
+    };
+    
+  const handleProvinceChange = async (e) => {
+    const provinceCode = e.target.value;
+    setFormData({
+      ...formData,
+      province: provinceCode,
+      city: '',
+      barangay: ''
+    });
+    
+    // Reset dependent dropdowns
+    setCities([]);
+    setBarangays([]);
+    
+    if (provinceCode) {
+      setLoadingLocations(true);
+      try {
+        const data = await PSGCService.getCitiesMunicipalities(provinceCode);
+        setCities(data);
+      } catch (error) {
+        console.error('Error loading cities/municipalities:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleCityChange = async (e) => {
+    const cityCode = e.target.value;
+    setFormData({
+      ...formData,
+      city: cityCode,
+      barangay: ''
+    });
+    
+    // Reset barangays
+    setBarangays([]);
+    
+    if (cityCode) {
+      setLoadingLocations(true);
+      try {
+        const data = await PSGCService.getBarangays(cityCode);
+        setBarangays(data);
+      } catch (error) {
+        console.error('Error loading barangays:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleBarangayChange = (e) => {
+    setFormData({
+      ...formData,
+      barangay: e.target.value
+    });
+  };
+
+
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -72,8 +210,32 @@ const CreatePost = () => {
       return false;
     }
     
-    if (!formData.location.trim()) {
-      setError('Location is required');
+    // Location validation
+    if (!formData.region) {
+      setError('Please select a region');
+      return false;
+    }
+    
+    const selectedRegion = regions.find(r => r.code === formData.region);
+    const isNCR = selectedRegion && (
+    selectedRegion.name.includes('NCR') || 
+    selectedRegion.name.includes('National Capital Region') ||
+    formData.region === '130000000'
+  );
+  
+    // Province is not required for NCR
+    if (!isNCR && !formData.province) {
+    setError('Please select a province');
+    return false;
+  }
+    
+    if (!formData.city) {
+      setError('Please select a city/municipality');
+      return false;
+    }
+    
+    if (!formData.barangay) {
+      setError('Please select a barangay');
       return false;
     }
     
@@ -101,6 +263,31 @@ const CreatePost = () => {
     return true;
   };
 
+  // Get selected location names for display
+  const getLocationString = () => {
+    const selectedRegion = regions.find(r => r.code === formData.region);
+    const isNCR = selectedRegion && (
+      selectedRegion.name.includes('NCR') || 
+      selectedRegion.name.includes('National Capital Region') ||
+      formData.region === '130000000'
+    );
+
+    const selectedProvince = provinces.find(p => p.code === formData.province);
+    const selectedCity = cities.find(c => c.code === formData.city);
+    const selectedBarangay = barangays.find(b => b.code === formData.barangay);
+    
+    const parts = [];
+    if (selectedBarangay) parts.push(selectedBarangay.name);
+    if (selectedCity) parts.push(selectedCity.name);
+    if (selectedProvince) parts.push(selectedProvince.name);
+    if (selectedRegion) {
+      // For NCR, we can simplify the name
+      parts.push(isNCR ? 'Metro Manila' : selectedRegion.name);
+    }
+    
+    return parts.join(', ');
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
   e.preventDefault();
@@ -125,12 +312,15 @@ const CreatePost = () => {
     // Log the token (remove in production)
     console.log('Token exists:', !!token);
     console.log('Token preview:', token.substring(0, 20) + '...');
+
+    // Prepare location string
+    const locationString = getLocationString();
     
     // Prepare data based on post type
     let postData = {
       title: formData.title.trim(),
       description: formData.description.trim(),
-      location: formData.location.trim(),
+      location: locationString,
       postType
     };
     
@@ -140,6 +330,7 @@ const CreatePost = () => {
         ...postData,
         materials: formData.materials.split(',').map(m => m.trim()).filter(m => m),
         quantity: parseFloat(formData.quantity),
+        unit: formData.unit,
         pickupDate: formData.pickupDate || null,
         pickupTime: formData.pickupTime || null
       };
@@ -223,6 +414,7 @@ const CreatePost = () => {
   const handleCancel = () => {
     navigate('/posts');
   };
+
 
   // Check if user can create initiative posts
   const canCreateInitiative = isCollector || isAdmin;
@@ -314,21 +506,135 @@ const CreatePost = () => {
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="location" className={styles.label}>
-              Location *
-            </label>
-            <input
-              type="text"
-              id="location"
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              className={styles.input}
-              placeholder="e.g., Quezon City, Metro Manila"
-              required
-            />
+          {/* PSGC Location Fields */}
+          <div className={styles.locationSection}>
+            <h3 className={styles.sectionTitle}>Location *</h3>
+            <p className={styles.sectionHint}>Select your complete address using the dropdowns below</p>
+            
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label htmlFor="region" className={styles.label}>
+                  Region *
+                </label>
+                <select
+                  id="region"
+                  value={formData.region}
+                  onChange={handleRegionChange}
+                  className={styles.select}
+                  required
+                  disabled={loadingLocations || regions.length === 0}
+                >
+                  <option value="">
+                    {loadingLocations ? 'Loading...' : 'Select Region'}
+                  </option>
+                  {regions.map((region) => (
+                    <option key={region.code} value={region.code}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Only show province dropdown if NOT NCR */}
+              {formData.region && (() => {
+                const selectedRegion = regions.find(r => r.code === formData.region);
+                const isNCR = selectedRegion && (
+                  selectedRegion.name.includes('NCR') || 
+                  selectedRegion.name.includes('National Capital Region') ||
+                  formData.region === '130000000'
+                );
+                
+                return !isNCR && (
+                  <div className={styles.formGroup}>
+                    <label htmlFor="province" className={styles.label}>
+                      Province *
+                    </label>
+                    <select
+                      id="province"
+                      value={formData.province}
+                      onChange={handleProvinceChange}
+                      className={styles.select}
+                      required
+                      disabled={!formData.region || loadingLocations}
+                    >
+                      <option value="">
+                        {loadingLocations ? 'Loading...' : 'Select Province'}
+                      </option>
+                      {provinces.map((province) => (
+                        <option key={province.code} value={province.code}>
+                          {province.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label htmlFor="city" className={styles.label}>
+                  City/Municipality *
+                </label>
+                <select
+                  id="city"
+                  value={formData.city}
+                  onChange={handleCityChange}
+                  className={styles.select}
+                  required
+                  disabled={(() => {
+                    const selectedRegion = regions.find(r => r.code === formData.region);
+                    const isNCR = selectedRegion && (
+                      selectedRegion.name.includes('NCR') || 
+                      selectedRegion.name.includes('National Capital Region') ||
+                      formData.region === '130000000'
+                    );
+                    return (!formData.region || (!isNCR && !formData.province) || loadingLocations);
+                  })()}
+                >
+                  <option value="">
+                    {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
+                  </option>
+                  {cities.map((city) => (
+                    <option key={city.code} value={city.code}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="barangay" className={styles.label}>
+                  Barangay *
+                </label>
+                <select
+                  id="barangay"
+                  value={formData.barangay}
+                  onChange={handleBarangayChange}
+                  className={styles.select}
+                  required
+                  disabled={!formData.city || loadingLocations}
+                >
+                  <option value="">
+                    {loadingLocations ? 'Loading...' : 'Select Barangay'}
+                  </option>
+                  {barangays.map((barangay) => (
+                    <option key={barangay.code} value={barangay.code}>
+                      {barangay.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Show selected location preview */}
+            {formData.barangay && (
+              <div className={styles.locationPreview}>
+                <strong>Selected Location:</strong> {getLocationString()}
+              </div>
+            )}
           </div>
+
 
           {/* Waste-specific Fields */}
           {postType === 'Waste' && (

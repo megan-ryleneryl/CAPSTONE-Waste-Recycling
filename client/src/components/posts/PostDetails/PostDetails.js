@@ -138,13 +138,6 @@ const PostDetails = ({ post, user: currentUser }) => {
     <>
       <div className={styles.container}>
       <h2 className={styles.header}>Post Details:</h2>
-      
-      {/* Status Badge */}
-      {post.status && (
-        <div className={styles.statusBadge} data-status={post.status}>
-          {post.status}
-        </div>
-      )}
 
       {/* Basic Details */}
       <div className={styles.detailsSection}>
@@ -152,37 +145,37 @@ const PostDetails = ({ post, user: currentUser }) => {
           <>
             <div className={styles.detailItem}>
               <span className={styles.icon}>📦</span>
-              <span className={styles.label}>Materials:</span>
+              {/* <span className={styles.label}>Materials:</span> */}
               <span className={styles.value}>{formatMaterials(post.materials)}</span>
             </div>
             
             <div className={styles.detailItem}>
               <span className={styles.icon}>⚖️</span>
-              <span className={styles.label}>Quantity:</span>
+              {/* <span className={styles.label}>Quantity:</span> */}
               <span className={styles.value}>{post.quantity} {post.unit || 'kg'}</span>
             </div>
             
             <div className={styles.detailItem}>
               <span className={styles.icon}>📍</span>
-              <span className={styles.label}>Location:</span>
+              {/* <span className={styles.label}>Location:</span> */}
               <span className={styles.value}>{post.location}</span>
             </div>
             
             <div className={styles.detailItem}>
               <span className={styles.icon}>🕐</span>
-              <span className={styles.label}>Preferred Pickup:</span>
+              {/* <span className={styles.label}>Preferred Pickup:</span> */}
               <span className={styles.value}>
                 {formatPickupTime(post.pickupDate, post.pickupTime)}
               </span>
             </div>
             
-            {post.condition && (
+            {/* {post.condition && (
               <div className={styles.detailItem}>
                 <span className={styles.icon}>✨</span>
                 <span className={styles.label}>Condition:</span>
                 <span className={styles.value}>{post.condition}</span>
               </div>
-            )}
+            )} */}
             
             {post.price > 0 && (
               <div className={styles.detailItem}>

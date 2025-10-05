@@ -2,15 +2,25 @@
 .container {
   display: flex;
   gap: 2rem;
-  padding: 2rem;
-  max-width: 1400px;
+  /* padding: 2rem; */
+  /* max-width: 1400px; */
+  width: 100%;
+  height: 100%;
   margin: 0 auto;
   font-family: 'Raleway', sans-serif;
+  justify-content: center; /* Center the content */
 }
 
 .mainContent {
-  flex: 1;
-  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex;
+  /* justify-content: center; */
+  padding: 1rem;
+  /* flex: 1; */
+  background: white;
+  /* max-width: 800px; */
+  width: 100%;
 }
 
 /* Loading & Error States */
@@ -55,13 +65,17 @@
 
 /* Navigation */
 .navigation {
-  margin-bottom: 1.5rem;
+  /* margin-bottom: 1rem; */
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
 }
 
 .navButton {
+  font-family: 'Raleway', sans-serif;
   background: none;
   border: none;
-  color: #666;
+  color: #858585;
   font-size: 1rem;
   cursor: pointer;
   padding: 0.5rem 0;
@@ -76,10 +90,12 @@
 
 /* Post Card */
 .postCard {
-  background: white;
-  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+
+  /* border-radius: 20px; */
   padding: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  /* box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); */
 }
 
 /* Top Section Style */
@@ -215,6 +231,9 @@
 
 /* Content */
 .content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
 }
 
@@ -224,6 +243,7 @@
   color: #111;
   margin: 0 0 1rem 0;
   line-height: 1.3;
+  text-align: left;
 }
 
 .description {
@@ -232,6 +252,7 @@
   color: #444;
   margin: 0;
   white-space: pre-wrap;
+  text-align: left;
 }
 
 /* Image Container */
@@ -307,6 +328,7 @@
 
 /* Timestamp */
 .timestamp {
+
   font-size: 0.875rem;
   color: #666;
   margin-bottom: 1.5rem;

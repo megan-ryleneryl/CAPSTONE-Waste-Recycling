@@ -15,6 +15,7 @@ const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const profileRoutes = require('./routes/profileRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const psgcRoutes = require('./routes/psgc');
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -90,6 +91,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', verifyToken, postRoutes);
 app.use('/api/protected/profile', profileRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/psgc', psgcRoutes);
 
 app.use('/api/admin', (req, res, next) => {
   next();

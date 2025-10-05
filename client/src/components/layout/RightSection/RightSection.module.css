@@ -1,7 +1,7 @@
 /* client/src/components/layout/RightSection/RightSection.module.css */
 
 .rightSection {
-    padding: 2rem 0;
+    /* padding: 2rem 0; */
     font-family: 'Raleway', sans-serif;
   }
 
@@ -9,11 +9,11 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: calc(100vh - 70px); /* Full height minus top nav */
-    padding: 1rem;
+    height: 100%; /* Full height minus top nav */
+    /* padding: 1rem; */
     box-sizing: border-box;
-    background: #f9f9f9;
-    border-radius: 1rem;
+    /* background: #f9f9f9; */
+    /* border-radius: 1rem; */
     position: sticky;
     overflow-y: auto;
     transition: all 0.3s ease;

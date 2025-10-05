@@ -59,7 +59,12 @@ class InitiativePost extends Post {
       endDate: this.endDate,
       // CRITICAL: Include support tracking fields
       supporters: this.supporters,
-      supportCount: this.supportCount
+      supportCount: this.supportCount,
+      // ADD THESE THREE LINES:
+      // User flags
+      isCollector: this.isCollector,
+      isAdmin: this.isAdmin,
+      isOrganization: this.isOrganization
     };
   }
 

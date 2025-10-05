@@ -70,7 +70,7 @@ class WastePost extends Post {
       status: this.status,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
-      // Waste-specific fields at root level
+      // Waste-specific fields
       materials: this.materials,
       quantity: this.quantity,
       unit: this.unit,
@@ -78,9 +78,13 @@ class WastePost extends Post {
       condition: this.condition,
       pickupDate: this.pickupDate,
       pickupTime: this.pickupTime,
-      // INCLUDE CLAIM TRACKING FIELDS
       claimedBy: this.claimedBy,
-      claimedAt: this.claimedAt
+      claimedAt: this.claimedAt,
+      // ADD THESE THREE LINES:
+      // User flags
+      isCollector: this.isCollector,
+      isAdmin: this.isAdmin,
+      isOrganization: this.isOrganization
     };
   }
 

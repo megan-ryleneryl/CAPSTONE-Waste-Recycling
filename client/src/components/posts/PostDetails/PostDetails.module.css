@@ -1,8 +1,11 @@
 /* Container Styles */
 .container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   padding: 1.5rem;
   background: white;
-  border-radius: 12px;
+  /* border-radius: 12px; */
   height: 100%;
 }
 
@@ -13,6 +16,8 @@
   margin-bottom: 1.5rem;
   padding-bottom: 0.75rem;
   border-bottom: 2px solid #e5e7eb;
+  width: 100%;
+  text-align: left;
 }
 
 /* Status Badge */
@@ -44,6 +49,7 @@
 .detailsSection {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -75,6 +81,7 @@
 .value {
   color: #1f2937;
   flex: 1;
+  text-align: left;
 }
 
 /* Action Buttons */
