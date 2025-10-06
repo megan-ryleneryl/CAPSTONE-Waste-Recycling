@@ -153,7 +153,7 @@ const AllUsers = () => {
   };
 
   const handleMakeAdmin = async (userId) => {
-    if (!window.confirm('Are you sure you want to make this user an admin? This action cannot be easily undone.')) {
+    if (!window.confirm('Are you sure you want to make this user an admin?')) {
       return;
     }
 
@@ -180,7 +180,7 @@ const AllUsers = () => {
   };
 
   const handleRevokeAdmin = async (userId) => {
-    if (!window.confirm('Are you sure you want to revoke admin privileges from this user? They will be set to their previous role based on their collector application status.')) {
+    if (!window.confirm('Are you sure you want to revoke admin privileges from this user?')) {
       return;
     }
 
@@ -248,14 +248,6 @@ const AllUsers = () => {
       return styles.statusSuspended;
     }
     return styles.statusActive;
-  };
-
-  // Get user type badge styling
-  const getUserRoleBadge = (user) => {
-    if (user.isAdmin) return styles.typeAdmin;
-    if (user.isCollector) return styles.typeCollector;
-    if (user.isOrganization) return styles.typeOrganization;
-    return styles.typeGiver;
   };
 
   // Get all roles for a user

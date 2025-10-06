@@ -175,6 +175,9 @@ const SignUp = () => {
           />
           
           <div className={styles.passwordWrapper}>
+            <p className={styles.passwordRequirements}>
+              Password must be at least 6 characters
+            </p>
             <input
               type={showPassword ? "text" : "password"}
               name="password"

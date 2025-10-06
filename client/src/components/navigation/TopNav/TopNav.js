@@ -289,10 +289,34 @@ const TopNav = ({ user: propUser }) => {
                   </p>
                   <p className={styles.userEmail}>{user?.email}</p>
                   <div className={styles.userStats}>
+                    <div className={styles.userBadges}>
+                      {/* Giver Badge - All users have this */}
+                      <span className={`${styles.roleBadge} ${styles.roleGiver}`}>
+                        Giver
+                      </span>
+                      
+                      {/* Collector Badge */}
+                      {user?.isCollector && (
+                        <span className={`${styles.roleBadge} ${styles.roleCollector}`}>
+                          Collector
+                        </span>
+                      )}
+                      
+                      {/* Admin Badge */}
+                      {user?.isAdmin && (
+                        <span className={`${styles.roleBadge} ${styles.roleAdmin}`}>
+                          Admin
+                        </span>
+                      )}
+                      
+                      {/* Organization Badge */}
+                      {user?.isOrganization && (
+                        <span className={`${styles.roleBadge} ${styles.roleOrganization}`}>
+                          Organization
+                        </span>
+                      )}
+                    </div>
                     <span><strong>{user?.points || 0}</strong> points</span>
-                    <span className={styles.userType}>
-                      {user?.isAdmin ? 'Admin' : user?.isCollector ? 'Collector' : 'Giver'}
-                    </span>
                   </div>
                 </div>
                 

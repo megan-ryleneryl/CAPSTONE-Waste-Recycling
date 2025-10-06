@@ -105,6 +105,39 @@
   border: 2px solid white;
 }
 
+.userBadges {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.6rem;
+  border-radius: 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-family-primary, 'Raleway', sans-serif);
+  letter-spacing: 0.3px;
+  transition: all 0.2s ease;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+}
+
+/* Role-specific Badge Colors */
+.roleGiver, 
+.roleCollector, 
+.roleAdmin, 
+.roleOrganization {
+  background: var(--success-bg, #E8F5E9);
+  color: var(--success-color, #2E7D32) !important;
+  border-color: var(--success-border, #A5D6A7);
+  font-weight: 600;
+}
+
 .notificationWrapper,
 .userMenuWrapper {
   position: relative;
@@ -290,7 +323,7 @@
 /* User Info Section */
 .userInfo {
   padding: 1.25rem;
-  background: var(--bg-gradient);
+  background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -311,10 +344,26 @@
 
 .userStats {
   display: flex;
-  gap: 1rem;
-  margin-top: 0.75rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
   font-size: 0.85rem;
   font-family: var(--font-family-primary);
+}
+
+.pointsDisplay {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.pointsDisplay strong {
+  color: var(--primary-color, #3B6535);
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .userStats span {
@@ -324,23 +373,6 @@
 .userStats strong {
   color: var(--primary-color);
   font-weight: 600;
-}
-
-/* Had a problem with this appearing as gray on green */
-.userType {
-  background: var(--primary-color) !important;
-  color: var(--text-on-primary) !important;
-  padding: 0.25rem 0.75rem !important;
-  border-radius: 12px !important;
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-  font-family: var(--font-family-primary) !important;
-  display: inline-block !important;
-  white-space: nowrap !important;
-  text-transform: capitalize !important;
-  border: none !important;
-  text-decoration: none !important;
-  line-height: 1.2 !important;
 }
 
 /* Dropdown Divider */

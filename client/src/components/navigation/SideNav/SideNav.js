@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styles from './SideNav.module.css';
+import { useAuth } from '../../../context/AuthContext';
 
 const SideNav = ({ activeFilter, onFilterChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -9,16 +10,8 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
     filters: true,
     actions: true
   });
-  const [user, setUser] = useState(null);
+  const { currentUser: user } = useAuth();
   const location = useLocation();
-
-  useEffect(() => {
-    // Get user data from localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -47,12 +40,6 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
     { id: 'forum', label: 'Forum' },
     { id: 'nearby', label: 'Nearby' },
     { id: 'myPosts', label: 'My Posts' }
-  ];
-
-  const quickActions = [
-    { id: 'pickups', label: 'My Pickups', path: '/pickups' },
-    { id: 'badges', label: 'My Badges', path: '/badges' },
-    { id: 'settings', label: 'Settings', path: '/settings' }
   ];
 
   return (
@@ -154,17 +141,6 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
               >
                 {!isCollapsed && <span>Create Post</span>}
               </Link>
-              
-              {quickActions.map(action => (
-                <button 
-                  key={action.id}
-                  className={styles.actionButton}
-                  title={isCollapsed ? action.label : ''}
-                >
-                  <span className={styles.icon}>{action.icon}</span>
-                  {!isCollapsed && <span className={styles.label}>{action.label}</span>}
-                </button>
-              ))}
             </div>
           )}
         </div>
@@ -173,14 +149,8 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
       {/* User Stats (Bottom) - Fixed position */}
       {!isCollapsed && (
         <div className={styles.userStats}>
-          <div className={styles.statItem}>
             <span className={styles.statLabel}>Points</span>
-            <span className={styles.statValue}>1,250</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Rank</span>
-            <span className={styles.statValue}>Gold</span>
-          </div>
+            <span className={styles.statValue}>{user?.points || 0}</span>
         </div>
       )}
     </aside>

@@ -307,23 +307,15 @@
   background: white;
 }
 
-.suspendBtn {
+.suspendBtn,
+.unsuspendBtn {
   background: var(--warning-color);
   color: white;
 }
 
-.suspendBtn:hover {
-  background: var(--secondary-hover);
-  transform: translateY(-1px);
-}
-
-.unsuspendBtn {
-  background: var(--success-color);
-  color: white;
-}
-
+.suspendBtn:hover,
 .unsuspendBtn:hover {
-  background: var(--primary-hover);
+  background: var(--secondary-hover);
   transform: translateY(-1px);
 }
 

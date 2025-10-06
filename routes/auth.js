@@ -36,11 +36,51 @@ router.post('/register', async (req, res) => {
 
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
+    
     if (existingUser) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'User with this email already exists' 
-      });
+      // If user exists and account is active (not suspended), log them in instead
+      if (existingUser.status !== 'Suspended') {
+        // Verify the password
+        const isValidPassword = await bcrypt.compare(password, existingUser.passwordHash);
+        
+        if (isValidPassword) {
+          // Generate token for existing user
+          const token = generateToken(existingUser);
+          
+          return res.status(200).json({
+            success: true,
+            message: 'Account already exists. Logged in successfully!',
+            token,
+            isExistingUser: true, // Flag to indicate this was an auto-login
+            user: {
+              userID: existingUser.userID,
+              firstName: existingUser.firstName,
+              lastName: existingUser.lastName,
+              email: existingUser.email,
+              status: existingUser.status,
+              points: existingUser.points,
+              badges: existingUser.badges,
+              isCollector: existingUser.isCollector,
+              isAdmin: existingUser.isAdmin,
+              isOrganization: existingUser.isOrganization,
+              profilePicture: existingUser.profilePictureUrl,
+              profilePictureUrl: existingUser.profilePictureUrl,
+            }
+          });
+        } else {
+          // Email exists but password doesn't match
+          return res.status(400).json({ 
+            success: false, 
+            message: 'An account with this email already exists. Please use a different email or log in with the correct password.' 
+          });
+        }
+      } else {
+        // Account is suspended
+        return res.status(403).json({ 
+          success: false, 
+          message: 'An account with this email exists but is suspended. Please contact support.' 
+        });
+      }
     }
 
     // Hash password

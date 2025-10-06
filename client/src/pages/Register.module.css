@@ -171,6 +171,16 @@
   width: 100%;
 }
 
+.passwordRequirements {
+  font-family: var(--font-family-primary, 'Raleway', sans-serif);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--text-secondary, #666);
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+  padding-left: 0.5rem;
+  font-style: italic;
+}
+
 .terms {
   text-align: center;
   color: #666;

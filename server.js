@@ -516,8 +516,9 @@ app.get('/api/protected/users/:userId', async (req, res) => {
       userID: user.userID,
       firstName: user.firstName,
       lastName: user.lastName,
-      userType: user.userType,
       isOrganization: user.isOrganization,
+      isCollector: user.isCollector,
+      isAdmin: user.isAdmin,
       organizationName: user.organizationName,
       profilePictureUrl: user.profilePictureUrl,
       points: user.points,
@@ -652,7 +653,8 @@ app.get('/api/admin/users/:userID', async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        userType: user.userType,
+        isCollector: user.isCollector,
+        isAdmin: user.isAdmin,
         isOrganization: user.isOrganization,
         organizationName: user.organizationName
       }
@@ -825,17 +827,20 @@ app.put('/api/admin/users/:userId/make-admin', async (req, res) => {
     }
 
     // Prevent making another admin an admin
-    if (currentUser.userType === 'Admin') {
+    if (currentUser.isAdmin) {
       return res.status(400).json({ 
         success: false, 
         error: 'User is already an admin' 
       });
     }
 
+    // Revoke admin role
+    await authService.updateUserFlags(userId, {
+      isAdmin: true,
+    });
+
     // Update user to admin
     await User.update(userId, {
-      userType: 'Admin',
-      status: 'Verified', // Admins should always be verified
       updatedAt: new Date().toISOString(),
       elevatedBy: req.user.userID,
       elevatedAt: new Date().toISOString()
@@ -869,7 +874,7 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
     }
 
     // Prevent revoking if user is not an admin
-    if (currentUser.userType !== 'Admin') {
+    if (!currentUser.isAdmin) {
       return res.status(400).json({ 
         success: false, 
         error: 'User is not an admin' 
@@ -884,26 +889,13 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
       });
     }
 
-    // Check user's Collector_Privilege application to determine new userType
-    const applications = await Application.findByUserID(userId);
-    const collectorApp = applications
-      .filter(app => app.applicationType === 'Collector_Privilege')
-      .sort((a, b) => {
-        const dateA = new Date(b.submittedAt || 0);
-        const dateB = new Date(a.submittedAt || 0);
-        return dateA - dateB;
-      })[0];
-
-    let newUserType = 'Giver'; // Default to Giver
-
-    // If they have an approved collector application, make them a Collector
-    if (collectorApp && collectorApp.status === 'Approved') {
-      newUserType = 'Collector';
-    }
-
-    // Update user type from Admin to determined type
+    // Revoke admin role
+    await authService.updateUserFlags(userId, {
+      isAdmin: false,
+    });
+    
+    // Add metadata about the revocation
     await User.update(userId, {
-      userType: newUserType,
       updatedAt: new Date().toISOString(),
       revokedBy: req.user.userID,
       revokedAt: new Date().toISOString()
@@ -911,7 +903,7 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: `Admin privileges revoked. User is now a ${newUserType}` 
+      message: `Admin privileges revoked.` 
     });
   } catch (error) {
     console.error('Error revoking admin privileges:', error);
