@@ -75,3 +75,108 @@
   background: #f0f0f0;
   color: #333;
 }
+
+/* Tablet styles */
+@media (max-width: 1024px) {
+  .chatHeader {
+    padding: 1rem 1.25rem;
+  }
+
+  .userName {
+    font-size: 0.95rem;
+  }
+
+  .postTitle {
+    font-size: 0.85rem;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .chatHeader {
+    padding: 0.875rem 1rem;
+  }
+
+  .userInfo {
+    gap: 0.625rem;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .userName {
+    font-size: 0.875rem;
+  }
+
+  .userType {
+    font-size: 0.75rem;
+  }
+
+  .postInfo {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .postTitle {
+    font-size: 0.8rem;
+  }
+
+  .closeButton {
+    padding: 0.4rem;
+  }
+}
+
+/* Small mobile styles */
+@media (max-width: 480px) {
+  .chatHeader {
+    padding: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .userInfo {
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .details {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .userName {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .userType {
+    font-size: 0.7rem;
+  }
+
+  .postInfo {
+    padding: 0.35rem 0.5rem;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .postTitle {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .closeButton {
+    padding: 0.35rem;
+  }
+}

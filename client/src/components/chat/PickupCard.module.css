@@ -67,7 +67,8 @@
 .cancelButton,
 .editButton,
 .saveButton,
-.cancelEditButton {
+.cancelEditButton,
+.trackButton {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 6px;
@@ -78,6 +79,17 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.trackButton {
+  background: #8b5cf6;
+  color: white;
+}
+
+.trackButton:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
 }
 
 .confirmButton {

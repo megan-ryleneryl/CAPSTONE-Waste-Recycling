@@ -1,9 +1,12 @@
 // client/src/components/pickup/PickupsList.js
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import PickupStatusBadge from './PickupStatusBadge';
 import styles from './PickupsList.module.css';
 
 const PickupsList = ({ pickups, currentUser, viewType = 'grid' }) => {
+  const navigate = useNavigate();
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Not scheduled';
     const date = new Date(dateString);
@@ -12,6 +15,10 @@ const PickupsList = ({ pickups, currentUser, viewType = 'grid' }) => {
       day: 'numeric',
       year: 'numeric'
     });
+  };
+
+  const handleViewDetails = (pickupId) => {
+    navigate(`/tracking/${pickupId}`);
   };
 
   if (pickups.length === 0) {
@@ -59,11 +66,17 @@ const PickupsList = ({ pickups, currentUser, viewType = 'grid' }) => {
           </div>
 
           <div className={styles.pickupActions}>
-            <button className={styles.viewButton}>
+            <button
+              className={styles.viewButton}
+              onClick={() => handleViewDetails(pickup.pickupID || pickup.id)}
+            >
               View Details
             </button>
             {pickup.status === 'Confirmed' && (
-              <button className={styles.messageButton}>
+              <button
+                className={styles.messageButton}
+                onClick={() => navigate('/chat')}
+              >
                 Message
               </button>
             )}

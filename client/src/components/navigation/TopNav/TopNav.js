@@ -240,7 +240,11 @@ const TopNav = ({ user: propUser }) => {
           </div>
 
           {/* Messages */}
-          <button className={styles.navIcon}>
+          <button
+            className={styles.navIcon}
+            onClick={() => navigate('/chat')}
+            aria-label="Messages"
+          >
             <ChatIcon />
           </button>
 

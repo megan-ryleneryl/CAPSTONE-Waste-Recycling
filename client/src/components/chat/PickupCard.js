@@ -1,8 +1,10 @@
 // client/src/components/chat/PickupCard.js
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from './PickupCard.module.css';
 
 const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     pickupDate: pickup.pickupDate || '',
@@ -210,24 +212,34 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
       </div>
 
       <div className={styles.actions}>
+        {/* Track Pickup button - always show for confirmed/in-progress/completed pickups */}
+        {['Confirmed', 'In-Transit', 'Picking-Ongoing', 'In-Progress', 'Completed'].includes(pickup.status) && (
+          <button
+            className={styles.trackButton}
+            onClick={() => navigate(`/tracking/${pickup.pickupID || pickup.id}`)}
+          >
+            📍 Track Pickup
+          </button>
+        )}
+
         {canEdit && (
-          <button 
+          <button
             className={styles.editButton}
             onClick={() => setIsEditing(true)}
           >
             ✏️ Edit
           </button>
         )}
-        
+
         {canConfirm && (
           <>
-            <button 
+            <button
               className={styles.confirmButton}
               onClick={() => onUpdateStatus('Confirmed')}
             >
               ✅ Confirm
             </button>
-            <button 
+            <button
               className={styles.declineButton}
               onClick={() => onUpdateStatus('Cancelled')}
             >
@@ -235,27 +247,27 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
             </button>
           </>
         )}
-        
+
         {canStartPickup && (
-          <button 
+          <button
             className={styles.startButton}
             onClick={() => onUpdateStatus('In-Progress')}
           >
             🚚 Start Pickup
           </button>
         )}
-        
+
         {canComplete && (
-          <button 
+          <button
             className={styles.completeButton}
             onClick={() => onUpdateStatus('Completed')}
           >
             ✔️ Complete
           </button>
         )}
-        
+
         {canCancel && !canConfirm && !canEdit && (
-          <button 
+          <button
             className={styles.cancelButton}
             onClick={() => onUpdateStatus('Cancelled')}
           >
