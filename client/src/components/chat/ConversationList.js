@@ -1,6 +1,6 @@
 // client/src/components/chat/ConversationList.js
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, limit, or } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import ConversationListItem from './ConversationListItem';
 import styles from './ConversationList.module.css';
@@ -19,91 +19,145 @@ const ConversationList = ({ currentUser, onSelectConversation, selectedConversat
     }
   }, [currentUser]);
 
- const loadConversations = async () => {
-    try {
-      setError('');
-      
-      // Query messages where current user is sender OR receiver
-      const messagesRef = collection(db, 'messages');
-      
-      // Get messages where user is receiver
-      const receivedQuery = query(
-        messagesRef,
-        where('receiverID', '==', currentUser.userID),
-        orderBy('sentAt', 'desc'),
-        limit(50)
-      );
-      
-      // Get messages where user is sender
-      const sentQuery = query(
-        messagesRef,
-        where('senderID', '==', currentUser.userID),
-        orderBy('sentAt', 'desc'),
-        limit(50)
-      );
-      
-      const [receivedSnapshot, sentSnapshot] = await Promise.all([
-        getDocs(receivedQuery),
-        getDocs(sentQuery)
-      ]);
-      
-      // Group messages by conversation (postID + otherUserID)
-      const conversationsMap = new Map();
-      
-      // Process received messages
-      receivedSnapshot.docs.forEach(doc => {
-        const msg = { id: doc.id, ...doc.data() };
-        const key = `${msg.postID}-${msg.senderID}`;
-        
-        if (!conversationsMap.has(key) || 
-            (msg.sentAt?.toDate() > conversationsMap.get(key).lastMessage.sentAt?.toDate())) {
-          conversationsMap.set(key, {
-            id: key,
-            postID: msg.postID,
-            postTitle: msg.postTitle || 'Unknown Post',
-            otherUserID: msg.senderID,
-            otherUserName: msg.senderName || 'Unknown User',
-            lastMessage: msg,
-            unreadCount: msg.isRead ? 0 : 1
-          });
+const loadConversations = async () => {
+  try {
+    setError('');
+    
+    // Query messages where current user is sender OR receiver
+    const messagesRef = collection(db, 'messages');
+    
+    // Get messages where user is receiver
+    const receivedQuery = query(
+      messagesRef,
+      where('receiverID', '==', currentUser.userID),
+      orderBy('sentAt', 'desc'),
+      limit(50)
+    );
+    
+    // Get messages where user is sender
+    const sentQuery = query(
+      messagesRef,
+      where('senderID', '==', currentUser.userID),
+      orderBy('sentAt', 'desc'),
+      limit(50)
+    );
+    
+    const [receivedSnapshot, sentSnapshot] = await Promise.all([
+      getDocs(receivedQuery),
+      getDocs(sentQuery)
+    ]);
+    
+    // Group messages by conversation (postID + otherUserID)
+    const conversationsMap = new Map();
+    
+    // Helper function to fetch user data
+    const fetchUserData = async (userID) => {
+      try {
+        const userDocRef = doc(db, 'users', userID);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          return `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User';
         }
-      });
-      
-      // Process sent messages
-      sentSnapshot.docs.forEach(doc => {
-        const msg = { id: doc.id, ...doc.data() };
-        const key = `${msg.postID}-${msg.receiverID}`;
-        
-        if (!conversationsMap.has(key) || 
-            (msg.sentAt?.toDate() > conversationsMap.get(key).lastMessage.sentAt?.toDate())) {
-          conversationsMap.set(key, {
-            id: key,
-            postID: msg.postID,
-            postTitle: msg.postTitle || 'Unknown Post',
-            otherUserID: msg.receiverID,
-            otherUserName: msg.receiverName || 'Unknown User',
-            lastMessage: msg,
-            unreadCount: 0 // Sent messages are always read
-          });
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+      return 'Unknown User';
+    };
+    
+    // Helper function to fetch post data
+    const fetchPostData = async (postID) => {
+      try {
+        const postDocRef = doc(db, 'posts', postID);
+        const postDoc = await getDoc(postDocRef);
+        if (postDoc.exists()) {
+          const postData = postDoc.data();
+          return postData.title || 'Untitled Post';
         }
-      });
+      } catch (error) {
+        console.error('Error fetching post:', error);
+      }
+      return 'Unknown Post';
+    };
+    
+    // Process received messages
+    for (const doc of receivedSnapshot.docs) {
+      const msg = { id: doc.id, ...doc.data() };
+      const key = `${msg.postID}-${msg.senderID}`;
       
-      // Convert to array and sort by most recent
-      const conversationsList = Array.from(conversationsMap.values())
-        .sort((a, b) => {
-          const aTime = a.lastMessage.sentAt?.toDate() || new Date(0);
-          const bTime = b.lastMessage.sentAt?.toDate() || new Date(0);
-          return bTime - aTime;
+      // Fetch missing data if needed
+      let userName = msg.senderName;
+      let postTitle = msg.postTitle;
+      
+      if (!userName || userName === 'Unknown User') {
+        userName = await fetchUserData(msg.senderID);
+      }
+      
+      if (!postTitle || postTitle === 'Unknown Post') {
+        postTitle = await fetchPostData(msg.postID);
+      }
+      
+      if (!conversationsMap.has(key) || 
+          (msg.sentAt?.toDate() > conversationsMap.get(key).lastMessage.sentAt?.toDate())) {
+        conversationsMap.set(key, {
+          id: key,
+          postID: msg.postID,
+          postTitle: postTitle,
+          otherUserID: msg.senderID,
+          otherUserName: userName,
+          lastMessage: msg,
+          unreadCount: msg.isRead ? 0 : 1
         });
-      
-      setConversations(conversationsList);
-    } catch (err) {
-      setError('Failed to load conversations');
-      console.error('Error loading conversations:', err);
-    } finally {
-      setLoading(false);
+      }
     }
-  };
+    
+    // Process sent messages
+    for (const doc of sentSnapshot.docs) {
+      const msg = { id: doc.id, ...doc.data() };
+      const key = `${msg.postID}-${msg.receiverID}`;
+      
+      // Fetch missing data if needed
+      let userName = msg.receiverName;
+      let postTitle = msg.postTitle;
+      
+      if (!userName || userName === 'Unknown User') {
+        userName = await fetchUserData(msg.receiverID);
+      }
+      
+      if (!postTitle || postTitle === 'Unknown Post') {
+        postTitle = await fetchPostData(msg.postID);
+      }
+      
+      if (!conversationsMap.has(key) || 
+          (msg.sentAt?.toDate() > conversationsMap.get(key).lastMessage.sentAt?.toDate())) {
+        conversationsMap.set(key, {
+          id: key,
+          postID: msg.postID,
+          postTitle: postTitle,
+          otherUserID: msg.receiverID,
+          otherUserName: userName,
+          lastMessage: msg,
+          unreadCount: 0 // Sent messages are always read
+        });
+      }
+    }
+    
+    // Convert to array and sort by most recent
+    const conversationsList = Array.from(conversationsMap.values())
+      .sort((a, b) => {
+        const aTime = a.lastMessage.sentAt?.toDate() || new Date(0);
+        const bTime = b.lastMessage.sentAt?.toDate() || new Date(0);
+        return bTime - aTime;
+      });
+    
+    setConversations(conversationsList);
+  } catch (err) {
+    setError('Failed to load conversations');
+    console.error('Error loading conversations:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading && !conversations.length) {
     return (

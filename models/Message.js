@@ -18,6 +18,7 @@ class Message {
     // Extended fields for Module 2 chat functionality
     this.messageType = data.messageType || 'text'; // 'text', 'system', 'pickup_request', 'pickup_confirmation'
     this.senderName = data.senderName || '';
+    this.postTitle = data.postTitle || '';
     this.metadata = data.metadata || {}; // For storing pickup details, system actions, etc.
   }
 
@@ -44,22 +45,24 @@ class Message {
     };
   }
 
-  // Convert to plain object for Firestore
-  toFirestore() {
-    return {
-      messageID: this.messageID,
-      senderID: this.senderID,
-      receiverID: this.receiverID,
-      postID: this.postID,
-      message: this.message.trim(),
-      sentAt: this.sentAt,
-      isRead: this.isRead,
-      isDeleted: this.isDeleted,
-      messageType: this.messageType,
-      senderName: this.senderName,
-      metadata: this.metadata
-    };
-  }
+// Convert to plain object for Firestore
+toFirestore() {
+  return {
+    messageID: this.messageID,
+    senderID: this.senderID,
+    senderName: this.senderName || 'Unknown User', // Add fallback
+    receiverID: this.receiverID,
+    receiverName: this.receiverName || 'Unknown User', // Add fallback
+    postID: this.postID,
+    postTitle: this.postTitle || 'Unknown Post', // Add this field
+    message: this.message.trim(),
+    sentAt: this.sentAt,
+    isRead: this.isRead,
+    isDeleted: this.isDeleted,
+    messageType: this.messageType,
+    metadata: this.metadata
+  };
+}
 
   // Static method to create a new message
   static async create(data) {
