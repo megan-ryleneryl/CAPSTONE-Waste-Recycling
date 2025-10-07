@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
-
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -444,7 +444,7 @@ const CreatePost = () => {
             className={`${styles.typeButton} ${postType === 'Waste' ? styles.active : ''}`}
             onClick={() => setPostType('Waste')}
           >
-            <span>♻️ Waste Post</span>
+            <span><Recycle size={16} /> Waste Post</span>
             <small>Offer recyclable materials</small>
           </button>
           
@@ -455,7 +455,7 @@ const CreatePost = () => {
             disabled={!canCreateInitiative}
             title={!canCreateInitiative ? 'Only Collectors can create Initiative posts' : ''}
           >
-            <span>🌱 Initiative</span>
+            <span><Sprout size={16} /> Initiative</span>
             <small>{canCreateInitiative ? 'Start a green project' : 'Collectors only'}</small>
           </button>
           
@@ -464,7 +464,7 @@ const CreatePost = () => {
             className={`${styles.typeButton} ${postType === 'Forum' ? styles.active : ''}`}
             onClick={() => setPostType('Forum')}
           >
-            <span>💬 Forum Post</span>
+            <span><MessageCircle size={14} /> Forum Post</span>
             <small>Share and discuss</small>
           </button>
         </div>

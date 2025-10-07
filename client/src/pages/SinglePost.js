@@ -5,6 +5,8 @@ import PostDetails from '../components/posts/PostDetails/PostDetails';
 import CommentsSection from '../components/posts/CommentsSection/CommentsSection';
 // import PickupRequests from '../components/posts/PickupRequests/PickupRequests';
 import styles from './SinglePost.module.css';
+// Lucide icon imports
+import {Heart } from 'lucide-react';
 
 const SinglePost = ({ onDataUpdate }) => {
   const { postId } = useParams();
@@ -240,9 +242,9 @@ const SinglePost = ({ onDataUpdate }) => {
                     post.postType === 'Initiative' ? styles.initiativeBadge :
                     styles.forumBadge
                     }`}>
-                    {post.postType === 'Waste' && '♻️ Waste Post'}
-                    {post.postType === 'Initiative' && '🌱 Initiative Post'}
-                    {post.postType === 'Forum' && '💬 Forum Post'}
+                    {post.postType === 'Waste' && 'Waste Post'}
+                    {post.postType === 'Initiative' && 'Initiative Post'}
+                    {post.postType === 'Forum' && 'Forum Post'}
                     </span>
                 </div>
 
@@ -339,7 +341,7 @@ const SinglePost = ({ onDataUpdate }) => {
               onClick={handleLikeToggle}
               disabled={likingPost}
             >
-              <span className={styles.likeIcon}>{isLiked ? '❤️' : '🤍'}</span>
+              <span className={styles.likeIcon}><Heart size={18} fill={post.isLiked ? 'currentColor' : 'none'} /></span>
               <span className={styles.likeText}>
                 {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
               </span>

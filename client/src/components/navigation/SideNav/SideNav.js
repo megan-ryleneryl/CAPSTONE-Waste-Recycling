@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styles from './SideNav.module.css';
 import { useAuth } from '../../../context/AuthContext';
+import { Plus } from 'lucide-react';
 
 const SideNav = ({ activeFilter, onFilterChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -136,13 +137,13 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
 
 
       <div className={styles.actionsList}>
-        <Link 
-          to="/create-post" 
-          className={styles.createButton}
+        <button 
+          className={styles.createbtn}
+          onClick={() => window.location.href = '/create-post'}
           title={isCollapsed ? 'Create Post' : ''}
         >
-          {!isCollapsed && <span>Create Post</span>}
-        </Link>
+          {!isCollapsed && <span className={styles.createButton}><Plus />Create Post</span>}
+        </button>
       </div>
 
       {/* User Stats (Bottom) - Fixed position */}

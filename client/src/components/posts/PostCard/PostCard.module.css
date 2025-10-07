@@ -476,6 +476,14 @@
   color: #3730A3;
 }
 
+.messageButton {
+  display: flex;
+  justify-content: center;
+  background: #4B5563;
+  color: white;
+  align-items: center;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .container {

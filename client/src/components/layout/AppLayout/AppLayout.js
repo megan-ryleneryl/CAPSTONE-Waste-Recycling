@@ -82,9 +82,10 @@ const AppLayout = ({ children }) => {
     );
   }
 
-  // Clone children and pass handleDataUpdate if needed
+  // Clone children and pass both handleDataUpdate and activeFilter
   const childrenWithProps = React.cloneElement(children, {
-    onDataUpdate: handleDataUpdate
+    onDataUpdate: handleDataUpdate,
+    activeFilter: activeFilter  // Pass the filter state to child pages
   });
 
   return (

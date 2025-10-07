@@ -217,8 +217,14 @@
   cursor: pointer;
   transition: var(--transition-all);
   text-decoration: none;
+  text-align: center;
   width: 100%;
   box-sizing: border-box;
+}
+
+.createbtn{
+  background: none;
+  border: none;
 }
 
 .createButton:hover {

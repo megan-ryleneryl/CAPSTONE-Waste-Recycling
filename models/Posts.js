@@ -221,7 +221,8 @@ toFirestore() {
     const db = getFirestore();
     try {
       const postsRef = collection(db, 'posts');
-      const q = query(postsRef, where('userID', '==', userID), orderBy('createdAt', 'desc'));
+      // Remove orderBy to avoid composite index requirement
+      const q = query(postsRef, where('userID', '==', userID));
       const querySnapshot = await getDocs(q);
       
       const posts = [];
@@ -246,7 +247,12 @@ toFirestore() {
         }
       });
       
-      return posts;
+     // Sort posts by createdAt on client side
+      return posts.sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return dateB - dateA; // Descending order (newest first)
+      });
     } catch (error) {
       throw new Error(`Failed to find posts by user: ${error.message}`);
     }

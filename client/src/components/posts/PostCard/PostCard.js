@@ -7,8 +7,11 @@ import styles from './PostCard.module.css';
 import { db } from '../../../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../../context/AuthContext';
+// Lucide icon imports
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins } from 'lucide-react';
 
-const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
+
+const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
 
   const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
@@ -24,7 +27,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
     return () => {
       setPosts([]);
     };
-  }, [postType]);
+  }, [postType, userID]); // Add userID as dependency
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -41,11 +44,20 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
       }
 
       // FIXED: Use the correct protected endpoint
-      let url = 'http://localhost:3001/api/protected/posts';
-      
-      // Add filter for post type if not 'all'
-      // Only add type filter if a specific type is requested
-      if (postType && postType !== 'all') {
+      let url = 'http://localhost:3001/api/posts';
+
+      // Build query parameters
+      const params = new URLSearchParams();
+
+      // Add userID filter if provided (for "My Posts" filter)
+      if (userID) {
+        params.append('userID', userID);
+        console.log('Filtering by userID:', userID);
+      }
+
+      // Add type filter if not 'all' and no userID filter
+      // (userID filter takes precedence - shows all post types by that user)
+      if (postType && postType !== 'all' && !userID) {
         // Map component prop values to database values
         const typeMap = {
           'Waste Post': 'Waste',
@@ -57,10 +69,13 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
         };
         
         const mappedType = typeMap[postType] || postType;
-        url += `?type=${mappedType}`;
+        params.append('type', mappedType);
         console.log('Filtering by type:', mappedType);
-      } else {
-        console.log('Fetching all post types');
+      }
+
+      // Append params to URL if any exist
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
       
       console.log('Fetching posts from:', url);
@@ -515,8 +530,11 @@ const handleMessageOwner = async (post, event) => {
                   styles.forumTag
                 }`}>
                   <span className={styles.tagIcon}>
-                    {post.postType === 'Waste' ? '♻️' :
-                    post.postType === 'Initiative' ? '🌱' : '💬'}
+                    {post.postType === 'Waste' ? <Recycle size={16} /> :
+                    post.postType === 'Initiative' ? <Sprout size={16} /> :
+                    <MessageSquare size={16} />}
+                  </span>
+                  <span className={styles.tagText}>
                   </span>
                   {post.postType} Post
                 </span>
@@ -579,24 +597,24 @@ const handleMessageOwner = async (post, event) => {
               {post.postType === 'Waste' && (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>📦</span>
+                    <span className={styles.detailIcon}><Package size={18} /></span>
                     <span className={styles.detailText}>
                       {formatMaterials(post.materials)}
                     </span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>📍</span>
+                    <span className={styles.detailIcon}><MapPin size={18} /></span>
                     <span className={styles.detailText}>{post.location}</span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>⚖️</span>
+                    <span className={styles.detailIcon}><Weight size={18} /></span>
                     <span className={styles.detailText}>
                       {post.quantity} {post.unit || 'kg'}
                     </span>
                   </div>
                   {formatPickupTime(post.pickupDate, post.pickupTime) && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailIcon}>🕐</span>
+                      <span className={styles.detailIcon}><Clock size={18} /></span>
                       <span className={styles.detailText}>
                         {formatPickupTime(post.pickupDate, post.pickupTime)}
                       </span>
@@ -604,7 +622,7 @@ const handleMessageOwner = async (post, event) => {
                   )}
                   {post.price > 0 && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailIcon}>💰</span>
+                      <span className={styles.detailIcon}><Coins size={18} /></span>
                       <span className={styles.detailText}>₱{post.price}</span>
                     </div>
                   )}
@@ -620,17 +638,17 @@ const handleMessageOwner = async (post, event) => {
               {post.postType === 'Initiative' && (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>🎯</span>
+                    <span className={styles.detailIcon}><Goal size={18} /></span>
                     <span className={styles.detailText}>{post.goal || 'Environmental initiative'}</span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>📍</span>
+                    <span className={styles.detailIcon}><MapPin size={18} /></span>
                     <span className={styles.detailText}>{post.location}</span>
                   </div>
                   {post.targetAmount && (
                     <>
                       <div className={styles.detailItem}>
-                        <span className={styles.detailIcon}>📊</span>
+                        <span className={styles.detailIcon}><BarChart3 size={18} /></span>
                         <span className={styles.detailText}>
                           Progress: {post.currentAmount || 0} / {post.targetAmount} kg
                         </span>
@@ -650,7 +668,7 @@ const handleMessageOwner = async (post, event) => {
                   )}
                   {post.endDate && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailIcon}>📅</span>
+                      <span className={styles.detailIcon}><Calendar size={18} /></span>
                       <span className={styles.detailText}>
                         Ends: {(() => {
                           let endDate;
@@ -672,11 +690,11 @@ const handleMessageOwner = async (post, event) => {
               {post.postType === 'Forum' && (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>🏷️</span>
+                    <span className={styles.detailIcon}><Tag size={18} /></span>
                     <span className={styles.detailText}>{post.category || 'General'}</span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>📍</span>
+                    <span className={styles.detailIcon}><MapPin size={18} /></span>
                     <span className={styles.detailText}>{post.location}</span>
                   </div>
                   {post.tags && post.tags.length > 0 && (
@@ -701,7 +719,7 @@ const handleMessageOwner = async (post, event) => {
                   title={post.isLiked ? 'Unlike' : 'Like'}
                 >
                   <span className={styles.interactionIcon}>
-                    {post.isLiked ? '❤️' : '🤍'}
+                    <Heart size={18} fill={post.isLiked ? 'currentColor' : 'none'} />
                   </span>
                   <span>{post.likeCount || 0} {post.likeCount === 1 ? 'Like' : 'Likes'}</span>
                 </button>
@@ -710,7 +728,7 @@ const handleMessageOwner = async (post, event) => {
                   onClick={(e) => handleComment(e, post.postID)}
                   title="View comments"
                 >
-                  <span className={styles.interactionIcon}>💬</span>
+                  <span className={styles.interactionIcon}><MessageCircle size={18} /></span>
                   <span>{post.commentCount || 0} {post.commentCount === 1 ? 'Comment' : 'Comments'}</span>
                 </button>
               </div>
@@ -773,7 +791,7 @@ const handleMessageOwner = async (post, event) => {
                   onClick={(e) => handleMessageOwner(post, e)}
                   style={{ background: '#4B5563' }}
                 >
-                  💬 Message
+                  <MessageCircle size={18} />
                 </button>
               )}
             </div>

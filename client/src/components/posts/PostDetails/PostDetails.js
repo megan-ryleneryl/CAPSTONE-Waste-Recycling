@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ModalPortal from '../../modal/ModalPortal';
 import styles from './PostDetails.module.css';
+import { Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
+
 
 const PostDetails = ({ post, user: currentUser }) => {
   const navigate = useNavigate();
@@ -220,22 +222,22 @@ const PostDetails = ({ post, user: currentUser }) => {
         {post.postType === 'Waste' && (
           <div className={styles.detailsSection}>
             <div className={styles.detailItem}>
-              <span className={styles.icon}>📦</span>
+              <span className={styles.icon}><Package size={18} /></span>
               <span className={styles.value}>{formatMaterials(post.materials)}</span>
             </div>
             
             <div className={styles.detailItem}>
-              <span className={styles.icon}>⚖️</span>
+              <span className={styles.icon}><Weight size={18} /></span>
               <span className={styles.value}>{post.quantity} {post.unit || 'kg'}</span>
             </div>
             
             <div className={styles.detailItem}>
-              <span className={styles.icon}>📍</span>
+              <span className={styles.icon}><Tag size={18} /></span>
               <span className={styles.value}>{post.location}</span>
             </div>
             
             <div className={styles.detailItem}>
-              <span className={styles.icon}>🕐</span>
+              <span className={styles.icon}><Clock size={18} /></span>
               <span className={styles.value}>
                 {formatPickupTime(post.pickupDate, post.pickupTime)}
               </span>
@@ -243,8 +245,7 @@ const PostDetails = ({ post, user: currentUser }) => {
             
             {post.price > 0 && (
               <div className={styles.detailItem}>
-                <span className={styles.icon}>💰</span>
-                <span className={styles.label}>Price:</span>
+                <span className={styles.icon}><Coins size={18} /></span>
                 <span className={styles.value}>₱{post.price}</span>
               </div>
             )}
@@ -277,19 +278,19 @@ const PostDetails = ({ post, user: currentUser }) => {
         {post.postType === 'Initiative' && (
           <div className={styles.detailsSection}>
             <div className={styles.detailItem}>
-              <span className={styles.icon}>🎯</span>
+              <span className={styles.icon}><Goal size={18} /></span>
               <span className={styles.value}>{post.goal || 'Environmental initiative'}</span>
             </div>
             
             <div className={styles.detailItem}>
-              <span className={styles.icon}>📍</span>
+              <span className={styles.icon}><Tag size={18} /></span>
               <span className={styles.value}>{post.location}</span>
             </div>
 
             {post.targetAmount && (
               <>
                 <div className={styles.detailItem}>
-                  <span className={styles.icon}>📊</span>
+                  <span className={styles.icon}><BarChart3 size={18} /></span>
                   <span className={styles.value}>
                     Progress: {post.currentAmount || 0} / {post.targetAmount} kg
                   </span>
@@ -310,7 +311,7 @@ const PostDetails = ({ post, user: currentUser }) => {
 
             {post.endDate && (
               <div className={styles.detailItem}>
-                <span className={styles.icon}>📅</span>
+                <span className={styles.icon}><Calendar size={18} /></span>
                 <span className={styles.value}>Ends: {formatEndDate(post.endDate)}</span>
               </div>
             )}
@@ -341,21 +342,20 @@ const PostDetails = ({ post, user: currentUser }) => {
         {post.postType === 'Forum' && (
           <div className={styles.detailsSection}>
             <div className={styles.detailItem}>
-              <span className={styles.icon}>🏷️</span>
-              <span className={styles.label}>Category:</span>
+              <span className={styles.icon}><Tag size={18} /></span>
               <span className={styles.value}>{post.category || 'General'}</span>
             </div>
             
             <div className={styles.detailItem}>
-              <span className={styles.icon}>📍</span>
+              <span className={styles.icon}><MapPin size={18} /></span>
               <span className={styles.value}>{post.location}</span>
             </div>
 
             {post.tags && post.tags.length > 0 && (
               <div className={styles.tagsSection}>
                 <div className={styles.tagsLabel}>
-                  <span className={styles.icon}>🏷️</span>
-                  <span>Tags:</span>
+                  <span className={styles.icon}>#</span>
+                  <span>Hashtags</span>
                 </div>
                 <div className={styles.tagsContainer}>
                   {post.tags.map((tag, index) => (
