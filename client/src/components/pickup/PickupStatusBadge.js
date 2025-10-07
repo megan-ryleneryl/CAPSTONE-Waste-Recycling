@@ -1,5 +1,6 @@
 // client/src/components/pickup/PickupStatusBadge.js
 import React from 'react';
+import { FileText, CheckCircle, Truck, Check, X, Package } from 'lucide-react';
 import styles from './PickupStatusBadge.module.css';
 
 const PickupStatusBadge = ({ status }) => {
@@ -8,14 +9,15 @@ const PickupStatusBadge = ({ status }) => {
   };
 
   const getStatusIcon = () => {
-    const icons = {
-      'Proposed': '📝',
-      'Confirmed': '✅',
-      'In-Progress': '🚚',
-      'Completed': '✔️',
-      'Cancelled': '❌'
+    const iconMap = {
+      'Proposed': FileText,
+      'Confirmed': CheckCircle,
+      'In-Progress': Truck,
+      'Completed': Check,
+      'Cancelled': X
     };
-    return icons[status] || '📦';
+    const IconComponent = iconMap[status] || Package;
+    return <IconComponent size={16} />;
   };
 
   return (

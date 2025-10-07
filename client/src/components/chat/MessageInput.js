@@ -1,5 +1,6 @@
 // client/src/components/chat/MessageInput.js
 import React, { useState, useRef, useEffect } from 'react';
+import { Calendar } from 'lucide-react';
 import styles from './MessageInput.module.css';
 
 const MessageInput = ({ 
@@ -53,12 +54,13 @@ const MessageInput = ({
     <div className={styles.messageInput}>
       {showPickupButton && onPickupRequest && (
         <div className={styles.quickActions}>
-          <button 
+          <button
             className={styles.pickupButton}
             onClick={onPickupRequest}
             disabled={disabled}
           >
-            📅 Schedule Pickup
+            <Calendar size={16} />
+            <span>Schedule Pickup</span>
           </button>
         </div>
       )}
