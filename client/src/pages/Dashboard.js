@@ -55,12 +55,18 @@ const Dashboard = () => {
           <div className={styles.statLabel}>Total Posts</div>
         </div>
 
-        <div className={styles.statCard}>
+        <div
+          className={`${styles.statCard} ${styles.clickable}`}
+          onClick={() => navigate('/pickups')}
+        >
           <div className={styles.statNumber}>{stats.activePickups}</div>
           <div className={styles.statLabel}>Active Pickups</div>
         </div>
 
-        <div className={styles.statCard}>
+        <div
+          className={`${styles.statCard} ${styles.clickable}`}
+          onClick={() => navigate('/pickups')}
+        >
           <div className={styles.statNumber}>{stats.completedPickups}</div>
           <div className={styles.statLabel}>Completed</div>
         </div>
@@ -74,9 +80,9 @@ const Dashboard = () => {
       {/* Quick Actions */}
       <div className={styles.quickActions}>
         <h3 className={styles.quickActionsTitle}>Quick Actions</h3>
-        <button className={styles.actionButton}>Create New Waste Post</button>
-        <button className={styles.actionButtonSecondary}>Browse Available Waste</button>
-        <button className={styles.actionButtonSecondary}>Visit Community Forum</button>
+        <button className={styles.actionButton} onClick={() => navigate('/create-post')}>Create New Waste Post</button>
+        <button className={styles.actionButtonSecondary} onClick={() => navigate('/posts')}>Browse Available Waste</button>
+        <button className={styles.actionButtonSecondary} onClick={() => navigate('/pickups')}>View My Pickups</button>
         <button className={styles.actionButton} onClick={handleLogout}>Logout</button>
       </div>
 
