@@ -35,10 +35,9 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
 
   const filterOptions = [
     { id: 'all', label: 'All Posts' },
-    { id: 'recyclables', label: 'Recyclables' },
-    { id: 'initiatives', label: 'Initiatives' },
-    { id: 'forum', label: 'Forum' },
-    { id: 'nearby', label: 'Nearby' },
+    { id: 'Waste', label: 'Waste' },
+    { id: 'Initiatives', label: 'Initiatives' },
+    { id: 'Forum', label: 'Forum' },
     { id: 'myPosts', label: 'My Posts' }
   ];
 
@@ -117,7 +116,7 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
         )}
 
         {/* Quick Actions */}
-        <div className={styles.section}>
+        {/* <div className={styles.section}>
           <button 
             className={styles.sectionHeader}
             onClick={() => toggleSection('actions')}
@@ -131,19 +130,18 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
               </>
             )}
           </button>
+        </div> */}
+      </div>
 
-          {expandedSections.actions && (
-            <div className={styles.actionsList}>
-              <Link 
-                to="/create-post" 
-                className={styles.createButton}
-                title={isCollapsed ? 'Create Post' : ''}
-              >
-                {!isCollapsed && <span>Create Post</span>}
-              </Link>
-            </div>
-          )}
-        </div>
+
+      <div className={styles.actionsList}>
+        <Link 
+          to="/create-post" 
+          className={styles.createButton}
+          title={isCollapsed ? 'Create Post' : ''}
+        >
+          {!isCollapsed && <span>Create Post</span>}
+        </Link>
       </div>
 
       {/* User Stats (Bottom) - Fixed position */}

@@ -2,71 +2,82 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/Users');
 
-const verifyToken = async (req, res, next) => {
+const verifyToken = (req, res, next) => {
   try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
+    console.log('🔐 Auth Middleware - All Headers:', JSON.stringify(req.headers, null, 2));
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
+    // Get token from header
+    const authHeader = req.headers['authorization'];
+    console.log('🔑 Authorization Header:', authHeader);
+    
+    if (!authHeader) {
+      console.log('❌ No authorization header found');
+      return res.status(401).json({
         success: false,
-        message: 'No token provided. Please login.' 
+        message: 'No token provided. Please login.'
       });
     }
 
-    const token = authHeader.split(' ')[1];
+    // Extract token (handle "Bearer <token>" format)
+    const token = authHeader.startsWith('Bearer ') 
+      ? authHeader.slice(7) 
+      : authHeader;
+
+    console.log('🎫 Extracted Token (first 50 chars):', token.substring(0, 50) + '...');
+
+    if (!token) {
+      console.log('❌ Token is empty after extraction');
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided. Please login.'
+      });
+    }
+
+    // Check if JWT_SECRET exists
+    if (!process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET not found in environment variables!');
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error'
+      });
+    }
+
+    console.log('🔓 Attempting to verify token...');
     
-    try {
-      // Verify the JWT token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-      
-      // Fetch fresh user data from database
-      const user = await User.findById(decoded.userID);
-      
-      if (!user) {
-        console.log('User not found for ID:', decoded.userID);
-        return res.status(401).json({ 
-          success: false,
-          message: 'User not found. Please login again.' 
-        });
-      }
-      
-      // Check if user is verified
-      if (user.status !== 'Verified') {
-        return res.status(403).json({ 
-          success: false,
-          message: 'Your account is not verified. Please contact support.' 
-        });
-      }
-      
-      // Attach user to request object
-      req.user = user;
-      next();
-    } catch (jwtError) {
-      console.error('JWT verification error:', jwtError.message);
-      
-      if (jwtError.name === 'TokenExpiredError') {
-        return res.status(401).json({ 
-          success: false,
-          message: 'Token expired. Please login again.',
-          expired: true
-        });
-      }
-      
-      return res.status(401).json({ 
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('✅ Token verified successfully:', decoded);
+    
+    req.user = decoded;
+    next();
+  } catch (error) {
+    console.error('❌ Token verification error:', error.message);
+    console.error('Error name:', error.name);
+    
+    if (error.name === 'TokenExpiredError') {
+      console.log('Token expired at:', error.expiredAt);
+      return res.status(401).json({
+        success: false,
+        message: 'Token has expired. Please login again.'
+      });
+    }
+    
+    if (error.name === 'JsonWebTokenError') {
+      console.log('Invalid token format or signature');
+      return res.status(401).json({
         success: false,
         message: 'Invalid token. Please login again.'
       });
     }
-  } catch (error) {
-    console.error('Auth middleware error:', error.message);
-    res.status(500).json({ 
+    
+    return res.status(401).json({
       success: false,
-      message: 'Authentication error',
-      error: error.message 
+      message: 'Authentication failed. Please login again.',
+      error: error.message
     });
   }
 };
+
 
 // Middleware to check if user is a Collector or Admin
 const requireCollector = async (req, res, next) => {

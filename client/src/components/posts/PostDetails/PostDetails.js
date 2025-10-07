@@ -1,15 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import ModalPortal from '../../modal/ModalPortal'; // Using your existing ModalPortal
+import ModalPortal from '../../modal/ModalPortal';
 import styles from './PostDetails.module.css';
 
 const PostDetails = ({ post, user: currentUser }) => {
   const navigate = useNavigate();
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [isRequestingPickup, setIsRequestingPickup] = useState(false);
+  const [isSupportingInitiative, setIsSupportingInitiative] = useState(false);
   const [postClaimed, setPostClaimed] = useState(false);
   const [claimDetails, setClaimDetails] = useState(null);
+
+  // Support form data for Initiative posts
+  const [supportData, setSupportData] = useState({
+    materials: '',
+    quantity: '',
+    notes: ''
+  });
 
   useEffect(() => {
     if (post && post.postType === 'Waste') {
@@ -49,7 +58,6 @@ const PostDetails = ({ post, user: currentUser }) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Call the claim endpoint instead of request-pickup
       const response = await axios.post(
         `http://localhost:3001/api/posts/${post.postID}/claim`,
         {},
@@ -62,11 +70,9 @@ const PostDetails = ({ post, user: currentUser }) => {
         alert('Pickup request sent successfully! You can now chat with the giver to arrange pickup details.');
         setShowRequestModal(false);
         
-        // Navigate to chat with the post owner
         if (response.data.data?.chatURL) {
           navigate(response.data.data.chatURL);
         } else {
-          // Fallback: navigate to chat with post owner
           navigate(`/chat`, { 
             state: { 
               postID: post.postID, 
@@ -76,12 +82,10 @@ const PostDetails = ({ post, user: currentUser }) => {
           });
         }
         
-        // Refresh the page data
         checkClaimStatus();
         
-        // If there's a parent function to refresh post data, call it
         if (window.location.pathname.includes('/posts/')) {
-          window.location.reload(); // Simple reload to refresh post status
+          window.location.reload();
         }
       }
     } catch (error) {
@@ -92,9 +96,59 @@ const PostDetails = ({ post, user: currentUser }) => {
     }
   };
 
+  const handleSupportInitiative = async () => {
+    if (!currentUser) {
+      alert('Please log in to support this initiative');
+      navigate('/login');
+      return;
+    }
+
+    if (!supportData.materials || !supportData.quantity) {
+      alert('Please provide materials and quantity');
+      return;
+    }
+
+    setIsSupportingInitiative(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.post(
+        `http://localhost:3001/api/posts/${post.postID}/support`,
+        {
+          materials: supportData.materials,
+          quantity: parseFloat(supportData.quantity),
+          notes: supportData.notes
+        },
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        alert('Support request sent successfully! You can now chat with the initiative owner.');
+        setShowSupportModal(false);
+        setSupportData({ materials: '', quantity: '', notes: '' });
+        
+        // Navigate to chat or reload
+        if (response.data.data?.chatURL) {
+          navigate(response.data.data.chatURL);
+        }
+        
+        if (window.location.pathname.includes('/posts/')) {
+          window.location.reload();
+        }
+      }
+    } catch (error) {
+      console.error('Error supporting initiative:', error);
+      alert(error.response?.data?.message || 'Failed to send support request');
+    } finally {
+      setIsSupportingInitiative(false);
+    }
+  };
+
   if (!post) return null;
 
-  // Check if user is a collector (multiple ways to verify)
+  // Check user permissions
   const isCollector = currentUser?.userType === 'Collector' || 
                      currentUser?.isCollector === true ||
                      currentUser?.userType === 'Admin';
@@ -102,14 +156,18 @@ const PostDetails = ({ post, user: currentUser }) => {
   const isGiver = currentUser?.userType === 'Giver';
   const isOwner = currentUser?.userID === post.userID;
 
-  // Show button conditions for Waste posts
+  // Show button conditions for different post types
   const showRequestButton = post.postType === 'Waste' && 
                            isCollector && 
                            !isOwner && 
                            !postClaimed &&
                            post.status !== 'Claimed';
 
-  // Format materials for display
+  const showSupportButton = post.postType === 'Initiative' && 
+                           !isOwner && 
+                           post.status === 'Active';
+
+  // Format helpers
   const formatMaterials = (materials) => {
     if (!materials) return 'Not specified';
     if (Array.isArray(materials)) {
@@ -118,7 +176,6 @@ const PostDetails = ({ post, user: currentUser }) => {
     return materials;
   };
 
-  // Format pickup time
   const formatPickupTime = (date, time) => {
     if (!date && !time) return 'Flexible';
     
@@ -134,48 +191,55 @@ const PostDetails = ({ post, user: currentUser }) => {
     return result || 'Flexible';
   };
 
+  const formatEndDate = (endDate) => {
+    if (!endDate) return 'No deadline';
+    
+    let date;
+    if (endDate && typeof endDate === 'object' && endDate.seconds) {
+      date = new Date(endDate.seconds * 1000);
+    } else if (endDate && typeof endDate === 'object' && endDate.toDate) {
+      date = endDate.toDate();
+    } else {
+      date = new Date(endDate);
+    }
+    
+    return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'No deadline';
+  };
+
+  const calculateProgress = () => {
+    if (!post.targetAmount) return 0;
+    return Math.min(((post.currentAmount || 0) / post.targetAmount) * 100, 100);
+  };
+
   return (
     <>
       <div className={styles.container}>
-      <h2 className={styles.header}>Post Details:</h2>
+        <h2 className={styles.header}>Post Details</h2>
 
-      {/* Basic Details */}
-      <div className={styles.detailsSection}>
+        {/* WASTE POST DETAILS */}
         {post.postType === 'Waste' && (
-          <>
+          <div className={styles.detailsSection}>
             <div className={styles.detailItem}>
               <span className={styles.icon}>📦</span>
-              {/* <span className={styles.label}>Materials:</span> */}
               <span className={styles.value}>{formatMaterials(post.materials)}</span>
             </div>
             
             <div className={styles.detailItem}>
               <span className={styles.icon}>⚖️</span>
-              {/* <span className={styles.label}>Quantity:</span> */}
               <span className={styles.value}>{post.quantity} {post.unit || 'kg'}</span>
             </div>
             
             <div className={styles.detailItem}>
               <span className={styles.icon}>📍</span>
-              {/* <span className={styles.label}>Location:</span> */}
               <span className={styles.value}>{post.location}</span>
             </div>
             
             <div className={styles.detailItem}>
               <span className={styles.icon}>🕐</span>
-              {/* <span className={styles.label}>Preferred Pickup:</span> */}
               <span className={styles.value}>
                 {formatPickupTime(post.pickupDate, post.pickupTime)}
               </span>
             </div>
-            
-            {/* {post.condition && (
-              <div className={styles.detailItem}>
-                <span className={styles.icon}>✨</span>
-                <span className={styles.label}>Condition:</span>
-                <span className={styles.value}>{post.condition}</span>
-              </div>
-            )} */}
             
             {post.price > 0 && (
               <div className={styles.detailItem}>
@@ -184,37 +248,141 @@ const PostDetails = ({ post, user: currentUser }) => {
                 <span className={styles.value}>₱{post.price}</span>
               </div>
             )}
-          </>
+
+            {/* Claim Status */}
+            {postClaimed && claimDetails && (
+              <div className={styles.claimInfo}>
+                <p className={styles.claimedText}>
+                  This post has been claimed by {claimDetails.collectorName}
+                </p>
+              </div>
+            )}
+
+            {/* Action Button */}
+            {showRequestButton && (
+              <div className={styles.actionButtons}>
+                <button 
+                  className={styles.requestButton}
+                  onClick={() => setShowRequestModal(true)}
+                  disabled={isRequestingPickup}
+                >
+                  {isRequestingPickup ? 'Requesting...' : 'Request Pickup'}
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Add other post types details here if needed */}
+        {/* INITIATIVE POST DETAILS */}
+        {post.postType === 'Initiative' && (
+          <div className={styles.detailsSection}>
+            <div className={styles.detailItem}>
+              <span className={styles.icon}>🎯</span>
+              <span className={styles.value}>{post.goal || 'Environmental initiative'}</span>
+            </div>
+            
+            <div className={styles.detailItem}>
+              <span className={styles.icon}>📍</span>
+              <span className={styles.value}>{post.location}</span>
+            </div>
+
+            {post.targetAmount && (
+              <>
+                <div className={styles.detailItem}>
+                  <span className={styles.icon}>📊</span>
+                  <span className={styles.value}>
+                    Progress: {post.currentAmount || 0} / {post.targetAmount} kg
+                  </span>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className={styles.progressContainer}>
+                  <div 
+                    className={styles.progressBar}
+                    style={{ width: `${calculateProgress()}%` }}
+                  />
+                </div>
+                <div className={styles.progressText}>
+                  {Math.round(calculateProgress())}% Complete
+                </div>
+              </>
+            )}
+
+            {post.endDate && (
+              <div className={styles.detailItem}>
+                <span className={styles.icon}>📅</span>
+                <span className={styles.value}>Ends: {formatEndDate(post.endDate)}</span>
+              </div>
+            )}
+
+            {post.supportCount > 0 && (
+              <div className={styles.detailItem}>
+                <span className={styles.icon}>👥</span>
+                <span className={styles.value}>{post.supportCount} supporter{post.supportCount !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+
+            {/* Action Button */}
+            {showSupportButton && (
+              <div className={styles.actionButtons}>
+                <button 
+                  className={styles.supportButton}
+                  onClick={() => setShowSupportModal(true)}
+                  disabled={isSupportingInitiative}
+                >
+                  {isSupportingInitiative ? 'Supporting...' : '🌱 Support Initiative'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* FORUM POST DETAILS */}
+        {post.postType === 'Forum' && (
+          <div className={styles.detailsSection}>
+            <div className={styles.detailItem}>
+              <span className={styles.icon}>🏷️</span>
+              <span className={styles.label}>Category:</span>
+              <span className={styles.value}>{post.category || 'General'}</span>
+            </div>
+            
+            <div className={styles.detailItem}>
+              <span className={styles.icon}>📍</span>
+              <span className={styles.value}>{post.location}</span>
+            </div>
+
+            {post.tags && post.tags.length > 0 && (
+              <div className={styles.tagsSection}>
+                <div className={styles.tagsLabel}>
+                  <span className={styles.icon}>🏷️</span>
+                  <span>Tags:</span>
+                </div>
+                <div className={styles.tagsContainer}>
+                  {post.tags.map((tag, index) => (
+                    <span key={index} className={styles.forumTag}>
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {post.isPinned && (
+              <div className={styles.pinnedBadge}>
+                📌 Pinned Post
+              </div>
+            )}
+
+            {post.isLocked && (
+              <div className={styles.lockedBadge}>
+                🔒 Locked
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Action Buttons for Waste Posts */}
-      {showRequestButton && (
-        <div className={styles.actionButtons}>
-          <button 
-            className={styles.requestButton}
-            onClick={() => setShowRequestModal(true)}
-            disabled={isRequestingPickup}
-          >
-            {isRequestingPickup ? 'Requesting...' : 'Request Pickup'}
-          </button>
-        </div>
-      )}
-
-      {/* Claim Status */}
-      {postClaimed && claimDetails && (
-        <div className={styles.claimInfo}>
-          <p className={styles.claimedText}>
-            This post has been claimed by {claimDetails.collectorName}
-          </p>
-        </div>
-      )}
-
-      </div>
-
-      {/* Request Modal - Rendered through portal to appear above everything */}
+      {/* Waste Post - Request Pickup Modal */}
       {showRequestModal && (
         <ModalPortal>
           <div className={styles.modalOverlay} onClick={() => setShowRequestModal(false)}>
@@ -250,6 +418,78 @@ const PostDetails = ({ post, user: currentUser }) => {
                   className={styles.cancelButton}
                   onClick={() => setShowRequestModal(false)}
                   disabled={isRequestingPickup}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
+
+      {/* Initiative Post - Support Modal */}
+      {showSupportModal && (
+        <ModalPortal>
+          <div className={styles.modalOverlay} onClick={() => setShowSupportModal(false)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h3>Support Initiative</h3>
+                <button 
+                  className={styles.modalClose}
+                  onClick={() => setShowSupportModal(false)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <div className={styles.modalBody}>
+                <p>Contribute materials to support this initiative:</p>
+                <div className={styles.supportForm}>
+                  <div className={styles.formGroup}>
+                    <label>Materials *</label>
+                    <input
+                      type="text"
+                      value={supportData.materials}
+                      onChange={(e) => setSupportData({...supportData, materials: e.target.value})}
+                      placeholder="e.g., Plastic bottles, cardboard"
+                      required
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Quantity (kg) *</label>
+                    <input
+                      type="number"
+                      value={supportData.quantity}
+                      onChange={(e) => setSupportData({...supportData, quantity: e.target.value})}
+                      placeholder="0"
+                      min="0.1"
+                      step="0.1"
+                      required
+                    />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label>Notes (Optional)</label>
+                    <textarea
+                      value={supportData.notes}
+                      onChange={(e) => setSupportData({...supportData, notes: e.target.value})}
+                      placeholder="Any additional information..."
+                      rows="3"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className={styles.modalActions}>
+                <button 
+                  className={styles.confirmButton}
+                  onClick={handleSupportInitiative}
+                  disabled={isSupportingInitiative}
+                >
+                  {isSupportingInitiative ? 'Sending...' : 'Send Support Request'}
+                </button>
+                <button 
+                  className={styles.cancelButton}
+                  onClick={() => setShowSupportModal(false)}
+                  disabled={isSupportingInitiative}
                 >
                   Cancel
                 </button>

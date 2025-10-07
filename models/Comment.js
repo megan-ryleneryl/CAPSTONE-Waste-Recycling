@@ -93,11 +93,19 @@ class Comment {
       
       const comments = [];
       querySnapshot.forEach((doc) => {
-        comments.push(new Comment(doc.data()));
+        const data = doc.data();
+        
+        // Convert Firestore Timestamp to JavaScript Date
+        if (data.createdAt && data.createdAt.toDate) {
+          data.createdAt = data.createdAt.toDate();
+        }
+        
+        comments.push(new Comment(data));
       });
       
       return comments;
     } catch (error) {
+      console.error('Error finding comments by post:', error);
       throw new Error(`Failed to find comments by post: ${error.message}`);
     }
   }

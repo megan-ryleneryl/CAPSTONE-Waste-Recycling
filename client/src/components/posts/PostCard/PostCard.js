@@ -313,22 +313,37 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
   };
 
   const handleLike = async (event, postId) => {
-    event.stopPropagation(); // Prevent post navigation
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `http://localhost:3001/api/posts/${postId}/like`,
-        {},
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
+  event.stopPropagation();
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `http://localhost:3001/api/posts/${postId}/like`,
+      {},
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+
+    if (response.data.success) {
+      // Update the specific post in state with the count from backend
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.postID === postId
+            ? {
+                ...post,
+                isLiked: response.data.liked,
+                likeCount: response.data.likeCount // Use count from backend
+              }
+            : post
+        )
       );
-      // Refresh posts to update like count
-      fetchPosts();
-    } catch (err) {
-      console.error('Error liking post:', err);
     }
-  };
+  } catch (err) {
+    console.error('Error liking post:', err);
+    alert(err.response?.data?.message || 'Failed to like post');
+  }
+};
 
   const handleComment = (event, postId) => {
     event.stopPropagation(); // Prevent post navigation
@@ -681,18 +696,22 @@ const handleMessageOwner = async (post, event) => {
             {post.postType === 'Forum' && (
               <div className={styles.interactions}>
                 <button 
-                  className={styles.interactionButton}
+                  className={`${styles.interactionButton} ${post.isLiked ? styles.liked : ''}`}
                   onClick={(e) => handleLike(e, post.postID)}
+                  title={post.isLiked ? 'Unlike' : 'Like'}
                 >
-                  <span>{post.isLiked ? '❤️' : '🤍'}</span>
-                  <span>{post.likeCount || 0} Likes</span>
+                  <span className={styles.interactionIcon}>
+                    {post.isLiked ? '❤️' : '🤍'}
+                  </span>
+                  <span>{post.likeCount || 0} {post.likeCount === 1 ? 'Like' : 'Likes'}</span>
                 </button>
                 <button 
                   className={styles.interactionButton}
                   onClick={(e) => handleComment(e, post.postID)}
+                  title="View comments"
                 >
-                  <span>💬</span>
-                  <span>{post.commentCount || 0} Comments</span>
+                  <span className={styles.interactionIcon}>💬</span>
+                  <span>{post.commentCount || 0} {post.commentCount === 1 ? 'Comment' : 'Comments'}</span>
                 </button>
               </div>
             )}

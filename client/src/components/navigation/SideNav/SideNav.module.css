@@ -206,11 +206,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.875rem 1rem;
+  padding: 1rem 1.875rem;
   background: var(--primary-color);
   color: var(--text-on-primary);
   border: none;
-  border-radius: var(--border-radius-md);
+  border-radius: 5rem;
   font-size: 0.95rem;
   font-weight: 600;
   font-family: var(--font-family-primary);

@@ -531,3 +531,68 @@
     padding: 1.5rem;
   }
 }
+
+/* Interactions Section for Forum Posts */
+.interactionsSection {
+  padding: 0rem 1.5rem;
+  background: white;
+}
+
+.likeSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.likeButton {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.likeButton:hover:not(:disabled) {
+  border-color: #3B6535;
+  color: #3B6535;
+  background: #f0fdf4;
+  transform: translateY(-2px);
+}
+
+.likeButton.liked {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.likeButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.likeIcon {
+  font-size: 1.5rem;
+}
+
+.likeText {
+  font-family: 'Raleway', sans-serif;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .interactionsSection {
+    padding: 1rem;
+  }
+
+  .likeButton {
+    width: 100%;
+    justify-content: center;
+  }
+}

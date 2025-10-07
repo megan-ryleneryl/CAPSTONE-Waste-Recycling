@@ -169,14 +169,22 @@ router.get('/:postId', verifyToken, async (req, res) => {
     // Get interactions
     let likeCount = 0;
     let isLiked = false;
-    let comments = [];
+    let commentCount = 0;
     
-    try {
-      likeCount = await post.getLikeCount();
-      isLiked = await post.isLikedByUser(req.user.userID);
-      comments = await post.getComments();
-    } catch (err) {
-      console.error('Error fetching interactions:', err);
+    // ONLY get interaction data for Forum posts
+    if (postData.postType === 'Forum') {
+      try {
+        const likes = await Like.findByPostID(postData.postID);
+        likeCount = likes.length;
+        isLiked = likes.some(like => like.userID === req.user.userID);
+        
+        const comments = await Comment.findByPostID(postData.postID);
+        commentCount = comments.length;
+        
+        console.log(`Single post ${postData.postID}: ${likeCount} likes, ${commentCount} comments`);
+      } catch (err) {
+        console.error('Error fetching interactions:', err);
+      }
     }
     
     res.json({
@@ -529,28 +537,37 @@ router.post('/:postId/like', verifyToken, async (req, res) => {
     
     const existingLike = await Like.findByPostAndUser(req.params.postId, req.user.userID);
     
+    let liked = false;
+    let likeCount = 0;
+    
     if (existingLike) {
       // Unlike
       await existingLike.delete();
-      res.json({
-        success: true,
-        message: 'Post unliked',
-        liked: false
-      });
+      liked = false;
     } else {
       // Like
       await Like.create({
         postID: req.params.postId,
         userID: req.user.userID,
-        likedAt: new Date()
+        createdAt: new Date()
       });
-      res.json({
-        success: true,
-        message: 'Post liked',
-        liked: true
-      });
+      liked = true;
     }
+    
+    // Get updated like count
+    const allLikes = await Like.findByPostID(req.params.postId);
+    likeCount = allLikes.length;
+    
+    console.log(`Post ${req.params.postId} ${liked ? 'liked' : 'unliked'}. New count: ${likeCount}`);
+    
+    res.json({
+      success: true,
+      message: liked ? 'Post liked' : 'Post unliked',
+      liked: liked,
+      likeCount: likeCount
+    });
   } catch (error) {
+    console.error('Error processing like:', error);
     res.status(500).json({
       success: false,
       message: 'Error processing like',
@@ -602,12 +619,20 @@ router.post('/:postId/comment', verifyToken, async (req, res) => {
       createdAt: new Date()
     });
     
+    // Get updated comment count
+    const allComments = await Comment.findByPostID(req.params.postId);
+    const commentCount = allComments.length;
+    
+    console.log(`Comment added to post ${req.params.postId}. New count: ${commentCount}`);
+    
     res.status(201).json({
       success: true,
       message: 'Comment added successfully',
-      comment
+      comment: comment,
+      commentCount: commentCount
     });
   } catch (error) {
+    console.error('Error adding comment:', error);
     res.status(500).json({
       success: false,
       message: 'Error adding comment',
@@ -616,25 +641,83 @@ router.post('/:postId/comment', verifyToken, async (req, res) => {
   }
 });
 
-// Get comments for a post
+// Get comments for a post (WITH USER DATA) - FIXED VERSION
 router.get('/:postId/comments', verifyToken, async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId);
+    console.log('Fetching comments for post:', req.params.postId);
     
+    const post = await Post.findById(req.params.postId);
     if (!post) {
+      console.log('Post not found');
       return res.status(404).json({
         success: false,
         message: 'Post not found'
       });
     }
     
+    console.log('Getting comments...');
     const comments = await post.getComments();
+    console.log('Found comments:', comments.length);
     
+    // Fetch user data for all comments in one batch
+    const userIds = [...new Set(comments.map(c => c.userID))];
+    const usersMap = {};
+    
+    for (const userId of userIds) {
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          usersMap[userId] = {
+            userID: user.userID,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            profilePictureUrl: user.profilePictureUrl,
+            isOrganization: user.isOrganization,
+            organizationName: user.organizationName
+          };
+        }
+      } catch (err) {
+        console.error(`Failed to fetch user ${userId}:`, err);
+        usersMap[userId] = {
+          firstName: 'Unknown',
+          lastName: 'User',
+          profilePictureUrl: null
+        };
+      }
+    }
+    
+    // Attach user data to comments and serialize properly
+    const commentsWithUsers = comments.map(comment => {
+      // Handle Firestore Timestamp conversion
+      let createdAt = comment.createdAt;
+      if (createdAt && createdAt.toDate) {
+        createdAt = createdAt.toDate().toISOString();
+      } else if (createdAt instanceof Date) {
+        createdAt = createdAt.toISOString();
+      }
+      
+      return {
+        commentID: comment.commentID,
+        postID: comment.postID,
+        userID: comment.userID,
+        content: comment.content,
+        createdAt: createdAt,
+        user: usersMap[comment.userID] || {
+          firstName: 'Unknown',
+          lastName: 'User',
+          profilePictureUrl: null
+        }
+      };
+    });
+    
+    console.log('Returning comments with users');
     res.json({
       success: true,
-      comments
+      comments: commentsWithUsers
     });
   } catch (error) {
+    console.error('FULL ERROR:', error);
+    console.error('ERROR STACK:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error fetching comments',

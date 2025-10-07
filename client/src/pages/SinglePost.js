@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import PostDetails from '../components/posts/PostDetails/PostDetails';
+import CommentsSection from '../components/posts/CommentsSection/CommentsSection';
 // import PickupRequests from '../components/posts/PickupRequests/PickupRequests';
 import styles from './SinglePost.module.css';
 
@@ -14,6 +15,9 @@ const SinglePost = ({ onDataUpdate }) => {
   const [error, setError] = useState('');
   const [imageIndex, setImageIndex] = useState(0);
   const [showPickupModal, setShowPickupModal] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likingPost, setLikingPost] = useState(false);
 
   useEffect(() => {
     fetchPost();
@@ -21,9 +25,13 @@ const SinglePost = ({ onDataUpdate }) => {
   }, [postId]);
 
   useEffect(() => {
-    // Pass post data to RightSection through AppLayout
-    if (post && onDataUpdate) {
-      onDataUpdate({ post });
+    if (post) {
+      setLikeCount(post.likeCount || 0);
+      setIsLiked(post.isLiked || false);
+      
+      if (onDataUpdate) {
+        onDataUpdate({ post });
+      }
     }
   }, [post, onDataUpdate]);
 
@@ -69,6 +77,33 @@ const SinglePost = ({ onDataUpdate }) => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLikeToggle = async () => {
+    if (likingPost) return;
+    
+    setLikingPost(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `http://localhost:3001/api/posts/${postId}/like`,
+        {},
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        // Use the count from backend response
+        setIsLiked(response.data.liked);
+        setLikeCount(response.data.likeCount);
+      }
+    } catch (err) {
+      console.error('Error toggling like:', err);
+      alert(err.response?.data?.message || 'Failed to like post');
+    } finally {
+      setLikingPost(false);
     }
   };
 
@@ -295,6 +330,29 @@ const SinglePost = ({ onDataUpdate }) => {
           )}
         </div>
 
+        {/* Like and Comment Section for Forum Posts */}
+      {post.postType === 'Forum' && (
+        <div className={styles.interactionsSection}>
+          <div className={styles.likeSection}>
+            <button
+              className={`${styles.likeButton} ${isLiked ? styles.liked : ''}`}
+              onClick={handleLikeToggle}
+              disabled={likingPost}
+            >
+              <span className={styles.likeIcon}>{isLiked ? '❤️' : '🤍'}</span>
+              <span className={styles.likeText}>
+                {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Comments Section for Forum Posts */}
+      {post.postType === 'Forum' && (
+        <CommentsSection post={post} currentUser={user} />
+      )}
+
         {/* Pickup Requests Section (for Collectors view on Initiative posts)
         {post.postType === 'Initiative' && isCollector && isOwner && (
           <PickupRequests 
@@ -352,6 +410,7 @@ const SinglePost = ({ onDataUpdate }) => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
