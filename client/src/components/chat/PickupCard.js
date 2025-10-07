@@ -1,6 +1,7 @@
 // client/src/components/chat/PickupCard.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, Save, Edit, CheckCircle, X, MapPinned } from 'lucide-react';
 import styles from './PickupCard.module.css';
 
 const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
@@ -80,7 +81,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
       <div className={styles.pickupCard} style={{ borderLeftColor: getStatusColor(pickup.status) }}>
         <div className={styles.header}>
           <h4 className={styles.title}>
-            📝 Edit Pickup Schedule
+            <Edit size={18} />
+            <span>Edit Pickup Schedule</span>
           </h4>
           <span className={styles.statusBadge} style={{ backgroundColor: `${getStatusColor(pickup.status)}20`, color: getStatusColor(pickup.status) }}>
             {pickup.status}
@@ -157,7 +159,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
 
           <div className={styles.editActions}>
             <button className={styles.saveButton} onClick={handleEditSubmit}>
-              💾 Save Changes
+              <Save size={18} />
+              <span>Save Changes</span>
             </button>
             <button className={styles.cancelEditButton} onClick={handleCancelEdit}>
               Cancel
@@ -172,7 +175,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
     <div className={styles.pickupCard} style={{ borderLeftColor: getStatusColor(pickup.status) }}>
       <div className={styles.header}>
         <h4 className={styles.title}>
-          🚚 Pickup Schedule
+          <Truck size={15} />
+          <span> Pickup Schedule</span>
         </h4>
         <span 
           className={styles.statusBadge} 
@@ -184,28 +188,28 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
 
       <div className={styles.details}>
         <div className={styles.detailItem}>
-          <span className={styles.icon}>📅</span>
+          <Calendar className={styles.icon} size={18} />
           <span>{formatDate(pickup.pickupDate)}</span>
         </div>
         <div className={styles.detailItem}>
-          <span className={styles.icon}>🕐</span>
+          <Clock className={styles.icon} size={18} />
           <span>{pickup.pickupTime || 'Time not set'}</span>
         </div>
         <div className={styles.detailItem}>
-          <span className={styles.icon}>📍</span>
+          <MapPin className={styles.icon} size={18} />
           <span>{pickup.pickupLocation || 'Location not set'}</span>
         </div>
         <div className={styles.detailItem}>
-          <span className={styles.icon}>👤</span>
+          <User className={styles.icon} size={18} />
           <span>{pickup.contactPerson || 'Contact not set'}</span>
         </div>
         <div className={styles.detailItem}>
-          <span className={styles.icon}>📱</span>
+          <Phone className={styles.icon} size={18} />
           <span>{pickup.contactNumber || 'Number not set'}</span>
         </div>
         {pickup.specialInstructions && (
           <div className={styles.detailItem}>
-            <span className={styles.icon}>📝</span>
+            <FileText className={styles.icon} size={18} />
             <span>{pickup.specialInstructions}</span>
           </div>
         )}
@@ -218,7 +222,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
             className={styles.trackButton}
             onClick={() => navigate(`/tracking/${pickup.pickupID || pickup.id}`)}
           >
-            📍 Track Pickup
+            <MapPinned size={18} />
+            <span>Track Pickup</span>
           </button>
         )}
 
@@ -227,7 +232,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
             className={styles.editButton}
             onClick={() => setIsEditing(true)}
           >
-            ✏️ Edit
+            <Edit size={18} />
+            <span>Edit</span>
           </button>
         )}
 
@@ -237,13 +243,15 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
               className={styles.confirmButton}
               onClick={() => onUpdateStatus('Confirmed')}
             >
-              ✅ Confirm
+              <CheckCircle size={18} />
+              <span>Confirm</span>
             </button>
             <button
               className={styles.declineButton}
               onClick={() => onUpdateStatus('Cancelled')}
             >
-              ❌ Decline
+              <X size={18} />
+              <span>Decline</span>
             </button>
           </>
         )}
@@ -253,7 +261,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
             className={styles.startButton}
             onClick={() => onUpdateStatus('In-Progress')}
           >
-            🚚 Start Pickup
+            <Truck size={18} />
+            <span>Start Pickup</span>
           </button>
         )}
 
@@ -262,7 +271,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
             className={styles.completeButton}
             onClick={() => onUpdateStatus('Completed')}
           >
-            ✔️ Complete
+            <CheckCircle size={18} />
+            <span>Complete</span>
           </button>
         )}
 

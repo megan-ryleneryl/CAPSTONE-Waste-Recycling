@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { MessageCircle, RefreshCw } from 'lucide-react';
 import ConversationListItem from './ConversationListItem';
 import styles from './ConversationList.module.css';
 
@@ -180,7 +181,9 @@ const loadConversations = async () => {
           <h2>Messages</h2>
         </div>
         <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>💬</div>
+          <div className={styles.emptyIcon}>
+            <MessageCircle size={48} strokeWidth={1.5} />
+          </div>
           <p>No conversations yet</p>
           <span className={styles.emptyHint}>
             Start by messaging someone about their post
@@ -194,12 +197,12 @@ const loadConversations = async () => {
     <div className={styles.conversationList}>
       <div className={styles.header}>
         <h2>Messages</h2>
-        <button 
-          onClick={loadConversations} 
-          className={styles.refreshButton} 
+        <button
+          onClick={loadConversations}
+          className={styles.refreshButton}
           title="Refresh"
         >
-          🔄
+          <RefreshCw size={20} />
         </button>
       </div>
 

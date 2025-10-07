@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useNavigate } from 'react-router-dom';
+import { Calendar, Package, Edit3 } from 'lucide-react';
 import PickupScheduleForm from './PickupScheduleForm';
 import PickupCard from './PickupCard';
 import MessageList from './MessageList';
@@ -230,7 +231,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       const pickupRef = await addDoc(collection(db, 'pickups'), pickupData);
       
       // Send system message
-      await sendMessage(`📅 Pickup scheduled for ${formData.pickupDate} at ${formData.pickupTime}`);
+      await sendMessage(`[Pickup] Scheduled for ${formData.pickupDate} at ${formData.pickupTime}`);
       
       // Update active pickup
       setActivePickup({ id: pickupRef.id, ...pickupData });
@@ -255,7 +256,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       });
       
       setActivePickup(prev => ({ ...prev, status }));
-      await sendMessage(`📦 Pickup status updated to: ${status}`);
+      await sendMessage(`[Update] Pickup status updated to: ${status}`);
     } catch (error) {
       console.error('Error updating pickup status:', error);
       alert('Failed to update pickup status.');
@@ -281,7 +282,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
     }));
     
     // Send system message about the edit
-    await sendMessage(`📝 Pickup schedule has been edited and set back to Proposed status`);
+    await sendMessage(`[Edit] Pickup schedule has been edited and set back to Proposed status`);
     
     alert('Pickup schedule updated successfully. The giver needs to confirm the new details.');
   } catch (error) {
@@ -343,7 +344,7 @@ return (
             onClick={() => setShowScheduleForm(true)}
             className={styles.scheduleButton}
           >
-            <span className={styles.buttonIcon}>📅</span>
+            <Calendar className={styles.buttonIcon} size={20} />
             <span className={styles.buttonText}>Schedule Pickup</span>
           </button>
         )}

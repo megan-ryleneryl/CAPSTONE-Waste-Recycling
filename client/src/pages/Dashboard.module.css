@@ -44,6 +44,32 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
+.statCard.clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+.statCard.clickable:hover {
+  background: #c9c9c9;
+  transform: translateY(-7px);
+  box-shadow: 0 12px 35px rgba(59, 101, 53, 0.2);
+}
+
+.statCard.clickable::after {
+  content: '→';
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.2rem;
+  color: #3B6535;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.statCard.clickable:hover::after {
+  opacity: 1;
+}
+
 .statNumber {
   font-size: 2rem;
   font-weight: 700;

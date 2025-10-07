@@ -1,6 +1,7 @@
 // client/src/components/pickup/PickupsList.js
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Package } from 'lucide-react';
 import PickupStatusBadge from './PickupStatusBadge';
 import styles from './PickupsList.module.css';
 
@@ -24,7 +25,9 @@ const PickupsList = ({ pickups, currentUser, viewType = 'grid' }) => {
   if (pickups.length === 0) {
     return (
       <div className={styles.emptyState}>
-        <div className={styles.emptyIcon}>📦</div>
+        <div className={styles.emptyIcon}>
+          <Package size={48} strokeWidth={1.5} />
+        </div>
         <h3>No pickups found</h3>
         <p>Your pickup schedules will appear here</p>
       </div>

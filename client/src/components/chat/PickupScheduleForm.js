@@ -1,6 +1,7 @@
 // client/src/components/chat/PickupScheduleForm.js
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
+import { Calendar } from 'lucide-react';
 import styles from './PickupScheduleForm.module.css';
 
 const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
@@ -125,7 +126,10 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
 
         {giverPreferences && (giverPreferences.preferredDays || giverPreferences.preferredTimeSlots) && (
           <div className={styles.preferences}>
-            <p className={styles.prefTitle}>📅 Giver's Preferences:</p>
+            <p className={styles.prefTitle}>
+              <Calendar size={16} />
+              <span>Giver's Preferences:</span>
+            </p>
             {giverPreferences.preferredDays && (
               <p>Preferred days: {giverPreferences.preferredDays.join(', ')}</p>
             )}

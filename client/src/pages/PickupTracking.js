@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, onSnapshot, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
+import { CheckCircle, Truck, Package, Check, Trash2, Scale, MapPin, Calendar } from 'lucide-react';
 import PickupCompletionModal from '../components/pickup/PickupCompletionModal';
 import styles from './PickupTracking.module.css';
 
@@ -63,25 +64,25 @@ const PickupTracking = () => {
         label: 'Pickup Confirmed',
         status: 'completed',
         timestamp: pickup?.confirmedAt,
-        icon: '✅'
+        icon: 'check-circle'
       },
       {
         label: 'Collector on the Way',
         status: pickup?.status === 'In-Transit' || pickup?.status === 'Picking-Ongoing' || pickup?.status === 'Completed' ? 'completed' : 'pending',
         timestamp: pickup?.inTransitAt,
-        icon: '🚚'
+        icon: 'truck'
       },
       {
         label: 'Picking Ongoing',
         status: pickup?.status === 'Picking-Ongoing' || pickup?.status === 'Completed' ? 'completed' : 'pending',
         timestamp: pickup?.pickingStartedAt,
-        icon: '📦'
+        icon: 'package'
       },
       {
         label: 'Complete Pickup',
         status: pickup?.status === 'Completed' ? 'completed' : 'pending',
         timestamp: pickup?.completedAt,
-        icon: '✔️'
+        icon: 'check'
       }
     ];
     return steps;
@@ -111,7 +112,7 @@ const PickupTracking = () => {
         senderID: 'system',
         receiverID: isCollector ? pickup.giverID : pickup.collectorID,
         postID: pickup.postID,
-        message: `📍 Pickup status updated: ${getStatusLabel(newStatus)}`,
+        message: `[Status] Pickup status updated: ${getStatusLabel(newStatus)}`,
         messageType: 'system',
         sentAt: serverTimestamp(),
         createdAt: serverTimestamp()
@@ -157,7 +158,7 @@ const PickupTracking = () => {
         senderID: 'system',
         receiverID: isCollector ? pickup.giverID : pickup.collectorID,
         postID: pickup.postID,
-        message: '✅ Pickup completed successfully!',
+        message: '[Completed] Pickup completed successfully!',
         messageType: 'system',
         sentAt: serverTimestamp(),
         createdAt: serverTimestamp()
@@ -277,7 +278,8 @@ const PickupTracking = () => {
                   onClick={() => handleStatusUpdate('In-Transit')}
                   disabled={updating}
                 >
-                  🚚 Mark as On the Way
+                  <Truck size={20} />
+                  <span>Mark as On the Way</span>
                 </button>
               )}
               {pickup.status === 'In-Transit' && (
@@ -286,7 +288,8 @@ const PickupTracking = () => {
                   onClick={() => handleStatusUpdate('Picking-Ongoing')}
                   disabled={updating}
                 >
-                  📦 Start Picking Up
+                  <Package size={20} />
+                  <span>Start Picking Up</span>
                 </button>
               )}
             </div>
@@ -308,19 +311,19 @@ const PickupTracking = () => {
           <div className={styles.postDetails}>
             <h3>Post Details:</h3>
             <div className={styles.detailItem}>
-              <span className={styles.icon}>🗑️</span>
+              <Trash2 className={styles.icon} size={18} />
               <span>{pickup.postType || 'Plastic, Glass, Paper'}</span>
             </div>
             <div className={styles.detailItem}>
-              <span className={styles.icon}>⚖️</span>
+              <Scale className={styles.icon} size={18} />
               <span>{pickup.estimatedWeight || '15'} kg</span>
             </div>
             <div className={styles.detailItem}>
-              <span className={styles.icon}>📍</span>
+              <MapPin className={styles.icon} size={18} />
               <span>{pickup.pickupLocation || 'Quezon City'}</span>
             </div>
             <div className={styles.detailItem}>
-              <span className={styles.icon}>📅</span>
+              <Calendar className={styles.icon} size={18} />
               <span>Weekdays after 5 PM</span>
             </div>
           </div>
