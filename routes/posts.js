@@ -3,7 +3,7 @@
 
 const express = require('express');
 const router = express.Router();
-
+const { StorageService, upload, handleMulterError } = require('../services/storage-service');
 const Post = require('../models/Posts');
 const WastePost = require('../models/WastePost');
 const InitiativePost = require('../models/InitiativePost');
@@ -214,9 +214,28 @@ router.get('/:postId', verifyToken, async (req, res) => {
 
 // ============= CREATE OPERATIONS =============
 
-// Create new post (unified endpoint)
-router.post('/create', verifyToken, async (req, res) => {
+// Create new post (unified endpoint) - with better multer handling
+router.post('/create', verifyToken, (req, res, next) => {
+  // Use multer middleware conditionally
+  const uploadMiddleware = upload.array('images', 5);
+  uploadMiddleware(req, res, (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      return res.status(400).json({
+        success: false,
+        message: 'File upload error',
+        error: err.message
+      });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
+    // Log received data for debugging
+    console.log('Received body:', req.body);
+    console.log('Received files:', req.files ? req.files.length : 0);
+    console.log('Content-Type:', req.headers['content-type']);
+    
     const { postType, ...postData } = req.body;
     const user = req.user;
     
@@ -224,10 +243,35 @@ router.post('/create', verifyToken, async (req, res) => {
     
     // Validate required fields
     if (!postType || !postData.title || !postData.description) {
+      console.error('Missing fields:', { 
+        hasPostType: !!postType, 
+        hasTitle: !!postData.title, 
+        hasDescription: !!postData.description,
+        receivedBody: req.body
+      });
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: postType, title, and description are required'
       });
+    }
+    
+    // Handle image uploads
+    let imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          const result = await StorageService.saveFile(file, `posts/${postType.toLowerCase()}`);
+          imageUrls.push(result.url);
+        }
+        console.log('Images uploaded:', imageUrls);
+      } catch (uploadError) {
+        console.error('Image upload error:', uploadError);
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to upload images',
+          error: uploadError.message
+        });
+      }
     }
     
     let post;
@@ -235,7 +279,7 @@ router.post('/create', verifyToken, async (req, res) => {
       ...postData,
       userID: user.userID,
       userType: user.userType,
-        // Use the new boolean flag system instead of userType
+      images: imageUrls,
       isCollector: user.isCollector || false,
       isAdmin: user.isAdmin || false,
       isOrganization: user.isOrganization || false,
@@ -246,46 +290,29 @@ router.post('/create', verifyToken, async (req, res) => {
     // Create post based on type
     switch(postType) {
       case 'Waste':
-        // FIXED: Ensure materials is an array
+        // Ensure materials is an array
         if (typeof postData.materials === 'string') {
           basePostData.materials = postData.materials
             .split(',')
             .map(m => m.trim())
             .filter(m => m.length > 0);
-        } else if (Array.isArray(postData.materials)) {
-          basePostData.materials = postData.materials.filter(m => m && m.length > 0);
-        } else {
-          basePostData.materials = [];
         }
         
-        // Check if materials array has items
-        if (basePostData.materials.length === 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'At least one material must be specified for Waste posts'
-          });
-        }
-        
-        // FIXED: Ensure quantity is valid
-        basePostData.quantity = parseFloat(postData.quantity) || 1;
-        basePostData.price = parseFloat(postData.price) || 0;
+        basePostData.quantity = parseFloat(postData.quantity) || 0;
         basePostData.unit = postData.unit || 'kg';
+        basePostData.price = parseFloat(postData.price) || 0;
         basePostData.condition = postData.condition || 'Good';
         basePostData.pickupDate = postData.pickupDate || null;
         basePostData.pickupTime = postData.pickupTime || null;
-        basePostData.status = 'Active'; // Explicitly set status
-        
-        console.log('Creating WastePost with:', basePostData);
+        basePostData.status = 'Active';
         
         post = await WastePost.create(basePostData);
         
-        // Award points for creating waste post
         try {
-          const Point = require('../models/Point');
           await Point.create({
             userID: user.userID,
-            pointsEarned: 5,
-            transaction: 'Post_Creation',
+            pointType: 'Post_Creation',
+            points: 10,
             description: `Created waste post: ${post.title}`
           });
         } catch (pointError) {
@@ -294,7 +321,6 @@ router.post('/create', verifyToken, async (req, res) => {
         break;
         
       case 'Initiative':
-        // Only Collectors can create Initiative posts
         if (!user.isCollector) {
           return res.status(403).json({
             success: false,
@@ -312,7 +338,6 @@ router.post('/create', verifyToken, async (req, res) => {
         break;
         
       case 'Forum':
-        // Handle tags
         if (typeof postData.tags === 'string') {
           basePostData.tags = postData.tags
             .split(',')

@@ -53,6 +53,7 @@ class ForumPost extends Post {
       status: this.status,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      images: this.images || [],
       // Forum-specific fields at root level
       category: this.category,
       tags: this.tags,

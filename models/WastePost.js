@@ -70,6 +70,7 @@ class WastePost extends Post {
       status: this.status,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      images: this.images || [],
       // Waste-specific fields
       materials: this.materials,
       quantity: this.quantity,

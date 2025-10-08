@@ -14,6 +14,9 @@ class Post {
     this.status = data.status || 'Active'; // Active, Claimed, Completed, Cancelled, Inactive, Locked, Hidden
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
+
+    this.images = data.images || [];
+
     // For Initiative posts - support tracking
     this.supporters = data.supporters || [];
     this.supportCount = data.supportCount || 0;
@@ -95,6 +98,7 @@ toFirestore() {
     status: this.status,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
+    images: this.images || [],
     // Include claim tracking fields
     claimedBy: this.claimedBy,
     claimedAt: this.claimedAt,

@@ -39,6 +39,10 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 app.use(compression());
 
+// Body parsing middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
 // CORS configuration
 const corsOptions = {
   origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3001'],
@@ -46,10 +50,6 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-
-// Body parsing middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Logging
 if (process.env.NODE_ENV !== 'test') {

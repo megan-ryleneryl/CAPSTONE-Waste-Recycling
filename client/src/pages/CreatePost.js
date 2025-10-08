@@ -4,6 +4,7 @@ import axios from 'axios';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
+import { Image, X } from 'lucide-react';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -20,6 +21,8 @@ const CreatePost = () => {
   const [cities, setCities] = useState([]);
   const [barangays, setBarangays] = useState([]);
   const [loadingLocations, setLoadingLocations] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   
   
   // Form data state
@@ -288,6 +291,55 @@ const CreatePost = () => {
     return parts.join(', ');
   };
 
+// Handle image selection
+const handleImageChange = (e) => {
+  const files = Array.from(e.target.files);
+  
+  // Limit to 5 images
+  if (files.length + selectedImages.length > 5) {
+    setError('Maximum 5 images allowed');
+    return;
+  }
+  
+  // Validate file types and sizes
+  const validFiles = [];
+  const newPreviews = [];
+  
+  for (const file of files) {
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are allowed');
+      continue;
+    }
+    
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Each image must be less than 5MB');
+      continue;
+    }
+    
+    validFiles.push(file);
+    
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      newPreviews.push(reader.result);
+      if (newPreviews.length === validFiles.length) {
+        setImagePreviews(prev => [...prev, ...newPreviews]);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+  
+  setSelectedImages(prev => [...prev, ...validFiles]);
+};
+
+// Remove selected image
+const handleRemoveImage = (index) => {
+  setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  setImagePreviews(prev => prev.filter((_, i) => i !== index));
+};
+
   // Handle form submission
   const handleSubmit = async (e) => {
   e.preventDefault();
@@ -316,50 +368,44 @@ const CreatePost = () => {
     // Prepare location string
     const locationString = getLocationString();
     
-    // Prepare data based on post type
-    let postData = {
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      location: locationString,
-      postType
-    };
-    
+    // Prepare FormData for file upload
+    const formDataToSend = new FormData();
+        
+    // Add all form fields
+    formDataToSend.append('postType', postType);
+    formDataToSend.append('title', formData.title.trim());
+    formDataToSend.append('description', formData.description.trim());
+    formDataToSend.append('location', locationString);
+
     // Add type-specific fields
     if (postType === 'Waste') {
-      postData = {
-        ...postData,
-        materials: formData.materials.split(',').map(m => m.trim()).filter(m => m),
-        quantity: parseFloat(formData.quantity),
-        unit: formData.unit,
-        pickupDate: formData.pickupDate || null,
-        pickupTime: formData.pickupTime || null
-      };
+      formDataToSend.append('materials', formData.materials);
+      formDataToSend.append('quantity', parseFloat(formData.quantity));
+      formDataToSend.append('unit', formData.unit);
+      if (formData.pickupDate) formDataToSend.append('pickupDate', formData.pickupDate);
+      if (formData.pickupTime) formDataToSend.append('pickupTime', formData.pickupTime);
     } else if (postType === 'Initiative') {
-      postData = {
-        ...postData,
-        goal: formData.goal.trim(),
-        targetAmount: parseFloat(formData.targetAmount),
-        endDate: formData.endDate || null
-      };
+      formDataToSend.append('goal', formData.goal.trim());
+      formDataToSend.append('targetAmount', parseFloat(formData.targetAmount));
+      if (formData.endDate) formDataToSend.append('endDate', formData.endDate);
     } else if (postType === 'Forum') {
-      postData = {
-        ...postData,
-        category: formData.category,
-        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(t => t) : []
-      };
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('tags', formData.tags);
     }
-    
-    // Log the data being sent (remove in production)
-    console.log('Sending post data:', postData);
-    
-    // Make API call to the correct endpoint
+
+    // Add images
+    selectedImages.forEach((image) => {
+      formDataToSend.append('images', image);
+    });
+
+    // Make API call
     const response = await axios.post(
       'http://localhost:3001/api/posts/create',
-      postData,
+      formDataToSend,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'multipart/form-data'
         }
       }
     );
@@ -633,6 +679,54 @@ const CreatePost = () => {
                 <strong>Selected Location:</strong> {getLocationString()}
               </div>
             )}
+          </div>
+
+          {/* Image Upload Section - For All Post Types */}
+          <div className={styles.imageUploadSection}>
+            <h3 className={styles.sectionTitle}>
+              <Image size={20} /> Images (Optional)
+            </h3>
+            <p className={styles.sectionHint}>Add up to 5 images to your post</p>
+            
+            <div className={styles.formGroup}>
+              <label htmlFor="images" className={styles.label}>
+                Upload Images
+                <span className={styles.hint}>Max 5 images, 5MB each</span>
+              </label>
+              
+              <input
+                type="file"
+                id="images"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className={styles.fileInput}
+                disabled={selectedImages.length >= 5}
+              />
+              
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className={styles.imagePreviewContainer}>
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className={styles.imagePreview}>
+                      <img src={preview} alt={`Preview ${index + 1}`} />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className={styles.removeImageButton}
+                        aria-label="Remove image"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <p className={styles.imageCount}>
+                {selectedImages.length} / 5 images selected
+              </p>
+            </div>
           </div>
 
 

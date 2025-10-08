@@ -52,6 +52,7 @@ class InitiativePost extends Post {
       status: this.status,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      images: this.images || [],
       // Initiative-specific fields
       goal: this.goal,
       targetAmount: this.targetAmount,
