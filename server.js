@@ -36,7 +36,12 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Security middleware
-app.use(helmet());
+// Configure helmet with relaxed policies for development
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false, // Important for images!
+  contentSecurityPolicy: false, // Disable for development (or configure properly below)
+}));
 app.use(compression());
 
 // Body parsing middleware
@@ -68,14 +73,26 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Static file serving
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+// Static file serving with CORS - CRITICAL: Headers MUST come BEFORE static middleware!
 app.use('/uploads', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-  res.header('Access-Control-Allow-Methods', 'GET');
+  // Set CORS headers for cross-origin requests
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
   next();
-});
+}, express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res, path) => {
+    // Additional headers for each static file
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
