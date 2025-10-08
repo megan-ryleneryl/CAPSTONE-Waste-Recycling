@@ -303,7 +303,14 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
   }
 
   const isCollector = currentUser?.userType === 'Collector' || currentUser?.isCollector;
-  const canSchedulePickup = isCollector && !activePickup && post;
+  // Only show schedule pickup button if:
+  // 1. User is a collector
+  // 2. No active pickup exists
+  // 3. Post exists and is not a Forum post
+  // 4. Current user is the one who claimed the post (claimedBy matches current user)
+  const canSchedulePickup = isCollector && !activePickup && post &&
+    post.postType !== 'Forum' &&
+    post.claimedBy === currentUser?.userID;
 
 return (
   <div className={styles.chatWindow}>

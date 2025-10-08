@@ -2,7 +2,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/Users');
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   try {
     console.log('🔐 Auth Middleware - All Headers:', JSON.stringify(req.headers, null, 2));
     
@@ -43,12 +43,42 @@ const verifyToken = (req, res, next) => {
     }
 
     console.log('🔓 Attempting to verify token...');
-    
+
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('✅ Token verified successfully:', decoded);
-    
-    req.user = decoded;
+
+    // Fetch full user data from database to get isCollector and isAdmin
+    const user = await User.findById(decoded.userID);
+
+    if (!user) {
+      console.log('❌ User not found in database:', decoded.userID);
+      return res.status(401).json({
+        success: false,
+        message: 'User not found. Please login again.'
+      });
+    }
+
+    // Attach full user data to request
+    req.user = {
+      userID: user.userID,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      status: user.status,
+      isCollector: user.isCollector || false,
+      isAdmin: user.isAdmin || false,
+      isOrganization: user.isOrganization || false,
+      userType: user.userType
+    };
+
+    console.log('👤 User authenticated:', {
+      userID: req.user.userID,
+      email: req.user.email,
+      isCollector: req.user.isCollector,
+      isAdmin: req.user.isAdmin
+    });
+
     next();
   } catch (error) {
     console.error('❌ Token verification error:', error.message);
