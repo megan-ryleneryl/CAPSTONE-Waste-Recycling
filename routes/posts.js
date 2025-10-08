@@ -889,6 +889,9 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
       postType: post.postType || 'Waste',
       messageType: 'claim',
       message: `Hi! I'm interested in collecting your ${post.title}. Let's coordinate the pickup details.`,
+      isRead: false,
+      isDeleted: false,
+      sentAt: new Date(),
       metadata: {
         action: 'post_claimed',
         postTitle: post.title,
@@ -907,6 +910,9 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
       postType: post.postType || 'Waste',
       messageType: 'system',
       message: `[Guide] To complete the pickup process, please propose a pickup schedule by clicking the 'Schedule Pickup' button above.`,
+      isRead: false,
+      isDeleted: false,
+      sentAt: new Date(),
       metadata: {
         action: 'guidance',
         guidanceFor: 'collector',

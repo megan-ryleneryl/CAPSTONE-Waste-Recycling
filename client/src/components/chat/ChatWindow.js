@@ -194,8 +194,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       metadata: metadata,
       isRead: false,
       isDeleted: false,
-      sentAt: serverTimestamp(),
-      createdAt: serverTimestamp()
+      sentAt: serverTimestamp()
     };
 
     await addDoc(collection(db, 'messages'), newMessage);
