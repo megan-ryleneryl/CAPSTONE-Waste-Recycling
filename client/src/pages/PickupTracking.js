@@ -140,17 +140,37 @@ const PickupTracking = () => {
       // Send notification message with current user as sender
       const messagesRef = collection(db, 'messages');
       const receiverID = isCollector ? pickup.giverID : pickup.collectorID;
+      const actorName = `${currentUser.firstName} ${currentUser.lastName}`;
+      const otherUserName = isCollector ? pickup.giverName : pickup.collectorName;
+      const actorRole = isCollector ? 'Collector' : 'Giver';
+      const otherRole = isCollector ? 'Giver' : 'Collector';
+
+      // Generate user-friendly message with actor and guidance
+      let message = '';
+      if (newStatus === 'Confirmed') {
+        message = `[Status] ${actorName} [${actorRole}] confirmed the pickup schedule. ${otherUserName} [${otherRole}] can now proceed with the pickup.`;
+      } else if (newStatus === 'In-Transit') {
+        message = `[Status] ${actorName} [${actorRole}] is on the way to the pickup location. ${otherUserName} [${otherRole}], please be ready for the pickup.`;
+      } else if (newStatus === 'ArrivedAtPickup') {
+        message = `[Status] ${actorName} [${actorRole}] has arrived at the pickup location. Waiting for ${otherUserName} [${otherRole}] to complete the pickup.`;
+      } else if (newStatus === 'Completed') {
+        message = `[Status] ${actorName} [${actorRole}] marked the pickup as completed. Thank you for completing this transaction!`;
+      } else if (newStatus === 'Cancelled') {
+        message = `[Status] ${actorName} [${actorRole}] cancelled the pickup. This pickup has been terminated.`;
+      } else {
+        message = `[Status] ${getStatusLabel(newStatus)}`;
+      }
 
       const statusMessage = {
         messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         senderID: currentUser.userID,
-        senderName: `${currentUser.firstName} ${currentUser.lastName}`,
+        senderName: actorName,
         receiverID: receiverID,
-        receiverName: isCollector ? pickup.giverName : pickup.collectorName,
+        receiverName: otherUserName,
         postID: pickup.postID,
         postTitle: pickup.postTitle || postData?.title || 'Pickup',
         postType: pickup.postType || postData?.postType || 'Waste',
-        message: `[Status] ${getStatusLabel(newStatus)}`,
+        message: message,
         messageType: 'system',
         metadata: {
           pickupID: pickup.id,
@@ -200,16 +220,20 @@ const PickupTracking = () => {
       // Send completion message with current user as sender
       const messagesRef = collection(db, 'messages');
       const receiverID = isCollector ? pickup.giverID : pickup.collectorID;
+      const actorName = `${currentUser.firstName} ${currentUser.lastName}`;
+      const otherUserName = isCollector ? pickup.giverName : pickup.collectorName;
+      const actorRole = isCollector ? 'Collector' : 'Giver';
+
       await addDoc(messagesRef, {
         messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         senderID: currentUser.userID,
-        senderName: `${currentUser.firstName} ${currentUser.lastName}`,
+        senderName: actorName,
         receiverID: receiverID,
-        receiverName: isCollector ? pickup.giverName : pickup.collectorName,
+        receiverName: otherUserName,
         postID: pickup.postID,
         postTitle: pickup.postTitle || postData?.title || 'Pickup',
         postType: pickup.postType || postData?.postType || 'Waste',
-        message: '[Completed] Pickup completed successfully!',
+        message: `[Completed] ${actorName} [${actorRole}] completed the pickup successfully. Thank you for completing this transaction!`,
         messageType: 'system',
         metadata: {
           pickupID: pickup.id,

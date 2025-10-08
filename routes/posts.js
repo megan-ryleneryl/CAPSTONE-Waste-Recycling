@@ -862,20 +862,31 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
     
     await Post.update(postId, updateData);
     
-    // Get collector's name for the message
+    // Get collector's and giver's names for the messages
     const collector = await User.findById(collectorID);
-    
+
     if (!collector) {
       throw new Error(`Collector with ID ${collectorID} not found`);
     }
-    
+
+    const giver = await User.findById(post.userID);
+
+    if (!giver) {
+      throw new Error(`Giver with ID ${post.userID} not found`);
+    }
+
     const collectorName = `${collector.firstName} ${collector.lastName}`;
-    
+    const giverName = `${giver.firstName} ${giver.lastName}`;
+
     // Create initial message for coordination
     const newMessage = await Message.create({
       senderID: collectorID,
+      senderName: collectorName,
       receiverID: post.userID,
+      receiverName: giverName,
       postID: postId,
+      postTitle: post.title,
+      postType: post.postType || 'Waste',
       messageType: 'claim',
       message: `Hi! I'm interested in collecting your ${post.title}. Let's coordinate the pickup details.`,
       metadata: {
@@ -884,7 +895,25 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
         collectorName: collectorName
       }
     });
-    
+
+    // Send guidance message to collector to propose pickup schedule
+    await Message.create({
+      senderID: collectorID,
+      senderName: collectorName,
+      receiverID: post.userID,
+      receiverName: giverName,
+      postID: postId,
+      postTitle: post.title,
+      postType: post.postType || 'Waste',
+      messageType: 'system',
+      message: `[Guide] To complete the pickup process, please propose a pickup schedule by clicking the 'Schedule Pickup' button above.`,
+      metadata: {
+        action: 'guidance',
+        guidanceFor: 'collector',
+        nextStep: 'schedule_pickup'
+      }
+    });
+
     // Send notification to post owner
     await Notification.create({
       userID: post.userID,

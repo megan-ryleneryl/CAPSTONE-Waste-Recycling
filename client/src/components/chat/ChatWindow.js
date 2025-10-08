@@ -230,8 +230,13 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
       const pickupRef = await addDoc(collection(db, 'pickups'), pickupData);
 
-      // Send system message
-      await sendMessage(`[Pickup] Pickup Scheduled by Collector for ${formData.pickupDate} at ${formData.pickupTime}`, 'system');
+      // Send system message with actor and guidance
+      const collectorName = `${currentUser.firstName} ${currentUser.lastName}`;
+      const giverName = otherUser.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim();
+      await sendMessage(
+        `[Pickup] ${collectorName} [Collector] proposed a pickup schedule for ${formData.pickupDate} at ${formData.pickupTime}. Waiting for ${giverName} [Giver] to confirm the pickup schedule.`,
+        'system'
+      );
       
       // Update active pickup
       setActivePickup({ id: pickupRef.id, ...pickupData });
@@ -274,17 +279,30 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
       setActivePickup(prev => ({ ...prev, status }));
 
-      // Map status to friendly label
-      const statusLabels = {
-        'Proposed': 'Pickup Proposed by Collector',
-        'Confirmed': 'Pickup Confirmed by Giver',
-        'In-Transit': 'Collector on the Way',
-        'ArrivedAtPickup': 'Arrived at Pickup',
-        'Completed': 'Pickup Completed',
-        'Cancelled': 'Pickup Cancelled'
-      };
+      // Generate user-friendly status message with actor and guidance
+      const actorName = `${currentUser.firstName} ${currentUser.lastName}`;
+      const otherUserName = otherUserData?.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim();
+      const isCollector = currentUser.userID === activePickup.collectorID;
+      const actorRole = isCollector ? 'Collector' : 'Giver';
+      const otherRole = isCollector ? 'Giver' : 'Collector';
 
-      await sendMessage(`[Status] ${statusLabels[status] || status}`, 'system');
+      let statusMessage = '';
+
+      if (status === 'Confirmed') {
+        statusMessage = `[Status] ${actorName} [${actorRole}] confirmed the pickup schedule. ${otherUserName} [${otherRole}] can now proceed with the pickup.`;
+      } else if (status === 'In-Transit') {
+        statusMessage = `[Status] ${actorName} [${actorRole}] is on the way to the pickup location. ${otherUserName} [${otherRole}], please be ready for the pickup.`;
+      } else if (status === 'ArrivedAtPickup') {
+        statusMessage = `[Status] ${actorName} [${actorRole}] has arrived at the pickup location. Waiting for ${otherUserName} [${otherRole}] to complete the pickup.`;
+      } else if (status === 'Completed') {
+        statusMessage = `[Status] ${actorName} [${actorRole}] marked the pickup as completed. Thank you for completing this transaction!`;
+      } else if (status === 'Cancelled') {
+        statusMessage = `[Status] ${actorName} [${actorRole}] cancelled the pickup. This pickup has been terminated.`;
+      } else {
+        statusMessage = `[Status] Pickup status updated to: ${status}`;
+      }
+
+      await sendMessage(statusMessage, 'system');
     } catch (error) {
       console.error('Error updating pickup status:', error);
       alert('Failed to update pickup status.');
@@ -309,8 +327,13 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       status: 'Proposed'
     }));
     
-    // Send system message about the edit
-    await sendMessage(`[Edit] Pickup Schedule Edited by Collector - Status Reset to Proposed`, 'system');
+    // Send system message about the edit with actor and guidance
+    const collectorName = `${currentUser.firstName} ${currentUser.lastName}`;
+    const giverName = otherUserData?.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim();
+    await sendMessage(
+      `[Edit] ${collectorName} [Collector] edited the pickup schedule. Status has been reset to Proposed. Waiting for ${giverName} [Giver] to confirm the new schedule.`,
+      'system'
+    );
     
     alert('Pickup schedule updated successfully. The giver needs to confirm the new details.');
   } catch (error) {
