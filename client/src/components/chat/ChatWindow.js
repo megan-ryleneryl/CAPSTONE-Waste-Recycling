@@ -144,7 +144,7 @@ const loadChatData = async () => {
             (data.giverID === otherUser.userID && data.collectorID === currentUser.userID) ||
             (data.collectorID === otherUser.userID && data.giverID === currentUser.userID);
           
-          const isActive = ['Proposed', 'Confirmed', 'In-Progress'].includes(data.status);
+          const isActive = ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(data.status);
           
           return isRelevant && isActive;
         });
@@ -229,9 +229,9 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       };
 
       const pickupRef = await addDoc(collection(db, 'pickups'), pickupData);
-      
+
       // Send system message
-      await sendMessage(`[Pickup] Scheduled for ${formData.pickupDate} at ${formData.pickupTime}`);
+      await sendMessage(`[Pickup] Pickup Scheduled by Collector for ${formData.pickupDate} at ${formData.pickupTime}`, 'system');
       
       // Update active pickup
       setActivePickup({ id: pickupRef.id, ...pickupData });
@@ -246,17 +246,45 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
   const updatePickupStatus = async (status) => {
     if (!activePickup?.id) return;
-    
+
     try {
       const pickupRef = doc(db, 'pickups', activePickup.id);
-      await updateDoc(pickupRef, {
+
+      // Map status to the correct timestamp field name
+      const timestampFieldMap = {
+        'Proposed': 'proposedAt',
+        'Confirmed': 'confirmedAt',
+        'In-Transit': 'inTransitAt',
+        'ArrivedAtPickup': 'arrivedAt',
+        'Completed': 'completedAt',
+        'Cancelled': 'cancelledAt'
+      };
+
+      const updateData = {
         status,
-        updatedAt: serverTimestamp(),
-        [`${status.toLowerCase()}At`]: serverTimestamp()
-      });
-      
+        updatedAt: serverTimestamp()
+      };
+
+      // Add timestamp field if applicable
+      if (timestampFieldMap[status]) {
+        updateData[timestampFieldMap[status]] = serverTimestamp();
+      }
+
+      await updateDoc(pickupRef, updateData);
+
       setActivePickup(prev => ({ ...prev, status }));
-      await sendMessage(`[Update] Pickup status updated to: ${status}`);
+
+      // Map status to friendly label
+      const statusLabels = {
+        'Proposed': 'Pickup Proposed by Collector',
+        'Confirmed': 'Pickup Confirmed by Giver',
+        'In-Transit': 'Collector on the Way',
+        'ArrivedAtPickup': 'Arrived at Pickup',
+        'Completed': 'Pickup Completed',
+        'Cancelled': 'Pickup Cancelled'
+      };
+
+      await sendMessage(`[Status] ${statusLabels[status] || status}`, 'system');
     } catch (error) {
       console.error('Error updating pickup status:', error);
       alert('Failed to update pickup status.');
@@ -282,7 +310,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
     }));
     
     // Send system message about the edit
-    await sendMessage(`[Edit] Pickup schedule has been edited and set back to Proposed status`);
+    await sendMessage(`[Edit] Pickup Schedule Edited by Collector - Status Reset to Proposed`, 'system');
     
     alert('Pickup schedule updated successfully. The giver needs to confirm the new details.');
   } catch (error) {

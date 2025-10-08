@@ -65,27 +65,78 @@
 
 .pickupInfo {
   margin-bottom: 2rem;
-  padding-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.infoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid #e5e7eb;
 }
 
 .pickupTitle {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: #1f2937;
-  margin: 0 0 0.5rem 0;
-}
-
-.location {
-  font-size: 1.125rem;
-  color: #6b7280;
-  margin: 0.5rem 0;
+  margin: 0;
 }
 
 .pickupId {
-  font-size: 1rem;
+  font-size: 0.875rem;
   color: #9ca3af;
   font-family: 'Courier New', monospace;
+  background: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.infoItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.infoIcon {
+  color: #3B6535;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.infoItem > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.infoLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.infoValue {
+  font-size: 0.95rem;
+  color: #1f2937;
+  font-weight: 600;
 }
 
 /* Timeline Styles */
@@ -108,12 +159,29 @@
 .timelineLeft {
   text-align: right;
   padding-top: 0.125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 100px;
+}
+
+.timelineDate {
+  font-size: 0.8rem;
+  color: #4b5563;
+  font-weight: 600;
 }
 
 .timelineTime {
   font-size: 0.75rem;
   color: #9ca3af;
   font-weight: 500;
+}
+
+.timelinePending {
+  font-size: 0.75rem;
+  color: #d1d5db;
+  font-weight: 500;
+  font-style: italic;
 }
 
 .timelineCenter {
@@ -219,6 +287,24 @@
   cursor: not-allowed;
 }
 
+.completeSection {
+  width: 100%;
+  padding: 1.5rem;
+  background: #f0fdf4;
+  border-radius: 12px;
+  border: 2px solid #10b981;
+}
+
+.completeInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #065f46;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
 .completeButton {
   width: 100%;
   padding: 1rem;
@@ -230,7 +316,10 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .completeButton:hover:not(:disabled) {
@@ -244,6 +333,22 @@
   cursor: not-allowed;
 }
 
+.waitingMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #9ca3af;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.waitingMessage p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
 /* Sidebar */
 .sidebar {
   display: flex;
@@ -251,65 +356,134 @@
   gap: 1.5rem;
 }
 
-.postDetails {
+.sidebarCard {
   background: white;
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
 }
 
-.postDetails h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 1rem 0;
-}
-
-.detailItem {
+.sidebarTitle {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f3f4f6;
-  color: #4b5563;
-  font-size: 0.9375rem;
-}
-
-.detailItem:last-child {
-  border-bottom: none;
-}
-
-.icon {
-  font-size: 1.125rem;
-  width: 24px;
-  text-align: center;
-}
-
-.contactInfo {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.contactInfo h4 {
+  gap: 0.5rem;
   font-size: 1rem;
   font-weight: 600;
   color: #1f2937;
   margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
 }
 
-.contactName {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: #4b5563;
-  margin: 0.5rem 0;
+.materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.contactNumber {
+.materialTag {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  background: #DCFCE7;
+  color: #166534;
+  border-radius: 20px;
   font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.detailIcon {
+  color: #3B6535;
+}
+
+.detailLabel {
   color: #6b7280;
-  margin: 0.25rem 0;
+  font-weight: 500;
+}
+
+.detailValue {
+  color: #1f2937;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.contactDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contactItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.contactIcon {
+  color: #3B6535;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.contactItem > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.contactLabel {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.contactValue {
+  font-size: 0.95rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.instructions {
+  font-size: 0.9rem;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.completionDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notes {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.notes p {
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0.5rem 0 0 0;
 }
 
 /* Loading State */
@@ -400,8 +574,20 @@
   }
   
   .timelineItem {
-    grid-template-columns: 60px auto 1fr;
-    gap: 1rem;
+    grid-template-columns: 100px auto 1fr;
+    gap: 0.75rem;
+  }
+
+  .timelineLeft {
+    min-width: 90px;
+  }
+
+  .timelineDate {
+    font-size: 0.7rem;
+  }
+
+  .timelineTime {
+    font-size: 0.65rem;
   }
   
   .sidebar {

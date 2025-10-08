@@ -15,11 +15,12 @@ const PickupManagement = () => {
   useEffect(() => {
     if (currentUser) {
       loadPickups();
-      
+
       // Subscribe to real-time updates
+      // Always fetch 'both' to get pickups where user is either giver or collector
       const unsubscribe = pickupService.subscribeToUserPickups(
         currentUser.userID,
-        currentUser.userType === 'Collector' ? 'collector' : 'both',
+        'both',
         (updatedPickups) => {
           setPickups(updatedPickups);
           setLoading(false);
@@ -33,9 +34,10 @@ const PickupManagement = () => {
   const loadPickups = async () => {
     setLoading(true);
     try {
+      // Always fetch 'both' to get pickups where user is either giver or collector
       const userPickups = await pickupService.getUserPickups(
         currentUser.userID,
-        currentUser.userType === 'Collector' ? 'collector' : 'both'
+        'both'
       );
       setPickups(userPickups);
     } catch (error) {
@@ -47,15 +49,18 @@ const PickupManagement = () => {
 
   const filteredPickups = pickups.filter(pickup => {
     if (filter === 'all') return true;
-    return pickup.status.toLowerCase() === filter.toLowerCase();
+    // Match the exact status value
+    return pickup.status === filter;
   });
 
   const statusCounts = {
     all: pickups.length,
-    proposed: pickups.filter(p => p.status === 'Proposed').length,
-    confirmed: pickups.filter(p => p.status === 'Confirmed').length,
-    'in-progress': pickups.filter(p => p.status === 'In-Progress').length,
-    completed: pickups.filter(p => p.status === 'Completed').length,
+    Proposed: pickups.filter(p => p.status === 'Proposed').length,
+    Confirmed: pickups.filter(p => p.status === 'Confirmed').length,
+    'In-Transit': pickups.filter(p => p.status === 'In-Transit').length,
+    ArrivedAtPickup: pickups.filter(p => p.status === 'ArrivedAtPickup').length,
+    Completed: pickups.filter(p => p.status === 'Completed').length,
+    Cancelled: pickups.filter(p => p.status === 'Cancelled').length,
   };
 
   if (loading) {
@@ -88,16 +93,29 @@ const PickupManagement = () => {
       </div>
 
       <div className={styles.filters}>
-        {Object.entries(statusCounts).map(([status, count]) => (
-          <button
-            key={status}
-            className={`${styles.filterBtn} ${filter === status ? styles.active : ''}`}
-            onClick={() => setFilter(status)}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
-            <span className={styles.count}>{count}</span>
-          </button>
-        ))}
+        {Object.entries(statusCounts).map(([status, count]) => {
+          // Create friendly labels for each status
+          const statusLabels = {
+            'all': 'All',
+            'Proposed': 'Proposed',
+            'Confirmed': 'Confirmed',
+            'In-Transit': 'In Transit',
+            'ArrivedAtPickup': 'Arrived',
+            'Completed': 'Completed',
+            'Cancelled': 'Cancelled'
+          };
+
+          return (
+            <button
+              key={status}
+              className={`${styles.filterBtn} ${filter === status ? styles.active : ''}`}
+              onClick={() => setFilter(status)}
+            >
+              {statusLabels[status] || status}
+              <span className={styles.count}>{count}</span>
+            </button>
+          );
+        })}
       </div>
 
       <PickupsList 

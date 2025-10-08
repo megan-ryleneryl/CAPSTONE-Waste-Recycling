@@ -20,7 +20,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
     const colors = {
       'Proposed': '#f59e0b',
       'Confirmed': '#10b981',
-      'In-Progress': '#3b82f6',
+      'In-Transit': '#3b82f6',
+      'ArrivedAtPickup': '#8b5cf6',
       'Completed': '#6b7280',
       'Cancelled': '#ef4444'
     };
@@ -73,7 +74,7 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
   const canEdit = pickup.status === 'Proposed' && isCollector && pickup.proposedBy === currentUser?.userID;
   const canConfirm = pickup.status === 'Proposed' && isGiver;
   const canCancel = pickup.status !== 'Completed' && pickup.status !== 'Cancelled';
-  const canComplete = pickup.status === 'In-Progress' && isGiver;
+  const canComplete = (pickup.status === 'ArrivedAtPickup' || pickup.status === 'In-Transit') && isGiver;
   const canStartPickup = pickup.status === 'Confirmed' && isCollector;
 
   if (isEditing) {
@@ -217,7 +218,7 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
 
       <div className={styles.actions}>
         {/* Track Pickup button - always show for confirmed/in-progress/completed pickups */}
-        {['Confirmed', 'In-Transit', 'Picking-Ongoing', 'In-Progress', 'Completed'].includes(pickup.status) && (
+        {['Confirmed', 'In-Transit', 'ArrivedAtPickup', 'Completed'].includes(pickup.status) && (
           <button
             className={styles.trackButton}
             onClick={() => navigate(`/tracking/${pickup.pickupID || pickup.id}`)}
@@ -259,10 +260,10 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
         {canStartPickup && (
           <button
             className={styles.startButton}
-            onClick={() => onUpdateStatus('In-Progress')}
+            onClick={() => onUpdateStatus('In-Transit')}
           >
             <Truck size={18} />
-            <span>Start Pickup</span>
+            <span>On the Way</span>
           </button>
         )}
 

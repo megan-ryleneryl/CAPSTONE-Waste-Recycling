@@ -28,9 +28,14 @@
   color: #065f46;
 }
 
-.inprogress {
+.intransit {
   background: #dbeafe;
   color: #1e40af;
+}
+
+.arrivedatpickup {
+  background: #e9d5ff;
+  color: #6b21a8;
 }
 
 .completed {

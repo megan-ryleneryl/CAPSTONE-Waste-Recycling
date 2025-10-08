@@ -41,8 +41,8 @@ class Pickup {
     };
     
     // Status management
-    this.status = data.status || 'Proposed'; 
-    // Status flow: Proposed → Confirmed → In-Progress → Completed (or Cancelled)
+    this.status = data.status || 'Proposed';
+    // Status flow: Proposed → Confirmed → In-Transit → ArrivedAtPickup → Completed (or Cancelled at any point)
     
     // Completion details
     this.actualWaste = {
@@ -67,7 +67,8 @@ class Pickup {
     // Timestamps
     this.createdAt = data.createdAt || new Date();
     this.confirmedAt = data.confirmedAt || null;
-    this.startedAt = data.startedAt || null;
+    this.inTransitAt = data.inTransitAt || null;
+    this.arrivedAt = data.arrivedAt || null;
     this.completedAt = data.completedAt || null;
     this.cancelledAt = data.cancelledAt || null;
     this.updatedAt = data.updatedAt || new Date();
@@ -99,7 +100,7 @@ class Pickup {
     }
     
     // Validate status
-    const validStatuses = ['Proposed', 'Confirmed', 'In-Progress', 'Completed', 'Cancelled'];
+    const validStatuses = ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup', 'Completed', 'Cancelled'];
     if (!validStatuses.includes(this.status)) {
       errors.push('Invalid pickup status');
     }
@@ -142,7 +143,8 @@ class Pickup {
       cancellationBy: this.cancellationBy,
       createdAt: this.createdAt,
       confirmedAt: this.confirmedAt,
-      startedAt: this.startedAt,
+      inTransitAt: this.inTransitAt,
+      arrivedAt: this.arrivedAt,
       completedAt: this.completedAt,
       cancelledAt: this.cancelledAt,
       updatedAt: this.updatedAt
@@ -162,14 +164,14 @@ class Pickup {
     const pickupRef = doc(db, 'pickups', pickup.pickupID);
     await setDoc(pickupRef, pickup.toFirestore());
     
-    // Create a system message in the chat
+    // Create a system message in the chat (sent by the collector)
     const Message = require('./Message');
     await Message.create({
-      senderID: 'system',
+      senderID: pickup.collectorID,
       receiverID: pickup.giverID,
       postID: pickup.postID,
       messageType: 'pickup_request',
-      message: 'A pickup has been scheduled for your post',
+      message: `[Pickup] Pickup Scheduled by Collector for ${pickup.pickupDate} at ${pickup.pickupTime}`,
       metadata: {
         pickupID: pickup.pickupID,
         scheduledDate: pickup.pickupDate,
@@ -283,40 +285,58 @@ class Pickup {
       confirmedAt: new Date()
     });
     
-    // Send confirmation message
+    // Send confirmation message (sent by the giver)
     const Message = require('./Message');
     await Message.create({
-      senderID: 'system',
+      senderID: this.giverID,
       receiverID: this.collectorID,
       postID: this.postID,
       messageType: 'system',
-      message: `Pickup confirmed for ${this.pickupDate} at ${this.pickupTime}`,
+      message: `[Status] Pickup Confirmed by Giver`,
       metadata: {
         pickupID: this.pickupID,
-        action: 'pickup_confirmed'
+        action: 'pickup_confirmed',
+        pickupDate: this.pickupDate,
+        pickupTime: this.pickupTime
       }
     });
   }
 
-  // Start pickup (when collector arrives)
-  async startPickup(collectorID) {
+  // Start transit (when collector is on the way)
+  async startTransit(collectorID) {
     if (this.status !== 'Confirmed') {
       throw new Error('Only confirmed pickups can be started');
     }
-    
+
     if (collectorID !== this.collectorID) {
-      throw new Error('Only the assigned collector can start the pickup');
+      throw new Error('Only the assigned collector can start transit');
     }
-    
+
     await this.update({
-      status: 'In-Progress',
-      startedAt: new Date()
+      status: 'In-Transit',
+      inTransitAt: new Date()
+    });
+  }
+
+  // Mark as arrived at pickup location
+  async arriveAtPickup(collectorID) {
+    if (this.status !== 'In-Transit') {
+      throw new Error('Can only arrive after being in transit');
+    }
+
+    if (collectorID !== this.collectorID) {
+      throw new Error('Only the assigned collector can mark arrival');
+    }
+
+    await this.update({
+      status: 'ArrivedAtPickup',
+      arrivedAt: new Date()
     });
   }
 
   // Complete pickup (by Giver)
   async complete(completionData) {
-    if (this.status !== 'In-Progress' && this.status !== 'Confirmed') {
+    if (!['ArrivedAtPickup', 'In-Transit', 'Confirmed'].includes(this.status)) {
       throw new Error('Invalid pickup status for completion');
     }
     
@@ -357,19 +377,22 @@ class Pickup {
       cancellationBy: cancellerID
     });
     
-    // Notify the other party
+    // Notify the other party (sent by the canceller)
     const Message = require('./Message');
     const otherUserID = cancellerID === this.giverID ? this.collectorID : this.giverID;
-    
+    const cancellerRole = cancellerID === this.giverID ? 'Giver' : 'Collector';
+
     await Message.create({
-      senderID: 'system',
+      senderID: cancellerID,
       receiverID: otherUserID,
       postID: this.postID,
       messageType: 'system',
-      message: `Pickup has been cancelled. Reason: ${reason || 'No reason provided'}`,
+      message: `[Status] Pickup Cancelled by ${cancellerRole}${reason ? ` - Reason: ${reason}` : ''}`,
       metadata: {
         pickupID: this.pickupID,
-        action: 'pickup_cancelled'
+        action: 'pickup_cancelled',
+        cancelledBy: cancellerRole,
+        reason: reason
       }
     });
     
@@ -408,13 +431,13 @@ class Pickup {
     const q = query(
       pickupsRef,
       where('postID', '==', postID),
-      where('status', 'in', ['Proposed', 'Confirmed', 'In-Progress']),
+      where('status', 'in', ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup']),
       limit(1)
     );
-    
+
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
-    
+
     return new Pickup(snapshot.docs[0].data());
   }
 }

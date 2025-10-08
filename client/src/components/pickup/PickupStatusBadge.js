@@ -12,7 +12,8 @@ const PickupStatusBadge = ({ status }) => {
     const iconMap = {
       'Proposed': FileText,
       'Confirmed': CheckCircle,
-      'In-Progress': Truck,
+      'In-Transit': Truck,
+      'ArrivedAtPickup': Package,
       'Completed': Check,
       'Cancelled': X
     };
