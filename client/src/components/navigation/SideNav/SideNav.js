@@ -36,7 +36,7 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
   };
 
   const mainNavItems = [
-     { path: '/posts', label: 'Browse Posts', icon: <Home size={20} /> },
+    { path: '/posts', label: 'Browse Posts', icon: <Home size={20} /> },
     { path: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { path: '/chat', label: 'Messages', icon: <MessageCircle size={20} /> },
     { path: '/pickups', label: 'My Pickups', icon: <Package size={20} /> },
@@ -155,18 +155,19 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
             )}
           </button>
         </div> */}
+
+        <div className={styles.actionsList}>
+          <button 
+            className={styles.createbtn}
+            onClick={() => window.location.href = '/create-post'}
+            title={isCollapsed ? 'Create Post' : ''}
+          >
+            {!isCollapsed && <span className={styles.createButton}><Plus size={30}/>Create Post</span>}
+          </button>
+        </div>
       </div>
 
 
-      <div className={styles.actionsList}>
-        <button 
-          className={styles.createbtn}
-          onClick={() => window.location.href = '/create-post'}
-          title={isCollapsed ? 'Create Post' : ''}
-        >
-          {!isCollapsed && <span className={styles.createButton}><Plus />Create Post</span>}
-        </button>
-      </div>
 
       {/* User Stats (Bottom) - Fixed position */}
       {!isCollapsed && (
