@@ -331,7 +331,7 @@ const PostDetails = ({ post, user: currentUser }) => {
                   onClick={() => setShowSupportModal(true)}
                   disabled={isSupportingInitiative}
                 >
-                  {isSupportingInitiative ? 'Supporting...' : '🌱 Support Initiative'}
+                  {isSupportingInitiative ? 'Supporting...' : 'Support Initiative'}
                 </button>
               </div>
             )}

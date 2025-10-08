@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import axios from 'axios';
-import Logo from '../../common/Logo/logo';
+import EcoTayoLogo from './EcoTayoLogo.svg';
 import styles from './TopNav.module.css';
 
 const TopNav = ({ user: propUser }) => {
@@ -185,7 +185,8 @@ const TopNav = ({ user: propUser }) => {
     <nav className={styles.navbar}>
       <div className={styles.navContent}>
         <Link to="/posts" style={{ textDecoration: 'none' }}>
-            <Logo size="medium" />
+            <img src={EcoTayoLogo} alt="EcoTayo Logo" className={styles.logo} />
+            {/* <Logo size="medium" showText={true} className={styles.logo} /> */}
           </Link>
         <div className={styles.navRight}>
           {/* Notifications */}

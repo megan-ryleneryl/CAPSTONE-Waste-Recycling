@@ -2,7 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styles from './SideNav.module.css';
 import { useAuth } from '../../../context/AuthContext';
-import { Plus } from 'lucide-react';
+import { 
+  Plus, 
+  Home, 
+  LayoutDashboard, 
+  MessageCircle, 
+  Package, 
+  User, 
+  CheckSquare, 
+  Users,
+  Layers,
+  Trash2,
+  Lightbulb,
+  MessagesSquare,
+  FileText } 
+  from 'lucide-react';
 
 const SideNav = ({ activeFilter, onFilterChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -22,25 +36,33 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
   };
 
   const mainNavItems = [
-    { path: '/posts', label: 'Browse Posts' },
-    { path: '/dashboard', label: 'Dashboard'},
-    { path: '/chat', label: 'Messages' },
-    { path: '/pickups', label: 'My Pickups' },
-    { path: '/profile', label: 'Profile' },
+    { path: '/posts', label: 'Browse Posts', icon: <Home size={20} /> },
+    { path: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    { path: '/chat', label: 'Messages', icon: <MessageCircle size={20} /> },
+    { path: '/pickups', label: 'My Pickups', icon: <Package size={20} /> },
+    { path: '/profile', label: 'Profile', icon: <User size={20} /> },
   ];
 
   // Add Approvals menu for Admin users
   if (user?.isAdmin) {
-    mainNavItems.push({ path: '/admin/approvals', label: 'Approvals' });
-    mainNavItems.push({ path: '/admin/users', label: 'All Users' });
+    mainNavItems.push({ 
+      path: '/admin/approvals', 
+      label: 'Approvals', 
+      icon: <CheckSquare size={20} /> 
+    });
+    mainNavItems.push({ 
+      path: '/admin/users', 
+      label: 'All Users', 
+      icon: <Users size={20} /> 
+    });
   }
 
   const filterOptions = [
-    { id: 'all', label: 'All Posts' },
-    { id: 'Waste', label: 'Waste' },
-    { id: 'Initiatives', label: 'Initiatives' },
-    { id: 'Forum', label: 'Forum' },
-    { id: 'myPosts', label: 'My Posts' }
+    { id: 'all', label: 'All Posts', icon: <Layers size={20} /> },
+    { id: 'Waste', label: 'Waste', icon: <Trash2 size={20} /> },
+    { id: 'Initiatives', label: 'Initiatives', icon: <Lightbulb size={20} /> },
+    { id: 'Forum', label: 'Forum', icon: <MessagesSquare size={20} /> },
+    { id: 'myPosts', label: 'My Posts', icon: <FileText size={20} /> }
   ];
 
   return (
@@ -133,18 +155,19 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
             )}
           </button>
         </div> */}
+
+        <div className={styles.actionsList}>
+          <button 
+            className={styles.createbtn}
+            onClick={() => window.location.href = '/create-post'}
+            title={isCollapsed ? 'Create Post' : ''}
+          >
+            {!isCollapsed && <span className={styles.createButton}><Plus size={30}/>Create Post</span>}
+          </button>
+        </div>
       </div>
 
 
-      <div className={styles.actionsList}>
-        <button 
-          className={styles.createbtn}
-          onClick={() => window.location.href = '/create-post'}
-          title={isCollapsed ? 'Create Post' : ''}
-        >
-          {!isCollapsed && <span className={styles.createButton}><Plus />Create Post</span>}
-        </button>
-      </div>
 
       {/* User Stats (Bottom) - Fixed position */}
       {!isCollapsed && (
