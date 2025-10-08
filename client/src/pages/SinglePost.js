@@ -6,7 +6,7 @@ import CommentsSection from '../components/posts/CommentsSection/CommentsSection
 // import PickupRequests from '../components/posts/PickupRequests/PickupRequests';
 import styles from './SinglePost.module.css';
 // Lucide icon imports
-import {Heart } from 'lucide-react';
+import { Heart, MessageCircle } from 'lucide-react';
 
 const SinglePost = ({ onDataUpdate }) => {
   const { postId } = useParams();
@@ -129,9 +129,43 @@ const SinglePost = ({ onDataUpdate }) => {
     }
   };
 
+  const handleMessageOwner = async () => {
+    // Check if user is logged in
+    if (!user || !user.userID) {
+      alert("Please log in to message the post owner");
+      navigate('/login');
+      return;
+    }
+
+    // Check if trying to message yourself
+    if (user.userID === post.userID) {
+      alert("You can't message yourself!");
+      return;
+    }
+
+    try {
+      // Navigate to chat
+      navigate('/chat', {
+        state: {
+          postID: post.postID || post.id,
+          otherUser: {
+            userID: post.userID,
+            name: post.user?.firstName ? `${post.user.firstName} ${post.user.lastName}` : 'User',
+            firstName: post.user?.firstName || 'Unknown',
+            lastName: post.user?.lastName || 'User'
+          },
+          postData: post
+        }
+      });
+    } catch (error) {
+      console.error('Error creating message:', error);
+      alert('Failed to start conversation. Please try again.');
+    }
+  };
+
   const formatTimestamp = (date) => {
     if (!date) return '';
-    
+
     let postDate;
     if (date && typeof date === 'object' && date.seconds) {
       postDate = new Date(date.seconds * 1000);
@@ -140,7 +174,7 @@ const SinglePost = ({ onDataUpdate }) => {
     } else {
       postDate = new Date(date);
     }
-    
+
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const month = months[postDate.getMonth()];
     const day = postDate.getDate();
@@ -149,7 +183,7 @@ const SinglePost = ({ onDataUpdate }) => {
     const minutes = postDate.getMinutes().toString().padStart(2, '0');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
-    
+
     return `${displayHours}:${minutes} ${ampm} • ${month} ${day} ${year}`;
   };
 
@@ -197,8 +231,8 @@ const SinglePost = ({ onDataUpdate }) => {
             <div className={styles.userInfo}>
               <div className={styles.avatar}>
                 {post.user?.profilePictureUrl ? (
-                  <img 
-                    src={post.user.profilePictureUrl} 
+                  <img
+                    src={post.user.profilePictureUrl}
                     alt={`${post.user.firstName} ${post.user.lastName}`}
                   />
                 ) : (
@@ -209,7 +243,7 @@ const SinglePost = ({ onDataUpdate }) => {
               </div>
               <div className={styles.userDetails}>
                 <h3 className={styles.userName}>
-                  {post.user?.organizationName || 
+                  {post.user?.organizationName ||
                    `${post.user?.firstName || ''} ${post.user?.lastName || ''}`.trim() ||
                    'Anonymous User'}
                 </h3>
@@ -217,6 +251,15 @@ const SinglePost = ({ onDataUpdate }) => {
                   {post.user?.userType || post.userType}
                 </p>
               </div>
+              {!isOwner && user && (
+                <button
+                  className={styles.messageButton}
+                  onClick={handleMessageOwner}
+                  title="Message Owner"
+                >
+                  <MessageCircle size={20} />
+                </button>
+              )}
             </div>
             <div className={styles.postMeta}>
               <span className={`${styles.badge} ${

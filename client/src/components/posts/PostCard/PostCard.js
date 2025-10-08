@@ -490,8 +490,8 @@ const handleMessageOwner = async (post, event) => {
               <div className={styles.userInfo}>
                 <div className={styles.avatar}>
                   {profilePicture ? (
-                    <img 
-                      src={profilePicture} 
+                    <img
+                      src={profilePicture}
                       alt={displayName}
                       onError={(e) => {
                         e.target.style.display = 'none';
@@ -513,6 +513,15 @@ const handleMessageOwner = async (post, event) => {
                     </span>
                   )}
                 </div>
+                {currentUser && currentUser.userID !== post.userID && (
+                  <button
+                    className={styles.messageButton}
+                    onClick={(e) => handleMessageOwner(post, e)}
+                    title="Message Owner"
+                  >
+                    <MessageCircle size={18} />
+                  </button>
+                )}
               </div>
               <span className={styles.timestamp}>
                 {formatTimestamp(post.createdAt)}
@@ -778,7 +787,7 @@ const handleMessageOwner = async (post, event) => {
                 </button>
               )}
               {post.isOwner && (
-                <button 
+                <button
                   className={`${styles.actionButton} ${styles.editButton}`}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -787,15 +796,6 @@ const handleMessageOwner = async (post, event) => {
                   style={{ marginLeft: 'auto', background: '#F0924C' }}
                 >
                   Edit
-                </button>
-              )}
-              {currentUser && currentUser.userID !== post.userID && (
-                <button 
-                  className={`${styles.actionButton} ${styles.messageButton}`}
-                  onClick={(e) => handleMessageOwner(post, e)}
-                  style={{ background: '#4B5563' }}
-                >
-                  <MessageCircle size={18} />
                 </button>
               )}
             </div>

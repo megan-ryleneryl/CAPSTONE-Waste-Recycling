@@ -585,6 +585,29 @@
   font-family: 'Raleway', sans-serif;
 }
 
+/* Message Button in Header */
+.messageButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  color: #9CA3AF;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.messageButton:hover {
+  background: #F3F4F6;
+  color: #3B6535;
+  transform: scale(1.05);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .interactionsSection {
@@ -594,5 +617,10 @@
   .likeButton {
     width: 100%;
     justify-content: center;
+  }
+
+  .messageButton {
+    width: 32px;
+    height: 32px;
   }
 }

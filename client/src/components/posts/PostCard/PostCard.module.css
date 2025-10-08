@@ -478,10 +478,23 @@
 
 .messageButton {
   display: flex;
-  justify-content: center;
-  background: #4B5563;
-  color: white;
   align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  color: #9CA3AF;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.messageButton:hover {
+  background: #F3F4F6;
+  color: #3B6535;
+  transform: scale(1.05);
 }
 
 /* Responsive Design */
