@@ -2,7 +2,9 @@
   width: 260px;
   min-width: 260px;
   background: white;
+  margin-top: 2rem;
   padding: 1.5rem;
+  border-radius: 1rem;
   height: calc(100vh - 70px);
   left: 0;
   top: 70px;

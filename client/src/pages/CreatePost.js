@@ -554,7 +554,7 @@ const handleRemoveImage = (index) => {
 
           {/* PSGC Location Fields */}
           <div className={styles.locationSection}>
-            <h3 className={styles.sectionTitle}>Location *</h3>
+            <h3 className={styles.sectionTitle}><MapPin size={20}/> Location *</h3>
             <p className={styles.sectionHint}>Select your complete address using the dropdowns below</p>
             
             <div className={styles.formRow}>

@@ -16,6 +16,9 @@ const RightSection = ({ user, data }) => {
     switch (location.pathname) {
       case '/posts':
         return <PostsAnalytics data={data} user={user} />;
+
+      case '/create-post':
+        return <PostsAnalytics data={data} user={user} />;
       
       default:
         return null;

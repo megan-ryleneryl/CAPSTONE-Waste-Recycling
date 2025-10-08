@@ -30,6 +30,9 @@ const AppLayout = ({ children }) => {
     
     // Show on dashboard
     if (location.pathname === '/dashboard') return true;
+
+    // Show on create post page
+    if (location.pathname === '/create-post') return true;
     
     return false;
   }, [isMobile, location.pathname]);
