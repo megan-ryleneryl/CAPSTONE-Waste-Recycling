@@ -34,14 +34,34 @@
   width: calc(100% - 70px);
 }
 
+.mobileOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .mobileOverlay {
+    display: block;
+  }
+}
+
 @media (max-width: 1024px) {
   .mainLayout {
-    padding: 1rem;
-    gap: 1rem;
+    padding: 0;
+    gap: 0;
+    width: 100%;
   }
   
   .mainContent {
-    margin-left: 0;
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 1rem;
   }
 }
 
@@ -74,7 +94,7 @@
   .mobileMenuToggle {
     display: block;
     position: fixed;
-    bottom: 20px;
+    bottom: 4rem;
     right: 20px;
     z-index: 1000;
     background: var(--primary-color);

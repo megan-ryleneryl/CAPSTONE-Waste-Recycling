@@ -12,6 +12,7 @@ const AppLayout = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [rightSectionData, setRightSectionData] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -38,6 +39,10 @@ const AppLayout = ({ children }) => {
   }, [isMobile, location.pathname]);
   
   const showRightSection = shouldShowRightSection();
+
+  const handleMobileMenuToggle = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   // Memoize the admin route check to prevent unnecessary re-renders
   useEffect(() => {
@@ -102,11 +107,35 @@ const AppLayout = ({ children }) => {
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={toggleSidebar}
           user={currentUser}
+          isMobile={isMobile}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
         
         <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''} ${showRightSection ? styles.withRightSection : ''}`}>
           {childrenWithProps}
         </main>
+
+        {/* Mobile Overlay */}
+        {isMobile && sidebarOpen && (
+          <div 
+            className={styles.mobileOverlay}
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Mobile Menu Toggle Button */}
+        {isMobile && (
+          <button 
+            className={styles.mobileMenuToggle}
+            onClick={handleMobileMenuToggle}
+            aria-label="Toggle menu"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
+          </button>
+        )}
         
         {showRightSection && (
           <RightSection 

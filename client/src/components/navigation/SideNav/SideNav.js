@@ -18,7 +18,7 @@ import {
   FileText } 
   from 'lucide-react';
 
-const SideNav = ({ activeFilter, onFilterChange }) => {
+const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     main: true,
@@ -66,7 +66,7 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
   ];
 
   return (
-    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
+    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isMobile && isOpen ? styles.open : ''}`}>
       <div className={styles.sidebarContent}>
         {/* Main Navigation */}
         <div className={styles.section}>
@@ -139,23 +139,6 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
           </div>
         )}
 
-        {/* Quick Actions */}
-        {/* <div className={styles.section}>
-          <button 
-            className={styles.sectionHeader}
-            onClick={() => toggleSection('actions')}
-          >
-            {!isCollapsed && (
-              <>
-                <span>Quick Actions</span>
-                <span className={`${styles.chevron} ${expandedSections.actions ? styles.expanded : ''}`}>
-                  ▼
-                </span>
-              </>
-            )}
-          </button>
-        </div> */}
-
         <div className={styles.actionsList}>
           <button 
             className={styles.createbtn}
@@ -165,9 +148,13 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
             {!isCollapsed && <span className={styles.createButton}><Plus size={30}/>Create Post</span>}
           </button>
         </div>
+
+        {isMobile && (
+          <button className={styles.mobileClose} onClick={onClose}>
+            ✕
+          </button>
+        )}
       </div>
-
-
 
       {/* User Stats (Bottom) - Fixed position */}
       {!isCollapsed && (

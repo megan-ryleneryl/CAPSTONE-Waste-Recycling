@@ -441,16 +441,26 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .navCenter {
-    display: none;
-  }
-  
   .navContent {
     padding: 0.75rem 1rem;
   }
   
+  .logo {
+    max-height: 40px;
+  }
+  
   .dropdown {
     min-width: 280px;
+  }
+
+  .userName,
+  .navCenter {
+    display: none;
+  }
+
+  .userButton:active .chevron {
+    transform: rotate(180deg);
+    color: var(--primary-color);
   }
 }
 
