@@ -22,6 +22,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('rememberedUser');
     setToken(null);
     setCurrentUser(null);
+    // Force a page reload to clear all state and subscriptions
+    window.location.href = '/login';
   }, []);
 
   const fetchCurrentUser = useCallback(async () => {

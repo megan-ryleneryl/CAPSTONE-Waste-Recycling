@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -19,15 +19,22 @@ import './App.css';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  const user = localStorage.getItem('user');
-  
-  if (!token || !user) {
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
     return <Navigate to="/login" />;
   }
-  
-  // Wrap authenticated pages with AppLayout
-  return <AppLayout>{children}</AppLayout>;
+
+  // Use userID as key to force complete remount when user changes
+  return <AppLayout key={currentUser.userID}>{children}</AppLayout>;
 };
 
 // Auto-login Route Component
