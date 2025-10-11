@@ -488,7 +488,7 @@ const PickupTracking = () => {
 
               {/* Estimated Details */}
               <div className={styles.estimatedSection}>
-                {postData?.quantity && (
+                {postData?.quantity && postData.quantity > 0 && (
                   <div className={styles.detailRow}>
                     <span className={styles.detailLabel}>Estimated Quantity:</span>
                     <span className={styles.detailValue}>
@@ -496,9 +496,8 @@ const PickupTracking = () => {
                     </span>
                   </div>
                 )}
-                {postData?.price && postData.price > 0 && (
+                {postData?.price !== undefined && postData?.price !== null && (
                   <div className={styles.detailRow}>
-                    <DollarSign size={16} className={styles.detailIcon} />
                     <span className={styles.detailLabel}>Estimated Price:</span>
                     <span className={styles.detailValue}>₱{postData.price}</span>
                   </div>
