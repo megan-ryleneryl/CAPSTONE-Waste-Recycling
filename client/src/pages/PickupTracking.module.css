@@ -467,16 +467,109 @@
   border-radius: 8px;
 }
 
+.estimatedSection {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.estimateDescription {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.estimateDescription p {
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0.5rem 0 0 0;
+}
+
 .completionDetails {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
+}
+
+.wasteBreakdown {
+  margin-bottom: 1rem;
+}
+
+.breakdownTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wasteItem {
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.wasteItem:last-child {
+  margin-bottom: 0;
+}
+
+.wasteItemHeader {
+  margin-bottom: 0.5rem;
+}
+
+.wasteType {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.wasteItemDetails {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.wasteAmount {
+  font-size: 0.875rem;
+  color: #3B6535;
+  font-weight: 600;
+}
+
+.wastePayment {
+  font-size: 0.875rem;
+  color: #059669;
+  font-weight: 600;
+}
+
+.summarySection {
+  padding: 1rem;
+  background: #f0f7ed;
+  border-radius: 8px;
+  border: 1px solid #d4e8cf;
+}
+
+.summarySection .detailRow {
+  padding: 0.5rem 0;
+}
+
+.summarySection .detailRow:not(:last-child) {
+  border-bottom: 1px solid #d4e8cf;
+}
+
+.summarySection .detailValue {
+  color: #3B6535;
+  font-weight: 700;
 }
 
 .notes {
   margin-top: 0.5rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #e5e7eb;
 }
 
 .notes p {

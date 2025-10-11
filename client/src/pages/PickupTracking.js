@@ -26,9 +26,9 @@ const PickupTracking = () => {
 
     // Subscribe to real-time pickup updates
     const pickupRef = doc(db, 'pickups', pickupId);
-    const unsubscribe = onSnapshot(pickupRef, async (doc) => {
-      if (doc.exists()) {
-        const pickupData = { id: doc.id, ...doc.data() };
+    const unsubscribe = onSnapshot(pickupRef, async (pickupDoc) => {
+      if (pickupDoc.exists()) {
+        const pickupData = { id: pickupDoc.id, ...pickupDoc.data() };
         setPickup(pickupData);
 
         // Fetch post data for more details
@@ -37,7 +37,18 @@ const PickupTracking = () => {
             const postRef = doc(db, 'posts', pickupData.postID);
             const postSnap = await getDoc(postRef);
             if (postSnap.exists()) {
-              setPostData({ id: postSnap.id, ...postSnap.data() });
+              const data = { id: postSnap.id, ...postSnap.data() };
+              console.log('Post data fetched:', data);
+              console.log('Post fields:', {
+                quantity: data.quantity,
+                unit: data.unit,
+                price: data.price,
+                materials: data.materials,
+                description: data.description
+              });
+              setPostData(data);
+            } else {
+              console.log('Post not found:', pickupData.postID);
             }
           } catch (error) {
             console.error('Error fetching post data:', error);
@@ -450,35 +461,63 @@ const PickupTracking = () => {
         </div>
 
         <div className={styles.sidebar}>
-          {/* Waste Materials */}
-          <div className={styles.sidebarCard}>
-            <h3 className={styles.sidebarTitle}>
-              <Trash2 size={20} />
-              Waste Materials
-            </h3>
-            <div className={styles.materials}>
-              {postData?.materials && Array.isArray(postData.materials) ? (
-                postData.materials.map((material, index) => (
-                  <span key={index} className={styles.materialTag}>{material}</span>
-                ))
-              ) : (
-                <span className={styles.materialTag}>{postData?.materials || 'Mixed Waste'}</span>
-              )}
+          {/* Waste Details - Combined Section */}
+          {pickup.status !== 'Completed' && (
+            <div className={styles.sidebarCard}>
+              <h3 className={styles.sidebarTitle}>
+                <Trash2 size={20} />
+                Waste Details
+              </h3>
+
+              {/* Materials */}
+              <div className={styles.materials}>
+                {postData?.materials ? (
+                  Array.isArray(postData.materials) ? (
+                    postData.materials.map((material, index) => (
+                      <span key={index} className={styles.materialTag}>{material}</span>
+                    ))
+                  ) : (
+                    postData.materials.split(',').map((material, index) => (
+                      <span key={index} className={styles.materialTag}>{material.trim()}</span>
+                    ))
+                  )
+                ) : (
+                  <span className={styles.materialTag}>Mixed Waste</span>
+                )}
+              </div>
+
+              {/* Estimated Details */}
+              <div className={styles.estimatedSection}>
+                {postData?.quantity && (
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailLabel}>Estimated Quantity:</span>
+                    <span className={styles.detailValue}>
+                      {postData.quantity} {postData.unit || 'kg'}
+                    </span>
+                  </div>
+                )}
+                {postData?.price && postData.price > 0 && (
+                  <div className={styles.detailRow}>
+                    <DollarSign size={16} className={styles.detailIcon} />
+                    <span className={styles.detailLabel}>Estimated Price:</span>
+                    <span className={styles.detailValue}>₱{postData.price}</span>
+                  </div>
+                )}
+                {postData?.condition && (
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailLabel}>Condition:</span>
+                    <span className={styles.detailValue}>{postData.condition}</span>
+                  </div>
+                )}
+                {postData?.description && (
+                  <div className={styles.estimateDescription}>
+                    <span className={styles.detailLabel}>Description:</span>
+                    <p>{postData.description}</p>
+                  </div>
+                )}
+              </div>
             </div>
-            {postData?.condition && (
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Condition:</span>
-                <span className={styles.detailValue}>{postData.condition}</span>
-              </div>
-            )}
-            {postData?.price && postData.price > 0 && (
-              <div className={styles.detailRow}>
-                <DollarSign size={16} className={styles.detailIcon} />
-                <span className={styles.detailLabel}>Price:</span>
-                <span className={styles.detailValue}>₱{postData.price}</span>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Contact Information */}
           <div className={styles.sidebarCard}>
@@ -531,25 +570,49 @@ const PickupTracking = () => {
           )}
 
           {/* Completion Details (if completed) */}
-          {pickup.status === 'Completed' && pickup.actualWaste && (
+          {pickup.status === 'Completed' && (
             <div className={styles.sidebarCard}>
               <h3 className={styles.sidebarTitle}>
                 <CheckCircle size={20} />
-                Completion Details
+                Actual Waste Collected
               </h3>
               <div className={styles.completionDetails}>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Total Weight:</span>
-                  <span className={styles.detailValue}>{pickup.finalAmount || 0} kg</span>
+                {/* Waste Items Breakdown */}
+                {pickup.actualWaste && pickup.actualWaste.length > 0 && (
+                  <div className={styles.wasteBreakdown}>
+                    <h4 className={styles.breakdownTitle}>Waste Details:</h4>
+                    {pickup.actualWaste.map((item, index) => (
+                      <div key={index} className={styles.wasteItem}>
+                        <div className={styles.wasteItemHeader}>
+                          <span className={styles.wasteType}>{item.type}</span>
+                        </div>
+                        <div className={styles.wasteItemDetails}>
+                          <span className={styles.wasteAmount}>{item.amount} kg</span>
+                          {item.payment > 0 && (
+                            <span className={styles.wastePayment}>₱{item.payment.toFixed(2)}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Summary */}
+                <div className={styles.summarySection}>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailLabel}>Total Weight:</span>
+                    <span className={styles.detailValue}>{pickup.finalAmount || 0} kg</span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailLabel}>Total Payment:</span>
+                    <span className={styles.detailValue}>₱{pickup.paymentReceived?.toFixed(2) || '0.00'}</span>
+                  </div>
+                  <div className={styles.detailRow}>
+                    <span className={styles.detailLabel}>Payment Method:</span>
+                    <span className={styles.detailValue}>{pickup.paymentMethod || 'N/A'}</span>
+                  </div>
                 </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Payment:</span>
-                  <span className={styles.detailValue}>₱{pickup.paymentReceived || 0}</span>
-                </div>
-                <div className={styles.detailRow}>
-                  <span className={styles.detailLabel}>Method:</span>
-                  <span className={styles.detailValue}>{pickup.paymentMethod || 'N/A'}</span>
-                </div>
+
                 {pickup.completionNotes && (
                   <div className={styles.notes}>
                     <span className={styles.detailLabel}>Notes:</span>
