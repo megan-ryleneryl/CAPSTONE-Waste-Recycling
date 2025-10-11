@@ -87,18 +87,19 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
   const modalContent = (
     <div className={styles.modalOverlay}>
       <div className={styles.modal}>
-        <div className={styles.header}>
-          <h2 className={styles.title}>Complete Pickup</h2>
-          <button className={styles.closeBtn} onClick={onCancel} disabled={loading}>
-            ×
-          </button>
-        </div>
+        <div className={styles.modalContent}>
+          <div className={styles.header}>
+            <h2 className={styles.title}>Complete Pickup</h2>
+            <button className={styles.closeBtn} onClick={onCancel} disabled={loading}>
+              ×
+            </button>
+          </div>
 
-        <div className={styles.subtitle}>
-          *This will mark the pickup as complete
-        </div>
+          <div className={styles.subtitle}>
+            *This will mark the pickup as complete
+          </div>
 
-        <div className={styles.content}>
+          <div className={styles.content}>
           <div className={styles.wasteItems}>
             {wasteItems.map((item, index) => (
               <div key={index} className={styles.wasteItem}>
@@ -209,14 +210,15 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
           </div>
         </div>
 
-        <div className={styles.footer}>
-          <button
-            className={styles.completeBtn}
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? 'Completing...' : 'Complete'}
-          </button>
+          <div className={styles.footer}>
+            <button
+              className={styles.completeBtn}
+              onClick={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? 'Completing...' : 'Complete'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
