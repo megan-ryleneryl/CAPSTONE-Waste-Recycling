@@ -293,8 +293,6 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         statusMessage = `[Status] ${actorName} [${actorRole}] is on the way to the pickup location. ${otherUserName} [${otherRole}], please be ready for the pickup.`;
       } else if (status === 'ArrivedAtPickup') {
         statusMessage = `[Status] ${actorName} [${actorRole}] has arrived at the pickup location. Waiting for ${otherUserName} [${otherRole}] to complete the pickup.`;
-      } else if (status === 'Completed') {
-        statusMessage = `[Status] ${actorName} [${actorRole}] marked the pickup as completed. Thank you for completing this transaction!`;
       } else if (status === 'Cancelled') {
         statusMessage = `[Status] ${actorName} [${actorRole}] cancelled the pickup. This pickup has been terminated.`;
       } else {

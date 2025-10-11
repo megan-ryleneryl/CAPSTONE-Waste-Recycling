@@ -74,7 +74,7 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
   const canEdit = pickup.status === 'Proposed' && isCollector && pickup.proposedBy === currentUser?.userID;
   const canConfirm = pickup.status === 'Proposed' && isGiver;
   const canCancel = pickup.status !== 'Completed' && pickup.status !== 'Cancelled';
-  const canComplete = (pickup.status === 'ArrivedAtPickup' || pickup.status === 'In-Transit') && isGiver;
+  // Removed canComplete - completion should only happen through the modal
   const canStartPickup = pickup.status === 'Confirmed' && isCollector;
 
   if (isEditing) {
@@ -264,16 +264,6 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
           >
             <Truck size={18} />
             <span>On the Way</span>
-          </button>
-        )}
-
-        {canComplete && (
-          <button
-            className={styles.completeButton}
-            onClick={() => onUpdateStatus('Completed')}
-          >
-            <CheckCircle size={18} />
-            <span>Complete</span>
           </button>
         )}
 

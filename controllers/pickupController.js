@@ -378,7 +378,7 @@ static async getUpcomingPickups(req, res) {
       const userID = req.user.userID;
 
       const pickup = await Pickup.findById(pickupID);
-      
+
       // Only giver can complete the pickup
       if (pickup.giverID !== userID) {
         return res.status(403).json({
@@ -388,10 +388,25 @@ static async getUpcomingPickups(req, res) {
       }
 
       // Validate status
-      if (pickup.status !== 'In-Progress' && pickup.status !== 'Confirmed') {
+      if (pickup.status !== 'In-Transit' && pickup.status !== 'ArrivedAtPickup' && pickup.status !== 'Confirmed') {
         return res.status(400).json({
           success: false,
           message: 'Invalid pickup status for completion'
+        });
+      }
+
+      // Validate required completion data
+      if (!actualWaste || !actualWaste.finalAmount) {
+        return res.status(400).json({
+          success: false,
+          message: 'Actual waste details are required to complete the pickup'
+        });
+      }
+
+      if (paymentReceived === undefined || paymentReceived === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment information is required to complete the pickup'
         });
       }
 

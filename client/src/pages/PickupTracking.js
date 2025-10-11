@@ -153,8 +153,6 @@ const PickupTracking = () => {
         message = `[Status] ${actorName} [${actorRole}] is on the way to the pickup location. ${otherUserName} [${otherRole}], please be ready for the pickup.`;
       } else if (newStatus === 'ArrivedAtPickup') {
         message = `[Status] ${actorName} [${actorRole}] has arrived at the pickup location. Waiting for ${otherUserName} [${otherRole}] to complete the pickup.`;
-      } else if (newStatus === 'Completed') {
-        message = `[Status] ${actorName} [${actorRole}] marked the pickup as completed. Thank you for completing this transaction!`;
       } else if (newStatus === 'Cancelled') {
         message = `[Status] ${actorName} [${actorRole}] cancelled the pickup. This pickup has been terminated.`;
       } else {
