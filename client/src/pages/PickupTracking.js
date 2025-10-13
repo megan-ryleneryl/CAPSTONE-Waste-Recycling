@@ -38,14 +38,6 @@ const PickupTracking = () => {
             const postSnap = await getDoc(postRef);
             if (postSnap.exists()) {
               const data = { id: postSnap.id, ...postSnap.data() };
-              console.log('Post data fetched:', data);
-              console.log('Post fields:', {
-                quantity: data.quantity,
-                unit: data.unit,
-                price: data.price,
-                materials: data.materials,
-                description: data.description
-              });
               setPostData(data);
             } else {
               console.log('Post not found:', pickupData.postID);

@@ -11,12 +11,13 @@ const fs = require('fs');
 const multer = require('multer');
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const postRoutes = require('./routes/posts');
+const authRoutes = require('./routes/authRoutes');
+const postRoutes = require('./routes/postRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const messageRoutes = require('./routes/messageRoutes');
-const notificationRoutes = require('./routes/notifications');
+const notificationRoutes = require('./routes/notificationRoutes');
 const psgcRoutes = require('./routes/psgc');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -111,6 +112,7 @@ app.use('/api/protected/profile', profileRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/psgc', psgcRoutes);
 app.use('/api/protected/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.use('/api/admin', (req, res, next) => {
   next();

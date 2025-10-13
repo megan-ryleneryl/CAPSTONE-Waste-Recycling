@@ -1,6 +1,3 @@
-// TODO
-// Check for userType usage
-
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy, or } = require('firebase/firestore');
 
 class Message {

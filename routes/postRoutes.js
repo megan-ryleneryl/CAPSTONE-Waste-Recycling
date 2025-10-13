@@ -69,14 +69,6 @@ router.get('/', verifyToken, async (req, res) => {
     // Add user data and interaction data to posts
     const enrichedPosts = await Promise.all(posts.map(async (post) => {
       const postData = post.toFirestore ? post.toFirestore() : post;
-
-            // Debug log to check what fields are present
-      console.log('Post data for', postData.postID, ':', {
-        hasClaimedBy: 'claimedBy' in postData,
-        claimedBy: postData.claimedBy,
-        status: postData.status,
-        supporters: postData.supporters
-      });
       
       // Get interaction data with error handling
       let likeCount = 0;
@@ -156,7 +148,6 @@ router.get('/:postId', verifyToken, async (req, res) => {
           points: postUser.points
         };
       }
-      console.log('Fetched user data for post:', userData);
     } catch (userError) {
       console.error('Error fetching user:', userError);
       userData = {
@@ -180,8 +171,6 @@ router.get('/:postId', verifyToken, async (req, res) => {
         
         const comments = await Comment.findByPostID(postData.postID);
         commentCount = comments.length;
-        
-        console.log(`Single post ${postData.postID}: ${likeCount} likes, ${commentCount} comments`);
       } catch (err) {
         console.error('Error fetching interactions:', err);
       }
@@ -231,16 +220,9 @@ router.post('/create', verifyToken, (req, res, next) => {
   });
 }, async (req, res) => {
   try {
-    // Log received data for debugging
-    console.log('Received body:', req.body);
-    console.log('Received files:', req.files ? req.files.length : 0);
-    console.log('Content-Type:', req.headers['content-type']);
-    
     const { postType, ...postData } = req.body;
     const user = req.user;
-    
-    console.log('Creating post:', { postType, user: user.userID });
-    
+        
     // Validate required fields
     if (!postType || !postData.title || !postData.description) {
       console.error('Missing fields:', { 
@@ -263,7 +245,6 @@ router.post('/create', verifyToken, (req, res, next) => {
           const result = await StorageService.saveFile(file, `posts/${postType.toLowerCase()}`);
           imageUrls.push(result.url);
         }
-        console.log('Images uploaded:', imageUrls);
       } catch (uploadError) {
         console.error('Image upload error:', uploadError);
         return res.status(400).json({
@@ -363,9 +344,7 @@ router.post('/create', verifyToken, (req, res, next) => {
           message: 'Invalid post type. Must be Waste, Initiative, or Forum'
         });
     }
-    
-    console.log('Post created successfully:', post.postID);
-    
+        
     res.status(201).json({
       success: true,
       message: `${postType} post created successfully`,
@@ -582,9 +561,7 @@ router.post('/:postId/like', verifyToken, async (req, res) => {
     // Get updated like count
     const allLikes = await Like.findByPostID(req.params.postId);
     likeCount = allLikes.length;
-    
-    console.log(`Post ${req.params.postId} ${liked ? 'liked' : 'unliked'}. New count: ${likeCount}`);
-    
+        
     res.json({
       success: true,
       message: liked ? 'Post liked' : 'Post unliked',
@@ -647,9 +624,7 @@ router.post('/:postId/comment', verifyToken, async (req, res) => {
     // Get updated comment count
     const allComments = await Comment.findByPostID(req.params.postId);
     const commentCount = allComments.length;
-    
-    console.log(`Comment added to post ${req.params.postId}. New count: ${commentCount}`);
-    
+        
     res.status(201).json({
       success: true,
       message: 'Comment added successfully',
@@ -669,8 +644,6 @@ router.post('/:postId/comment', verifyToken, async (req, res) => {
 // Get comments for a post (WITH USER DATA) - FIXED VERSION
 router.get('/:postId/comments', verifyToken, async (req, res) => {
   try {
-    console.log('Fetching comments for post:', req.params.postId);
-    
     const post = await Post.findById(req.params.postId);
     if (!post) {
       console.log('Post not found');
@@ -680,9 +653,7 @@ router.get('/:postId/comments', verifyToken, async (req, res) => {
       });
     }
     
-    console.log('Getting comments...');
     const comments = await post.getComments();
-    console.log('Found comments:', comments.length);
     
     // Fetch user data for all comments in one batch
     const userIds = [...new Set(comments.map(c => c.userID))];
@@ -734,8 +705,6 @@ router.get('/:postId/comments', verifyToken, async (req, res) => {
         }
       };
     });
-    
-    console.log('Returning comments with users');
     res.json({
       success: true,
       comments: commentsWithUsers
@@ -801,12 +770,6 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
     const Message = require('../models/Message');
     const Notification = require('../models/Notification');
     
-    console.log('Claim attempt by user:', {
-      userID: collectorID,
-      isCollector: req.user.isCollector,
-      isAdmin: req.user.isAdmin
-    });
-    
     // Get the post
     const post = await Post.findById(postId);
     
@@ -857,9 +820,7 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
       claimedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    
-    console.log('Updating post with data:', JSON.stringify(updateData, null, 2));
-    
+        
     await Post.update(postId, updateData);
     
     // Get collector's and giver's names for the messages
@@ -935,12 +896,6 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
         collectorName: collectorName,
         postID: postId
       }
-    });
-    
-    console.log('Post claimed successfully:', {
-      postID: postId,
-      collectorID: collectorID,
-      status: 'Claimed'
     });
     
     res.json({

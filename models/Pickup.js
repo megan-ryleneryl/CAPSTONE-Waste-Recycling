@@ -210,6 +210,34 @@ class Pickup {
     return snapshot.docs.map(doc => new Pickup(doc.data()));
   }
 
+  // Get all pickups
+  static async findAll() {
+    const db = getFirestore();
+    const pickupRef = collection(db, 'pickups');
+    const snapshot = await getDocs(pickupRef);
+
+    if (snapshot.empty) {
+      return [];
+    }
+
+    // Map each document to a Pickup instance
+    return snapshot.docs.map(doc => new Pickup({ id: doc.id, ...doc.data() }));
+  }
+
+  // Get pickups by post
+  static async findByPost(postID) {
+    const db = getFirestore();
+    const pickupsRef = collection(db, 'pickups');
+    const q = query(
+      pickupsRef,
+      where('postID', '==', postID),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => new Pickup(doc.data()));
+  }
+
   // Get user's pickups
   static async findByUser(userID, role = 'both') {
     const db = getFirestore();

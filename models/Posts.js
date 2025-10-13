@@ -1,5 +1,3 @@
-
-
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
 
@@ -86,32 +84,32 @@ class Post {
   }
 
   // Convert to plain object for Firestore - IMPORTANT: Flat structure
-toFirestore() {
-  // Return only base fields - subclasses will override to add their specific fields
-  return {
-    postID: this.postID,
-    userID: this.userID,
-    postType: this.postType,
-    title: this.title,
-    description: this.description,
-    location: this.location,
-    status: this.status,
-    createdAt: this.createdAt,
-    updatedAt: this.updatedAt,
-    images: this.images || [],
-    // Include claim tracking fields
-    claimedBy: this.claimedBy,
-    claimedAt: this.claimedAt,
-    // Include support tracking fields
-    supporters: this.supporters,
-    supportCount: this.supportCount,
-    // ADD THESE THREE LINES:
-    // User flags
-    isCollector: this.isCollector,
-    isAdmin: this.isAdmin,
-    isOrganization: this.isOrganization
-  };
-}
+  toFirestore() {
+    // Return only base fields - subclasses will override to add their specific fields
+    return {
+      postID: this.postID,
+      userID: this.userID,
+      postType: this.postType,
+      title: this.title,
+      description: this.description,
+      location: this.location,
+      status: this.status,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+      images: this.images || [],
+      // Include claim tracking fields
+      claimedBy: this.claimedBy,
+      claimedAt: this.claimedAt,
+      // Include support tracking fields
+      supporters: this.supporters,
+      supportCount: this.supportCount,
+      // ADD THESE THREE LINES:
+      // User flags
+      isCollector: this.isCollector,
+      isAdmin: this.isAdmin,
+      isOrganization: this.isOrganization
+    };
+  }
 
   // Static methods for database operations
   static async create(postData) {

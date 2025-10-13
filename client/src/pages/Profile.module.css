@@ -820,11 +820,13 @@
   .profileHeader {
     flex-direction: column;
     text-align: center;
+    align-items: center;
     gap: 1rem;
   }
 
   .profileInfo {
     flex-direction: column;
+    align-items: center;
   }
 
   .statsGrid {

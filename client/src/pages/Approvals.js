@@ -86,8 +86,31 @@ const Approvals = () => {
         return userInfo;
       }
     } catch (error) {
+      // Handle 404 - user was deleted
+      if (error.response?.status === 404) {
+        const deletedUserInfo = {
+          displayName: 'Deleted User',
+          isAdmin: false,
+          email: 'N/A',
+          firstName: 'Deleted',
+          lastName: 'User',
+          isDeleted: true
+        };
+        
+        setUserDetails(prev => ({
+          ...prev,
+          [userID]: deletedUserInfo
+        }));
+        
+        return deletedUserInfo;
+      }
+      
       console.error('Error fetching user details:', error);
-      return { displayName: userID, isAdmin: false };
+      return { 
+        displayName: 'Unknown User', 
+        isAdmin: false,
+        isDeleted: false 
+      };
     }
   };
 

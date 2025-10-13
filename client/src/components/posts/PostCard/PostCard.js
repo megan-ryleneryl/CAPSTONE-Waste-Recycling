@@ -52,7 +52,6 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
       // Add userID filter if provided (for "My Posts" filter)
       if (userID) {
         params.append('userID', userID);
-        console.log('Filtering by userID:', userID);
       }
 
       // Add type filter if not 'all' and no userID filter
@@ -70,26 +69,19 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
         
         const mappedType = typeMap[postType] || postType;
         params.append('type', mappedType);
-        console.log('Filtering by type:', mappedType);
       }
 
       // Append params to URL if any exist
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-      
-      console.log('Fetching posts from:', url);
-      
+          
       const response = await axios.get(url, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
-      console.log('Posts response:', response.data);
-      console.log('Posts is array?', Array.isArray(response.data.posts));
-      console.log('Number of posts:', response.data.posts?.length);
       
       if (response.data.success) {
         // Ensure posts is always an array
@@ -108,13 +100,9 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
           acc[post.postType] = (acc[post.postType] || 0) + 1;
           return acc;
         }, {});
-        console.log('Post type distribution:', postTypes);
-        console.log('Sample post with user:', limitedPosts[0]);
         
         // Check if posts already have user data
-        if (limitedPosts.length > 0 && !limitedPosts[0].user) {
-          console.log('Posts do not have user data, fetching separately...');
-          
+        if (limitedPosts.length > 0 && !limitedPosts[0].user) {          
           // Fetch user details for each post if not included
           const postsWithUsers = await Promise.all(
             limitedPosts.map(async (post) => {
@@ -150,7 +138,6 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
           setPosts(postsWithUsers);
         } else {
           // Posts already have user data
-          console.log('Posts already include user data');
           setPosts(limitedPosts);
         }
       } else {
@@ -310,7 +297,6 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
   const handleCollect = async (event, postId) => {
     event.stopPropagation(); // Prevent post navigation
     try {
-      console.log('Collecting post:', postId);
       navigate(`/posts/${postId}`);
     } catch (err) {
       console.error('Error collecting post:', err);
@@ -320,7 +306,6 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
   const handleSupport = async (event, postId) => {
     event.stopPropagation(); // Prevent post navigation
     try {
-      console.log('Supporting initiative:', postId);
       navigate(`/posts/${postId}`);
     } catch (err) {
       console.error('Error supporting initiative:', err);

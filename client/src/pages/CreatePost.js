@@ -5,6 +5,7 @@ import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
 import { Image, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -13,7 +14,18 @@ const CreatePost = () => {
   const [isCollector, setIsCollector] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrganization, setIsOrganization] = useState(false);
-  const [postType, setPostType] = useState('Waste');
+
+  const location = useLocation();
+
+  // Start with whatever state was passed, or default to 'Waste'
+  const [postType, setPostType] = useState(location.state?.postType || 'Waste');
+
+  // Update if navigation provides a new postType after initial load
+  useEffect(() => {
+    if (location.state?.postType && location.state.postType !== postType) {
+      setPostType(location.state.postType);
+    }
+  }, [location.state, postType]);
 
   // PSGC Location states
   const [regions, setRegions] = useState([]);
@@ -24,6 +36,10 @@ const CreatePost = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   
+  // Scroll to top when page loads (i.e. after redirect from Dashboard page)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
   
   // Form data state
   const [formData, setFormData] = useState({

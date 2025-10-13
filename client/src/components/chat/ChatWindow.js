@@ -56,7 +56,6 @@ const loadChatData = async () => {
     let userDataToSet = otherUser;
     
     if (!otherUser.firstName || !otherUser.lastName) {
-      console.log('Fetching complete user data for:', otherUser.userID);
       const userDocRef = doc(db, 'users', otherUser.userID);
       const userDoc = await getDoc(userDocRef);
       
@@ -67,7 +66,6 @@ const loadChatData = async () => {
           ...userData,
           name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User'
         };
-        console.log('Loaded user data:', userDataToSet);
       } else {
         console.warn('User document not found for:', otherUser.userID);
         userDataToSet = {
@@ -87,13 +85,11 @@ const loadChatData = async () => {
     setOtherUserData(userDataToSet);
     
     // 2. Fetch post data - ALWAYS fetch fresh to ensure correct post is shown
-    console.log('Fetching post data for:', postID);
     const postDocRef = doc(db, 'posts', postID);
     const postDoc = await getDoc(postDocRef);
     if (postDoc.exists()) {
       const postData = { postID: postDoc.id, ...postDoc.data() };
       setPost(postData);
-      console.log('Loaded post data:', postData);
     } else {
       console.error('Post not found');
       setPost({ postID, title: 'Post Not Found', postType: 'Unknown' });
@@ -151,7 +147,6 @@ const loadChatData = async () => {
         
         if (relevantPickup) {
           const pickupData = { id: relevantPickup.id, ...relevantPickup.data() };
-          console.log('Active pickup found:', pickupData);
           setActivePickup(pickupData);
         } else {
           console.log('No active pickup for this conversation');

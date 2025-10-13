@@ -1,17 +1,12 @@
-// middleware/auth.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/Users');
 
 const verifyToken = async (req, res, next) => {
-  try {
-    console.log('🔐 Auth Middleware - All Headers:', JSON.stringify(req.headers, null, 2));
-    
+  try {    
     // Get token from header
     const authHeader = req.headers['authorization'];
-    console.log('🔑 Authorization Header:', authHeader);
     
     if (!authHeader) {
-      console.log('❌ No authorization header found');
       return res.status(401).json({
         success: false,
         message: 'No token provided. Please login.'
@@ -23,10 +18,7 @@ const verifyToken = async (req, res, next) => {
       ? authHeader.slice(7) 
       : authHeader;
 
-    console.log('🎫 Extracted Token (first 50 chars):', token.substring(0, 50) + '...');
-
     if (!token) {
-      console.log('❌ Token is empty after extraction');
       return res.status(401).json({
         success: false,
         message: 'No token provided. Please login.'
@@ -35,24 +27,19 @@ const verifyToken = async (req, res, next) => {
 
     // Check if JWT_SECRET exists
     if (!process.env.JWT_SECRET) {
-      console.error('❌ JWT_SECRET not found in environment variables!');
       return res.status(500).json({
         success: false,
         message: 'Server configuration error'
       });
     }
 
-    console.log('🔓 Attempting to verify token...');
-
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('✅ Token verified successfully:', decoded);
 
     // Fetch full user data from database to get isCollector and isAdmin
     const user = await User.findById(decoded.userID);
 
     if (!user) {
-      console.log('❌ User not found in database:', decoded.userID);
       return res.status(401).json({
         success: false,
         message: 'User not found. Please login again.'
@@ -72,16 +59,8 @@ const verifyToken = async (req, res, next) => {
       userType: user.userType
     };
 
-    console.log('👤 User authenticated:', {
-      userID: req.user.userID,
-      email: req.user.email,
-      isCollector: req.user.isCollector,
-      isAdmin: req.user.isAdmin
-    });
-
     next();
   } catch (error) {
-    console.error('❌ Token verification error:', error.message);
     console.error('Error name:', error.name);
     
     if (error.name === 'TokenExpiredError') {
