@@ -10,10 +10,11 @@ const InitiativePost = require('../models/InitiativePost');
 const ForumPost = require('../models/ForumPost');
 const Comment = require('../models/Comment');
 const Like = require('../models/Like');
-const User = require('../models/Users');  // CRITICAL FIX
+const User = require('../models/Users'); 
 const Message = require('../models/Message');  
 const Notification = require('../models/Notification');
 const Point = require('../models/Point');
+const GeocodingService = require('../services/geocodingService');
 const { verifyToken } = require('../middleware/auth');
 
 // Apply authentication
@@ -26,7 +27,7 @@ router.get('/', verifyToken, async (req, res) => {
   try {
     const { type, status, location, userID } = req.query;
     const User = require('../models/Users');
-    
+
     let posts;
     if (userID) {
       posts = await Post.findByUserID(userID);
@@ -39,10 +40,10 @@ router.get('/', verifyToken, async (req, res) => {
     } else {
       posts = await Post.findAll();
     }
-    
+
     // Create a map of user IDs to fetch
     const userIds = [...new Set(posts.map(post => post.userID))];
-    
+
     // Batch fetch all users
     const usersMap = {};
     for (const userId of userIds) {
@@ -65,16 +66,16 @@ router.get('/', verifyToken, async (req, res) => {
         usersMap[userId] = null;
       }
     }
-    
+
     // Add user data and interaction data to posts
     const enrichedPosts = await Promise.all(posts.map(async (post) => {
       const postData = post.toFirestore ? post.toFirestore() : post;
-      
+
       // Get interaction data with error handling
       let likeCount = 0;
       let isLiked = false;
       let commentCount = 0;
-      
+
       try {
         likeCount = await post.getLikeCount();
         isLiked = await post.isLikedByUser(req.user.userID);
@@ -83,7 +84,7 @@ router.get('/', verifyToken, async (req, res) => {
       } catch (err) {
         // Silently handle if these methods don't exist
       }
-      
+
       return {
         ...postData,
         user: usersMap[postData.userID] || {
@@ -254,6 +255,29 @@ router.post('/create', verifyToken, (req, res, next) => {
         });
       }
     }
+
+    if (postData.location && typeof postData.location === 'string') {
+      try {
+        postData.location = JSON.parse(postData.location);
+      } catch (e) {
+        console.error('Failed to parse location:', e);
+      }
+    }
+
+    if (postData.location && !postData.location.coordinates?.lat) {
+      console.log('🗺️ Geocoding location...');
+      const coords = await GeocodingService.getCoordinates(postData.location);
+      
+      if (coords) {
+        postData.location.coordinates = {
+          lat: coords.lat,
+          lng: coords.lng
+        };
+        console.log('✅ Coordinates added:', coords);
+      } else {
+        console.log('⚠️ Geocoding failed, proceeding without coordinates');
+      }
+    }
     
     let post;
     const basePostData = {
@@ -271,29 +295,66 @@ router.post('/create', verifyToken, (req, res, next) => {
     // Create post based on type
     switch(postType) {
       case 'Waste':
-        // Ensure materials is an array
+        // Parse materials data - should be JSON string with format [{materialID, quantity}, ...]
         if (typeof postData.materials === 'string') {
-          basePostData.materials = postData.materials
-            .split(',')
-            .map(m => m.trim())
-            .filter(m => m.length > 0);
+          try {
+            basePostData.materials = JSON.parse(postData.materials);
+          } catch (e) {
+            console.error('Failed to parse materials:', e);
+            return res.status(400).json({
+              success: false,
+              message: 'Invalid materials format. Expected JSON array of {materialID, quantity} objects.'
+            });
+          }
+        } else if (Array.isArray(postData.materials)) {
+          basePostData.materials = postData.materials;
         }
-        
-        basePostData.quantity = parseFloat(postData.quantity) || 0;
-        basePostData.unit = postData.unit || 'kg';
+
+        // Enrich materials with materialName for efficient display
+        if (Array.isArray(basePostData.materials)) {
+          const Material = require('../models/Material');
+          const enrichedMaterials = [];
+
+          for (const mat of basePostData.materials) {
+            // If materialName is already provided, use it
+            if (mat.materialName) {
+              enrichedMaterials.push(mat);
+            } else if (mat.materialID) {
+              // Otherwise, look it up from the database
+              try {
+                const material = await Material.findById(mat.materialID);
+                enrichedMaterials.push({
+                  materialID: mat.materialID,
+                  quantity: mat.quantity,
+                  materialName: material ? (material.displayName || material.type) : mat.materialID
+                });
+              } catch (err) {
+                console.error('Error fetching material:', err);
+                // Fallback to materialID if lookup fails
+                enrichedMaterials.push({
+                  materialID: mat.materialID,
+                  quantity: mat.quantity,
+                  materialName: mat.materialID
+                });
+              }
+            }
+          }
+
+          basePostData.materials = enrichedMaterials;
+        }
+
         basePostData.price = parseFloat(postData.price) || 0;
-        basePostData.condition = postData.condition || 'Good';
         basePostData.pickupDate = postData.pickupDate || null;
         basePostData.pickupTime = postData.pickupTime || null;
         basePostData.status = 'Active';
-        
+
         post = await WastePost.create(basePostData);
         
         try {
           await Point.create({
             userID: user.userID,
-            pointType: 'Post_Creation',
-            points: 10,
+            transaction: 'Post_Creation',
+            pointsEarned: 10,
             description: `Created waste post: ${post.title}`
           });
         } catch (pointError) {

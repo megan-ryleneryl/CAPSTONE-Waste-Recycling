@@ -1,14 +1,20 @@
 // client/src/components/chat/PickupScheduleForm.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Calendar } from 'lucide-react';
 import styles from './PickupScheduleForm.module.css';
+import PSGCService from '../../services/psgcService';
 
 const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     pickupDate: '',
     pickupTime: '',
-    pickupLocation: '',
+    // PSGC Location fields
+    region: '',
+    province: '',
+    city: '',
+    barangay: '',
+    addressLine: '',
     contactPerson: '',
     contactNumber: '',
     alternateContact: '',
@@ -17,6 +23,141 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  // PSGC Location states
+  const [regions, setRegions] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [barangays, setBarangays] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+
+  // Load regions on mount
+  useEffect(() => {
+    loadRegions();
+  }, []);
+
+  const loadRegions = async () => {
+    setLoadingLocations(true);
+    try {
+      const data = await PSGCService.getRegions();
+      setRegions(data);
+    } catch (error) {
+      console.error('Error loading regions:', error);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  const handleRegionChange = async (e) => {
+    const regionCode = e.target.value;
+    const selectedRegion = regions.find(r => r.code === regionCode);
+
+    const isNCR = selectedRegion && (
+      selectedRegion.name.includes('NCR') ||
+      selectedRegion.name.includes('National Capital Region') ||
+      regionCode === '130000000'
+    );
+
+    setFormData({
+      ...formData,
+      region: regionCode,
+      province: isNCR ? 'NCR' : '',
+      city: '',
+      barangay: ''
+    });
+
+    setProvinces([]);
+    setCities([]);
+    setBarangays([]);
+
+    if (errors.region) {
+      setErrors(prev => ({ ...prev, region: '' }));
+    }
+
+    if (regionCode) {
+      setLoadingLocations(true);
+      try {
+        if (isNCR) {
+          const data = await PSGCService.getCitiesFromRegion(regionCode);
+          setCities(data);
+        } else {
+          const data = await PSGCService.getProvinces(regionCode);
+          setProvinces(data);
+        }
+      } catch (error) {
+        console.error('Error loading location data:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleProvinceChange = async (e) => {
+    const provinceCode = e.target.value;
+    setFormData({
+      ...formData,
+      province: provinceCode,
+      city: '',
+      barangay: ''
+    });
+
+    setCities([]);
+    setBarangays([]);
+
+    if (errors.province) {
+      setErrors(prev => ({ ...prev, province: '' }));
+    }
+
+    if (provinceCode) {
+      setLoadingLocations(true);
+      try {
+        const data = await PSGCService.getCitiesMunicipalities(provinceCode);
+        setCities(data);
+      } catch (error) {
+        console.error('Error loading cities/municipalities:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleCityChange = async (e) => {
+    const cityCode = e.target.value;
+    setFormData({
+      ...formData,
+      city: cityCode,
+      barangay: ''
+    });
+
+    setBarangays([]);
+
+    if (errors.city) {
+      setErrors(prev => ({ ...prev, city: '' }));
+    }
+
+    if (cityCode) {
+      setLoadingLocations(true);
+      try {
+        const data = await PSGCService.getBarangays(cityCode);
+        setBarangays(data);
+      } catch (error) {
+        console.error('Error loading barangays:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleBarangayChange = (e) => {
+    setFormData({
+      ...formData,
+      barangay: e.target.value
+    });
+
+    if (errors.barangay) {
+      setErrors(prev => ({ ...prev, barangay: '' }));
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -45,8 +186,32 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
       newErrors.pickupTime = 'Pickup time is required';
     }
 
-    if (!formData.pickupLocation.trim()) {
-      newErrors.pickupLocation = 'Pickup location is required';
+    // Location validation
+    if (!formData.region) {
+      newErrors.region = 'Region is required';
+    }
+
+    const selectedRegion = regions.find(r => r.code === formData.region);
+    const isNCR = selectedRegion && (
+      selectedRegion.name.includes('NCR') ||
+      selectedRegion.name.includes('National Capital Region') ||
+      formData.region === '130000000'
+    );
+
+    if (!isNCR && !formData.province) {
+      newErrors.province = 'Province is required';
+    }
+
+    if (!formData.city) {
+      newErrors.city = 'City/Municipality is required';
+    }
+
+    if (!formData.barangay) {
+      newErrors.barangay = 'Barangay is required';
+    }
+
+    if (!formData.addressLine.trim()) {
+      newErrors.addressLine = 'Specific address is required';
     }
 
     if (!formData.contactPerson.trim()) {
@@ -71,9 +236,46 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
     }
 
     setLoading(true);
-    
+
     try {
-      await onSubmit(formData);
+      // Build structured location object
+      const selectedRegion = regions.find(r => r.code === formData.region);
+      const selectedProvince = provinces.find(p => p.code === formData.province);
+      const selectedCity = cities.find(c => c.code === formData.city);
+      const selectedBarangay = barangays.find(b => b.code === formData.barangay);
+
+      const locationData = {
+        region: {
+          code: formData.region,
+          name: selectedRegion?.name || ''
+        },
+        province: selectedProvince ? {
+          code: formData.province,
+          name: selectedProvince.name
+        } : null,
+        city: {
+          code: formData.city,
+          name: selectedCity?.name || ''
+        },
+        barangay: {
+          code: formData.barangay,
+          name: selectedBarangay?.name || ''
+        },
+        addressLine: formData.addressLine
+      };
+
+      // Prepare data to submit (replace individual location fields with structured location)
+      const dataToSubmit = {
+        pickupDate: formData.pickupDate,
+        pickupTime: formData.pickupTime,
+        pickupLocation: locationData, // Send as structured object
+        contactPerson: formData.contactPerson,
+        contactNumber: formData.contactNumber,
+        alternateContact: formData.alternateContact,
+        specialInstructions: formData.specialInstructions
+      };
+
+      await onSubmit(dataToSubmit);
     } catch (error) {
       console.error('Error submitting pickup schedule:', error);
       alert('Failed to schedule pickup. Please try again.');
@@ -119,7 +321,9 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
           <div className={styles.postInfo}>
             <h3>{post.title}</h3>
             <p className={styles.postMeta}>
-              {post.wasteType || post.materials} • {post.quantity || post.amount} {post.unit || 'items'}
+              {post.wasteType || (Array.isArray(post.materials)
+                ? post.materials.map(m => m.materialName || m).join(', ')
+                : post.materials)} • {post.quantity || post.amount} kg
             </p>
           </div>
         )}
@@ -178,21 +382,148 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
             </div>
           </div>
 
+          {/* PSGC Location Fields */}
           <div className={styles.field}>
-            <label htmlFor="pickupLocation">
-              Pickup Location <span className={styles.required}>*</span>
+            <label htmlFor="region">
+              Region <span className={styles.required}>*</span>
+            </label>
+            <select
+              id="region"
+              name="region"
+              value={formData.region}
+              onChange={handleRegionChange}
+              className={errors.region ? styles.errorInput : ''}
+              disabled={loadingLocations}
+            >
+              <option value="">
+                {loadingLocations ? 'Loading...' : 'Select Region'}
+              </option>
+              {regions.map((region) => (
+                <option key={region.code} value={region.code}>
+                  {region.name}
+                </option>
+              ))}
+            </select>
+            {errors.region && (
+              <span className={styles.errorMsg}>{errors.region}</span>
+            )}
+          </div>
+
+          {/* Province dropdown - hidden for NCR */}
+          {formData.region && (() => {
+            const selectedRegion = regions.find(r => r.code === formData.region);
+            const isNCR = selectedRegion && (
+              selectedRegion.name.includes('NCR') ||
+              selectedRegion.name.includes('National Capital Region') ||
+              formData.region === '130000000'
+            );
+
+            return !isNCR && (
+              <div className={styles.field}>
+                <label htmlFor="province">
+                  Province <span className={styles.required}>*</span>
+                </label>
+                <select
+                  id="province"
+                  name="province"
+                  value={formData.province}
+                  onChange={handleProvinceChange}
+                  className={errors.province ? styles.errorInput : ''}
+                  disabled={!formData.region || loadingLocations}
+                >
+                  <option value="">
+                    {loadingLocations ? 'Loading...' : 'Select Province'}
+                  </option>
+                  {provinces.map((province) => (
+                    <option key={province.code} value={province.code}>
+                      {province.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.province && (
+                  <span className={styles.errorMsg}>{errors.province}</span>
+                )}
+              </div>
+            );
+          })()}
+
+          <div className={styles.row}>
+            <div className={styles.field}>
+              <label htmlFor="city">
+                City/Municipality <span className={styles.required}>*</span>
+              </label>
+              <select
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={handleCityChange}
+                className={errors.city ? styles.errorInput : ''}
+                disabled={(() => {
+                  const selectedRegion = regions.find(r => r.code === formData.region);
+                  const isNCR = selectedRegion && (
+                    selectedRegion.name.includes('NCR') ||
+                    selectedRegion.name.includes('National Capital Region') ||
+                    formData.region === '130000000'
+                  );
+                  return (!formData.region || (!isNCR && !formData.province) || loadingLocations);
+                })()}
+              >
+                <option value="">
+                  {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
+                </option>
+                {cities.map((city) => (
+                  <option key={city.code} value={city.code}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+              {errors.city && (
+                <span className={styles.errorMsg}>{errors.city}</span>
+              )}
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="barangay">
+                Barangay <span className={styles.required}>*</span>
+              </label>
+              <select
+                id="barangay"
+                name="barangay"
+                value={formData.barangay}
+                onChange={handleBarangayChange}
+                className={errors.barangay ? styles.errorInput : ''}
+                disabled={!formData.city || loadingLocations}
+              >
+                <option value="">
+                  {loadingLocations ? 'Loading...' : 'Select Barangay'}
+                </option>
+                {barangays.map((barangay) => (
+                  <option key={barangay.code} value={barangay.code}>
+                    {barangay.name}
+                  </option>
+                ))}
+              </select>
+              {errors.barangay && (
+                <span className={styles.errorMsg}>{errors.barangay}</span>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label htmlFor="addressLine">
+              Specific Address / Landmark <span className={styles.required}>*</span>
             </label>
             <input
               type="text"
-              id="pickupLocation"
-              name="pickupLocation"
-              placeholder="Complete address or landmark"
-              value={formData.pickupLocation}
+              id="addressLine"
+              name="addressLine"
+              placeholder="e.g., Unit 5B, Greenview Bldg., near 7-Eleven"
+              value={formData.addressLine}
               onChange={handleChange}
-              className={errors.pickupLocation ? styles.errorInput : ''}
+              className={errors.addressLine ? styles.errorInput : ''}
             />
-            {errors.pickupLocation && (
-              <span className={styles.errorMsg}>{errors.pickupLocation}</span>
+            {errors.addressLine && (
+              <span className={styles.errorMsg}>{errors.addressLine}</span>
             )}
           </div>
 

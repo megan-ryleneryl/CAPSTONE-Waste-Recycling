@@ -466,7 +466,9 @@ const PickupTracking = () => {
                 {postData?.materials ? (
                   Array.isArray(postData.materials) ? (
                     postData.materials.map((material, index) => (
-                      <span key={index} className={styles.materialTag}>{material}</span>
+                      <span key={index} className={styles.materialTag}>
+                        {typeof material === 'object' ? material.materialName : material}
+                      </span>
                     ))
                   ) : (
                     postData.materials.split(',').map((material, index) => (
@@ -619,7 +621,7 @@ const PickupTracking = () => {
       {/* Completion Modal */}
       {showCompletionModal && (
         <PickupCompletionModal
-          pickup={pickup}
+          pickup={{ ...pickup, postData }}
           onComplete={handleComplete}
           onCancel={() => setShowCompletionModal(false)}
           loading={updating}
