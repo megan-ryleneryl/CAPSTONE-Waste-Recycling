@@ -621,7 +621,7 @@ const PickupTracking = () => {
       {/* Completion Modal */}
       {showCompletionModal && (
         <PickupCompletionModal
-          pickup={pickup}
+          pickup={{ ...pickup, postData }}
           onComplete={handleComplete}
           onCancel={() => setShowCompletionModal(false)}
           loading={updating}

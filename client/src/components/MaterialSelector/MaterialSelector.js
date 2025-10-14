@@ -42,6 +42,15 @@ const MaterialSelector = ({ selectedMaterials, onChange }) => {
   const updateMaterial = (index, field, value) => {
     const updated = [...selectedMaterials];
     updated[index] = { ...updated[index], [field]: value };
+
+    // If updating materialID, also add materialName for efficient display
+    if (field === 'materialID' && value) {
+      const material = availableMaterials.find(m => m.materialID === value);
+      if (material) {
+        updated[index].materialName = material.displayName || material.type;
+      }
+    }
+
     onChange(updated);
   };
 
