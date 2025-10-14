@@ -119,7 +119,9 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
           <div className={styles.postInfo}>
             <h3>{post.title}</h3>
             <p className={styles.postMeta}>
-              {post.wasteType || post.materials} • {post.quantity || post.amount} {post.unit || 'items'}
+              {post.wasteType || (Array.isArray(post.materials)
+                ? post.materials.map(m => m.materialName || m).join(', ')
+                : post.materials)} • {post.quantity || post.amount} kg
             </p>
           </div>
         )}

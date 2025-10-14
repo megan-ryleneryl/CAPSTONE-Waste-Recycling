@@ -353,8 +353,8 @@ router.post('/create', verifyToken, (req, res, next) => {
         try {
           await Point.create({
             userID: user.userID,
-            pointType: 'Post_Creation',
-            points: 10,
+            transaction: 'Post_Creation',
+            pointsEarned: 10,
             description: `Created waste post: ${post.title}`
           });
         } catch (pointError) {
