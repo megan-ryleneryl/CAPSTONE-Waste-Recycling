@@ -5,25 +5,32 @@ const axios = require('axios');
 
 const PSGC_BASE_URL = 'https://psgc.gitlab.io/api';
 
-// NCR cities with VERIFIED codes that work with PSGC API
+// NCR cities with CORRECT PSGC codes
 const NCR_CITIES = [
+  // First District
   { code: '133900000', name: 'City of Manila', regionCode: '130000000' },
-  { code: '134500000', name: 'Mandaluyong City', regionCode: '130000000' },
-  { code: '134600000', name: 'Marikina City', regionCode: '130000000' },
-  { code: '134700000', name: 'Pasig City', regionCode: '130000000' },
-  { code: '137400000', name: 'Quezon City', regionCode: '130000000' },
-  { code: '137500000', name: 'San Juan City', regionCode: '130000000' },
-  { code: '137600000', name: 'Caloocan City', regionCode: '130000000' },
-  { code: '137700000', name: 'Malabon City', regionCode: '130000000' },
-  { code: '137800000', name: 'Navotas City', regionCode: '130000000' },
-  { code: '137900000', name: 'Valenzuela City', regionCode: '130000000' },
-  { code: '174000000', name: 'Las Piñas City', regionCode: '130000000' },
-  { code: '174100000', name: 'Makati City', regionCode: '130000000' },
-  { code: '174200000', name: 'Muntinlupa City', regionCode: '130000000' },
-  { code: '174300000', name: 'Parañaque City', regionCode: '130000000' },
-  { code: '174400000', name: 'Pasay City', regionCode: '130000000' },
-  { code: '174500000', name: 'Pateros', regionCode: '130000000' },
-  { code: '174600000', name: 'Taguig City', regionCode: '130000000' }
+  
+  // Second District
+  { code: '137401000', name: 'City of Mandaluyong', regionCode: '130000000' },
+  { code: '137402000', name: 'City of Marikina', regionCode: '130000000' },
+  { code: '137403000', name: 'City of Pasig', regionCode: '130000000' },
+  { code: '137405000', name: 'City of San Juan', regionCode: '130000000' },
+  { code: '137404000', name: 'Quezon City', regionCode: '130000000' },
+  
+  // Third District
+  { code: '137501000', name: 'Caloocan City', regionCode: '130000000' },
+  { code: '137502000', name: 'City of Malabon', regionCode: '130000000' },
+  { code: '137503000', name: 'City of Navotas', regionCode: '130000000' },
+  { code: '137504000', name: 'City of Valenzuela', regionCode: '130000000' },
+  
+  // Fourth District
+  { code: '137601000', name: 'City of Las Piñas', regionCode: '130000000' },
+  { code: '137602000', name: 'City of Makati', regionCode: '130000000' },
+  { code: '137603000', name: 'City of Muntinlupa', regionCode: '130000000' },
+  { code: '137604000', name: 'City of Parañaque', regionCode: '130000000' },
+  { code: '137605000', name: 'Pasay City', regionCode: '130000000' },
+  { code: '137607000', name: 'Taguig City', regionCode: '130000000' },
+  { code: '137606000', name: 'Pateros', regionCode: '130000000' }
 ];
 
 // Get all regions
