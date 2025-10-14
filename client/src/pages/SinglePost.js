@@ -163,6 +163,19 @@ const SinglePost = ({ onDataUpdate }) => {
     }
   };
 
+  const formatLocation = (location) => {
+    if (!location) return 'Location not specified';
+    if (typeof location === 'string') return location;
+
+    const parts = [];
+    if (location.barangay?.name) parts.push(location.barangay.name);
+    if (location.city?.name) parts.push(location.city.name);
+    if (location.province?.name && location.province.name !== 'NCR') parts.push(location.province.name);
+    if (location.region?.name) parts.push(location.region.name);
+
+    return parts.length > 0 ? parts.join(', ') : 'Location not specified';
+  };
+
   const formatTimestamp = (date) => {
     if (!date) return '';
 
@@ -427,10 +440,10 @@ const SinglePost = ({ onDataUpdate }) => {
               </div>
               <div className={styles.formGroup}>
                 <label>Pickup Location</label>
-                <input 
-                  type="text" 
-                  defaultValue={post.location}
-                  required 
+                <input
+                  type="text"
+                  defaultValue={formatLocation(post.location)}
+                  required
                 />
               </div>
               <div className={styles.formGroup}>

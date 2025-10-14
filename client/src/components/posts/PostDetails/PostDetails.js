@@ -173,14 +173,35 @@ const PostDetails = ({ post, user: currentUser }) => {
   const formatMaterials = (materials) => {
     if (!materials) return 'Not specified';
     if (Array.isArray(materials)) {
+      if (materials.length === 0) return 'Not specified';
+
+      // Check if materials are objects with materialName
+      if (typeof materials[0] === 'object' && materials[0].materialName) {
+        return materials.map(m => m.materialName).join(', ');
+      }
+
+      // Fallback for old string format
       return materials.join(', ');
     }
     return materials;
   };
 
+  const formatLocation = (location) => {
+    if (!location) return 'Location not specified';
+    if (typeof location === 'string') return location;
+
+    const parts = [];
+    if (location.barangay?.name) parts.push(location.barangay.name);
+    if (location.city?.name) parts.push(location.city.name);
+    if (location.province?.name && location.province.name !== 'NCR') parts.push(location.province.name);
+    if (location.region?.name) parts.push(location.region.name);
+
+    return parts.length > 0 ? parts.join(', ') : 'Location not specified';
+  };
+
   const formatPickupTime = (date, time) => {
     if (!date && !time) return 'Flexible';
-    
+
     let result = '';
     if (date) {
       const d = new Date(date);
@@ -230,10 +251,10 @@ const PostDetails = ({ post, user: currentUser }) => {
               <span className={styles.icon}><Weight size={18} /></span>
               <span className={styles.value}>{post.quantity} {post.unit || 'kg'}</span>
             </div>
-            
+
             <div className={styles.detailItem}>
               <span className={styles.icon}><Tag size={18} /></span>
-              <span className={styles.value}>{post.location}</span>
+              <span className={styles.value}>{formatLocation(post.location)}</span>
             </div>
             
             <div className={styles.detailItem}>
@@ -281,10 +302,10 @@ const PostDetails = ({ post, user: currentUser }) => {
               <span className={styles.icon}><Goal size={18} /></span>
               <span className={styles.value}>{post.goal || 'Environmental initiative'}</span>
             </div>
-            
+
             <div className={styles.detailItem}>
               <span className={styles.icon}><Tag size={18} /></span>
-              <span className={styles.value}>{post.location}</span>
+              <span className={styles.value}>{formatLocation(post.location)}</span>
             </div>
 
             {post.targetAmount && (
@@ -348,7 +369,7 @@ const PostDetails = ({ post, user: currentUser }) => {
             
             <div className={styles.detailItem}>
               <span className={styles.icon}><MapPin size={18} /></span>
-              <span className={styles.value}>{post.location}</span>
+              <span className={styles.value}>{formatLocation(post.location)}</span>
             </div>
 
             {post.tags && post.tags.length > 0 && (
@@ -403,7 +424,7 @@ const PostDetails = ({ post, user: currentUser }) => {
                   <p><strong>Title:</strong> {post.title}</p>
                   <p><strong>Materials:</strong> {formatMaterials(post.materials)}</p>
                   <p><strong>Quantity:</strong> {post.quantity} {post.unit || 'kg'}</p>
-                  <p><strong>Location:</strong> {post.location}</p>
+                  <p><strong>Location:</strong> {formatLocation(post.location)}</p>
                 </div>
               </div>
               <div className={styles.modalActions}>

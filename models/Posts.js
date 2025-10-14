@@ -8,7 +8,33 @@ class Post {
     this.postType = data.postType || ''; // Waste, Initiative, Forum
     this.title = data.title || '';
     this.description = data.description || '';
-    this.location = data.location || '';
+
+    this.location = data.location ? (
+      typeof data.location === 'string' ? data.location : {
+        region: {
+          code: data.location.region?.code || '',
+          name: data.location.region?.name || ''
+        },
+        province: data.location.province ? {
+          code: data.location.province.code || '',
+          name: data.location.province.name || ''
+        } : null,
+        city: {
+          code: data.location.city?.code || '',
+          name: data.location.city?.name || ''
+        },
+        barangay: {
+          code: data.location.barangay?.code || '',
+          name: data.location.barangay?.name || ''
+        },
+        addressLine: data.location.addressLine || '',
+        coordinates: {
+          lat: data.location.coordinates?.lat || null,
+          lng: data.location.coordinates?.lng || null
+        }
+      }
+    ) : null;
+    
     this.status = data.status || 'Active'; // Active, Claimed, Completed, Cancelled, Inactive, Locked, Hidden
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
+import MaterialSelector from '../components/MaterialSelector/MaterialSelector';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
 import { Image, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -50,8 +51,9 @@ const CreatePost = () => {
     province: '',
     city: '',
     barangay: '',
+    addressLine: '',  
     // Waste specific
-    materials: '',
+    materials: [], 
     quantity: '',
     unit: 'kg',
     pickupDate: '',
@@ -234,6 +236,11 @@ const CreatePost = () => {
       setError('Please select a region');
       return false;
     }
+
+    if (!formData.addressLine.trim()) {
+      setError('Specific address is required');
+      return false;
+    }
     
     const selectedRegion = regions.find(r => r.code === formData.region);
     const isNCR = selectedRegion && (
@@ -259,16 +266,25 @@ const CreatePost = () => {
     }
     
     // Type-specific validation
-    if (postType === 'Waste') {
-      if (!formData.materials.trim()) {
-        setError('Materials are required for Waste posts');
-        return false;
-      }
-      if (!formData.quantity || formData.quantity <= 0) {
-        setError('Valid quantity is required for Waste posts');
-        return false;
-      }
-    } else if (postType === 'Initiative') {
+      if (postType === 'Waste') {
+        if (!formData.materials || formData.materials.length === 0) {
+          setError('At least one material is required for Waste posts');
+          return false;
+        }
+        
+        // Validate each material has required fields
+        for (let i = 0; i < formData.materials.length; i++) {
+          const material = formData.materials[i];
+          if (!material.materialID) {
+            setError(`Please select a material for item ${i + 1}`);
+            return false;
+          }
+          if (!material.quantity || material.quantity <= 0) {
+            setError(`Please enter a valid quantity for item ${i + 1}`);
+            return false;
+          }
+        }
+      } else if (postType === 'Initiative') {
       if (!formData.goal.trim()) {
         setError('Goal is required for Initiative posts');
         return false;
@@ -282,28 +298,50 @@ const CreatePost = () => {
     return true;
   };
 
-  // Get selected location names for display
-  const getLocationString = () => {
+  // Get structured location data for API submission
+  const getLocationData = () => {
     const selectedRegion = regions.find(r => r.code === formData.region);
-    const isNCR = selectedRegion && (
-      selectedRegion.name.includes('NCR') || 
-      selectedRegion.name.includes('National Capital Region') ||
-      formData.region === '130000000'
-    );
-
     const selectedProvince = provinces.find(p => p.code === formData.province);
     const selectedCity = cities.find(c => c.code === formData.city);
     const selectedBarangay = barangays.find(b => b.code === formData.barangay);
-    
+
+    // Build structured location object
+    const locationData = {
+      region: {
+        code: formData.region,
+        name: selectedRegion?.name || ''
+      },
+      province: selectedProvince ? {
+        code: formData.province,
+        name: selectedProvince.name
+      } : null,
+      city: {
+        code: formData.city,
+        name: selectedCity?.name || ''
+      },
+      barangay: {
+        code: formData.barangay,
+        name: selectedBarangay?.name || ''
+      },
+      addressLine: formData.addressLine
+    };
+
+    return JSON.stringify(locationData);
+  };
+
+  // Get human-readable location string for display
+  const getLocationDisplayString = () => {
+    const selectedRegion = regions.find(r => r.code === formData.region);
+    const selectedProvince = provinces.find(p => p.code === formData.province);
+    const selectedCity = cities.find(c => c.code === formData.city);
+    const selectedBarangay = barangays.find(b => b.code === formData.barangay);
+
     const parts = [];
-    if (selectedBarangay) parts.push(selectedBarangay.name);
-    if (selectedCity) parts.push(selectedCity.name);
-    if (selectedProvince) parts.push(selectedProvince.name);
-    if (selectedRegion) {
-      // For NCR, we can simplify the name
-      parts.push(isNCR ? 'Metro Manila' : selectedRegion.name);
-    }
-    
+    if (selectedBarangay?.name) parts.push(selectedBarangay.name);
+    if (selectedCity?.name) parts.push(selectedCity.name);
+    if (selectedProvince?.name && selectedProvince.name !== 'NCR') parts.push(selectedProvince.name);
+    if (selectedRegion?.name) parts.push(selectedRegion.name);
+
     return parts.join(', ');
   };
 
@@ -381,23 +419,29 @@ const handleRemoveImage = (index) => {
     console.log('Token exists:', !!token);
     console.log('Token preview:', token.substring(0, 20) + '...');
 
-    // Prepare location string
-    const locationString = getLocationString();
-    
+    // Prepare location data
+    const locationData = getLocationData();
+
     // Prepare FormData for file upload
     const formDataToSend = new FormData();
-        
+
     // Add all form fields
     formDataToSend.append('postType', postType);
     formDataToSend.append('title', formData.title.trim());
     formDataToSend.append('description', formData.description.trim());
-    formDataToSend.append('location', locationString);
+    formDataToSend.append('location', locationData);
 
     // Add type-specific fields
     if (postType === 'Waste') {
-      formDataToSend.append('materials', formData.materials);
-      formDataToSend.append('quantity', parseFloat(formData.quantity));
-      formDataToSend.append('unit', formData.unit);
+      // Calculate total quantity from all materials
+      const totalQuantity = formData.materials.reduce((sum, material) => {
+        return sum + parseFloat(material.quantity || 0);
+      }, 0);
+
+      // Send materials as JSON string to preserve the structure
+      formDataToSend.append('materials', JSON.stringify(formData.materials));
+      formDataToSend.append('quantity', totalQuantity);
+      formDataToSend.append('unit', 'kg');
       if (formData.pickupDate) formDataToSend.append('pickupDate', formData.pickupDate);
       if (formData.pickupTime) formDataToSend.append('pickupTime', formData.pickupTime);
     } else if (postType === 'Initiative') {
@@ -470,7 +514,7 @@ const handleRemoveImage = (index) => {
   } finally {
     setLoading(false);
   }
-};
+  };
 
   // Handle cancel
   const handleCancel = () => {
@@ -692,10 +736,29 @@ const handleRemoveImage = (index) => {
             {/* Show selected location preview */}
             {formData.barangay && (
               <div className={styles.locationPreview}>
-                <strong>Selected Location:</strong> {getLocationString()}
+                <strong>Selected Location:</strong> {getLocationDisplayString()}
               </div>
             )}
-          </div>
+
+            <div className={styles.formGroup}>
+                <label htmlFor="addressLine" className={styles.label}>
+                  Specific Address / Landmark *
+                </label>
+                <input
+                  type="text"
+                  id="addressLine"
+                  name="addressLine"
+                  value={formData.addressLine}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  placeholder="e.g., Unit 5B, Greenview Bldg., near 7-Eleven"
+                  required
+                />
+                <span className={styles.hint}>
+                  Be specific to help collectors find your location
+                </span>
+              </div>
+          </div> 
 
           {/* Image Upload Section - For All Post Types */}
           <div className={styles.imageUploadSection}>
@@ -748,50 +811,24 @@ const handleRemoveImage = (index) => {
 
           {/* Waste-specific Fields */}
           {postType === 'Waste' && (
-            <>
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="materials" className={styles.label}>
-                    Materials *
-                    <span className={styles.hint}>Separate with commas</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="materials"
-                    name="materials"
-                    value={formData.materials}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    placeholder="e.g., plastic bottles, cardboard, paper"
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="quantity" className={styles.label}>
-                    Quantity *
-                  </label>
-                    <input
-                      type="number"
-                      id="quantity"
-                      name="quantity"
-                      value={formData.quantity}
-                      onChange={handleInputChange}
-                      className={styles.input}
-                      placeholder="0"
-                      min="0.1"
-                      step="0.1"
-                      required
-                    />
-                </div>
-
-              </div>
-
+            <div className={styles.wasteSpecific}>
+              <h3 className={styles.sectionTitle}>
+                <Package size={20} /> Waste Details
+              </h3>
+              
+              {/* Use Material Selector instead of text input */}
+              <MaterialSelector
+                selectedMaterials={formData.materials}
+                onChange={(materials) => setFormData({ ...formData, materials })}
+              />
+              
+              {/* Remove the quantity and unit inputs - now handled in MaterialSelector */}
+              
+              {/* Keep pickupDate and pickupTime */}
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label htmlFor="pickupDate" className={styles.label}>
                     Preferred Pickup Date
-                    <span className={styles.hint}>Optional</span>
                   </label>
                   <input
                     type="date"
@@ -803,11 +840,10 @@ const handleRemoveImage = (index) => {
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
-
+                
                 <div className={styles.formGroup}>
                   <label htmlFor="pickupTime" className={styles.label}>
                     Preferred Pickup Time
-                    <span className={styles.hint}>Optional</span>
                   </label>
                   <input
                     type="time"
@@ -819,7 +855,7 @@ const handleRemoveImage = (index) => {
                   />
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* Initiative-specific Fields */}

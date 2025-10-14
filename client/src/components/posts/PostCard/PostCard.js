@@ -258,9 +258,31 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
   const formatMaterials = (materials) => {
     if (!materials) return 'Not specified';
     if (Array.isArray(materials)) {
-      return materials.length > 0 ? materials.join(', ') : 'Not specified';
+      if (materials.length === 0) return 'Not specified';
+
+      // Check if materials are objects with materialName
+      if (typeof materials[0] === 'object' && materials[0].materialName) {
+        return materials.map(m => m.materialName).join(', ');
+      }
+
+      // Fallback for old string format
+      return materials.join(', ');
     }
     return materials.toString();
+  };
+
+  // Format location object to string
+  const formatLocation = (location) => {
+    if (!location) return 'Location not specified';
+    if (typeof location === 'string') return location;
+
+    const parts = [];
+    if (location.barangay?.name) parts.push(location.barangay.name);
+    if (location.city?.name) parts.push(location.city.name);
+    if (location.province?.name && location.province.name !== 'NCR') parts.push(location.province.name);
+    if (location.region?.name) parts.push(location.region.name);
+
+    return parts.length > 0 ? parts.join(', ') : 'Location not specified';
   };
 
   // Format pickup time preference
@@ -602,7 +624,7 @@ const handleMessageOwner = async (post, event) => {
                   </div>
                   <div className={styles.detailItem}>
                     <span className={styles.detailIcon}><MapPin size={18} /></span>
-                    <span className={styles.detailText}>{post.location}</span>
+                    <span className={styles.detailText}>{formatLocation(post.location)}</span>
                   </div>
                   <div className={styles.detailItem}>
                     <span className={styles.detailIcon}><Weight size={18} /></span>
@@ -641,7 +663,7 @@ const handleMessageOwner = async (post, event) => {
                   </div>
                   <div className={styles.detailItem}>
                     <span className={styles.detailIcon}><MapPin size={18} /></span>
-                    <span className={styles.detailText}>{post.location}</span>
+                    <span className={styles.detailText}>{formatLocation(post.location)}</span>
                   </div>
                   {post.targetAmount && (
                     <>
@@ -693,7 +715,7 @@ const handleMessageOwner = async (post, event) => {
                   </div>
                   <div className={styles.detailItem}>
                     <span className={styles.detailIcon}><MapPin size={18} /></span>
-                    <span className={styles.detailText}>{post.location}</span>
+                    <span className={styles.detailText}>{formatLocation(post.location)}</span>
                   </div>
                   {post.tags && post.tags.length > 0 && (
                     <div className={styles.tags}>
