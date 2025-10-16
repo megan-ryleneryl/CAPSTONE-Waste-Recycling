@@ -87,6 +87,77 @@ const Dashboard = () => {
     }
   }, [activeTab, user]);
 
+  // Get welcome message based on user role
+  const getWelcomeMessage = () => {
+    if (user.isAdmin) {
+      return 'Monitor platform performance and manage the community';
+    } else if (user.isCollector && user.isOrganization) {
+      return 'Manage your organization\'s initiatives and collections';
+    } else if (user.isCollector) {
+      return 'View your collection activity and claim new posts';
+    } else if (user.isOrganization) {
+      return 'Manage your organization\'s recycling initiatives';
+    } else {
+      return 'Here\'s what\'s happening with your recycling activities';
+    }
+  };
+
+  // Render quick stats based on user role
+  const renderQuickStats = () => {
+    if (user.isAdmin) {
+      return (
+        <>
+          <div className={styles.quickStat}>
+            <span className={styles.quickStatValue}>{analyticsData.activeUsers}</span>
+            <span className={styles.quickStatLabel}>Active Users</span>
+          </div>
+          <div className={styles.quickStat}>
+            <span className={styles.quickStatValue}>{analyticsData.totalPosts}</span>
+            <span className={styles.quickStatLabel}>Total Posts</span>
+          </div>
+          <div className={styles.quickStat}>
+            <span className={styles.quickStatValue}>{analyticsData.totalPickups}</span>
+            <span className={styles.quickStatLabel}>Pickups</span>
+          </div>
+        </>
+      );
+    } else if (user.isCollector) {
+      return (
+        <>
+          <div className={styles.quickStat}>
+            <span className={styles.quickStatValue}>{analyticsData.userStats.activePickups}</span>
+            <span className={styles.quickStatLabel}>Active Pickups</span>
+          </div>
+          <div className={styles.quickStat}>
+            <span className={styles.quickStatValue}>{analyticsData.userStats.completedPickups}</span>
+            <span className={styles.quickStatLabel}>Completed</span>
+          </div>
+          <div className={styles.quickStat}>
+            <span className={styles.quickStatValue}>{user.points || 0}</span>
+            <span className={styles.quickStatLabel}>Points</span>
+          </div>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <div className={styles.quickStat}>
+            <span className={styles.quickStatValue}>{analyticsData.userStats.totalPosts}</span>
+            <span className={styles.quickStatLabel}>My Posts</span>
+          </div>
+          <div className={styles.quickStat}>
+            <span className={styles.quickStatValue}>{analyticsData.userStats.completedPickups}</span>
+            <span className={styles.quickStatLabel}>Completed</span>
+          </div>
+          <div className={styles.quickStat}>
+            <span className={styles.quickStatValue}>{user.points || 0}</span>
+            <span className={styles.quickStatLabel}>Points</span>
+          </div>
+        </>
+      );
+    }
+  };
+
   const fetchAnalyticsData = async () => {
     try {
       setDataLoading(true);
@@ -308,6 +379,449 @@ const Dashboard = () => {
       default:
         return null;
     }
+  };
+
+  // Render role-specific dashboard sections
+  const renderRoleSpecificContent = () => {
+    if (user.isAdmin) {
+      return renderAdminDashboard();
+    } else if (user.isCollector && user.isOrganization) {
+      return renderOrgCollectorDashboard();
+    } else if (user.isCollector) {
+      return renderCollectorDashboard();
+    } else if (user.isOrganization) {
+      return renderOrganizationDashboard();
+    } else {
+      return renderGiverDashboard();
+    }
+  };
+
+  // Admin Dashboard - Platform-wide management
+  const renderAdminDashboard = () => (
+    <div className={styles.adminDashboard}>
+      <h3 className={styles.sectionTitle}>
+        <Users className={styles.sectionIcon} />
+        Platform Management
+      </h3>
+      
+      <div className={styles.adminGrid}>
+        {/* User Management Card */}
+        <div className={styles.adminCard} onClick={() => navigate('/admin/users')}>
+          <div className={styles.adminCardHeader}>
+            <Users className={styles.adminCardIcon} />
+            <h4>User Management</h4>
+          </div>
+          <div className={styles.adminCardStats}>
+            <div className={styles.adminStat}>
+              <span className={styles.adminStatValue}>{analyticsData.activeUsers}</span>
+              <span className={styles.adminStatLabel}>Total Users</span>
+            </div>
+          </div>
+          <button className={styles.adminCardButton}>Manage Users</button>
+        </div>
+
+        {/* Application Approvals Card */}
+        <div className={styles.adminCard} onClick={() => navigate('/admin/approvals')}>
+          <div className={styles.adminCardHeader}>
+            <Package className={styles.adminCardIcon} />
+            <h4>Pending Approvals</h4>
+          </div>
+          <div className={styles.adminCardStats}>
+            <div className={styles.adminStat}>
+              <span className={styles.adminStatValue}>
+                {analyticsData.pendingApplications || 0}
+              </span>
+              <span className={styles.adminStatLabel}>Applications</span>
+            </div>
+          </div>
+          <button className={styles.adminCardButton}>Review Applications</button>
+        </div>
+
+        {/* Platform Statistics Card */}
+        <div className={styles.adminCard}>
+          <div className={styles.adminCardHeader}>
+            <TrendingUp className={styles.adminCardIcon} />
+            <h4>Platform Statistics</h4>
+          </div>
+          <div className={styles.adminCardStats}>
+            <div className={styles.adminStat}>
+              <span className={styles.adminStatValue}>{analyticsData.totalRecycled} kg</span>
+              <span className={styles.adminStatLabel}>Total Recycled</span>
+            </div>
+            <div className={styles.adminStat}>
+              <span className={styles.adminStatValue}>{analyticsData.totalPickups}</span>
+              <span className={styles.adminStatLabel}>Total Pickups</span>
+            </div>
+          </div>
+        </div>
+
+        {/* System Health Card */}
+        <div className={styles.adminCard}>
+          <div className={styles.adminCardHeader}>
+            <Heart className={styles.adminCardIcon} />
+            <h4>System Health</h4>
+          </div>
+          <div className={styles.adminCardStats}>
+            <div className={styles.adminStat}>
+              <span className={`${styles.adminStatValue} ${styles.healthy}`}>Active</span>
+              <span className={styles.adminStatLabel}>Status</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Collector Dashboard - Collection & Initiative management
+  const renderCollectorDashboard = () => (
+    <div className={styles.collectorDashboard}>
+      <h3 className={styles.sectionTitle}>
+        <Package className={styles.sectionIcon} />
+        Collection Activity
+      </h3>
+      
+      <div className={styles.collectorGrid}>
+        {/* Active Collections */}
+        <div className={styles.collectorCard}>
+          <div className={styles.collectorCardHeader}>
+            <h4>Active Collections</h4>
+            <span className={styles.badge}>{analyticsData.userStats.activePickups || 0}</span>
+          </div>
+          <div className={styles.collectorStats}>
+            <div className={styles.statRow}>
+              <span>Pending Coordination</span>
+              <span className={styles.statValue}>
+                {analyticsData.userStats.pendingPickups || 0}
+              </span>
+            </div>
+            <div className={styles.statRow}>
+              <span>Scheduled Today</span>
+              <span className={styles.statValue}>
+                {analyticsData.userStats.scheduledToday || 0}
+              </span>
+            </div>
+          </div>
+          <button 
+            className={styles.collectorButton}
+            onClick={() => navigate('/pickups')}
+          >
+            View All Pickups
+          </button>
+        </div>
+
+        {/* Collection Performance */}
+        <div className={styles.collectorCard}>
+          <div className={styles.collectorCardHeader}>
+            <h4>Performance</h4>
+            <Trophy className={styles.performanceIcon} />
+          </div>
+          <div className={styles.performanceStats}>
+            <div className={styles.perfStat}>
+              <span className={styles.perfLabel}>Total Collected</span>
+              <span className={styles.perfValue}>
+                {analyticsData.userStats.totalCollected || 0} kg
+              </span>
+            </div>
+            <div className={styles.perfStat}>
+              <span className={styles.perfLabel}>Completion Rate</span>
+              <span className={styles.perfValue}>
+                {analyticsData.userStats.completionRate || 0}%
+              </span>
+            </div>
+            <div className={styles.perfStat}>
+              <span className={styles.perfLabel}>Rating</span>
+              <span className={styles.perfValue}>
+                ⭐ {analyticsData.userStats.rating || 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Available Claims */}
+        <div className={styles.collectorCard}>
+          <div className={styles.collectorCardHeader}>
+            <h4>Available Posts</h4>
+          </div>
+          <div className={styles.availablePosts}>
+            <p>New recyclable posts in your area</p>
+            <span className={styles.availableCount}>
+              {analyticsData.availablePosts || 0} posts
+            </span>
+          </div>
+          <button 
+            className={styles.collectorButton}
+            onClick={() => navigate('/posts?type=Waste&status=Available')}
+          >
+            Browse Available Posts
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Organization Dashboard - Initiative management
+  const renderOrganizationDashboard = () => (
+    <div className={styles.organizationDashboard}>
+      <h3 className={styles.sectionTitle}>
+        <Heart className={styles.sectionIcon} />
+        Organization Initiatives
+      </h3>
+      
+      <div className={styles.orgGrid}>
+        {/* Active Initiatives */}
+        <div className={styles.orgCard}>
+          <div className={styles.orgCardHeader}>
+            <h4>Active Initiatives</h4>
+            <span className={styles.badge}>
+              {analyticsData.userStats.activeInitiatives || 0}
+            </span>
+          </div>
+          <div className={styles.orgStats}>
+            <div className={styles.statRow}>
+              <span>Total Supporters</span>
+              <span className={styles.statValue}>
+                {analyticsData.userStats.totalSupporters || 0}
+              </span>
+            </div>
+            <div className={styles.statRow}>
+              <span>Materials Received</span>
+              <span className={styles.statValue}>
+                {analyticsData.userStats.materialsReceived || 0} kg
+              </span>
+            </div>
+          </div>
+          <button 
+            className={styles.orgButton}
+            onClick={() => navigate('/posts?type=Initiative')}
+          >
+            Manage Initiatives
+          </button>
+        </div>
+
+        {/* Impact Metrics */}
+        <div className={styles.orgCard}>
+          <div className={styles.orgCardHeader}>
+            <h4>Impact Metrics</h4>
+            <Leaf className={styles.impactIconSmall} />
+          </div>
+          <div className={styles.impactMetrics}>
+            <div className={styles.impactMetric}>
+              <Trees size={24} />
+              <div>
+                <span className={styles.impactValue}>
+                  {analyticsData.userStats.treesEquivalent || 0}
+                </span>
+                <span className={styles.impactLabel}>Trees Saved</span>
+              </div>
+            </div>
+            <div className={styles.impactMetric}>
+              <Droplets size={24} />
+              <div>
+                <span className={styles.impactValue}>
+                  {analyticsData.userStats.waterSaved || 0}L
+                </span>
+                <span className={styles.impactLabel}>Water Saved</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Create Initiative CTA */}
+        <div className={styles.orgCard}>
+          <div className={styles.orgCardHeader}>
+            <h4>Start New Initiative</h4>
+          </div>
+          <p className={styles.orgDescription}>
+            Create a new recycling initiative to engage the community
+          </p>
+          <button 
+            className={`${styles.orgButton} ${styles.primary}`}
+            onClick={() => navigate('/create-post', { state: { postType: 'Initiative' } })}
+          >
+            <Plus size={18} /> Create Initiative
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Combined Org+Collector Dashboard
+  const renderOrgCollectorDashboard = () => (
+    <div className={styles.combinedDashboard}>
+      {renderCollectorDashboard()}
+      {renderOrganizationDashboard()}
+    </div>
+  );
+
+  // Giver Dashboard - Personal recycling activity
+  const renderGiverDashboard = () => (
+    <div className={styles.giverDashboard}>
+      <h3 className={styles.sectionTitle}>
+        <Recycle className={styles.sectionIcon} />
+        My Recycling Activity
+      </h3>
+      
+      <div className={styles.giverGrid}>
+        {/* My Posts */}
+        <div className={styles.giverCard}>
+          <div className={styles.giverCardHeader}>
+            <h4>My Posts</h4>
+            <span className={styles.badge}>
+              {analyticsData.userStats.totalPosts || 0}
+            </span>
+          </div>
+          <div className={styles.giverStats}>
+            <div className={styles.statRow}>
+              <span>Active Posts</span>
+              <span className={styles.statValue}>
+                {analyticsData.userStats.activePosts || 0}
+              </span>
+            </div>
+            <div className={styles.statRow}>
+              <span>Awaiting Pickup</span>
+              <span className={styles.statValue}>
+                {analyticsData.userStats.awaitingPickup || 0}
+              </span>
+            </div>
+          </div>
+          <button 
+            className={styles.giverButton}
+            onClick={() => navigate('/posts?myPosts=true')}
+          >
+            View My Posts
+          </button>
+        </div>
+
+        {/* Pickup History */}
+        <div className={styles.giverCard}>
+          <div className={styles.giverCardHeader}>
+            <h4>Pickup History</h4>
+            <Package className={styles.cardIcon} />
+          </div>
+          <div className={styles.pickupStats}>
+            <div className={styles.pickupStat}>
+              <span className={styles.pickupLabel}>Total Pickups</span>
+              <span className={styles.pickupValue}>
+                {analyticsData.userStats.completedPickups || 0}
+              </span>
+            </div>
+            <div className={styles.pickupStat}>
+              <span className={styles.pickupLabel}>Total Recycled</span>
+              <span className={styles.pickupValue}>
+                {analyticsData.userStats.totalRecycled || 0} kg
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Points & Rewards */}
+        <div className={styles.giverCard}>
+          <div className={styles.giverCardHeader}>
+            <h4>Points & Rewards</h4>
+            <Trophy className={styles.cardIcon} />
+          </div>
+          <div className={styles.pointsDisplay}>
+            <div className={styles.pointsMain}>
+              <span className={styles.pointsValue}>{user.points || 0}</span>
+              <span className={styles.pointsLabel}>Total Points</span>
+            </div>
+            <div className={styles.badgeDisplay}>
+              {user.badges && user.badges.length > 0 ? (
+                user.badges.map((badge, index) => (
+                  <span key={index} className={styles.badgeItem}>
+                    {badge}
+                  </span>
+                ))
+              ) : (
+                <p className={styles.noBadges}>No badges yet</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Impact Summary */}
+        <div className={styles.giverCard}>
+          <div className={styles.giverCardHeader}>
+            <h4>My Impact</h4>
+            <Leaf className={styles.cardIcon} />
+          </div>
+          <div className={styles.impactSummary}>
+            <div className={styles.impactItem}>
+              <Leaf size={20} />
+              <span>{analyticsData.userStats.co2Saved || 0} kg CO₂ saved</span>
+            </div>
+            <div className={styles.impactItem}>
+              <Trees size={20} />
+              <span>{analyticsData.userStats.treesEquivalent || 0} trees equivalent</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render quick action buttons based on user role
+  const renderQuickActions = () => {
+    const actions = [];
+    
+    // Common action for all users
+    actions.push(
+      <button 
+        key="create-post"
+        className={styles.actionButton}
+        onClick={() => navigate('/create-post', { state: { postType: 'Waste' } })}
+      >
+        <Plus size={18} /> Post Recyclables
+      </button>
+    );
+
+    if (user.isCollector) {
+      actions.push(
+        <button 
+          key="browse-posts"
+          className={styles.actionButton}
+          onClick={() => navigate('/posts?type=Waste&status=Available')}
+        >
+          <Package size={18} /> Browse Available Posts
+        </button>
+      );
+    }
+
+    if (user.isOrganization || user.isCollector) {
+      actions.push(
+        <button 
+          key="create-initiative"
+          className={styles.actionButton}
+          onClick={() => navigate('/create-post', { state: { postType: 'Initiative' } })}
+        >
+          <Heart size={18} /> Create Initiative
+        </button>
+      );
+    }
+
+    actions.push(
+      <button 
+        key="browse-community"
+        className={styles.actionButtonSecondary}
+        onClick={() => navigate('/posts')}
+      >
+        <Users size={18} /> Browse Community
+      </button>
+    );
+
+    if (user.isAdmin) {
+      actions.push(
+        <button 
+          key="admin-panel"
+          className={styles.actionButton}
+          onClick={() => navigate('/admin/users')}
+        >
+          <Users size={18} /> Admin Panel
+        </button>
+      );
+    }
+
+    return actions;
   };
 
   // Render the Impact Dashboard (Aggregated Analytics)
@@ -534,7 +1048,68 @@ const Dashboard = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      To be populated
+      {/* Welcome Section */}
+      <div className={styles.welcomeSection}>
+        <div className={styles.welcomeHeader}>
+          <div>
+            <h1 className={styles.welcomeTitle}>
+              Welcome back, {user.firstName}!
+            </h1>
+            <p className={styles.welcomeSubtitle}>
+              {getWelcomeMessage()}
+            </p>
+          </div>
+          <div className={styles.userQuickStats}>
+            {renderQuickStats()}
+          </div>
+        </div>
+      </div>
+
+      {/* Role-Based Analytics Section */}
+      <div className={styles.analyticsSection}>
+        {/* Navigation Tabs */}
+        <div className={styles.navTabs}>
+          <button 
+            className={`${styles.navTab} ${activeTab === 'impact' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('impact')}
+          >
+            <TrendingUp size={18} />
+            {user.isAdmin ? 'Platform Overview' : 'My Impact'}
+          </button>
+          <button 
+            className={`${styles.navTab} ${activeTab === 'activity' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('activity')}
+          >
+            <Recycle size={18} />
+            Community Activity
+          </button>
+          <button 
+            className={`${styles.navTab} ${activeTab === 'nearby' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('nearby')}
+          >
+            <MapPin size={18} />
+            Nearby Sites
+          </button>
+        </div>
+
+        {/* Tab Content */}
+        <div className={styles.tabContent}>
+          {renderTabContent()}
+        </div>
+      </div>
+
+      {/* Role-Specific Section */}
+      <div className={styles.roleSpecificSection}>
+        {renderRoleSpecificContent()}
+      </div>
+
+      {/* Quick Actions */}
+      <div className={styles.quickActions}>
+        <h3 className={styles.quickActionsTitle}>Quick Actions</h3>
+        <div className={styles.actionButtonsGrid}>
+          {renderQuickActions()}
+        </div>
+      </div>
     </div>
   );
 };
