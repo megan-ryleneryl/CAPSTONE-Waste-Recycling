@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import styles from './Dashboard.module.css';
+import styles from './Analytics.module.css';
 import { 
   MapPin, 
   Recycle, 
@@ -16,7 +16,7 @@ import {
   Droplets 
 } from 'lucide-react';
 
-const Dashboard = () => {
+const Analytics = () => {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('impact'); // 'nearby', 'activity', 'impact'
   const [selectedTimeRange, setSelectedTimeRange] = useState('month');
@@ -534,9 +534,79 @@ const Dashboard = () => {
 
   return (
     <div className={styles.dashboardContainer}>
-      To be populated
+      {/* Welcome Section with User Stats */}
+      <div className={styles.welcomeSection}>
+        <div className={styles.welcomeHeader}>
+          <div>
+            <h1 className={styles.welcomeTitle}>Welcome back, {user.firstName}!</h1>
+            <p className={styles.welcomeSubtitle}>
+              Here's what's happening with your recycling activities
+            </p>
+          </div>
+          <div className={styles.userQuickStats}>
+            <div className={styles.quickStat}>
+              <span className={styles.quickStatValue}>{analyticsData.userStats.totalPosts}</span>
+              <span className={styles.quickStatLabel}>Your Posts</span>
+            </div>
+            <div className={styles.quickStat}>
+              <span className={styles.quickStatValue}>{analyticsData.userStats.activePickups}</span>
+              <span className={styles.quickStatLabel}>Active Pickups</span>
+            </div>
+            <div className={styles.quickStat}>
+              <span className={styles.quickStatValue}>{analyticsData.userStats.totalPoints}</span>
+              <span className={styles.quickStatLabel}>Points</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics Section with Tabs */}
+      <div className={styles.analyticsSection}>
+        {/* User-Friendly Navigation Tabs */}
+        <div className={styles.navTabs}>
+          <button
+            className={`${styles.navTab} ${activeTab === 'nearby' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('nearby')}
+          >
+            <MapPin size={18} /> Find Nearby Centers
+          </button>
+          <button
+            className={`${styles.navTab} ${activeTab === 'activity' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('activity')}
+          >
+            <Recycle size={18} /> Community Activity
+          </button>
+          <button
+            className={`${styles.navTab} ${activeTab === 'impact' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('impact')}
+          >
+            <TrendingUp size={18} /> Impact & Stats
+          </button>
+        </div>
+
+        {/* Tab Content Area */}
+        <div className={styles.tabContent}>
+          {renderTabContent()}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className={styles.quickActions}>
+        <h3 className={styles.quickActionsTitle}>Quick Actions</h3>
+        <div className={styles.actionButtonsGrid}>
+          <button className={styles.actionButton} onClick={() => navigate('/create-post')}>
+            Create New Waste Post
+          </button>
+          <button className={styles.actionButtonSecondary} onClick={() => navigate('/posts')}>
+            Browse Available Waste
+          </button>
+          <button className={styles.actionButtonSecondary} onClick={() => navigate('/pickups')}>
+            View My Pickups
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default Analytics;

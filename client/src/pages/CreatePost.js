@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
-import MaterialSelector from '../components/MaterialSelector/MaterialSelector';
+import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
 import { Image, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
