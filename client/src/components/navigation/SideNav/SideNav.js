@@ -6,6 +6,7 @@ import {
   Plus, 
   Home, 
   LayoutDashboard, 
+  Map,
   MessageCircle, 
   Package, 
   User, 
@@ -15,7 +16,8 @@ import {
   Trash2,
   Lightbulb,
   MessagesSquare,
-  FileText } 
+  FileText,
+  ClipboardPenLine } 
   from 'lucide-react';
 
 const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) => {
@@ -23,7 +25,8 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
   const [expandedSections, setExpandedSections] = useState({
     main: true,
     filters: true,
-    actions: true
+    actions: true,
+    admin: true
   });
   const { currentUser: user } = useAuth();
   const location = useLocation();
@@ -37,23 +40,31 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
 
   const mainNavItems = [
     { path: '/posts', label: 'Browse Posts', icon: <Home size={20} /> },
-    { path: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    { path: '/dashboard', label: 'My Stats', icon: <LayoutDashboard size={20} /> },
+    { path: '/analytics', label: 'Community Stats', icon: <Map size={20} /> },
     { path: '/chat', label: 'Messages', icon: <MessageCircle size={20} /> },
     { path: '/pickups', label: 'My Pickups', icon: <Package size={20} /> },
     { path: '/profile', label: 'Profile', icon: <User size={20} /> },
   ];
 
+  const adminNavItems = [];
+
   // Add Approvals menu for Admin users
   if (user?.isAdmin) {
-    mainNavItems.push({ 
+    adminNavItems.push({ 
       path: '/admin/approvals', 
       label: 'Approvals', 
       icon: <CheckSquare size={20} /> 
     });
-    mainNavItems.push({ 
+    adminNavItems.push({ 
       path: '/admin/users', 
       label: 'All Users', 
       icon: <Users size={20} /> 
+    });
+    adminNavItems.push({
+      path: '/admin/edit-materials',
+      label: 'Edit Materials',
+      icon: <ClipboardPenLine size={20} />
     });
   }
 
@@ -68,6 +79,18 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
   return (
     <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isMobile && isOpen ? styles.open : ''}`}>
       <div className={styles.sidebarContent}>
+
+        {/* Create Post Button */}
+        <div className={styles.actionsList}>
+          <button 
+            className={styles.createbtn}
+            onClick={() => window.location.href = '/create-post'}
+            title={isCollapsed ? 'Create Post' : ''}
+          >
+            {!isCollapsed && <span className={styles.createButton}><Plus size={30}/>Create Post</span>}
+          </button>
+        </div>
+
         {/* Main Navigation */}
         <div className={styles.section}>
           <button 
@@ -100,6 +123,41 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
             </nav>
           )}
         </div>
+
+        {/* Admin Actions Section */}
+        {user?.isAdmin && (
+          <div className={styles.section}>
+            <button 
+              className={styles.sectionHeader}
+              onClick={() => toggleSection('admin')}
+            >
+              {!isCollapsed && (
+                <>
+                  <span>Admin Actions</span>
+                  <span className={`${styles.chevron} ${expandedSections.admin ? styles.expanded : ''}`}>
+                    ▼
+                  </span>
+                </>
+              )}
+            </button>
+
+            {expandedSections.admin && (
+              <div className={styles.adminList}>
+                {adminNavItems.map(action => (
+                  <Link
+                    key={action.path}
+                    to={action.path}
+                    className={`${styles.navItem} ${location.pathname === action.path ? styles.active : ''}`}
+                    title={isCollapsed ? action.label : ''}
+                  >
+                    <span className={styles.icon}>{action.icon}</span>
+                    {!isCollapsed && <span className={styles.label}>{action.label}</span>}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filters Section - Only show on Posts page */}
         {location.pathname === '/posts' && (
@@ -138,16 +196,6 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
             )}
           </div>
         )}
-
-        <div className={styles.actionsList}>
-          <button 
-            className={styles.createbtn}
-            onClick={() => window.location.href = '/create-post'}
-            title={isCollapsed ? 'Create Post' : ''}
-          >
-            {!isCollapsed && <span className={styles.createButton}><Plus size={30}/>Create Post</span>}
-          </button>
-        </div>
 
         {isMobile && (
           <button className={styles.mobileClose} onClick={onClose}>

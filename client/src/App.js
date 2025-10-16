@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Posts from './pages/Posts';
 import SinglePost from './pages/SinglePost';
 import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 import Chat from './pages/Chat';
 import Approvals from './pages/Approvals';
@@ -15,6 +16,7 @@ import CreatePost from './pages/CreatePost';
 import AppLayout from './components/layout/AppLayout/AppLayout';
 import PickupManagement from './pages/PickupManagement';
 import PickupTracking from './pages/PickupTracking';
+import EditMaterials from './pages/EditMaterials';
 import './App.css';
 
 // Protected Route Component
@@ -115,6 +117,15 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+
+            <Route 
+              path="/analytics" 
+              element={
+                <ProtectedRoute>
+                  <Analytics />
+                </ProtectedRoute>
+              } 
+            />
             
             <Route 
               path="/profile" 
@@ -158,6 +169,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AllUsers />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/admin/edit-materials" 
+              element={
+                <ProtectedRoute>
+                  <EditMaterials />
                 </ProtectedRoute>
               } 
             />

@@ -9,6 +9,9 @@ router.use(verifyToken);
 // Main dashboard analytics endpoint
 router.get('/dashboard', analyticsController.getDashboardAnalytics);
 
+// Main community analytics endpoint
+router.get('/analytics', analyticsController.getDashboardAnalytics);
+
 // Heatmap data endpoint
 router.get('/heatmap', analyticsController.getHeatmapData);
 

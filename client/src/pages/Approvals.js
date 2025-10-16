@@ -285,7 +285,15 @@ const Approvals = () => {
       <header className={styles.header}>
         <h1>Application Approvals</h1>
         <div className={styles.stats}>
-          <span className={styles.statItem}>Total: {applications.length}</span>
+          <span className={styles.statItem}>
+            Total:{' '}
+            {
+              applications.filter(app => {
+                const user = userDetails[app.userID];
+                return !(user && user.firstName === 'Deleted' && user.lastName === 'User');
+              }).length
+            }
+          </span>
           <span className={styles.statItem}>Filtered: {filteredApplications.length}</span>
         </div>
       </header>

@@ -1227,7 +1227,7 @@ const Profile = ({ user: propsUser }) => {
                 <span>Points: {user.points || 0}</span>
               </div>
               <div className={styles.statItem}>
-                <strong>{user.totalDonations || '0 kg'}</strong> Donations
+                <strong>{user.totalDonations || '0'}</strong> kg Donations
               </div>
             </div>
 
