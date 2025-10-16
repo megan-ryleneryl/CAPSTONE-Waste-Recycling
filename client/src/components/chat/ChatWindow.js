@@ -170,7 +170,7 @@ const loadChatData = async () => {
   }
 };
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   };
 
 const sendMessage = async (messageText, messageType = 'text', metadata = {}) => {
@@ -420,13 +420,12 @@ return (
       />
     )}
 
-      <MessageList 
-        messages={messages} 
-        currentUser={currentUser} 
+      <MessageList
+        messages={messages}
+        currentUser={currentUser}
         className={styles.messagesList}
+        messagesEndRef={messagesEndRef}
       />
-      
-      <div ref={messagesEndRef} />
 
       <MessageInput 
         onSendMessage={sendMessage}

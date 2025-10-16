@@ -30,6 +30,35 @@
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on iOS */
+}
+
+/* Custom scrollbar styling */
+.modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+  margin: 12px 0;
+}
+
+.modal::-webkit-scrollbar-thumb {
+  background: #3B6535;
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.modal::-webkit-scrollbar-thumb:hover {
+  background: #2d4e29;
+}
+
+/* Firefox scrollbar styling */
+.modal {
+  scrollbar-width: thin;
+  scrollbar-color: #3B6535 #f1f1f1;
 }
 
 .header {
@@ -135,17 +164,37 @@
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 0.9375rem;
   font-family: 'Raleway', sans-serif;
   transition: border-color 0.2s;
+  background-color: white;
+  cursor: pointer;
+}
+
+.field select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px;
+  padding-right: 2.5rem;
+}
+
+.field select:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .field input:focus,
-.field textarea:focus {
+.field textarea:focus,
+.field select:focus {
   outline: none;
   border-color: #3B6535;
   box-shadow: 0 0 0 3px rgba(59, 101, 53, 0.1);

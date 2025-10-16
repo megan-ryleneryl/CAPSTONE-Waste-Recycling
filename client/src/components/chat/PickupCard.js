@@ -7,10 +7,26 @@ import styles from './PickupCard.module.css';
 const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+
+  // Helper to convert location object to string for editing
+  const getLocationString = (location) => {
+    if (!location) return '';
+    if (typeof location === 'string') return location;
+
+    // If it's an object, format it as a string
+    const parts = [];
+    if (location.addressLine) parts.push(location.addressLine);
+    if (location.barangay?.name) parts.push(location.barangay.name);
+    if (location.city?.name) parts.push(location.city.name);
+    if (location.province?.name) parts.push(location.province.name);
+    if (location.region?.name) parts.push(location.region.name);
+    return parts.join(', ');
+  };
+
   const [editForm, setEditForm] = useState({
     pickupDate: pickup.pickupDate || '',
     pickupTime: pickup.pickupTime || '',
-    pickupLocation: pickup.pickupLocation || '',
+    pickupLocation: getLocationString(pickup.pickupLocation),
     contactPerson: pickup.contactPerson || '',
     contactNumber: pickup.contactNumber || '',
     specialInstructions: pickup.specialInstructions || ''
@@ -38,6 +54,30 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
     });
   };
 
+  const formatLocation = (location) => {
+    if (!location) return 'Location not set';
+
+    // If location is a string (old format), return it as is
+    if (typeof location === 'string') {
+      return location;
+    }
+
+    // If location is an object (new PSGC format), format it nicely
+    if (typeof location === 'object') {
+      const parts = [];
+
+      if (location.addressLine) parts.push(location.addressLine);
+      if (location.barangay?.name) parts.push(location.barangay.name);
+      if (location.city?.name) parts.push(location.city.name);
+      if (location.province?.name) parts.push(location.province.name);
+      if (location.region?.name) parts.push(location.region.name);
+
+      return parts.length > 0 ? parts.join(', ') : 'Location not set';
+    }
+
+    return 'Location not set';
+  };
+
   const handleEditChange = (e) => {
     const { name, value } = e.target;
     setEditForm(prev => ({
@@ -62,7 +102,7 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
     setEditForm({
       pickupDate: pickup.pickupDate || '',
       pickupTime: pickup.pickupTime || '',
-      pickupLocation: pickup.pickupLocation || '',
+      pickupLocation: getLocationString(pickup.pickupLocation),
       contactPerson: pickup.contactPerson || '',
       contactNumber: pickup.contactNumber || '',
       specialInstructions: pickup.specialInstructions || ''
@@ -198,7 +238,7 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
         </div>
         <div className={styles.detailItem}>
           <MapPin className={styles.icon} size={18} />
-          <span>{pickup.pickupLocation || 'Location not set'}</span>
+          <span>{formatLocation(pickup.pickupLocation)}</span>
         </div>
         <div className={styles.detailItem}>
           <User className={styles.icon} size={18} />
