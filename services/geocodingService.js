@@ -15,20 +15,21 @@ class GeocodingService {
    */
   static async getCoordinates(locationObj) {
     try {
-      const { region, province, city, barangay, addressLine } = locationObj;
-      
-      // Build address string - most specific to least specific
+      const { region, province, city, barangay } = locationObj;
+
+      // Build address string - EXCLUDE addressLine for more reliable geocoding
+      // Geocode to barangay level only (smallest unit for general location mapping)
+      // addressLine is kept in location object for pickup details
       const parts = [
-        addressLine,
         barangay?.name,
         city?.name,
         province?.name,
         region?.name,
         'Philippines'
       ].filter(Boolean);
-      
+
       const address = parts.join(', ');
-      console.log('🗺️ Geocoding address:', address);
+      console.log('🗺️ Geocoding address (barangay level):', address);
       
       const results = await geocoder.geocode(address);
       

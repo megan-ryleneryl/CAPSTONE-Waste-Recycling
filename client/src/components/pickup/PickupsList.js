@@ -18,6 +18,30 @@ const PickupsList = ({ pickups, currentUser, viewType = 'grid' }) => {
     });
   };
 
+  const formatLocation = (location) => {
+    if (!location) return 'Not specified';
+
+    // If location is a string (old format), return it as is
+    if (typeof location === 'string') {
+      return location;
+    }
+
+    // If location is an object (new PSGC format), format it nicely
+    if (typeof location === 'object') {
+      const parts = [];
+
+      if (location.addressLine) parts.push(location.addressLine);
+      if (location.barangay?.name) parts.push(location.barangay.name);
+      if (location.city?.name) parts.push(location.city.name);
+      if (location.province?.name) parts.push(location.province.name);
+      if (location.region?.name) parts.push(location.region.name);
+
+      return parts.length > 0 ? parts.join(', ') : 'Not specified';
+    }
+
+    return 'Not specified';
+  };
+
   const handleViewDetails = (pickupId) => {
     navigate(`/tracking/${pickupId}`);
   };
@@ -56,7 +80,7 @@ const PickupsList = ({ pickups, currentUser, viewType = 'grid' }) => {
             </div>
             <div className={styles.detail}>
               <span className={styles.label}>Location:</span>
-              <span className={styles.value}>{pickup.pickupLocation || 'Not specified'}</span>
+              <span className={styles.value}>{formatLocation(pickup.pickupLocation)}</span>
             </div>
             <div className={styles.detail}>
               <span className={styles.label}>

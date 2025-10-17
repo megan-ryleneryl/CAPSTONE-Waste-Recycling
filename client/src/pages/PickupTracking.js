@@ -92,6 +92,30 @@ const PickupTracking = () => {
     };
   };
 
+  const formatLocation = (location) => {
+    if (!location) return 'Not specified';
+
+    // If location is a string (old format), return it as is
+    if (typeof location === 'string') {
+      return location;
+    }
+
+    // If location is an object (new PSGC format), format it nicely
+    if (typeof location === 'object') {
+      const parts = [];
+
+      if (location.addressLine) parts.push(location.addressLine);
+      if (location.barangay?.name) parts.push(location.barangay.name);
+      if (location.city?.name) parts.push(location.city.name);
+      if (location.province?.name) parts.push(location.province.name);
+      if (location.region?.name) parts.push(location.region.name);
+
+      return parts.length > 0 ? parts.join(', ') : 'Not specified';
+    }
+
+    return 'Not specified';
+  };
+
   const getTimelineSteps = () => {
     const steps = [
       {
@@ -347,7 +371,7 @@ const PickupTracking = () => {
                 <MapPin className={styles.infoIcon} size={20} />
                 <div>
                   <span className={styles.infoLabel}>Location</span>
-                  <span className={styles.infoValue}>{pickup.pickupLocation || postData?.location || 'Not specified'}</span>
+                  <span className={styles.infoValue}>{formatLocation(pickup.pickupLocation) || formatLocation(postData?.location)}</span>
                 </div>
               </div>
 

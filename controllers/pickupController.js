@@ -3,6 +3,7 @@ const Pickup = require('../models/Pickup');
 const Post = require('../models/Posts');
 const User = require('../models/Users');
 const Message = require('../models/Message');
+const GeocodingService = require('../services/geocodingService');
 
 class PickupController {
   // Create a new pickup schedule
@@ -82,6 +83,26 @@ static async createPickup(req, res) {
     giverName = `${giverUser.firstName} ${giverUser.lastName}`;
     collectorName = `${collectorUser.firstName} ${collectorUser.lastName}`;
 
+    // Geocode the pickup location if coordinates are not provided
+    let locationWithCoords = pickupLocation;
+    if (pickupLocation && !pickupLocation.coordinates?.lat) {
+      console.log('🗺️ Geocoding pickup location...');
+      const coords = await GeocodingService.getCoordinates(pickupLocation);
+
+      if (coords) {
+        locationWithCoords = {
+          ...pickupLocation,
+          coordinates: {
+            lat: coords.lat,
+            lng: coords.lng
+          }
+        };
+        console.log('✅ Pickup location coordinates added:', coords);
+      } else {
+        console.log('⚠️ Geocoding failed for pickup location, proceeding without coordinates');
+      }
+    }
+
     // Create the pickup
     const pickupData = {
       postID,
@@ -92,7 +113,7 @@ static async createPickup(req, res) {
       collectorName,
       pickupDate,
       pickupTime,
-      pickupLocation,
+      pickupLocation: locationWithCoords,
       contactPerson,
       contactNumber,
       alternateContact,
@@ -519,10 +540,10 @@ static async getUpcomingPickups(req, res) {
 
       // Allowed fields for update
       const allowedFields = [
-        'pickupDate', 
-        'pickupTime', 
-        'pickupLocation', 
-        'contactPerson', 
+        'pickupDate',
+        'pickupTime',
+        'pickupLocation',
+        'contactPerson',
         'contactNumber',
         'alternateContact',
         'specialInstructions'
@@ -534,6 +555,25 @@ static async getUpcomingPickups(req, res) {
           filteredUpdates[field] = updates[field];
         }
       });
+
+      // Geocode the pickup location if it's being updated and doesn't have coordinates
+      if (filteredUpdates.pickupLocation && !filteredUpdates.pickupLocation.coordinates?.lat) {
+        console.log('🗺️ Geocoding updated pickup location...');
+        const coords = await GeocodingService.getCoordinates(filteredUpdates.pickupLocation);
+
+        if (coords) {
+          filteredUpdates.pickupLocation = {
+            ...filteredUpdates.pickupLocation,
+            coordinates: {
+              lat: coords.lat,
+              lng: coords.lng
+            }
+          };
+          console.log('✅ Updated pickup location coordinates added:', coords);
+        } else {
+          console.log('⚠️ Geocoding failed for updated pickup location, proceeding without coordinates');
+        }
+      }
 
       await pickup.update(filteredUpdates);
 
