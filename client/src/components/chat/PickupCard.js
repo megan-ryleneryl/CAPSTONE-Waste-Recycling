@@ -1,13 +1,14 @@
 // client/src/components/chat/PickupCard.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, Save, Edit, CheckCircle, X, MapPinned } from 'lucide-react';
+import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, Save, Edit, CheckCircle, X, MapPinned, ChevronDown, ChevronUp } from 'lucide-react';
 import PSGCService from '../../services/psgcService';
 import styles from './PickupCard.module.css';
 
 const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   // Helper to convert location object to string for editing
   const getLocationString = (location) => {
@@ -524,49 +525,54 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
 
   return (
     <div className={styles.pickupCard} style={{ borderLeftColor: getStatusColor(pickup.status) }}>
-      <div className={styles.header}>
+      <div className={styles.header} onClick={() => setIsExpanded(!isExpanded)} style={{ cursor: 'pointer' }}>
         <h4 className={styles.title}>
           <Truck size={15} />
           <span> Pickup Schedule</span>
         </h4>
-        <span 
-          className={styles.statusBadge} 
-          style={{ backgroundColor: `${getStatusColor(pickup.status)}20`, color: getStatusColor(pickup.status) }}
-        >
-          {pickup.status}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span
+            className={styles.statusBadge}
+            style={{ backgroundColor: `${getStatusColor(pickup.status)}20`, color: getStatusColor(pickup.status) }}
+          >
+            {pickup.status}
+          </span>
+          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </div>
       </div>
 
-      <div className={styles.details}>
-        <div className={styles.detailItem}>
-          <Calendar className={styles.icon} size={18} />
-          <span>{formatDate(pickup.pickupDate)}</span>
-        </div>
-        <div className={styles.detailItem}>
-          <Clock className={styles.icon} size={18} />
-          <span>{pickup.pickupTime || 'Time not set'}</span>
-        </div>
-        <div className={styles.detailItem}>
-          <MapPin className={styles.icon} size={18} />
-          <span>{formatLocation(pickup.pickupLocation)}</span>
-        </div>
-        <div className={styles.detailItem}>
-          <User className={styles.icon} size={18} />
-          <span>{pickup.contactPerson || 'Contact not set'}</span>
-        </div>
-        <div className={styles.detailItem}>
-          <Phone className={styles.icon} size={18} />
-          <span>{pickup.contactNumber || 'Number not set'}</span>
-        </div>
-        {pickup.specialInstructions && (
-          <div className={styles.detailItem}>
-            <FileText className={styles.icon} size={18} />
-            <span>{pickup.specialInstructions}</span>
+      {isExpanded && (
+        <>
+          <div className={styles.details}>
+            <div className={styles.detailItem}>
+              <Calendar className={styles.icon} size={18} />
+              <span>{formatDate(pickup.pickupDate)}</span>
+            </div>
+            <div className={styles.detailItem}>
+              <Clock className={styles.icon} size={18} />
+              <span>{pickup.pickupTime || 'Time not set'}</span>
+            </div>
+            <div className={styles.detailItem}>
+              <MapPin className={styles.icon} size={18} />
+              <span>{formatLocation(pickup.pickupLocation)}</span>
+            </div>
+            <div className={styles.detailItem}>
+              <User className={styles.icon} size={18} />
+              <span>{pickup.contactPerson || 'Contact not set'}</span>
+            </div>
+            <div className={styles.detailItem}>
+              <Phone className={styles.icon} size={18} />
+              <span>{pickup.contactNumber || 'Number not set'}</span>
+            </div>
+            {pickup.specialInstructions && (
+              <div className={styles.detailItem}>
+                <FileText className={styles.icon} size={18} />
+                <span>{pickup.specialInstructions}</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className={styles.actions}>
+          <div className={styles.actions}>
         {/* Track Pickup button - always show for confirmed/in-progress/completed pickups */}
         {['Confirmed', 'In-Transit', 'ArrivedAtPickup', 'Completed'].includes(pickup.status) && (
           <button
@@ -625,7 +631,9 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
             Cancel Pickup
           </button>
         )}
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

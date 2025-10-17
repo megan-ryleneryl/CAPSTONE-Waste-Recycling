@@ -289,9 +289,24 @@ const CreatePost = () => {
         setError('Goal is required for Initiative posts');
         return false;
       }
-      if (!formData.targetAmount || formData.targetAmount <= 0) {
-        setError('Target amount is required for Initiative posts');
+
+      // Validate materials array (new format)
+      if (!formData.materials || formData.materials.length === 0) {
+        setError('At least one material is required for Initiative posts');
         return false;
+      }
+
+      // Validate each material has required fields
+      for (let i = 0; i < formData.materials.length; i++) {
+        const material = formData.materials[i];
+        if (!material.materialID) {
+          setError(`Please select a material for item ${i + 1}`);
+          return false;
+        }
+        if (!material.quantity || material.quantity <= 0) {
+          setError(`Please enter a valid target quantity for item ${i + 1}`);
+          return false;
+        }
       }
     }
     
@@ -446,6 +461,8 @@ const handleRemoveImage = (index) => {
       if (formData.pickupTime) formDataToSend.append('pickupTime', formData.pickupTime);
     } else if (postType === 'Initiative') {
       formDataToSend.append('goal', formData.goal.trim());
+      // Send materials as JSON string to preserve structure (similar to Waste posts)
+      formDataToSend.append('materials', JSON.stringify(formData.materials));
       formDataToSend.append('targetAmount', parseFloat(formData.targetAmount));
       if (formData.endDate) formDataToSend.append('endDate', formData.endDate);
     } else if (postType === 'Forum') {
@@ -860,10 +877,14 @@ const handleRemoveImage = (index) => {
 
           {/* Initiative-specific Fields */}
           {postType === 'Initiative' && (
-            <>
+            <div className={styles.initiativeSpecific}>
+              <h3 className={styles.sectionTitle}>
+                <Goal size={20} /> Initiative Details
+              </h3>
+
               <div className={styles.formGroup}>
                 <label htmlFor="goal" className={styles.label}>
-                  Initiative Goal *
+                  Initiative Goal / Description *
                 </label>
                 <textarea
                   id="goal"
@@ -871,49 +892,60 @@ const handleRemoveImage = (index) => {
                   value={formData.goal}
                   onChange={handleInputChange}
                   className={styles.textarea}
-                  placeholder="What do you want to achieve with this initiative?"
+                  placeholder="What do you want to achieve with this initiative? Describe your environmental goal."
                   rows="3"
                   required
                   maxLength="500"
                 />
               </div>
 
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="targetAmount" className={styles.label}>
-                    Target Amount (kg) *
-                  </label>
-                  <input
-                    type="number"
-                    id="targetAmount"
-                    name="targetAmount"
-                    value={formData.targetAmount}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    placeholder="0"
-                    min="1"
-                    step="0.1"
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="endDate" className={styles.label}>
-                    End Date
-                    <span className={styles.hint}>Optional</span>
-                  </label>
-                  <input
-                    type="date"
-                    id="endDate"
-                    name="endDate"
-                    value={formData.endDate}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
+              {/* Material Selector - Materials Needed */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  <Package size={16} /> Materials Needed *
+                  <span className={styles.hint}>Select the materials you need for this initiative</span>
+                </label>
+                <MaterialSelector
+                  selectedMaterials={formData.materials}
+                  onChange={(materials) => {
+                    // Calculate total target amount from materials
+                    const totalTarget = materials.reduce((sum, mat) => sum + parseFloat(mat.quantity || 0), 0);
+                    setFormData({
+                      ...formData,
+                      materials,
+                      targetAmount: totalTarget.toString()
+                    });
+                  }}
+                  labelOverride={{
+                    quantity: 'Target Quantity'
+                  }}
+                />
               </div>
-            </>
+
+              {/* Show calculated target amount */}
+              {formData.materials && formData.materials.length > 0 && (
+                <div className={styles.targetAmountDisplay}>
+                  <BarChart3 size={16} />
+                  <strong>Total Target Amount:</strong> {formData.targetAmount} kg
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label htmlFor="endDate" className={styles.label}>
+                  <Clock size={16} /> End Date
+                  <span className={styles.hint}>Optional deadline for this initiative</span>
+                </label>
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            </div>
           )}
 
           {/* Forum-specific Fields */}

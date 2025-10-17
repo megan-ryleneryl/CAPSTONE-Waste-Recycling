@@ -15,18 +15,28 @@ const PostDetails = ({ post, user: currentUser }) => {
   const [postClaimed, setPostClaimed] = useState(false);
   const [claimDetails, setClaimDetails] = useState(null);
 
-  // Support form data for Initiative posts
+  // Support form data for Initiative posts - NEW: Multiple materials
   const [supportData, setSupportData] = useState({
-    materials: '',
-    quantity: '',
-    notes: ''
+    notes: ''  // Overall notes for the support request
   });
+
+  // Track multiple materials to offer
+  const [selectedMaterials, setSelectedMaterials] = useState([]);
+  // { materialID, materialName, quantity, unit: 'kg' }
 
   useEffect(() => {
     if (post && post.postType === 'Waste') {
       checkClaimStatus();
     }
   }, [post]);
+
+  // Reset selected materials when modal opens/closes
+  useEffect(() => {
+    if (!showSupportModal) {
+      setSelectedMaterials([]);
+      setSupportData({ notes: '' });
+    }
+  }, [showSupportModal]);
 
   const checkClaimStatus = async () => {
     if (!post) return;
@@ -98,6 +108,34 @@ const PostDetails = ({ post, user: currentUser }) => {
     }
   };
 
+  const handleAddMaterial = (materialID) => {
+    const material = post.materials.find(m => m.materialID === materialID);
+    if (!material) return;
+
+    // Check if already added
+    if (selectedMaterials.some(m => m.materialID === materialID)) {
+      alert('This material is already added');
+      return;
+    }
+
+    setSelectedMaterials([...selectedMaterials, {
+      materialID: material.materialID,
+      materialName: material.materialName,
+      quantity: '',
+      unit: 'kg'
+    }]);
+  };
+
+  const handleRemoveMaterial = (materialID) => {
+    setSelectedMaterials(selectedMaterials.filter(m => m.materialID !== materialID));
+  };
+
+  const handleUpdateMaterialQuantity = (materialID, quantity) => {
+    setSelectedMaterials(selectedMaterials.map(m =>
+      m.materialID === materialID ? { ...m, quantity } : m
+    ));
+  };
+
   const handleSupportInitiative = async () => {
     if (!currentUser) {
       alert('Please log in to support this initiative');
@@ -105,20 +143,35 @@ const PostDetails = ({ post, user: currentUser }) => {
       return;
     }
 
-    if (!supportData.materials || !supportData.quantity) {
-      alert('Please provide materials and quantity');
+    if (selectedMaterials.length === 0) {
+      alert('Please add at least one material to offer');
+      return;
+    }
+
+    // Validate all materials have quantities
+    const invalidMaterials = selectedMaterials.filter(m => !m.quantity || parseFloat(m.quantity) <= 0);
+    if (invalidMaterials.length > 0) {
+      alert('Please provide valid quantities for all materials');
       return;
     }
 
     setIsSupportingInitiative(true);
     try {
       const token = localStorage.getItem('token');
-      
+
+      // Prepare offered materials array
+      const offeredMaterials = selectedMaterials.map(m => ({
+        materialID: m.materialID,
+        materialName: m.materialName,
+        quantity: parseFloat(m.quantity),
+        unit: m.unit || 'kg',
+        status: 'Pending' // All materials start as pending
+      }));
+
       const response = await axios.post(
         `http://localhost:3001/api/posts/${post.postID}/support`,
         {
-          materials: supportData.materials,
-          quantity: parseFloat(supportData.quantity),
+          offeredMaterials,  // NEW: Send multiple materials
           notes: supportData.notes
         },
         {
@@ -129,13 +182,14 @@ const PostDetails = ({ post, user: currentUser }) => {
       if (response.data.success) {
         alert('Support request sent successfully! You can now chat with the initiative owner.');
         setShowSupportModal(false);
-        setSupportData({ materials: '', quantity: '', notes: '' });
-        
+        setSupportData({ notes: '' });
+        setSelectedMaterials([]);
+
         // Navigate to chat or reload
         if (response.data.data?.chatURL) {
           navigate(response.data.data.chatURL);
         }
-        
+
         if (window.location.pathname.includes('/posts/')) {
           window.location.reload();
         }
@@ -308,26 +362,82 @@ const PostDetails = ({ post, user: currentUser }) => {
               <span className={styles.value}>{formatLocation(post.location)}</span>
             </div>
 
-            {post.targetAmount && (
-              <>
+            {/* Show per-material progress if materials array exists */}
+            {post.materials && Array.isArray(post.materials) && post.materials.length > 0 ? (
+              <div className={styles.materialsProgress}>
                 <div className={styles.detailItem}>
-                  <span className={styles.icon}><BarChart3 size={18} /></span>
-                  <span className={styles.value}>
-                    Progress: {post.currentAmount || 0} / {post.targetAmount} kg
-                  </span>
+                  <span className={styles.icon}><Package size={18} /></span>
+                  <span className={styles.value}>Materials Needed:</span>
                 </div>
-                
-                {/* Progress Bar */}
-                <div className={styles.progressContainer}>
-                  <div 
-                    className={styles.progressBar}
-                    style={{ width: `${calculateProgress()}%` }}
-                  />
+
+                {post.materials.map((material, index) => {
+                  const materialProgress = material.targetQuantity > 0
+                    ? Math.min(((material.currentQuantity || 0) / material.targetQuantity) * 100, 100)
+                    : 0;
+
+                  return (
+                    <div key={material.materialID || index} className={styles.materialItem}>
+                      <div className={styles.materialHeader}>
+                        <span className={styles.materialName}>{material.materialName || material.materialID}</span>
+                        <span className={styles.materialQuantity}>
+                          {material.currentQuantity || 0} / {material.targetQuantity} kg
+                        </span>
+                      </div>
+                      <div className={styles.progressContainer}>
+                        <div
+                          className={styles.progressBar}
+                          style={{ width: `${materialProgress}%` }}
+                        />
+                      </div>
+                      <div className={styles.progressText}>
+                        {Math.round(materialProgress)}% Complete
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Overall progress */}
+                <div className={styles.overallProgress}>
+                  <div className={styles.detailItem}>
+                    <span className={styles.icon}><BarChart3 size={18} /></span>
+                    <span className={styles.value}>
+                      Overall Progress: {post.currentAmount || 0} / {post.targetAmount} kg
+                    </span>
+                  </div>
+                  <div className={styles.progressContainer}>
+                    <div
+                      className={styles.progressBar}
+                      style={{ width: `${calculateProgress()}%` }}
+                    />
+                  </div>
+                  <div className={styles.progressText}>
+                    {Math.round(calculateProgress())}% Complete
+                  </div>
                 </div>
-                <div className={styles.progressText}>
-                  {Math.round(calculateProgress())}% Complete
-                </div>
-              </>
+              </div>
+            ) : (
+              /* Fallback for old initiatives without materials array */
+              post.targetAmount && (
+                <>
+                  <div className={styles.detailItem}>
+                    <span className={styles.icon}><BarChart3 size={18} /></span>
+                    <span className={styles.value}>
+                      Progress: {post.currentAmount || 0} / {post.targetAmount} kg
+                    </span>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className={styles.progressContainer}>
+                    <div
+                      className={styles.progressBar}
+                      style={{ width: `${calculateProgress()}%` }}
+                    />
+                  </div>
+                  <div className={styles.progressText}>
+                    {Math.round(calculateProgress())}% Complete
+                  </div>
+                </>
+              )
             )}
 
             {post.endDate && (
@@ -347,7 +457,7 @@ const PostDetails = ({ post, user: currentUser }) => {
             {/* Action Button */}
             {showSupportButton && (
               <div className={styles.actionButtons}>
-                <button 
+                <button
                   className={styles.supportButton}
                   onClick={() => setShowSupportModal(true)}
                   disabled={isSupportingInitiative}
@@ -464,30 +574,106 @@ const PostDetails = ({ post, user: currentUser }) => {
                 </button>
               </div>
               <div className={styles.modalBody}>
-                <p>Contribute materials to support this initiative:</p>
+                <div className={styles.guideBox}>
+                  <strong>How to offer support:</strong>
+                  <ol className={styles.guideList}>
+                    <li>Click the dropdown below to select a material</li>
+                    <li>Click "Add" to add it to your offer</li>
+                    <li>Enter the quantity you can provide for each material</li>
+                    <li>You can offer multiple materials by repeating steps 1-3</li>
+                    <li>Add any notes and submit your support request</li>
+                  </ol>
+                </div>
+
+                {/* Show initiative's needed materials */}
+                {post.materials && Array.isArray(post.materials) && post.materials.length > 0 && (
+                  <div className={styles.neededMaterials}>
+                    <strong>Materials needed:</strong>
+                    <ul className={styles.materialsList}>
+                      {post.materials.map((mat) => (
+                        <li key={mat.materialID}>
+                          {mat.materialName}: {mat.currentQuantity || 0} / {mat.targetQuantity} kg
+                          {mat.currentQuantity >= mat.targetQuantity &&
+                            <span className={styles.completedLabel}> ✓ Completed</span>
+                          }
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className={styles.supportForm}>
+                  {/* Material Selector */}
                   <div className={styles.formGroup}>
-                    <label>Materials *</label>
-                    <input
-                      type="text"
-                      value={supportData.materials}
-                      onChange={(e) => setSupportData({...supportData, materials: e.target.value})}
-                      placeholder="e.g., Plastic bottles, cardboard"
-                      required
-                    />
+                    <label>Add Material</label>
+                    {post.materials && Array.isArray(post.materials) && post.materials.length > 0 ? (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <select
+                          id="materialSelector"
+                          style={{ flex: 1 }}
+                        >
+                          <option value="">Choose a material to add...</option>
+                          {post.materials
+                            .filter(mat =>
+                              (mat.currentQuantity || 0) < mat.targetQuantity &&
+                              !selectedMaterials.some(sm => sm.materialID === mat.materialID)
+                            )
+                            .map((mat) => (
+                              <option key={mat.materialID} value={mat.materialID}>
+                                {mat.materialName} (Need: {mat.targetQuantity - (mat.currentQuantity || 0)} kg)
+                              </option>
+                            ))}
+                        </select>
+                        <button
+                          type="button"
+                          className={styles.addButton}
+                          onClick={() => {
+                            const select = document.getElementById('materialSelector');
+                            if (select.value) {
+                              handleAddMaterial(select.value);
+                              select.value = '';
+                            }
+                          }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                    ) : (
+                      <p className={styles.noMaterials}>This initiative has not specified materials yet.</p>
+                    )}
                   </div>
-                  <div className={styles.formGroup}>
-                    <label>Quantity (kg) *</label>
-                    <input
-                      type="number"
-                      value={supportData.quantity}
-                      onChange={(e) => setSupportData({...supportData, quantity: e.target.value})}
-                      placeholder="0"
-                      min="0.1"
-                      step="0.1"
-                      required
-                    />
-                  </div>
+
+                  {/* Selected Materials List */}
+                  {selectedMaterials.length > 0 && (
+                    <div className={styles.selectedMaterials}>
+                      <strong>Materials you're offering:</strong>
+                      {selectedMaterials.map((mat) => (
+                        <div key={mat.materialID} className={styles.selectedMaterialItem}>
+                          <div className={styles.materialInfo}>
+                            <span className={styles.materialLabel}>{mat.materialName}</span>
+                            <input
+                              type="number"
+                              value={mat.quantity}
+                              onChange={(e) => handleUpdateMaterialQuantity(mat.materialID, e.target.value)}
+                              placeholder="Quantity"
+                              min="0.1"
+                              step="0.1"
+                              className={styles.quantityInput}
+                            />
+                            <span>kg</span>
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.removeButton}
+                            onClick={() => handleRemoveMaterial(mat.materialID)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className={styles.formGroup}>
                     <label>Notes (Optional)</label>
                     <textarea

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Package, Edit3 } from 'lucide-react';
 import PickupScheduleForm from './PickupScheduleForm';
 import PickupCard from './PickupCard';
+import SupportCard from './SupportCard';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import geocodingService from '../../services/geocodingService';
@@ -16,6 +17,7 @@ const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData 
   const [messages, setMessages] = useState([]);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [activePickup, setActivePickup] = useState(null);
+  const [activeSupport, setActiveSupport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [post, setPost] = useState(postData);
   const [otherUserData, setOtherUserData] = useState(otherUser);
@@ -28,10 +30,11 @@ useEffect(() => {
     setPost(postData);
     setOtherUserData(otherUser);
     setActivePickup(null);
+    setActiveSupport(null);
     setLoading(true);
-    
+
     loadChatData();
-    
+
     return () => {
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
@@ -88,12 +91,14 @@ const loadChatData = async () => {
     // 2. Fetch post data - ALWAYS fetch fresh to ensure correct post is shown
     const postDocRef = doc(db, 'posts', postID);
     const postDoc = await getDoc(postDocRef);
+    let fetchedPostData;
     if (postDoc.exists()) {
-      const postData = { postID: postDoc.id, ...postDoc.data() };
-      setPost(postData);
+      fetchedPostData = { postID: postDoc.id, ...postDoc.data() };
+      setPost(fetchedPostData);
     } else {
       console.error('Post not found');
-      setPost({ postID, title: 'Post Not Found', postType: 'Unknown' });
+      fetchedPostData = { postID, title: 'Post Not Found', postType: 'Unknown' };
+      setPost(fetchedPostData);
     }
 
     // 3. Subscribe to messages
@@ -159,12 +164,72 @@ const loadChatData = async () => {
       }
     });
 
+    // 5. Subscribe to support updates for Initiative posts
+    let unsubscribeSupport = () => {};
+    if (fetchedPostData?.postType === 'Initiative') {
+      console.log('🟢 Setting up support subscription for Initiative post:', postID);
+      const supportsRef = collection(db, 'supports');
+      const supportQuery = query(
+        supportsRef,
+        where('initiativeID', '==', postID)
+      );
+
+      unsubscribeSupport = onSnapshot(supportQuery, (snapshot) => {
+        console.log('🟢 Support snapshot received. Empty?', snapshot.empty, 'Docs count:', snapshot.docs.length);
+
+        if (!snapshot.empty) {
+          // Log all supports for debugging
+          snapshot.docs.forEach(doc => {
+            console.log('🟢 Support document:', doc.id, doc.data());
+          });
+
+          // Find the support that matches this specific conversation
+          const relevantSupport = snapshot.docs.find(doc => {
+            const data = doc.data();
+            console.log('🟢 Checking support relevance:', {
+              supportID: doc.id,
+              giverID: data.giverID,
+              collectorID: data.collectorID,
+              currentUserID: currentUser.userID,
+              otherUserID: otherUser.userID,
+              status: data.status
+            });
+
+            const isRelevant =
+              (data.giverID === otherUser.userID && data.collectorID === currentUser.userID) ||
+              (data.collectorID === otherUser.userID && data.giverID === currentUser.userID);
+
+            const isActive = ['Pending', 'Accepted', 'PickupScheduled'].includes(data.status);
+
+            console.log('🟢 Support relevance check:', { isRelevant, isActive });
+
+            return isRelevant && isActive;
+          });
+
+          if (relevantSupport) {
+            const supportData = { id: relevantSupport.id, ...relevantSupport.data() };
+            console.log('✅ Active support found:', supportData);
+            setActiveSupport(supportData);
+          } else {
+            console.log('⚠️ No active support for this conversation');
+            setActiveSupport(null);
+          }
+        } else {
+          console.log('⚠️ No supports found for this initiative');
+          setActiveSupport(null);
+        }
+      });
+    } else {
+      console.log('ℹ️ Post is not an Initiative, skipping support subscription');
+    }
+
     // Store combined unsubscribe function
     unsubscribeRef.current = () => {
       unsubscribeMessages();
       unsubscribePickup();
+      unsubscribeSupport();
     };
-    
+
   } catch (error) {
     console.error('Error loading chat data:', error);
     setLoading(false);
@@ -251,6 +316,32 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
       const pickupRef = await addDoc(collection(db, 'pickups'), pickupData);
 
+      // If this is for an Initiative post with an active support, link the pickup to the support
+      if (post?.postType === 'Initiative' && activeSupport) {
+        try {
+          const supportRef = doc(db, 'supports', activeSupport.supportID);
+          await updateDoc(supportRef, {
+            pickupID: pickupRef.id,
+            pickupScheduled: true,
+            status: 'PickupScheduled',
+            updatedAt: new Date()
+          });
+
+          console.log('✅ Support linked to pickup:', { supportID: activeSupport.supportID, pickupID: pickupRef.id });
+
+          // Update local support state
+          setActiveSupport(prev => ({
+            ...prev,
+            pickupID: pickupRef.id,
+            pickupScheduled: true,
+            status: 'PickupScheduled'
+          }));
+        } catch (linkError) {
+          console.error('Error linking support to pickup:', linkError);
+          // Continue anyway - pickup is still created
+        }
+      }
+
       // Send system message with actor and guidance
       const collectorName = `${currentUser.firstName} ${currentUser.lastName}`;
       const giverName = otherUser.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim();
@@ -258,11 +349,11 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         `[Pickup] ${collectorName} [Collector] proposed a pickup schedule for ${formData.pickupDate} at ${formData.pickupTime}. Waiting for ${giverName} [Giver] to confirm the pickup schedule.`,
         'system'
       );
-      
+
       // Update active pickup
       setActivePickup({ id: pickupRef.id, ...pickupData });
       setShowScheduleForm(false);
-      
+
       alert('Pickup scheduled successfully!');
     } catch (error) {
       console.error('Error scheduling pickup:', error);
@@ -387,6 +478,118 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
   }
 };
 
+  // Handle accepting support request (or specific material)
+  const handleAcceptSupport = async (supportID, materialID = null) => {
+    try {
+      const token = localStorage.getItem('token');
+      const url = materialID
+        ? `${process.env.REACT_APP_API_URL}/posts/support/${supportID}/accept-material`
+        : `${process.env.REACT_APP_API_URL}/posts/support/${supportID}/accept`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: materialID ? JSON.stringify({ materialID }) : undefined
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to accept support');
+      }
+
+      // Refresh support data from server
+      if (activeSupport && activeSupport.supportID === supportID) {
+        // The support status might have changed to PartiallyAccepted or Accepted
+        // Fetch updated support data would be ideal, but for now update locally
+        if (materialID && activeSupport.offeredMaterials) {
+          const updatedMaterials = activeSupport.offeredMaterials.map(m =>
+            m.materialID === materialID ? { ...m, status: 'Accepted' } : m
+          );
+          const acceptedCount = updatedMaterials.filter(m => m.status === 'Accepted').length;
+          const newStatus = acceptedCount === updatedMaterials.length ? 'Accepted' : 'PartiallyAccepted';
+
+          setActiveSupport(prev => ({
+            ...prev,
+            offeredMaterials: updatedMaterials,
+            status: newStatus
+          }));
+        } else {
+          setActiveSupport(prev => ({ ...prev, status: 'Accepted' }));
+        }
+      }
+
+      alert(materialID ? 'Material accepted!' : 'Support request accepted!');
+    } catch (error) {
+      console.error('Error accepting support:', error);
+      throw error;
+    }
+  };
+
+  // Handle declining support request (or specific material)
+  const handleDeclineSupport = async (supportID, materialID = null, reason) => {
+    try {
+      const token = localStorage.getItem('token');
+      const url = materialID
+        ? `${process.env.REACT_APP_API_URL}/posts/support/${supportID}/decline-material`
+        : `${process.env.REACT_APP_API_URL}/posts/support/${supportID}/decline`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ materialID, reason })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to decline support');
+      }
+
+      // Update local state
+      if (activeSupport && activeSupport.supportID === supportID) {
+        if (materialID && activeSupport.offeredMaterials) {
+          const updatedMaterials = activeSupport.offeredMaterials.map(m =>
+            m.materialID === materialID ? { ...m, status: 'Declined', rejectionReason: reason } : m
+          );
+          const declinedCount = updatedMaterials.filter(m => m.status === 'Declined').length;
+          const acceptedCount = updatedMaterials.filter(m => m.status === 'Accepted').length;
+          let newStatus = 'Pending';
+          if (declinedCount === updatedMaterials.length) {
+            newStatus = 'Declined';
+          } else if (acceptedCount > 0) {
+            newStatus = 'PartiallyAccepted';
+          }
+
+          setActiveSupport(prev => ({
+            ...prev,
+            offeredMaterials: updatedMaterials,
+            status: newStatus
+          }));
+        } else {
+          setActiveSupport(prev => ({ ...prev, status: 'Declined', rejectionReason: reason }));
+        }
+      }
+
+      alert(materialID ? 'Material declined' : 'Support request declined');
+    } catch (error) {
+      console.error('Error declining support:', error);
+      throw error;
+    }
+  };
+
+  // Handle scheduling pickup for accepted support
+  const handleSchedulePickupForSupport = (support) => {
+    // Show the pickup schedule form
+    setShowScheduleForm(true);
+  };
+
   if (loading) {
     return (
       <div className={styles.chatWindow}>
@@ -465,11 +668,21 @@ return (
     </div>
 
     {activePickup && (
-      <PickupCard 
-        pickup={activePickup} 
+      <PickupCard
+        pickup={activePickup}
         currentUser={currentUser}
         onUpdateStatus={updatePickupStatus}
         onEditPickup={editPickup}
+      />
+    )}
+
+    {activeSupport && post?.postType === 'Initiative' && (
+      <SupportCard
+        support={activeSupport}
+        currentUser={currentUser}
+        onAccept={handleAcceptSupport}
+        onDecline={handleDeclineSupport}
+        onSchedulePickup={handleSchedulePickupForSupport}
       />
     )}
 

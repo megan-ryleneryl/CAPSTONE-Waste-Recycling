@@ -467,3 +467,31 @@
   color: #6b7280;
   font-weight: 500;
 }
+
+/* Initiative Specific Styles */
+.initiativeSpecific {
+  margin-bottom: 1.5rem;
+}
+
+.targetAmountDisplay {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #e8f5e7;
+  border-radius: 8px;
+  border-left: 4px solid #3B6535;
+  margin: 1rem 0;
+  color: #2d4a28;
+  font-size: 0.95rem;
+}
+
+.targetAmountDisplay strong {
+  color: #3B6535;
+  margin-left: 0.25rem;
+}
+
+/* Waste Specific Styles */
+.wasteSpecific {
+  margin-bottom: 1.5rem;
+}

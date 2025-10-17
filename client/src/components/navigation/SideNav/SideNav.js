@@ -47,6 +47,11 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
     { path: '/profile', label: 'Profile', icon: <User size={20} /> },
   ];
 
+  // Add "My Initiatives" only for Collectors and Admins
+  if (user?.isCollector || user?.isAdmin) {
+    mainNavItems.splice(5, 0, { path: '/my-initiatives', label: 'My Initiatives', icon: <Lightbulb size={20} /> });
+  }
+
   const adminNavItems = [];
 
   // Add Approvals menu for Admin users

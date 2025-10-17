@@ -206,6 +206,7 @@ router.get('/:postId', verifyToken, async (req, res) => {
 
 // Create new post (unified endpoint) - with better multer handling
 router.post('/create', verifyToken, (req, res, next) => {
+  console.log('🔴🔴🔴 CREATE POST ENDPOINT HIT 🔴🔴🔴');
   // Use multer middleware conditionally
   const uploadMiddleware = upload.array('images', 5);
   uploadMiddleware(req, res, (err) => {
@@ -223,12 +224,19 @@ router.post('/create', verifyToken, (req, res, next) => {
   try {
     const { postType, ...postData } = req.body;
     const user = req.user;
-        
+
+    // DEBUG: Log ALL received data
+    console.log('🚀 POST CREATE - Received request');
+    console.log('📋 Post Type:', postType);
+    console.log('📋 Full postData keys:', Object.keys(postData));
+    console.log('📦 Materials in postData:', postData.materials);
+    console.log('📦 Materials type:', typeof postData.materials);
+
     // Validate required fields
     if (!postType || !postData.title || !postData.description) {
-      console.error('Missing fields:', { 
-        hasPostType: !!postType, 
-        hasTitle: !!postData.title, 
+      console.error('Missing fields:', {
+        hasPostType: !!postType,
+        hasTitle: !!postData.title,
         hasDescription: !!postData.description,
         receivedBody: req.body
       });
@@ -369,14 +377,99 @@ router.post('/create', verifyToken, (req, res, next) => {
             message: 'Only Collectors can create Initiative posts'
           });
         }
-        
+
         basePostData.goal = postData.goal || '';
-        basePostData.targetAmount = parseFloat(postData.targetAmount) || 100;
+
+        // DEBUG: Log received materials data
+        console.log('📦 Received materials data:', postData.materials);
+        console.log('📦 Materials type:', typeof postData.materials);
+
+        // Parse materials data - similar to waste post format
+        if (typeof postData.materials === 'string') {
+          try {
+            basePostData.materials = JSON.parse(postData.materials);
+            console.log('📦 Parsed materials from string:', basePostData.materials);
+          } catch (e) {
+            console.error('Failed to parse materials:', e);
+            return res.status(400).json({
+              success: false,
+              message: 'Invalid materials format. Expected JSON array of {materialID, targetQuantity} objects.'
+            });
+          }
+        } else if (Array.isArray(postData.materials)) {
+          basePostData.materials = postData.materials;
+          console.log('📦 Materials already array:', basePostData.materials);
+        } else {
+          console.log('⚠️ No materials provided or invalid format');
+        }
+
+        // Enrich materials with materialName and initialize currentQuantity
+        if (Array.isArray(basePostData.materials)) {
+          const Material = require('../models/Material');
+          const enrichedMaterials = [];
+
+          for (const mat of basePostData.materials) {
+            // Map quantity to targetQuantity (frontend uses 'quantity', backend expects 'targetQuantity')
+            const targetQty = mat.targetQuantity || mat.quantity;
+
+            if (!targetQty || parseFloat(targetQty) <= 0) {
+              console.error('Invalid target quantity for material:', mat);
+              continue; // Skip materials with invalid quantities
+            }
+
+            // If materialName is already provided, use it
+            if (mat.materialName) {
+              enrichedMaterials.push({
+                materialID: mat.materialID,
+                targetQuantity: parseFloat(targetQty),
+                currentQuantity: 0,
+                materialName: mat.materialName
+              });
+            } else if (mat.materialID) {
+              // Otherwise, look it up from the database
+              try {
+                const material = await Material.findById(mat.materialID);
+                enrichedMaterials.push({
+                  materialID: mat.materialID,
+                  targetQuantity: parseFloat(targetQty),
+                  currentQuantity: 0,
+                  materialName: material ? (material.displayName || material.type) : mat.materialID
+                });
+              } catch (err) {
+                console.error('Error fetching material:', err);
+                // Fallback to materialID if lookup fails
+                enrichedMaterials.push({
+                  materialID: mat.materialID,
+                  targetQuantity: parseFloat(targetQty),
+                  currentQuantity: 0,
+                  materialName: mat.materialID
+                });
+              }
+            }
+          }
+
+          basePostData.materials = enrichedMaterials;
+          console.log('✅ Enriched materials:', enrichedMaterials);
+        }
+
+        // For backward compatibility: if no materials array, use targetAmount
+        basePostData.targetAmount = parseFloat(postData.targetAmount) ||
+          (Array.isArray(basePostData.materials)
+            ? basePostData.materials.reduce((sum, m) => sum + (parseFloat(m.targetQuantity) || 0), 0)
+            : 100);
+
         basePostData.currentAmount = 0;
         basePostData.endDate = postData.endDate || null;
         basePostData.status = 'Active';
-        
+
+        console.log('🔥 Final basePostData before create:', {
+          goal: basePostData.goal,
+          materials: basePostData.materials,
+          targetAmount: basePostData.targetAmount
+        });
+
         post = await InitiativePost.create(basePostData);
+        console.log('✅ Initiative post created:', post.postID);
         break;
         
       case 'Forum':
@@ -1021,86 +1114,572 @@ router.get('/:postId/claim-status', verifyToken, async (req, res) => {
 });
 
 
-// Support an Initiative Post (Givers only)
+// Support an Initiative Post (Givers only) - UPDATED for multi-material support
 router.post('/:postID/support', verifyToken, async (req, res) => {
   try {
     const { postID } = req.params;
     const giverID = req.user.userID;
-    const { materials, quantity, notes } = req.body;
-    
+    const { materialID, quantity, notes, unit, estimatedValue, materials, offeredMaterials } = req.body;
+
     // No need to check for specific user type for supporting initiatives
     // Any user can support an initiative
-    
+
     const Post = require('../models/Posts');
+    const InitiativePost = require('../models/InitiativePost');
+    const Support = require('../models/Support');
+    const User = require('../models/Users');
+    const Material = require('../models/Material');
+    const Message = require('../models/Message');
+    const Notification = require('../models/Notification');
+
     const post = await Post.findById(postID);
-    
+
     if (!post) {
       return res.status(404).json({
         success: false,
         message: 'Post not found'
       });
     }
-    
+
     if (post.postType !== 'Initiative') {
       return res.status(400).json({
         success: false,
         message: 'Can only support Initiative posts'
       });
     }
-    
+
     if (post.status !== 'Active') {
       return res.status(400).json({
         success: false,
         message: 'Initiative is not active'
       });
     }
-    
-    // Create support message
-    const Message = require('../models/Message');
+
+    // Check if user is trying to support their own initiative
+    if (post.userID === giverID) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot support your own initiative'
+      });
+    }
+
+    // Validate required fields - support both new format (offeredMaterials array) and old format (materialID/materials)
+    const useOfferedMaterials = offeredMaterials && Array.isArray(offeredMaterials) && offeredMaterials.length > 0;
+    const useMaterialID = !!materialID;
+
+    if (!useOfferedMaterials && !useMaterialID && !materials) {
+      return res.status(400).json({
+        success: false,
+        message: 'Material selection is required'
+      });
+    }
+
+    // Validate quantity only for old format (single material)
+    if (!useOfferedMaterials && (!quantity || quantity <= 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quantity must be greater than 0'
+      });
+    }
+
+    // Validate offeredMaterials if using new format
+    if (useOfferedMaterials) {
+      for (const mat of offeredMaterials) {
+        if (!mat.materialID) {
+          return res.status(400).json({
+            success: false,
+            message: 'Each material must have a materialID'
+          });
+        }
+        if (!mat.quantity || parseFloat(mat.quantity) <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: `Quantity must be greater than 0 for ${mat.materialName || mat.materialID}`
+          });
+        }
+      }
+    }
+
+    let materialName = '';
+
+    // New format: validate materialID against initiative's materials
+    if (useMaterialID) {
+      // Check if the initiative uses structured materials
+      if (post.materials && Array.isArray(post.materials) && post.materials.length > 0) {
+        const requestedMaterial = post.materials.find(m => m.materialID === materialID);
+
+        if (!requestedMaterial) {
+          return res.status(400).json({
+            success: false,
+            message: 'The selected material is not part of this initiative\'s needs'
+          });
+        }
+
+        materialName = requestedMaterial.materialName;
+
+        // Check if target already reached for this specific material
+        if (requestedMaterial.currentQuantity >= requestedMaterial.targetQuantity) {
+          return res.status(400).json({
+            success: false,
+            message: `This initiative has already reached its target for ${materialName}`
+          });
+        }
+      } else {
+        // Initiative doesn't use structured materials, fall back to looking up material name
+        try {
+          const material = await Material.findById(materialID);
+          materialName = material ? (material.displayName || material.type) : materialID;
+        } catch (err) {
+          materialName = materialID;
+        }
+      }
+    } else {
+      // Old format: use free text materials
+      materialName = materials;
+    }
+
+    // Get user names
+    const giver = await User.findById(giverID);
+    const collector = await User.findById(post.userID);
+
+    if (!giver || !collector) {
+      throw new Error('User data not found');
+    }
+
+    const giverName = `${giver.firstName} ${giver.lastName}`;
+    const collectorName = `${collector.firstName} ${collector.lastName}`;
+
+    // Create Support record - NEW: Handle multiple materials
+    const supportData = {
+      initiativeID: postID,
+      initiativeTitle: post.title,
+      giverID: giverID,
+      giverName: giverName,
+      collectorID: post.userID,
+      collectorName: collectorName,
+      notes: notes || '',
+      status: 'Pending'
+    };
+
+    // NEW: If offeredMaterials array is provided, use multi-material format
+    if (offeredMaterials && Array.isArray(offeredMaterials) && offeredMaterials.length > 0) {
+      supportData.offeredMaterials = offeredMaterials;
+      // For backward compatibility, set first material as primary
+      supportData.materialID = offeredMaterials[0].materialID;
+      supportData.materialName = offeredMaterials[0].materialName;
+      supportData.materials = offeredMaterials[0].materialName;
+      supportData.quantity = offeredMaterials[0].quantity;
+      supportData.unit = offeredMaterials[0].unit || 'kg';
+      supportData.estimatedValue = offeredMaterials.reduce((sum, m) => sum + (m.quantity || 0), 0);
+    } else {
+      // OLD: Single material format (backward compatibility)
+      supportData.materialID = materialID || '';
+      supportData.materialName = materialName;
+      supportData.materials = materialName;
+      supportData.quantity = parseFloat(quantity);
+      supportData.unit = unit || 'kg';
+      supportData.estimatedValue = parseFloat(estimatedValue) || parseFloat(quantity);
+    }
+
+    const support = await Support.create(supportData);
+
+    // Add supporter to initiative (only if not already a supporter)
+    const initiative = new InitiativePost(post);
+    await initiative.addSupporter(giverID);
+
+    // Create support message - Handle both multi-material and single material formats
+    let messageText = '';
+    let notificationMessage = '';
+
+    if (useOfferedMaterials) {
+      // Multi-material format
+      const materialsText = offeredMaterials.map(m =>
+        `${m.quantity} ${m.unit || 'kg'} of ${m.materialName}`
+      ).join(', ');
+      messageText = `I'd like to support your initiative "${post.title}" with ${materialsText}. ${notes || ''}`;
+      notificationMessage = `${giverName} wants to support "${post.title}" with ${materialsText}`;
+    } else {
+      // Single material format
+      messageText = `I'd like to support your initiative "${post.title}" with ${quantity} ${unit || 'kg'} of ${materialName}. ${notes || ''}`;
+      notificationMessage = `${giverName} wants to support "${post.title}" with ${quantity} ${unit || 'kg'} of ${materialName}`;
+    }
+
     await Message.create({
       senderID: giverID,
+      senderName: giverName,
       receiverID: post.userID,
+      receiverName: collectorName,
       postID: postID,
+      postTitle: post.title,
+      postType: 'Initiative',
       messageType: 'support',
-      message: `I'd like to support your initiative "${post.title}" with ${quantity} ${materials}. ${notes || ''}`,
+      message: messageText,
       metadata: {
         action: 'initiative_support',
+        supportID: support.supportID,
         postTitle: post.title,
-        materials,
-        quantity,
-        notes
+        materialID: materialID || (useOfferedMaterials ? offeredMaterials[0].materialID : null),
+        materialName: materialName || (useOfferedMaterials ? offeredMaterials[0].materialName : ''),
+        quantity: quantity || (useOfferedMaterials ? offeredMaterials[0].quantity : 0),
+        unit: unit || 'kg',
+        notes: notes || '',
+        offeredMaterials: useOfferedMaterials ? offeredMaterials : undefined
       }
     });
-    
+
     // Send notification to initiative owner
-    const Notification = require('../models/Notification');
-    const supporterName = `${req.user.firstName} ${req.user.lastName}`;
-    
     await Notification.create({
       userID: post.userID,
       type: Notification.TYPES.INITIATIVE_SUPPORT,
       title: 'New support for your initiative!',
-      message: `${supporterName} wants to support "${post.title}"`,
+      message: notificationMessage,
       referenceID: postID,
       referenceType: 'post',
-      actionURL: `/chat/${postID}/${giverID}`,
-      priority: 'high'
+      actionURL: `/chat?postId=${postID}&userId=${giverID}`,
+      priority: 'high',
+      metadata: {
+        supportID: support.supportID,
+        giverID: giverID,
+        giverName: giverName,
+        materialID: materialID || (useOfferedMaterials ? offeredMaterials[0].materialID : null),
+        materialName: materialName || (useOfferedMaterials ? offeredMaterials[0].materialName : ''),
+        quantity: quantity || (useOfferedMaterials ? offeredMaterials[0].quantity : 0)
+      }
     });
-    
+
     res.json({
       success: true,
       message: 'Support request sent. The initiative owner will review and respond.',
       data: {
+        supportID: support.supportID,
         postID: postID,
-        chatURL: `/chat/${postID}/${post.userID}`
+        chatURL: `/chat?postId=${postID}&userId=${post.userID}`
       }
     });
-    
+
   } catch (error) {
     console.error('Error supporting initiative:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to support initiative'
+    });
+  }
+});
+
+// Accept specific material in a support request (NEW)
+router.post('/support/:supportID/accept-material', verifyToken, async (req, res) => {
+  try {
+    const { supportID } = req.params;
+    const { materialID } = req.body;
+    const collectorID = req.user.userID;
+
+    if (!materialID) {
+      return res.status(400).json({
+        success: false,
+        message: 'Material ID is required'
+      });
+    }
+
+    const Support = require('../models/Support');
+    const support = await Support.findById(supportID);
+
+    if (!support) {
+      return res.status(404).json({
+        success: false,
+        message: 'Support request not found'
+      });
+    }
+
+    // Verify the user is the initiative owner
+    if (support.collectorID !== collectorID) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the initiative owner can accept support requests'
+      });
+    }
+
+    // Accept the specific material
+    await support.acceptMaterial(collectorID, materialID);
+
+    res.json({
+      success: true,
+      message: 'Material accepted!',
+      data: {
+        supportID: support.supportID,
+        status: support.status,
+        offeredMaterials: support.offeredMaterials
+      }
+    });
+
+  } catch (error) {
+    console.error('Error accepting material:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to accept material'
+    });
+  }
+});
+
+// Accept ALL materials in a support request (backward compatible)
+router.post('/support/:supportID/accept', verifyToken, async (req, res) => {
+  try {
+    const { supportID } = req.params;
+    const collectorID = req.user.userID;
+
+    const Support = require('../models/Support');
+    const support = await Support.findById(supportID);
+
+    if (!support) {
+      return res.status(404).json({
+        success: false,
+        message: 'Support request not found'
+      });
+    }
+
+    // Verify the user is the initiative owner
+    if (support.collectorID !== collectorID) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the initiative owner can accept support requests'
+      });
+    }
+
+    // Accept the support (all materials)
+    await support.accept(collectorID);
+
+    res.json({
+      success: true,
+      message: 'Support request accepted! You can now coordinate pickup details.',
+      data: {
+        supportID: support.supportID,
+        status: support.status,
+        chatURL: `/chat?postId=${support.initiativeID}&userId=${support.giverID}`
+      }
+    });
+
+  } catch (error) {
+    console.error('Error accepting support:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to accept support request'
+    });
+  }
+});
+
+// Decline specific material in a support request (NEW)
+router.post('/support/:supportID/decline-material', verifyToken, async (req, res) => {
+  try {
+    const { supportID } = req.params;
+    const { materialID, reason } = req.body;
+    const collectorID = req.user.userID;
+
+    if (!materialID) {
+      return res.status(400).json({
+        success: false,
+        message: 'Material ID is required'
+      });
+    }
+
+    const Support = require('../models/Support');
+    const support = await Support.findById(supportID);
+
+    if (!support) {
+      return res.status(404).json({
+        success: false,
+        message: 'Support request not found'
+      });
+    }
+
+    // Verify the user is the initiative owner
+    if (support.collectorID !== collectorID) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the initiative owner can decline support requests'
+      });
+    }
+
+    // Decline the specific material
+    await support.declineMaterial(collectorID, materialID, reason);
+
+    res.json({
+      success: true,
+      message: 'Material declined',
+      data: {
+        supportID: support.supportID,
+        status: support.status,
+        offeredMaterials: support.offeredMaterials
+      }
+    });
+
+  } catch (error) {
+    console.error('Error declining material:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to decline material'
+    });
+  }
+});
+
+// Decline ALL materials in a support request (backward compatible)
+router.post('/support/:supportID/decline', verifyToken, async (req, res) => {
+  try {
+    const { supportID } = req.params;
+    const { reason } = req.body;
+    const collectorID = req.user.userID;
+
+    const Support = require('../models/Support');
+    const support = await Support.findById(supportID);
+
+    if (!support) {
+      return res.status(404).json({
+        success: false,
+        message: 'Support request not found'
+      });
+    }
+
+    // Verify the user is the initiative owner
+    if (support.collectorID !== collectorID) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the initiative owner can decline support requests'
+      });
+    }
+
+    // Decline the support (all materials)
+    await support.decline(collectorID, reason);
+
+    res.json({
+      success: true,
+      message: 'Support request declined',
+      data: {
+        supportID: support.supportID,
+        status: support.status
+      }
+    });
+
+  } catch (error) {
+    console.error('Error declining support:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to decline support request'
+    });
+  }
+});
+
+// Get all support requests for an initiative
+router.get('/:postID/supports', verifyToken, async (req, res) => {
+  try {
+    const { postID } = req.params;
+    const { status } = req.query;
+
+    const Post = require('../models/Posts');
+    const Support = require('../models/Support');
+
+    const post = await Post.findById(postID);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
+    if (post.postType !== 'Initiative') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only Initiative posts have support requests'
+      });
+    }
+
+    // Get support requests based on status filter
+    let supports;
+    if (status === 'pending') {
+      supports = await Support.getPendingForInitiative(postID);
+    } else if (status === 'accepted') {
+      supports = await Support.getAcceptedForInitiative(postID);
+    } else {
+      supports = await Support.findByInitiative(postID);
+    }
+
+    res.json({
+      success: true,
+      supports: supports.map(s => s.toFirestore())
+    });
+
+  } catch (error) {
+    console.error('Error fetching supports:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch support requests'
+    });
+  }
+});
+
+// Get user's support history (as giver or collector)
+router.get('/supports/my-supports', verifyToken, async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    const { role } = req.query; // 'giver', 'collector', or 'both'
+
+    const Support = require('../models/Support');
+    const supports = await Support.findByUser(userID, role || 'both');
+
+    res.json({
+      success: true,
+      supports: supports.map(s => s.toFirestore())
+    });
+
+  } catch (error) {
+    console.error('Error fetching user supports:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch support history'
+    });
+  }
+});
+
+// Cancel a support request
+router.post('/support/:supportID/cancel', verifyToken, async (req, res) => {
+  try {
+    const { supportID } = req.params;
+    const { reason } = req.body;
+    const userID = req.user.userID;
+
+    const Support = require('../models/Support');
+    const support = await Support.findById(supportID);
+
+    if (!support) {
+      return res.status(404).json({
+        success: false,
+        message: 'Support request not found'
+      });
+    }
+
+    // Verify the user is either the giver or collector
+    if (support.giverID !== userID && support.collectorID !== userID) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to cancel this support request'
+      });
+    }
+
+    // Cancel the support
+    await support.cancel(userID, reason);
+
+    res.json({
+      success: true,
+      message: 'Support request cancelled',
+      data: {
+        supportID: support.supportID,
+        status: support.status
+      }
+    });
+
+  } catch (error) {
+    console.error('Error cancelling support:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to cancel support request'
     });
   }
 });

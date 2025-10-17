@@ -483,3 +483,227 @@
   font-weight: 600;
   font-size: 0.9rem;
 }
+
+/* Materials Progress Section - for Initiative Posts with material breakdown */
+.materialsProgress {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.materialItem {
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border-left: 4px solid #3B6535;
+}
+
+.materialHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.materialName {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.95rem;
+}
+
+.materialQuantity {
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.overallProgress {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #e5e7eb;
+}
+
+/* Support Modal - Needed Materials Display */
+.neededMaterials {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.neededMaterials strong {
+  color: #166534;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.materialsList {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #166534;
+}
+
+.materialsList li {
+  margin-bottom: 0.25rem;
+}
+
+.completedLabel {
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.noMaterials {
+  color: #6b7280;
+  font-style: italic;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.formGroup select {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: all 0.2s;
+  background: white;
+  cursor: pointer;
+}
+
+.formGroup select:focus {
+  outline: none;
+  border-color: #3B6535;
+  box-shadow: 0 0 0 3px rgba(59, 101, 53, 0.1);
+}
+
+.formGroup select:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+/* Guide Box - Instructions for using the modal */
+.guideBox {
+  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+  border: 1px solid #60a5fa;
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.guideBox strong {
+  color: #1e40af;
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.guideList {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #1e3a8a;
+}
+
+.guideList li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
+
+/* Add Button for Material Selection */
+.addButton {
+  padding: 0.75rem 1rem;
+  background: #3B6535;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.addButton:hover {
+  background: #2d4e29;
+}
+
+/* Selected Materials Display */
+.selectedMaterials {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.selectedMaterials strong {
+  color: #166534;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.selectedMaterialItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.selectedMaterialItem:last-child {
+  margin-bottom: 0;
+}
+
+.materialInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.materialLabel {
+  font-weight: 600;
+  color: #166534;
+  min-width: 100px;
+}
+
+.quantityInput {
+  width: 100px;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.quantityInput:focus {
+  outline: none;
+  border-color: #3B6535;
+  box-shadow: 0 0 0 3px rgba(59, 101, 53, 0.1);
+}
+
+.removeButton {
+  padding: 0.5rem 0.75rem;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.removeButton:hover {
+  background: #dc2626;
+}
