@@ -1,7 +1,8 @@
 // client/src/components/chat/PickupCard.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, Save, Edit, CheckCircle, X, MapPinned } from 'lucide-react';
+import PSGCService from '../../services/psgcService';
 import styles from './PickupCard.module.css';
 
 const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
@@ -23,14 +24,86 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
     return parts.join(', ');
   };
 
+  // PSGC Location states for edit form
+  const [regions, setRegions] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [barangays, setBarangays] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+
   const [editForm, setEditForm] = useState({
     pickupDate: pickup.pickupDate || '',
     pickupTime: pickup.pickupTime || '',
-    pickupLocation: getLocationString(pickup.pickupLocation),
+    // PSGC Location fields
+    region: pickup.pickupLocation?.region?.code || '',
+    province: pickup.pickupLocation?.province?.code || '',
+    city: pickup.pickupLocation?.city?.code || '',
+    barangay: pickup.pickupLocation?.barangay?.code || '',
+    addressLine: pickup.pickupLocation?.addressLine || '',
     contactPerson: pickup.contactPerson || '',
     contactNumber: pickup.contactNumber || '',
     specialInstructions: pickup.specialInstructions || ''
   });
+
+  // Load regions when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      loadRegions();
+      // If we have existing location data, load the cascading selectors
+      if (pickup.pickupLocation?.region?.code) {
+        loadInitialLocation();
+      }
+    }
+  }, [isEditing]);
+
+  const loadRegions = async () => {
+    setLoadingLocations(true);
+    try {
+      const data = await PSGCService.getRegions();
+      setRegions(data);
+    } catch (error) {
+      console.error('Error loading regions:', error);
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  const loadInitialLocation = async () => {
+    const loc = pickup.pickupLocation;
+    if (!loc) return;
+
+    try {
+      // Load provinces if not NCR
+      if (loc.region?.code) {
+        const selectedRegion = await PSGCService.getRegions().then(regions =>
+          regions.find(r => r.code === loc.region.code)
+        );
+        const isNCR = selectedRegion && (
+          selectedRegion.name.includes('NCR') ||
+          selectedRegion.name.includes('National Capital Region') ||
+          loc.region.code === '130000000'
+        );
+
+        if (isNCR) {
+          const citiesData = await PSGCService.getCitiesFromRegion(loc.region.code);
+          setCities(citiesData);
+        } else if (loc.province?.code) {
+          const provincesData = await PSGCService.getProvinces(loc.region.code);
+          setProvinces(provincesData);
+          const citiesData = await PSGCService.getCitiesMunicipalities(loc.province.code);
+          setCities(citiesData);
+        }
+      }
+
+      // Load barangays if city exists
+      if (loc.city?.code) {
+        const barangaysData = await PSGCService.getBarangays(loc.city.code);
+        setBarangays(barangaysData);
+      }
+    } catch (error) {
+      console.error('Error loading initial location:', error);
+    }
+  };
 
   const getStatusColor = (status) => {
     const colors = {
@@ -86,9 +159,139 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
     }));
   };
 
+  const handleRegionChange = async (e) => {
+    const regionCode = e.target.value;
+    const selectedRegion = regions.find(r => r.code === regionCode);
+
+    const isNCR = selectedRegion && (
+      selectedRegion.name.includes('NCR') ||
+      selectedRegion.name.includes('National Capital Region') ||
+      regionCode === '130000000'
+    );
+
+    setEditForm({
+      ...editForm,
+      region: regionCode,
+      province: isNCR ? 'NCR' : '',
+      city: '',
+      barangay: ''
+    });
+
+    setProvinces([]);
+    setCities([]);
+    setBarangays([]);
+
+    if (regionCode) {
+      setLoadingLocations(true);
+      try {
+        if (isNCR) {
+          const data = await PSGCService.getCitiesFromRegion(regionCode);
+          setCities(data);
+        } else {
+          const data = await PSGCService.getProvinces(regionCode);
+          setProvinces(data);
+        }
+      } catch (error) {
+        console.error('Error loading location data:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleProvinceChange = async (e) => {
+    const provinceCode = e.target.value;
+    setEditForm({
+      ...editForm,
+      province: provinceCode,
+      city: '',
+      barangay: ''
+    });
+
+    setCities([]);
+    setBarangays([]);
+
+    if (provinceCode) {
+      setLoadingLocations(true);
+      try {
+        const data = await PSGCService.getCitiesMunicipalities(provinceCode);
+        setCities(data);
+      } catch (error) {
+        console.error('Error loading cities/municipalities:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleCityChange = async (e) => {
+    const cityCode = e.target.value;
+    setEditForm({
+      ...editForm,
+      city: cityCode,
+      barangay: ''
+    });
+
+    setBarangays([]);
+
+    if (cityCode) {
+      setLoadingLocations(true);
+      try {
+        const data = await PSGCService.getBarangays(cityCode);
+        setBarangays(data);
+      } catch (error) {
+        console.error('Error loading barangays:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleBarangayChange = (e) => {
+    setEditForm({
+      ...editForm,
+      barangay: e.target.value
+    });
+  };
+
   const handleEditSubmit = async () => {
     try {
-      await onEditPickup(pickup.id, editForm);
+      // Build structured location object
+      const selectedRegion = regions.find(r => r.code === editForm.region);
+      const selectedProvince = provinces.find(p => p.code === editForm.province);
+      const selectedCity = cities.find(c => c.code === editForm.city);
+      const selectedBarangay = barangays.find(b => b.code === editForm.barangay);
+
+      const locationData = {
+        region: {
+          code: editForm.region,
+          name: selectedRegion?.name || ''
+        },
+        province: selectedProvince ? {
+          code: editForm.province,
+          name: selectedProvince.name
+        } : null,
+        city: {
+          code: editForm.city,
+          name: selectedCity?.name || ''
+        },
+        barangay: {
+          code: editForm.barangay,
+          name: selectedBarangay?.name || ''
+        },
+        addressLine: editForm.addressLine
+      };
+
+      const updatedData = {
+        pickupDate: editForm.pickupDate,
+        pickupTime: editForm.pickupTime,
+        pickupLocation: locationData,
+        contactPerson: editForm.contactPerson,
+        contactNumber: editForm.contactNumber,
+        specialInstructions: editForm.specialInstructions
+      };
+
+      await onEditPickup(pickup.id, updatedData);
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating pickup:', error);
@@ -102,11 +305,19 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
     setEditForm({
       pickupDate: pickup.pickupDate || '',
       pickupTime: pickup.pickupTime || '',
-      pickupLocation: getLocationString(pickup.pickupLocation),
+      region: pickup.pickupLocation?.region?.code || '',
+      province: pickup.pickupLocation?.province?.code || '',
+      city: pickup.pickupLocation?.city?.code || '',
+      barangay: pickup.pickupLocation?.barangay?.code || '',
+      addressLine: pickup.pickupLocation?.addressLine || '',
       contactPerson: pickup.contactPerson || '',
       contactNumber: pickup.contactNumber || '',
       specialInstructions: pickup.specialInstructions || ''
     });
+    // Reset location dropdowns
+    setProvinces([]);
+    setCities([]);
+    setBarangays([]);
   };
 
   const isGiver = currentUser?.userID === pickup.giverID;
@@ -153,14 +364,113 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
             </div>
           </div>
 
+          {/* PSGC Location Fields */}
           <div className={styles.formField}>
-            <label>Location</label>
+            <label>Region *</label>
+            <select
+              name="region"
+              value={editForm.region}
+              onChange={handleRegionChange}
+              disabled={loadingLocations}
+            >
+              <option value="">
+                {loadingLocations ? 'Loading...' : 'Select Region'}
+              </option>
+              {regions.map((region) => (
+                <option key={region.code} value={region.code}>
+                  {region.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Province dropdown - hidden for NCR */}
+          {editForm.region && (() => {
+            const selectedRegion = regions.find(r => r.code === editForm.region);
+            const isNCR = selectedRegion && (
+              selectedRegion.name.includes('NCR') ||
+              selectedRegion.name.includes('National Capital Region') ||
+              editForm.region === '130000000'
+            );
+
+            return !isNCR && (
+              <div className={styles.formField}>
+                <label>Province *</label>
+                <select
+                  name="province"
+                  value={editForm.province}
+                  onChange={handleProvinceChange}
+                  disabled={!editForm.region || loadingLocations}
+                >
+                  <option value="">
+                    {loadingLocations ? 'Loading...' : 'Select Province'}
+                  </option>
+                  {provinces.map((province) => (
+                    <option key={province.code} value={province.code}>
+                      {province.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })()}
+
+          <div className={styles.formRow}>
+            <div className={styles.formField}>
+              <label>City/Municipality *</label>
+              <select
+                name="city"
+                value={editForm.city}
+                onChange={handleCityChange}
+                disabled={(() => {
+                  const selectedRegion = regions.find(r => r.code === editForm.region);
+                  const isNCR = selectedRegion && (
+                    selectedRegion.name.includes('NCR') ||
+                    selectedRegion.name.includes('National Capital Region') ||
+                    editForm.region === '130000000'
+                  );
+                  return (!editForm.region || (!isNCR && !editForm.province) || loadingLocations);
+                })()}
+              >
+                <option value="">
+                  {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
+                </option>
+                {cities.map((city) => (
+                  <option key={city.code} value={city.code}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.formField}>
+              <label>Barangay *</label>
+              <select
+                name="barangay"
+                value={editForm.barangay}
+                onChange={handleBarangayChange}
+                disabled={!editForm.city || loadingLocations}
+              >
+                <option value="">
+                  {loadingLocations ? 'Loading...' : 'Select Barangay'}
+                </option>
+                {barangays.map((barangay) => (
+                  <option key={barangay.code} value={barangay.code}>
+                    {barangay.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.formField}>
+            <label>Specific Address / Landmark *</label>
             <input
               type="text"
-              name="pickupLocation"
-              value={editForm.pickupLocation}
+              name="addressLine"
+              placeholder="e.g., Unit 5B, Greenview Bldg., near 7-Eleven"
+              value={editForm.addressLine}
               onChange={handleEditChange}
-              placeholder="Enter pickup location"
             />
           </div>
 

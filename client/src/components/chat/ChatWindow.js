@@ -8,6 +8,7 @@ import PickupScheduleForm from './PickupScheduleForm';
 import PickupCard from './PickupCard';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
+import geocodingService from '../../services/geocodingService';
 import styles from './ChatWindow.module.css';
 
 
@@ -201,6 +202,32 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
   const handleSchedulePickup = async (formData) => {
     try {
+      // Geocode the pickup location before saving
+      let locationWithCoords = formData.pickupLocation;
+
+      if (formData.pickupLocation && !formData.pickupLocation.coordinates?.lat) {
+        console.log('🗺️ Geocoding pickup location...');
+        try {
+          const coords = await geocodingService.getCoordinates(formData.pickupLocation);
+
+          if (coords) {
+            locationWithCoords = {
+              ...formData.pickupLocation,
+              coordinates: {
+                lat: coords.lat,
+                lng: coords.lng
+              }
+            };
+            console.log('✅ Pickup location coordinates added:', coords);
+          } else {
+            console.log('⚠️ Geocoding failed, proceeding without coordinates');
+          }
+        } catch (error) {
+          console.error('Error geocoding location:', error);
+          console.log('⚠️ Geocoding error, proceeding without coordinates');
+        }
+      }
+
       const pickupData = {
         postID,
         postType: post?.postType || 'Waste',
@@ -212,7 +239,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         proposedBy: currentUser.userID,
         pickupDate: formData.pickupDate,
         pickupTime: formData.pickupTime,
-        pickupLocation: formData.pickupLocation,
+        pickupLocation: locationWithCoords,
         contactPerson: formData.contactPerson,
         contactNumber: formData.contactNumber,
         alternateContact: formData.alternateContact || '',
@@ -303,11 +330,37 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
   const editPickup = async (pickupId, updatedData) => {
   if (!pickupId) return;
-  
+
   try {
+    // Geocode the pickup location if it's being updated
+    let dataToUpdate = { ...updatedData };
+
+    if (updatedData.pickupLocation && !updatedData.pickupLocation.coordinates?.lat) {
+      console.log('🗺️ Geocoding updated pickup location...');
+      try {
+        const coords = await geocodingService.getCoordinates(updatedData.pickupLocation);
+
+        if (coords) {
+          dataToUpdate.pickupLocation = {
+            ...updatedData.pickupLocation,
+            coordinates: {
+              lat: coords.lat,
+              lng: coords.lng
+            }
+          };
+          console.log('✅ Updated pickup location coordinates added:', coords);
+        } else {
+          console.log('⚠️ Geocoding failed for updated location, proceeding without coordinates');
+        }
+      } catch (error) {
+        console.error('Error geocoding updated location:', error);
+        console.log('⚠️ Geocoding error, proceeding without coordinates');
+      }
+    }
+
     const pickupRef = doc(db, 'pickups', pickupId);
     await updateDoc(pickupRef, {
-      ...updatedData,
+      ...dataToUpdate,
       status: 'Proposed', // Reset to proposed when edited
       updatedAt: serverTimestamp()
     });

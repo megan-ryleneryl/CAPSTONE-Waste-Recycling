@@ -556,22 +556,33 @@ static async getUpcomingPickups(req, res) {
         }
       });
 
-      // Geocode the pickup location if it's being updated and doesn't have coordinates
-      if (filteredUpdates.pickupLocation && !filteredUpdates.pickupLocation.coordinates?.lat) {
-        console.log('🗺️ Geocoding updated pickup location...');
-        const coords = await GeocodingService.getCoordinates(filteredUpdates.pickupLocation);
+      // Geocode the pickup location if it's being updated
+      if (filteredUpdates.pickupLocation) {
+        // Check if location is a string (from edit form) or object without coordinates
+        const isString = typeof filteredUpdates.pickupLocation === 'string';
+        const needsGeocoding = !filteredUpdates.pickupLocation.coordinates?.lat;
 
-        if (coords) {
-          filteredUpdates.pickupLocation = {
-            ...filteredUpdates.pickupLocation,
-            coordinates: {
-              lat: coords.lat,
-              lng: coords.lng
-            }
-          };
-          console.log('✅ Updated pickup location coordinates added:', coords);
-        } else {
-          console.log('⚠️ Geocoding failed for updated pickup location, proceeding without coordinates');
+        if (isString) {
+          console.log('⚠️ Location received as string, cannot geocode without PSGC structure. Keeping as string.');
+          // If it's a string, we can't geocode it properly without PSGC data
+          // Keep it as is for now - ideally the frontend should send proper PSGC structure
+        } else if (needsGeocoding) {
+          // Location is an object without coordinates, try to geocode it
+          console.log('🗺️ Geocoding updated pickup location...');
+          const coords = await GeocodingService.getCoordinates(filteredUpdates.pickupLocation);
+
+          if (coords) {
+            filteredUpdates.pickupLocation = {
+              ...filteredUpdates.pickupLocation,
+              coordinates: {
+                lat: coords.lat,
+                lng: coords.lng
+              }
+            };
+            console.log('✅ Updated pickup location coordinates added:', coords);
+          } else {
+            console.log('⚠️ Geocoding failed for updated pickup location, proceeding without coordinates');
+          }
         }
       }
 
