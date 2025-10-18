@@ -624,10 +624,10 @@ return (
         )}
         <div className={styles.userInfo}>
           <div className={styles.avatar}>
-            {otherUserData?.profilePicture ? (
-              <img 
-                src={otherUserData.profilePicture} 
-                alt={otherUserData?.name || 'User'} 
+            {otherUserData?.profilePictureUrl ? (
+              <img
+                src={otherUserData.profilePictureUrl}
+                alt={otherUserData?.name || 'User'}
                 onError={(e) => {
                   e.target.style.display = 'none';
                   e.target.parentElement.textContent = (otherUserData?.name || otherUserData?.firstName || 'U').charAt(0).toUpperCase();

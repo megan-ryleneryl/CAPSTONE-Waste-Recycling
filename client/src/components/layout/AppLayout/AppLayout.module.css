@@ -1,6 +1,6 @@
 .appContainer {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f7f7f7 100%);
   font-family: 'Raleway', sans-serif;
   display: flex;
   flex-direction: column;

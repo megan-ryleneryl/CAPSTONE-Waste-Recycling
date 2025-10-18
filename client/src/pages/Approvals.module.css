@@ -121,7 +121,11 @@
 }
 
 .cardBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .applicantInfo {
@@ -142,6 +146,9 @@
   border-radius: var(--border-radius-md);
   font-size: 0.9rem;
   border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
+
 }
 
 .justification strong {

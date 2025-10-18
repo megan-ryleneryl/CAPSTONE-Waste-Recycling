@@ -26,6 +26,11 @@ const Posts = ({ activeFilter = 'all' }) => {
   const postType = getPostTypeFromFilter(activeFilter);
   const userID = activeFilter === 'myPosts' ? currentUser?.userID : null;
 
+  console.log('Posts Component - activeFilter:', activeFilter);
+  console.log('Posts Component - currentUser:', currentUser);
+  console.log('Posts Component - userID being passed:', userID);
+  console.log('Posts Component - postType being passed:', postType);
+
   return (
     <div>
       {/* Pass the appropriate postType and userID to PostCard */}

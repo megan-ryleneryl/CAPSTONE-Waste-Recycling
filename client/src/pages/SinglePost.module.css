@@ -16,9 +16,8 @@
   flex-direction: column;
   align-items: flex;
   /* justify-content: center; */
-  padding: 1rem;
+  padding-top: 1rem;
   /* flex: 1; */
-  background: white;
   /* max-width: 800px; */
   width: 100%;
 }
@@ -92,10 +91,7 @@
 .postCard {
   display: flex;
   flex-direction: column;
-
-  /* border-radius: 20px; */
-  padding: 2rem;
-  /* box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); */
+  padding: 2rem 2rem 0 0;
 }
 
 /* Top Section Style */
@@ -111,7 +107,7 @@
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid #E5E5E5;
@@ -156,7 +152,8 @@
   color: #111;
 }
 
-.userType {
+.orgName {
+  text-align: left;
   margin: 0;
   font-size: 0.875rem;
   color: #666;
@@ -190,13 +187,26 @@
   color: #3730A3;
 }
 
-.moreButton {
-  background: none;
+/* Delete Button in Header */
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  color: #bf3d3d;
   border: none;
-  font-size: 1.5rem;
-  color: #666;
   cursor: pointer;
-  padding: 0 0.5rem;
+  transition: all 0.2s ease;
+  /* padding: 0; */
+}
+
+.deleteButton:hover {
+  background: #FEF2F2;
+  color: #B91C1C;
+  transform: scale(1.05);
 }
 
 /* Post Type Badge */
@@ -344,7 +354,6 @@
 
 .collectButton,
 .editButton,
-.deleteButton,
 .claimedButton {
   flex: 1;
   padding: 1rem;
@@ -374,16 +383,6 @@
 
 .editButton:hover {
   background: #e67e2e;
-  transform: translateY(-2px);
-}
-
-.deleteButton {
-  background: #DC2626;
-  color: white;
-}
-
-.deleteButton:hover {
-  background: #B91C1C;
   transform: translateY(-2px);
 }
 
@@ -535,7 +534,6 @@
 /* Interactions Section for Forum Posts */
 .interactionsSection {
   padding: 0rem 1.5rem;
-  background: white;
 }
 
 .likeSection {

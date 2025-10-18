@@ -83,6 +83,7 @@ const ConversationListItem = ({
 
   // Get display info from conversation
   const otherUserName = conversation.otherUserName || 'Unknown User';
+  const otherUserProfilePicture = conversation.otherUserProfilePicture;
   const lastMessage = conversation.lastMessage || {};
   const messageText = lastMessage.message || 'No messages yet';
   const lastMessageTime = lastMessage.sentAt;
@@ -93,12 +94,24 @@ const ConversationListItem = ({
   const isOwnMessage = lastMessage.senderID === currentUser?.userID;
 
   return (
-    <div 
+    <div
       className={`${styles.conversationItem} ${isSelected ? styles.selected : ''} ${unreadCount > 0 ? styles.unread : ''}`}
       onClick={handleClick}
     >
       <div className={styles.avatar}>
-        {otherUserName.charAt(0).toUpperCase()}
+        {otherUserProfilePicture ? (
+          <img
+            src={otherUserProfilePicture}
+            alt={otherUserName}
+            className={styles.avatarImage}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.parentElement.textContent = otherUserName.charAt(0).toUpperCase();
+            }}
+          />
+        ) : (
+          otherUserName.charAt(0).toUpperCase()
+        )}
       </div>
       
       <div className={styles.content}>

@@ -1,8 +1,10 @@
 .analyticsContainer {
-  background: white;
-  margin: 2rem 0;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
+  /* margin: 2rem; */
   height: 100%;
+  width: 100%;
+  box-sizing: border-box;
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }

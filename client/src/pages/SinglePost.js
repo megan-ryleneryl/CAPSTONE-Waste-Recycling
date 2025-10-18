@@ -6,7 +6,7 @@ import CommentsSection from '../components/posts/CommentsSection/CommentsSection
 // import PickupRequests from '../components/posts/PickupRequests/PickupRequests';
 import styles from './SinglePost.module.css';
 // Lucide icon imports
-import { Heart, MessageCircle } from 'lucide-react';
+import { Heart, MessageCircle, Trash2 } from 'lucide-react';
 
 const SinglePost = ({ onDataUpdate }) => {
   const { postId } = useParams();
@@ -30,7 +30,7 @@ const SinglePost = ({ onDataUpdate }) => {
     if (post) {
       setLikeCount(post.likeCount || 0);
       setIsLiked(post.isLiked || false);
-      
+
       if (onDataUpdate) {
         onDataUpdate({ post });
       }
@@ -163,6 +163,30 @@ const SinglePost = ({ onDataUpdate }) => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(
+        `http://localhost:3001/api/posts/${postId}`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        alert('Post deleted successfully');
+        navigate('/posts');
+      }
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      alert(err.response?.data?.message || 'Failed to delete post');
+    }
+  };
+
   const formatLocation = (location) => {
     if (!location) return 'Location not specified';
     if (typeof location === 'string') return location;
@@ -255,14 +279,12 @@ const SinglePost = ({ onDataUpdate }) => {
               </div>
               <div className={styles.userDetails}>
                 <h3 className={styles.userName}>
-                  {post.user?.organizationName ||
+                  {
                    `${post.user?.firstName || ''} ${post.user?.lastName || ''}`.trim() ||
                    'Anonymous User'}
                 </h3>
-                <p className={styles.userType}>
-                  {post.user?.isAdmin ? 'Admin' :
-                   post.user?.isCollector ? 'Collector' :
-                   post.user?.isOrganization ? 'Organization' : 'Giver'}
+                <p className={styles.orgName}>
+                  {post.user?.organizationName}
                 </p>
               </div>
               {!isOwner && user && (
@@ -284,7 +306,14 @@ const SinglePost = ({ onDataUpdate }) => {
                 {post.status === 'Active' ? 'Active' : post.status}
               </span>
               {isOwner && (
-                <button className={styles.moreButton}>•••</button>
+                <button
+                  className={styles.deleteButton}
+                  onClick={handleDelete}
+                  aria-label="Delete post"
+                  title="Delete post"
+                >
+                  <Trash2 size={20} />
+                </button>
               )}
             </div>
           </div>
@@ -367,22 +396,12 @@ const SinglePost = ({ onDataUpdate }) => {
           {post.postType === 'Waste' && (
             <div className={styles.actions}>
               {isCollector && !isOwner && post.status === 'Active' && (
-                <button 
+                <button
                   className={styles.collectButton}
                   onClick={handleCollect}
                 >
                   Collect This Waste
                 </button>
-              )}
-              {isOwner && (
-                <>
-                  <button className={styles.editButton}>
-                    Edit Post
-                  </button>
-                  <button className={styles.deleteButton}>
-                    Delete Post
-                  </button>
-                </>
               )}
               {post.status === 'Claimed' && !isOwner && (
                 <button className={styles.claimedButton} disabled>

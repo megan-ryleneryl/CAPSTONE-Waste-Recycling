@@ -1,5 +1,5 @@
 .container {
-  padding: 2rem;
+  padding-top: 2rem;
   max-width: 1400px;
   margin: 0 auto;
   font-family: var(--font-family-primary);
@@ -29,10 +29,10 @@
 
 /* Profile Card */
 .profileCard {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
   border-radius: var(--border-radius-xl, 20px);
   padding: 2rem;
-  box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
   min-height: 400px;
 }
 
@@ -73,28 +73,49 @@
   font-family: 'Raleway', sans-serif;
 }
 
-.editButton {
-  background: #F0924C;
-  color: white;
-  border: none;
-  padding: 0.75rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: 'Raleway', sans-serif;
-  white-space: nowrap;
-  flex: 0 0 auto;
-  align-self: flex-start;
-  width: auto;
-  margin-left: auto;
+.iconButtonGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.editButton:hover {
-  background: #e67e2e;
+.iconButton,
+.iconButtonDelete {
+  background: white;
+  border: 2px solid #E5E7EB;
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.iconButton {
+  color: #F0924C;
+  border-color: #F0924C;
+}
+
+.iconButton:hover {
+  background: #F0924C;
+  color: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(240, 146, 76, 0.3);
+}
+
+.iconButtonDelete {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.iconButtonDelete:hover {
+  background: #dc3545;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
 /* Stats Grid */
@@ -698,6 +719,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Legacy delete button style - kept for backwards compatibility */
 .deleteButton {
   background: #dc3545;
   color: white;

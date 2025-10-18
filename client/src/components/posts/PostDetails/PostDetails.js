@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ModalPortal from '../../modal/ModalPortal';
 import styles from './PostDetails.module.css';
-import { Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
+import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
 
 
 const PostDetails = ({ post, user: currentUser }) => {
@@ -445,7 +445,7 @@ const PostDetails = ({ post, user: currentUser }) => {
 
             {post.supportCount > 0 && (
               <div className={styles.detailItem}>
-                <span className={styles.icon}>👥</span>
+                <span className={styles.icon}><Users size={18}/></span>
                 <span className={styles.value}>{post.supportCount} supporter{post.supportCount !== 1 ? 's' : ''}</span>
               </div>
             )}

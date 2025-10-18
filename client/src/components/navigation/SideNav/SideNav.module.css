@@ -1,7 +1,8 @@
 .sidebar {
   width: 260px;
   min-width: 260px;
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
   margin: 2rem;
   /* padding: 1.5rem; */
   border-radius: 1rem;

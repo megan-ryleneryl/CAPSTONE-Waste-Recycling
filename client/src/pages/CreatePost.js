@@ -579,7 +579,12 @@ const handleRemoveImage = (index) => {
             title={!canCreateInitiative ? 'Only Collectors can create Initiative posts' : ''}
           >
             <span><Sprout size={16} /> Initiative</span>
-            <small>{canCreateInitiative ? 'Start a green project' : 'Collectors only'}</small>
+            <small>{canCreateInitiative ? 'Start a green project' : ''}</small>
+            {!canCreateInitiative && (
+              <Link to="/profile" className={styles.signupLink}>
+                Sign up as collector
+              </Link>
+            )}
           </button>
           
           <button
@@ -777,54 +782,6 @@ const handleRemoveImage = (index) => {
               </div>
           </div> 
 
-          {/* Image Upload Section - For All Post Types */}
-          <div className={styles.imageUploadSection}>
-            <h3 className={styles.sectionTitle}>
-              <Image size={20} /> Images (Optional)
-            </h3>
-            <p className={styles.sectionHint}>Add up to 5 images to your post</p>
-            
-            <div className={styles.formGroup}>
-              <label htmlFor="images" className={styles.label}>
-                Upload Images
-                <span className={styles.hint}>Max 5 images, 5MB each</span>
-              </label>
-              
-              <input
-                type="file"
-                id="images"
-                accept="image/*"
-                multiple
-                onChange={handleImageChange}
-                className={styles.fileInput}
-                disabled={selectedImages.length >= 5}
-              />
-              
-              {/* Image Previews */}
-              {imagePreviews.length > 0 && (
-                <div className={styles.imagePreviewContainer}>
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className={styles.imagePreview}>
-                      <img src={preview} alt={`Preview ${index + 1}`} />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(index)}
-                        className={styles.removeImageButton}
-                        aria-label="Remove image"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              <p className={styles.imageCount}>
-                {selectedImages.length} / 5 images selected
-              </p>
-            </div>
-          </div>
-
 
           {/* Waste-specific Fields */}
           {postType === 'Waste' && (
@@ -947,6 +904,58 @@ const handleRemoveImage = (index) => {
               </div>
             </div>
           )}
+
+          {/* Image Upload Section - For All Post Types */}
+          <div className={styles.imageUploadSection}>
+            <h3 className={styles.sectionTitle}>
+              <Image size={20} /> Images (Optional)
+            </h3>
+            <p className={styles.sectionHint}>Add up to 5 images to your post</p>
+            
+            <div className={styles.formGroup}>
+              <label htmlFor="images" className={styles.label}>
+                Upload Images
+                <span className={styles.hint}>Max 5 images, 5MB each</span>
+              </label>
+              
+              <input
+                type="file"
+                id="images"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className={styles.fileInput}
+                disabled={selectedImages.length >= 5}
+              />
+              
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className={styles.imagePreviewContainer}>
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className={styles.imagePreview}>
+                      <img src={preview} alt={`Preview ${index + 1}`} />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className={styles.removeImageButton}
+                        aria-label="Remove image"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <p className={styles.imageCount}>
+                {selectedImages.length} / 5 images selected
+              </p>
+            </div>
+          </div>
+
+
+
+          
 
           {/* Forum-specific Fields */}
           {postType === 'Forum' && (

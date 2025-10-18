@@ -2,8 +2,7 @@
 .chatPage {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background: #f5f6fa;
+  padding-top: 2rem;
 }
 
 .loading {
@@ -53,7 +52,6 @@
   flex: 1;
   display: flex;
   gap: 1rem;
-  padding: 1rem;
   overflow: hidden;
   max-height: calc(100vh - 200px);
 }

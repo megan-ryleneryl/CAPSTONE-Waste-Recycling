@@ -58,12 +58,18 @@ const loadConversations = async () => {
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          return `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User';
+          return {
+            name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User',
+            profilePicture: userData.profilePictureUrl || null
+          };
         }
       } catch (error) {
         console.error('Error fetching user:', error);
       }
-      return 'Unknown User';
+      return {
+        name: 'Unknown User',
+        profilePicture: null
+      };
     };
     
     // Helper function to fetch post data
@@ -85,27 +91,32 @@ const loadConversations = async () => {
     for (const doc of receivedSnapshot.docs) {
       const msg = { id: doc.id, ...doc.data() };
       const key = `${msg.postID}-${msg.senderID}`;
-      
+
       // Fetch missing data if needed
-      let userName = msg.senderName;
+      let userData = { name: msg.senderName, profilePicture: null };
       let postTitle = msg.postTitle;
-      
-      if (!userName || userName === 'Unknown User') {
-        userName = await fetchUserData(msg.senderID);
+
+      if (!msg.senderName || msg.senderName === 'Unknown User') {
+        userData = await fetchUserData(msg.senderID);
+      } else {
+        // Still fetch user data to get profile picture
+        const fullUserData = await fetchUserData(msg.senderID);
+        userData.profilePicture = fullUserData.profilePicture;
       }
-      
+
       if (!postTitle || postTitle === 'Unknown Post') {
         postTitle = await fetchPostData(msg.postID);
       }
-      
-      if (!conversationsMap.has(key) || 
+
+      if (!conversationsMap.has(key) ||
           (msg.sentAt?.toDate() > conversationsMap.get(key).lastMessage.sentAt?.toDate())) {
         conversationsMap.set(key, {
           id: key,
           postID: msg.postID,
           postTitle: postTitle,
           otherUserID: msg.senderID,
-          otherUserName: userName,
+          otherUserName: userData.name,
+          otherUserProfilePicture: userData.profilePicture,
           lastMessage: msg,
           unreadCount: msg.isRead ? 0 : 1
         });
@@ -116,27 +127,32 @@ const loadConversations = async () => {
     for (const doc of sentSnapshot.docs) {
       const msg = { id: doc.id, ...doc.data() };
       const key = `${msg.postID}-${msg.receiverID}`;
-      
+
       // Fetch missing data if needed
-      let userName = msg.receiverName;
+      let userData = { name: msg.receiverName, profilePicture: null };
       let postTitle = msg.postTitle;
-      
-      if (!userName || userName === 'Unknown User') {
-        userName = await fetchUserData(msg.receiverID);
+
+      if (!msg.receiverName || msg.receiverName === 'Unknown User') {
+        userData = await fetchUserData(msg.receiverID);
+      } else {
+        // Still fetch user data to get profile picture
+        const fullUserData = await fetchUserData(msg.receiverID);
+        userData.profilePicture = fullUserData.profilePicture;
       }
-      
+
       if (!postTitle || postTitle === 'Unknown Post') {
         postTitle = await fetchPostData(msg.postID);
       }
-      
-      if (!conversationsMap.has(key) || 
+
+      if (!conversationsMap.has(key) ||
           (msg.sentAt?.toDate() > conversationsMap.get(key).lastMessage.sentAt?.toDate())) {
         conversationsMap.set(key, {
           id: key,
           postID: msg.postID,
           postTitle: postTitle,
           otherUserID: msg.receiverID,
-          otherUserName: userName,
+          otherUserName: userData.name,
+          otherUserProfilePicture: userData.profilePicture,
           lastMessage: msg,
           unreadCount: 0 // Sent messages are always read
         });

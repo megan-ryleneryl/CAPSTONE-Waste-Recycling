@@ -22,7 +22,7 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
 
   useEffect(() => {
     fetchPosts();
-    
+
     // Cleanup function to ensure posts is reset properly
     return () => {
       setPosts([]);
@@ -32,10 +32,10 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
   const fetchPosts = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       const token = localStorage.getItem('token');
-      
+
       // Check if token exists
       if (!token) {
         console.error('No token found, redirecting to login');
@@ -51,6 +51,7 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
 
       // Add userID filter if provided (for "My Posts" filter)
       if (userID) {
+        console.log('PostCard: Filtering by userID:', userID);
         params.append('userID', userID);
       }
 
@@ -66,8 +67,9 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
           'Initiative': 'Initiative',
           'Forum': 'Forum'
         };
-        
+
         const mappedType = typeMap[postType] || postType;
+        console.log('PostCard: Filtering by postType:', mappedType);
         params.append('type', mappedType);
       }
 
@@ -75,6 +77,8 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
+
+      console.log('PostCard: Fetching posts from URL:', url);
           
       const response = await axios.get(url, {
         headers: { 
@@ -791,18 +795,6 @@ const handleMessageOwner = async (post, event) => {
                   }}
                 >
                   Join Discussion
-                </button>
-              )}
-              {post.isOwner && (
-                <button
-                  className={`${styles.actionButton} ${styles.editButton}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(`/posts/edit/${post.postID}`);
-                  }}
-                  style={{ marginLeft: 'auto', background: '#F0924C' }}
-                >
-                  Edit
                 </button>
               )}
             </div>

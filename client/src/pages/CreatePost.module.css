@@ -4,14 +4,15 @@
 /* Container and Layout */
 .container {
   min-height: 100vh;
-  padding: 2rem;
+  padding: 2rem 2rem 0 0;
   font-family: 'Raleway', sans-serif;
 }
 
 .formContainer {
   max-width: 800px;
   margin: 0 auto;
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
   border-radius: 20px;
   overflow: hidden;
 }
@@ -63,6 +64,7 @@
   transition: all 0.3s ease;
   text-align: center;
   position: relative;
+  font-family: 'Raleway', sans-serif;
 }
 
 .typeButton:hover {
@@ -345,6 +347,7 @@
 }
 
 .sectionTitle {
+  gap: 0.5rem;
   text-align: left;
   margin: 0 0 0.5rem 0;
   font-size: 1.1rem;
@@ -384,7 +387,7 @@
 
 /* Image Upload Section */
 .imageUploadSection {
-  margin: 2rem 0;
+  margin-bottom: 2rem;
   padding: 1.5rem;
   background: #f9fafb;
   border-radius: 12px;
@@ -493,5 +496,26 @@
 
 /* Waste Specific Styles */
 .wasteSpecific {
-  margin-bottom: 1.5rem;
+  /* margin-bottom: 1.5rem; */
+}
+
+/* Sign up link for disabled Initiative button */
+.signupLink {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #3B6535;
+  text-decoration: underline;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.signupLink:hover {
+  color: #2d4e29;
+  text-decoration: underline;
+}
+
+.typeButton:disabled .signupLink {
+  cursor: pointer;
+  pointer-events: all;
 }

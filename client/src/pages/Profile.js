@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
@@ -1185,12 +1186,26 @@ const Profile = ({ user: propsUser }) => {
                 </div>
                 
                 <div className={styles.profileActions}>
-                  <button 
-                    className={styles.editButton}
-                    onClick={() => setActiveModal('edit')}
-                  >
-                    Edit Profile
-                  </button>
+                  <div className={styles.iconButtonGroup}>
+                    <button
+                      className={styles.iconButton}
+                      onClick={() => setActiveModal('edit')}
+                      title="Edit Profile"
+                    >
+                      <Pencil size={20} />
+                    </button>
+
+                    <button
+                      className={styles.iconButtonDelete}
+                      onClick={() => {
+                        setActiveModal(null);
+                        setShowDeleteModal(true);
+                      }}
+                      title="Delete Account"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
 
                   {userApplications.length > 0 && (
                     <button
@@ -1209,16 +1224,6 @@ const Profile = ({ user: propsUser }) => {
                       View Application Status ({userApplications.length})
                     </button>
                   )}
-
-                  <button
-                    className={styles.deleteButton}
-                    onClick={() => {
-                      setActiveModal(null);
-                      setShowDeleteModal(true);
-                    }}
-                  >
-                    Delete Account
-                  </button>
                 </div>
               </div>
             </div>

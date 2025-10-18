@@ -11,12 +11,14 @@
 }
 
 .label {
+  font-family: var(--font-family-primary);
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-base);
   color: var(--text-primary);
 }
 
 .addButton {
+  font-family: var(--font-family-primary);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
