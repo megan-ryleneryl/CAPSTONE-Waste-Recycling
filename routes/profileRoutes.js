@@ -69,6 +69,8 @@ router.get('/', async (req, res) => {
       });
     }
 
+    console.log('Fetching profile for userID:', req.user.userID);
+
     // Calculate total donations (kg) from completed pickups where user is giver
     const Pickup = require('../models/Pickup');
     let totalDonations = 0;
@@ -84,8 +86,9 @@ router.get('/', async (req, res) => {
       });
             
       totalDonations = completedPickups.reduce((sum, pickup) => {
+        console.log(`Adding ${pickup.paymentReceived} kg to total`);
         return sum + pickup.paymentReceived;
-      }, 0);      
+      }, 0);
     } catch (pickupError) {
       console.error('Error calculating total donations:', pickupError);
       // Continue with totalDonations = 0 if there's an error

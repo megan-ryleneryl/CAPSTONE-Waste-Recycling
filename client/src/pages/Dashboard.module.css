@@ -1651,6 +1651,88 @@
   color: #3B6535;
 }
 
+/* Contributor List Styles */
+.contributorsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.contributorItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: var(--border-radius-sm, 4px);
+  transition: all 0.3s ease;
+}
+
+.contributorItem:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm, 0 2px 10px rgba(0, 0, 0, 0.05));
+}
+
+.contributorRank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #3B6535;
+  color: #B3F2AC;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.contributorInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.contributorName {
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  font-size: 0.95rem;
+}
+
+.contributorAmount {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+  margin-top: 0.2rem;
+}
+
+/* Section Title Icon */
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #333);
+  margin-bottom: 1.5rem;
+}
+
+.sectionIcon {
+  color: #3B6535;
+  width: 28px;
+  height: 28px;
+}
+
+/* Role-Specific Section Container */
+.roleSpecificSection {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .roleSpecificSection {

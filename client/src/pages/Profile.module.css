@@ -837,6 +837,22 @@
   .ctaGrid {
     grid-template-columns: 1fr;
   }
+
+  .preferencesContent {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .preferenceItem {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .preferenceHeader {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
 }
 
 @media (max-width: 480px) {

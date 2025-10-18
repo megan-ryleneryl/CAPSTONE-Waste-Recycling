@@ -31,6 +31,7 @@ const Post = require('./models/Posts');
 const WastePost = require('./models/WastePost');
 const Application = require('./models/Application'); 
 const Pickup = require('./models/Pickup');
+const Material = require('./models/Material');
 
 // Import the middleware
 const { verifyToken } = require('./middleware/auth');
@@ -929,6 +930,92 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Failed to revoke admin privileges' 
+    });
+  }
+});
+
+app.get('/api/admin/materials', async (req, res) => {
+  try {
+    const materials = await Material.getAllMaterials();
+    
+    materials.sort((a, b) => {
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
+      }
+      return a.type.localeCompare(b.type);
+    });
+    
+    res.json({
+      success: true,
+      materials
+    });
+  } catch (error) {
+    console.error('Error fetching materials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch materials'
+    });
+  }
+});
+
+app.post('/api/admin/materials', async (req, res) => {
+  try {
+    const material = await Material.create(req.body);
+    
+    res.status(201).json({
+      success: true,
+      material,
+      message: 'Material created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating material:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.put('/api/admin/materials/:materialID', async (req, res) => {
+  try {
+    const material = await Material.findById(req.params.materialID);
+    
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        error: 'Material not found'
+      });
+    }
+    
+    const updatedMaterial = await Material.update(req.params.materialID, req.body);
+    
+    res.json({
+      success: true,
+      material: updatedMaterial,
+      message: 'Material updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating material:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.delete('/api/admin/materials/:materialID', async (req, res) => {
+  try {
+    await Material.delete(req.params.materialID);
+    
+    res.json({
+      success: true,
+      message: 'Material deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting material:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 });

@@ -18,42 +18,51 @@ import {
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('impact'); // 'nearby', 'activity', 'impact'
   const [selectedTimeRange, setSelectedTimeRange] = useState('month');
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   
   // Analytics data state - will be populated from API
   const [analyticsData, setAnalyticsData] = useState({
+    // Platform-wide stats (for admins)
     totalRecycled: 0,
     totalInitiatives: 0,
     activeUsers: 0,
     totalPickups: 0,
-    userStats: {
-      totalPosts: 0,
+    pendingApplications: 0,
+    
+    // Giver-specific stats (all users)
+    giverStats: {
+      totalKgRecycled: 0,
       activePickups: 0,
-      completedPickups: 0,
+      successfulPickups: 0,
+      activeForumPosts: 0,
       totalPoints: 0
     },
-    topCollectors: [],
-    wasteByType: {
-      'Plastic': 0,
-      'Paper': 0,
-      'Metal': 0,
-      'Glass': 0,
-      'E-waste': 0
+    
+    // Collector-specific stats
+    collectorStats: {
+      activeWastePosts: 0,
+      claimedPosts: 0,
+      totalCollected: 0,
+      completionRate: 0
     },
-    recyclingTrends: [],
+    
+    // Organization-specific stats
+    organizationStats: {
+      activeInitiatives: 0,
+      totalSupporters: 0,
+      materialsReceived: 0,
+      topContributors: []
+    },
+    
+    // Keep existing fields for backward compatibility
     communityImpact: {
       co2Saved: 0,
       treesEquivalent: 0,
       waterSaved: 0
-    },
-    recentActivity: []
+    }
   });
-
-  const [heatMapData, setHeatMapData] = useState([]);
-  const [disposalSites, setDisposalSites] = useState([]);
 
   const navigate = useNavigate();
 
@@ -73,36 +82,7 @@ const Dashboard = () => {
     }
   }, [user, selectedTimeRange]);
 
-  // Fetch heatmap data when activity tab is selected
-  useEffect(() => {
-    if (activeTab === 'activity' && user) {
-      fetchHeatMapData();
-    }
-  }, [activeTab, user]);
-
-  // Fetch disposal sites when nearby tab is selected
-  useEffect(() => {
-    if (activeTab === 'nearby' && user) {
-      fetchDisposalSites();
-    }
-  }, [activeTab, user]);
-
-  // Get welcome message based on user role
-  const getWelcomeMessage = () => {
-    if (user.isAdmin) {
-      return 'Monitor platform performance and manage the community';
-    } else if (user.isCollector && user.isOrganization) {
-      return 'Manage your organization\'s initiatives and collections';
-    } else if (user.isCollector) {
-      return 'View your collection activity and claim new posts';
-    } else if (user.isOrganization) {
-      return 'Manage your organization\'s recycling initiatives';
-    } else {
-      return 'Here\'s what\'s happening with your recycling activities';
-    }
-  };
-
-  // Render quick stats based on user role
+  // Render quick stats
   const renderQuickStats = () => {
     if (user.isAdmin) {
       return (
@@ -112,50 +92,34 @@ const Dashboard = () => {
             <span className={styles.quickStatLabel}>Active Users</span>
           </div>
           <div className={styles.quickStat}>
-            <span className={styles.quickStatValue}>{analyticsData.totalPosts}</span>
-            <span className={styles.quickStatLabel}>Total Posts</span>
+            <span className={styles.quickStatValue}>{analyticsData.pendingApplications || 0}</span>
+            <span className={styles.quickStatLabel}>Pending Approvals</span>
           </div>
           <div className={styles.quickStat}>
-            <span className={styles.quickStatValue}>{analyticsData.totalPickups}</span>
-            <span className={styles.quickStatLabel}>Pickups</span>
-          </div>
-        </>
-      );
-    } else if (user.isCollector) {
-      return (
-        <>
-          <div className={styles.quickStat}>
-            <span className={styles.quickStatValue}>{analyticsData.userStats.activePickups}</span>
-            <span className={styles.quickStatLabel}>Active Pickups</span>
-          </div>
-          <div className={styles.quickStat}>
-            <span className={styles.quickStatValue}>{analyticsData.userStats.completedPickups}</span>
-            <span className={styles.quickStatLabel}>Completed</span>
-          </div>
-          <div className={styles.quickStat}>
-            <span className={styles.quickStatValue}>{user.points || 0}</span>
-            <span className={styles.quickStatLabel}>Points</span>
-          </div>
-        </>
-      );
-    } else {
-      return (
-        <>
-          <div className={styles.quickStat}>
-            <span className={styles.quickStatValue}>{analyticsData.userStats.totalPosts}</span>
-            <span className={styles.quickStatLabel}>My Posts</span>
-          </div>
-          <div className={styles.quickStat}>
-            <span className={styles.quickStatValue}>{analyticsData.userStats.completedPickups}</span>
-            <span className={styles.quickStatLabel}>Completed</span>
-          </div>
-          <div className={styles.quickStat}>
-            <span className={styles.quickStatValue}>{user.points || 0}</span>
-            <span className={styles.quickStatLabel}>Points</span>
+            <span className={styles.quickStatValue}>{analyticsData.totalRecycled} kg</span>
+            <span className={styles.quickStatLabel}>Total Recycled</span>
           </div>
         </>
       );
     }
+    
+    // All users see their Giver stats
+    return (
+      <>
+        <div className={styles.quickStat}>
+          <span className={styles.quickStatValue}>{analyticsData.giverStats.totalKgRecycled} kg</span>
+          <span className={styles.quickStatLabel}>Recycled</span>
+        </div>
+        <div className={styles.quickStat}>
+          <span className={styles.quickStatValue}>{analyticsData.giverStats.activePickups}</span>
+          <span className={styles.quickStatLabel}>Active Pickups</span>
+        </div>
+        <div className={styles.quickStat}>
+          <span className={styles.quickStatValue}>{analyticsData.giverStats.totalPoints}</span>
+          <span className={styles.quickStatLabel}>Points</span>
+        </div>
+      </>
+    );
   };
 
   const fetchAnalyticsData = async () => {
@@ -207,196 +171,47 @@ const Dashboard = () => {
     }
   };
 
-  const fetchHeatMapData = async () => {
-    try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      
-      const response = await axios.get(
-        'http://localhost:3001/api/analytics/heatmap',
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.data.success) {
-        setHeatMapData(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching heatmap data:', error);
-      // Use default data if API fails
-      setHeatMapData([
-        { area: 'Quezon City', activity: 'high', initiatives: 12, posts: 58 },
-        { area: 'Makati', activity: 'medium', initiatives: 8, posts: 34 },
-        { area: 'Pasig', activity: 'high', initiatives: 15, posts: 67 },
-        { area: 'Taguig', activity: 'low', initiatives: 3, posts: 12 }
-      ]);
-    }
-  };
-
-  const fetchDisposalSites = async () => {
-    try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      
-      // Get user's location if available
-      const lat = user?.location?.lat || 14.6549;
-      const lng = user?.location?.lng || 121.0645;
-      
-      const response = await axios.get(
-        `http://localhost:3001/api/analytics/disposal-sites?lat=${lat}&lng=${lng}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.data.success) {
-        setDisposalSites(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching disposal sites:', error);
-      // Use default data if API fails
-      setDisposalSites([
-        { id: 1, name: 'Green Earth MRF', distance: '1.2 km', types: ['Plastic', 'Paper'], active: true },
-        { id: 2, name: 'City Recycling Center', distance: '2.5 km', types: ['All types'], active: true },
-        { id: 3, name: 'E-Waste Hub', distance: '3.8 km', types: ['Electronics'], active: true }
-      ]);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('authToken');
-    navigate('/');
-  };
-
-  // Render tab content based on active tab
-  const renderTabContent = () => {
-    switch(activeTab) {
-      case 'nearby':
-        return (
-          <div className={styles.nearbyContent}>
-            {disposalSites.length > 0 ? (
-              <>
-                <div className={styles.mapPlaceholder}>
-                  <MapPin size={48} className={styles.placeholderIcon} />
-                  <h3>Interactive Map Coming Soon</h3>
-                  <p>Add div content here.</p>
-                </div>
-                <div className={styles.disposalSitesList}>
-                  <h3>Disposal Sites Near You</h3>
-                  {disposalSites.map(site => (
-                    <div key={site.id} className={styles.disposalSite}>
-                      <div className={styles.siteInfo}>
-                        <h4>{site.name}</h4>
-                        <span className={styles.distance}>{site.distance}</span>
-                        <div className={styles.acceptedTypes}>
-                          {site.types.map(type => (
-                            <span key={type} className={styles.typeTag}>{type}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className={styles.siteActions}>
-                        <button 
-                          className={styles.postButton}
-                          onClick={() => navigate('/create-post')}
-                        >
-                          <Plus size={16} /> Post
-                        </button>
-                        <button className={styles.messageButton}>
-                          Message
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className={styles.placeholderContent}>
-                <MapPin size={48} className={styles.placeholderIcon} />
-                <h3>Find Recycling Centers Near You</h3>
-                <p>Add div content here.</p>
-              </div>
-            )}
-          </div>
-        );
-      
-      case 'activity':
-        return (
-          <div className={styles.activityContent}>
-            {heatMapData.length > 0 ? (
-              <>
-                <div className={styles.heatMapGrid}>
-                  {heatMapData.map((area, index) => (
-                    <div 
-                      key={index} 
-                      className={`${styles.heatMapCard} ${styles[area.activity]}`}
-                    >
-                      <div className={styles.areaHeader}>
-                        <h3>{area.area}</h3>
-                        <span className={`${styles.activityBadge} ${styles[area.activity]}`}>
-                          {area.activity.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className={styles.areaStats}>
-                        <div className={styles.statItem}>
-                          <span className={styles.statValue}>{area.initiatives}</span>
-                          <span className={styles.statLabel}>Active Initiatives</span>
-                        </div>
-                        <div className={styles.statItem}>
-                          <span className={styles.statValue}>{area.posts || '50+'}</span>
-                          <span className={styles.statLabel}>Weekly Posts</span>
-                        </div>
-                      </div>
-                      <button 
-                        className={styles.exploreButton}
-                        onClick={() => navigate(`/posts?area=${area.area}`)}
-                      >
-                        Explore {area.area}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className={styles.placeholderNote}>
-                  <p>Full heat map visualization coming soon</p>
-                </div>
-              </>
-            ) : (
-              <div className={styles.placeholderContent}>
-                <Recycle size={48} className={styles.placeholderIcon} />
-                <h3>Community Recycling Activity</h3>
-                <p>Add div content here.</p>
-              </div>
-            )}
-          </div>
-        );
-      
-      case 'impact':
-        return renderImpactDashboard();
-      
-      default:
-        return null;
-    }
-  };
-
   // Render role-specific dashboard sections
   const renderRoleSpecificContent = () => {
+    // Always render Giver section for all users
+    const giverSection = renderGiverDashboard();
+    
+    // Add role-specific sections
     if (user.isAdmin) {
-      return renderAdminDashboard();
-    } else if (user.isCollector && user.isOrganization) {
-      return renderOrgCollectorDashboard();
-    } else if (user.isCollector) {
-      return renderCollectorDashboard();
+      return (
+        <>
+          {renderAdminDashboard()}
+          {giverSection}
+        </>
+      );
+    } else if (user.isOrganization && user.isCollector) {
+      return (
+        <>
+          {renderOrganizationDashboard()}
+          {renderCollectorDashboard()}
+          {giverSection}
+        </>
+      );
     } else if (user.isOrganization) {
-      return renderOrganizationDashboard();
+      return (
+        <>
+          {renderOrganizationDashboard()}
+          {giverSection}
+        </>
+      );
+    } else if (user.isCollector) {
+      return (
+        <>
+          {renderCollectorDashboard()}
+          {giverSection}
+        </>
+      );
     } else {
-      return renderGiverDashboard();
+      return giverSection;
     }
   };
 
-  // Admin Dashboard - Platform-wide management
+  // Admin Dashboard
   const renderAdminDashboard = () => (
     <div className={styles.adminDashboard}>
       <h3 className={styles.sectionTitle}>
@@ -455,185 +270,142 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* System Health Card */}
-        <div className={styles.adminCard}>
+        {/* Material Management Card */}
+        <div className={styles.adminCard} onClick={() => navigate('/admin/edit-materials')}>
           <div className={styles.adminCardHeader}>
-            <Heart className={styles.adminCardIcon} />
-            <h4>System Health</h4>
+            <Recycle className={styles.adminCardIcon} />
+            <h4>Material Management</h4>
           </div>
           <div className={styles.adminCardStats}>
             <div className={styles.adminStat}>
-              <span className={`${styles.adminStatValue} ${styles.healthy}`}>Active</span>
-              <span className={styles.adminStatLabel}>Status</span>
+              <span className={styles.adminStatLabel}>Manage recyclable material types</span>
             </div>
           </div>
+          <button className={styles.adminCardButton}>Edit Materials</button>
         </div>
       </div>
     </div>
   );
 
-  // Collector Dashboard - Collection & Initiative management
+  // Collector Dashboard
   const renderCollectorDashboard = () => (
     <div className={styles.collectorDashboard}>
       <h3 className={styles.sectionTitle}>
         <Package className={styles.sectionIcon} />
-        Collection Activity
+        Collector Dashboard
       </h3>
       
       <div className={styles.collectorGrid}>
-        {/* Active Collections */}
+        {/* Active Waste Posts Card */}
         <div className={styles.collectorCard}>
           <div className={styles.collectorCardHeader}>
-            <h4>Active Collections</h4>
-            <span className={styles.badge}>{analyticsData.userStats.activePickups || 0}</span>
+            <h4>Available Waste Posts</h4>
+            <Package className={styles.cardIcon} />
           </div>
           <div className={styles.collectorStats}>
-            <div className={styles.statRow}>
-              <span>Pending Coordination</span>
-              <span className={styles.statValue}>
-                {analyticsData.userStats.pendingPickups || 0}
+            <div className={styles.availablePosts}>
+              <span className={styles.availableCount}>
+                {analyticsData.collectorStats.activeWastePosts || 0}
               </span>
-            </div>
-            <div className={styles.statRow}>
-              <span>Scheduled Today</span>
-              <span className={styles.statValue}>
-                {analyticsData.userStats.scheduledToday || 0}
-              </span>
+              <span className={styles.statLabel}>Posts ready to claim</span>
             </div>
           </div>
           <button 
             className={styles.collectorButton}
-            onClick={() => navigate('/pickups')}
+            onClick={() => navigate('/posts', { state: { filter: 'waste' } })}
           >
-            View All Pickups
+            <Plus size={18} /> Browse Waste Posts
           </button>
         </div>
 
-        {/* Collection Performance */}
+        {/* Collection Performance Card */}
         <div className={styles.collectorCard}>
           <div className={styles.collectorCardHeader}>
-            <h4>Performance</h4>
-            <Trophy className={styles.performanceIcon} />
+            <h4>Collection Performance</h4>
+            <TrendingUp className={styles.performanceIcon} />
           </div>
           <div className={styles.performanceStats}>
             <div className={styles.perfStat}>
+              <span className={styles.perfLabel}>Posts Claimed</span>
+              <span className={styles.perfValue}>
+                {analyticsData.collectorStats.claimedPosts || 0}
+              </span>
+            </div>
+            <div className={styles.perfStat}>
               <span className={styles.perfLabel}>Total Collected</span>
               <span className={styles.perfValue}>
-                {analyticsData.userStats.totalCollected || 0} kg
+                {analyticsData.collectorStats.totalCollected || 0} kg
               </span>
             </div>
             <div className={styles.perfStat}>
               <span className={styles.perfLabel}>Completion Rate</span>
               <span className={styles.perfValue}>
-                {analyticsData.userStats.completionRate || 0}%
-              </span>
-            </div>
-            <div className={styles.perfStat}>
-              <span className={styles.perfLabel}>Rating</span>
-              <span className={styles.perfValue}>
-                ⭐ {analyticsData.userStats.rating || 'N/A'}
+                {analyticsData.collectorStats.completionRate || 0}%
               </span>
             </div>
           </div>
         </div>
 
-        {/* Available Claims */}
+        {/* Quick Actions Card */}
         <div className={styles.collectorCard}>
           <div className={styles.collectorCardHeader}>
-            <h4>Available Posts</h4>
+            <h4>Quick Actions</h4>
           </div>
-          <div className={styles.availablePosts}>
-            <p>New recyclable posts in your area</p>
-            <span className={styles.availableCount}>
-              {analyticsData.availablePosts || 0} posts
-            </span>
+          <div className={styles.collectorStats}>
+            <button 
+              className={styles.collectorButton}
+              onClick={() => navigate('/pickups')}
+            >
+              View My Pickups
+            </button>
+            <button 
+              className={styles.collectorButton}
+              onClick={() => navigate('/posts')}
+              style={{ marginTop: '0.5rem' }}
+            >
+              Browse All Posts
+            </button>
           </div>
-          <button 
-            className={styles.collectorButton}
-            onClick={() => navigate('/posts?type=Waste&status=Available')}
-          >
-            Browse Available Posts
-          </button>
         </div>
       </div>
     </div>
   );
 
-  // Organization Dashboard - Initiative management
+  // Organization Dashboard
   const renderOrganizationDashboard = () => (
     <div className={styles.organizationDashboard}>
       <h3 className={styles.sectionTitle}>
         <Heart className={styles.sectionIcon} />
-        Organization Initiatives
+        Organization Dashboard
       </h3>
       
       <div className={styles.orgGrid}>
-        {/* Active Initiatives */}
+        {/* Active Initiatives Card */}
         <div className={styles.orgCard}>
           <div className={styles.orgCardHeader}>
-            <h4>Active Initiatives</h4>
-            <span className={styles.badge}>
-              {analyticsData.userStats.activeInitiatives || 0}
-            </span>
+            <h4>Your Initiatives</h4>
+            <Heart className={styles.impactIconSmall} />
           </div>
           <div className={styles.orgStats}>
             <div className={styles.statRow}>
-              <span>Total Supporters</span>
+              <span className={styles.statLabel}>Active Initiatives</span>
               <span className={styles.statValue}>
-                {analyticsData.userStats.totalSupporters || 0}
+                {analyticsData.organizationStats.activeInitiatives || 0}
               </span>
             </div>
             <div className={styles.statRow}>
-              <span>Materials Received</span>
+              <span className={styles.statLabel}>Total Supporters</span>
               <span className={styles.statValue}>
-                {analyticsData.userStats.materialsReceived || 0} kg
+                {analyticsData.organizationStats.totalSupporters || 0}
+              </span>
+            </div>
+            <div className={styles.statRow}>
+              <span className={styles.statLabel}>Materials Received</span>
+              <span className={styles.statValue}>
+                {analyticsData.organizationStats.materialsReceived || 0} kg
               </span>
             </div>
           </div>
-          <button 
-            className={styles.orgButton}
-            onClick={() => navigate('/posts?type=Initiative')}
-          >
-            Manage Initiatives
-          </button>
-        </div>
-
-        {/* Impact Metrics */}
-        <div className={styles.orgCard}>
-          <div className={styles.orgCardHeader}>
-            <h4>Impact Metrics</h4>
-            <Leaf className={styles.impactIconSmall} />
-          </div>
-          <div className={styles.impactMetrics}>
-            <div className={styles.impactMetric}>
-              <Trees size={24} />
-              <div>
-                <span className={styles.impactValue}>
-                  {analyticsData.userStats.treesEquivalent || 0}
-                </span>
-                <span className={styles.impactLabel}>Trees Saved</span>
-              </div>
-            </div>
-            <div className={styles.impactMetric}>
-              <Droplets size={24} />
-              <div>
-                <span className={styles.impactValue}>
-                  {analyticsData.userStats.waterSaved || 0}L
-                </span>
-                <span className={styles.impactLabel}>Water Saved</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Create Initiative CTA */}
-        <div className={styles.orgCard}>
-          <div className={styles.orgCardHeader}>
-            <h4>Start New Initiative</h4>
-          </div>
-          <p className={styles.orgDescription}>
-            Create a new recycling initiative to engage the community
-          </p>
           <button 
             className={`${styles.orgButton} ${styles.primary}`}
             onClick={() => navigate('/create-post', { state: { postType: 'Initiative' } })}
@@ -641,118 +413,177 @@ const Dashboard = () => {
             <Plus size={18} /> Create Initiative
           </button>
         </div>
+
+        {/* Top Contributors Card */}
+        <div className={styles.orgCard}>
+          <div className={styles.orgCardHeader}>
+            <h4>Top Contributors</h4>
+            <Trophy className={styles.impactIconSmall} />
+          </div>
+          {analyticsData.organizationStats.topContributors && 
+          analyticsData.organizationStats.topContributors.length > 0 ? (
+            <div className={styles.contributorsList}>
+              {analyticsData.organizationStats.topContributors.slice(0, 5).map((contributor, index) => (
+                <div key={index} className={styles.contributorItem}>
+                  <div className={styles.contributorRank}>#{index + 1}</div>
+                  <div className={styles.contributorInfo}>
+                    <span className={styles.contributorName}>{contributor.name}</span>
+                    <span className={styles.contributorAmount}>
+                      {contributor.amount} kg donated
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.orgDescription}>
+              <p>No contributors yet. Promote your initiatives to attract supporters!</p>
+            </div>
+          )}
+          <button 
+            className={styles.orgButton}
+            onClick={() => navigate('/posts', { state: { filter: 'initiatives', org: user.id } })}
+          >
+            View All Initiatives
+          </button>
+        </div>
+
+        {/* Impact Metrics Card */}
+        <div className={styles.orgCard}>
+          <div className={styles.orgCardHeader}>
+            <h4>Your Impact</h4>
+            <Leaf className={styles.impactIconSmall} />
+          </div>
+          <div className={styles.impactMetrics}>
+            <div className={styles.impactMetric}>
+              <Leaf size={24} />
+              <div>
+                <span className={styles.impactValue}>
+                  {analyticsData.communityImpact.co2Saved || 0} kg
+                </span>
+                <span className={styles.impactLabel}>CO₂ Saved</span>
+              </div>
+            </div>
+            <div className={styles.impactMetric}>
+              <Trees size={24} />
+              <div>
+                <span className={styles.impactValue}>
+                  {analyticsData.communityImpact.treesEquivalent || 0}
+                </span>
+                <span className={styles.impactLabel}>Trees Equivalent</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 
-  // Combined Org+Collector Dashboard
-  const renderOrgCollectorDashboard = () => (
-    <div className={styles.combinedDashboard}>
-      {renderCollectorDashboard()}
-      {renderOrganizationDashboard()}
-    </div>
-  );
-
-  // Giver Dashboard - Personal recycling activity
+  // Giver Dashboard
   const renderGiverDashboard = () => (
     <div className={styles.giverDashboard}>
       <h3 className={styles.sectionTitle}>
         <Recycle className={styles.sectionIcon} />
-        My Recycling Activity
+        {user.isCollector || user.isOrganization ? 'Your Recycling Activity' : 'Your Dashboard'}
       </h3>
       
       <div className={styles.giverGrid}>
-        {/* My Posts */}
+        {/* Recycling Stats Card */}
         <div className={styles.giverCard}>
           <div className={styles.giverCardHeader}>
-            <h4>My Posts</h4>
-            <span className={styles.badge}>
-              {analyticsData.userStats.totalPosts || 0}
-            </span>
+            <h4>Recycling Stats</h4>
+            <Recycle className={styles.cardIcon} />
           </div>
           <div className={styles.giverStats}>
             <div className={styles.statRow}>
-              <span>Active Posts</span>
+              <span className={styles.statLabel}>Total Recycled</span>
               <span className={styles.statValue}>
-                {analyticsData.userStats.activePosts || 0}
+                {analyticsData.giverStats.totalKgRecycled || 0} kg
               </span>
             </div>
             <div className={styles.statRow}>
-              <span>Awaiting Pickup</span>
+              <span className={styles.statLabel}>Successful Pickups</span>
               <span className={styles.statValue}>
-                {analyticsData.userStats.awaitingPickup || 0}
+                {analyticsData.giverStats.successfulPickups || 0}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Pickups Card */}
+        <div className={styles.giverCard}>
+          <div className={styles.giverCardHeader}>
+            <h4>Pickup Status</h4>
+            <Package className={styles.cardIcon} />
+          </div>
+          <div className={styles.pickupStats}>
+            <div className={styles.pickupStat}>
+              <span className={styles.pickupLabel}>Active Pickups</span>
+              <span className={styles.pickupValue}>
+                {analyticsData.giverStats.activePickups || 0}
               </span>
             </div>
           </div>
           <button 
             className={styles.giverButton}
-            onClick={() => navigate('/posts?myPosts=true')}
+            onClick={() => navigate('/pickups')}
           >
-            View My Posts
+            Manage Pickups
           </button>
         </div>
 
-        {/* Pickup History */}
+        {/* Forum Activity Card */}
         <div className={styles.giverCard}>
           <div className={styles.giverCardHeader}>
-            <h4>Pickup History</h4>
-            <Package className={styles.cardIcon} />
+            <h4>Community Engagement</h4>
+            <Users className={styles.cardIcon} />
           </div>
-          <div className={styles.pickupStats}>
-            <div className={styles.pickupStat}>
-              <span className={styles.pickupLabel}>Total Pickups</span>
-              <span className={styles.pickupValue}>
-                {analyticsData.userStats.completedPickups || 0}
+          <div className={styles.giverStats}>
+            <div className={styles.statRow}>
+              <span className={styles.statLabel}>Active Forum Posts</span>
+              <span className={styles.statValue}>
+                {analyticsData.giverStats.activeForumPosts || 0}
               </span>
             </div>
-            <div className={styles.pickupStat}>
-              <span className={styles.pickupLabel}>Total Recycled</span>
-              <span className={styles.pickupValue}>
-                {analyticsData.userStats.totalRecycled || 0} kg
+            <div className={styles.statRow}>
+              <span className={styles.statLabel}>Total Points</span>
+              <span className={styles.statValue}>
+                {analyticsData.giverStats.totalPoints || 0}
               </span>
             </div>
           </div>
+          <button 
+            className={styles.giverButton}
+            onClick={() => navigate('/create-post', { state: { postType: 'Forum' } })}
+          >
+            <Plus size={18} /> Create Forum Post
+          </button>
         </div>
 
-        {/* Points & Rewards */}
+        {/* Environmental Impact Card */}
         <div className={styles.giverCard}>
           <div className={styles.giverCardHeader}>
-            <h4>Points & Rewards</h4>
-            <Trophy className={styles.cardIcon} />
-          </div>
-          <div className={styles.pointsDisplay}>
-            <div className={styles.pointsMain}>
-              <span className={styles.pointsValue}>{user.points || 0}</span>
-              <span className={styles.pointsLabel}>Total Points</span>
-            </div>
-            <div className={styles.badgeDisplay}>
-              {user.badges && user.badges.length > 0 ? (
-                user.badges.map((badge, index) => (
-                  <span key={index} className={styles.badgeItem}>
-                    {badge}
-                  </span>
-                ))
-              ) : (
-                <p className={styles.noBadges}>No badges yet</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Impact Summary */}
-        <div className={styles.giverCard}>
-          <div className={styles.giverCardHeader}>
-            <h4>My Impact</h4>
+            <h4>Your Impact</h4>
             <Leaf className={styles.cardIcon} />
           </div>
           <div className={styles.impactSummary}>
             <div className={styles.impactItem}>
               <Leaf size={20} />
-              <span>{analyticsData.userStats.co2Saved || 0} kg CO₂ saved</span>
+              <div>
+                <span className={styles.impactValue}>
+                  {(analyticsData.giverStats.totalKgRecycled * 2.5).toFixed(1)} kg
+                </span>
+                <span className={styles.impactLabel}>CO₂ Saved</span>
+              </div>
             </div>
             <div className={styles.impactItem}>
               <Trees size={20} />
-              <span>{analyticsData.userStats.treesEquivalent || 0} trees equivalent</span>
+              <div>
+                <span className={styles.impactValue}>
+                  {Math.floor(analyticsData.giverStats.totalKgRecycled / 10)}
+                </span>
+                <span className={styles.impactLabel}>Trees Equivalent</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1047,71 +878,30 @@ const Dashboard = () => {
   }
 
   return (
-    <div className={styles.dashboardContainer}>
-      {/* Welcome Section */}
-      <div className={styles.welcomeSection}>
-        <div className={styles.welcomeHeader}>
-          <div>
-            <h1 className={styles.welcomeTitle}>
-              Welcome back, {user.firstName}!
-            </h1>
-            <p className={styles.welcomeSubtitle}>
-              {getWelcomeMessage()}
-            </p>
-          </div>
-          <div className={styles.userQuickStats}>
-            {renderQuickStats()}
-          </div>
+  <div className={styles.dashboardContainer}>
+    {/* Welcome Section */}
+    <div className={styles.welcomeSection}>
+      <div className={styles.welcomeHeader}>
+        <div>
+          <h1 className={styles.welcomeTitle}>
+            Welcome back, {user.firstName}!
+          </h1>
+          <p className={styles.welcomeSubtitle}>
+            Here's your recycling dashboard.
+          </p>
         </div>
-      </div>
-
-      {/* Role-Based Analytics Section */}
-      <div className={styles.analyticsSection}>
-        {/* Navigation Tabs */}
-        <div className={styles.navTabs}>
-          <button 
-            className={`${styles.navTab} ${activeTab === 'impact' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('impact')}
-          >
-            <TrendingUp size={18} />
-            {user.isAdmin ? 'Platform Overview' : 'My Impact'}
-          </button>
-          <button 
-            className={`${styles.navTab} ${activeTab === 'activity' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('activity')}
-          >
-            <Recycle size={18} />
-            Community Activity
-          </button>
-          <button 
-            className={`${styles.navTab} ${activeTab === 'nearby' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('nearby')}
-          >
-            <MapPin size={18} />
-            Nearby Sites
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        <div className={styles.tabContent}>
-          {renderTabContent()}
-        </div>
-      </div>
-
-      {/* Role-Specific Section */}
-      <div className={styles.roleSpecificSection}>
-        {renderRoleSpecificContent()}
-      </div>
-
-      {/* Quick Actions */}
-      <div className={styles.quickActions}>
-        <h3 className={styles.quickActionsTitle}>Quick Actions</h3>
-        <div className={styles.actionButtonsGrid}>
-          {renderQuickActions()}
+        <div className={styles.userQuickStats}>
+          {renderQuickStats()}
         </div>
       </div>
     </div>
-  );
+
+    {/* Role-Specific Dashboards */}
+    <div className={styles.roleSpecificSection}>
+      {renderRoleSpecificContent()}
+    </div>
+  </div>
+);
 };
 
 export default Dashboard;

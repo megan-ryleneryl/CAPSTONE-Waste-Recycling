@@ -43,6 +43,7 @@ class Material {
       materialID: this.materialID,
       category: this.category,
       type: this.type,
+      displayName: this.displayName,
       averagePricePerKg: this.averagePricePerKg,
       pricingHistory: this.pricingHistory,
       createdAt: this.createdAt,

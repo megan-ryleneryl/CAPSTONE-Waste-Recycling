@@ -1174,13 +1174,7 @@ const Profile = ({ user: propsUser }) => {
                       </span>
                     )}
                   </div>
-
-                    {user?.isOrganization && (
-                      <span className={styles.organizationBadge}>
-                        Organization
-                      </span>
-                    )}
-                  </div>
+                </div>
                 
                 <div className={styles.profileActions}>
                   <button 

@@ -4,6 +4,8 @@ const Post = require('../models/Posts');
 const Pickup = require('../models/Pickup');
 const Message = require('../models/Message');
 const Application = require('../models/Application');
+const Notification = require('../models/Notification');
+const Point = require('../models/Point');
 
 const analyticsController = {
   // Get dashboard analytics for authenticated user
@@ -31,7 +33,16 @@ const analyticsController = {
           break;
       }
       
-      console.log(`Fetching analytics for timeRange: ${timeRange}, from: ${startDate.toISOString()}`);
+      console.log(`Fetching analytics for user ${userID}, timeRange: ${timeRange}, from: ${startDate.toISOString()}`);
+
+      // Fetch current user data to check roles
+      const currentUser = await User.findById(userID);
+      if (!currentUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
 
       // Fetch various metrics in parallel
       const [
@@ -41,32 +52,26 @@ const analyticsController = {
         pickups,
         wasteTypes,
         topCollectors,
-        userPosts,
-        userPickups
+        userSpecificStats,
+        pendingApplications,
+        recentActivity
       ] = await Promise.all([
-        // Total recycled weight
         getTotalRecycled(startDate),
-        // Active initiatives
         getActiveInitiatives(),
-        // Active users count
         getActiveUsers(startDate),
-        // Total pickups
         getTotalPickups(startDate),
-        // Waste distribution
         getWasteDistribution(startDate),
-        // Top collectors
         getTopCollectors(startDate),
-        // User's posts
-        getUserPosts(userID),
-        // User's pickups
-        getUserPickups(userID)
+        getUserSpecificStats(userID, currentUser),
+        currentUser.isAdmin ? getPendingApplications() : { count: 0 },
+        getUserRecentActivity(userID, startDate)
       ]);
 
       // Calculate environmental impact based on actual recycled amount
       const environmentalImpact = calculateEnvironmentalImpact(totalRecycled);
 
       // Get trends based on time range
-      const trends = await getRecyclingTrends(timeRange);
+      const trends = await getRecyclingTrends(timeRange, startDate);
 
       // Calculate percentage changes
       const percentageChanges = calculatePercentageChanges(timeRange, {
@@ -79,21 +84,30 @@ const analyticsController = {
       res.json({
         success: true,
         data: {
+          // Platform-wide stats (visible to admins)
           totalRecycled,
           totalInitiatives: initiatives.count,
           activeUsers: users.count,
-          totalPickups: pickups.completed,
-          userStats: {
-            totalPosts: userPosts.length,
-            activePickups: userPickups.active,
-            completedPickups: userPickups.completed,
-            totalPoints: req.user.points || 0
-          },
+          totalPickups: pickups.total,
+          pendingApplications: pendingApplications.count,
+          
+          // Giver-specific stats (all users have giver capabilities)
+          giverStats: userSpecificStats.giver,
+          
+          // Collector-specific stats (only if user is a collector)
+          collectorStats: userSpecificStats.collector,
+          
+          // Organization-specific stats (only if user is an organization)
+          organizationStats: userSpecificStats.organization,
+          
+          // Environmental impact
+          communityImpact: environmentalImpact,
+          
+          // Additional data
           topCollectors: topCollectors.slice(0, 3),
           wasteByType: wasteTypes,
           recyclingTrends: trends,
-          communityImpact: environmentalImpact,
-          recentActivity: await getUserRecentActivity(userID),
+          recentActivity,
           percentageChanges,
           timeRange
         }
@@ -108,7 +122,7 @@ const analyticsController = {
     }
   },
 
-  // Get heatmap data
+  // Get heatmap data for activity visualization
   async getHeatmapData(req, res) {
     try {
       const areas = await getAreaActivity();
@@ -126,7 +140,7 @@ const analyticsController = {
     }
   },
 
-  // Get nearby disposal sites
+  // Get nearby disposal sites based on location
   async getNearbyDisposalSites(req, res) {
     try {
       const { lat, lng } = req.query;
@@ -146,10 +160,13 @@ const analyticsController = {
   }
 };
 
-// Helper functions
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+// Get total weight recycled in the time period
 async function getTotalRecycled(startDate) {
   try {
-    // Get all completed pickups
     const allPickups = await Pickup.findAll();
     
     // Filter by date and status
@@ -163,8 +180,8 @@ async function getTotalRecycled(startDate) {
     // Calculate total weight
     let totalKg = 0;
     completedPickups.forEach(pickup => {
-      if (pickup.finalWaste?.kg) {
-        totalKg += parseFloat(pickup.finalWaste.kg);
+      if (pickup.actualWaste?.finalAmount) {
+        totalKg += parseFloat(pickup.actualWaste.finalAmount);
       }
     });
     
@@ -175,11 +192,13 @@ async function getTotalRecycled(startDate) {
   }
 }
 
+// Get active initiatives count
 async function getActiveInitiatives() {
   try {
     const allPosts = await Post.findAll();
     const activeInitiatives = allPosts.filter(post => 
-      post.postType === 'Initiative' && post.status === 'Active'
+      post.postType === 'Initiative' && 
+      (post.status === 'Active' || post.status === 'Open')
     );
     
     return { count: activeInitiatives.length };
@@ -189,12 +208,13 @@ async function getActiveInitiatives() {
   }
 }
 
+// Get count of active users in the time period
 async function getActiveUsers(startDate) {
   try {
     const allUsers = await User.findAll();
     const activeUsers = allUsers.filter(user => {
       const lastActive = user.lastActive ? new Date(user.lastActive) : new Date(user.createdAt);
-      return lastActive >= startDate;
+      return lastActive >= startDate && user.status === 'Active';
     });
     
     return { count: activeUsers.length };
@@ -204,31 +224,41 @@ async function getActiveUsers(startDate) {
   }
 }
 
+// Get pickup statistics
 async function getTotalPickups(startDate) {
   try {
     const allPickups = await Pickup.findAll();
     
     let completed = 0;
     let active = 0;
+    let cancelled = 0;
     
     allPickups.forEach(pickup => {
       const createdAt = pickup.createdAt ? new Date(pickup.createdAt) : new Date();
       if (createdAt >= startDate) {
         if (pickup.status === 'Completed') {
           completed++;
-        } else if (['Pending', 'Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(pickup.status)) {
+        } else if (['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(pickup.status)) {
           active++;
+        } else if (pickup.status === 'Cancelled') {
+          cancelled++;
         }
       }
     });
     
-    return { completed, active, total: completed + active };
+    return { 
+      completed, 
+      active, 
+      cancelled,
+      total: completed + active 
+    };
   } catch (error) {
     console.error('Error getting pickups:', error);
-    return { completed: 0, active: 0, total: 0 };
+    return { completed: 0, active: 0, cancelled: 0, total: 0 };
   }
 }
 
+// Get waste type distribution
 async function getWasteDistribution(startDate) {
   try {
     const allPosts = await Post.findAll();
@@ -240,6 +270,7 @@ async function getWasteDistribution(startDate) {
     const distribution = {};
     let total = 0;
     
+    // Count materials from posts
     wastePosts.forEach(post => {
       if (post.materials && Array.isArray(post.materials)) {
         post.materials.forEach(material => {
@@ -252,11 +283,11 @@ async function getWasteDistribution(startDate) {
     // Convert to percentages
     const percentages = {};
     for (const [key, value] of Object.entries(distribution)) {
-      percentages[key] = Math.round((value / total) * 100);
+      percentages[key] = total > 0 ? Math.round((value / total) * 100) : 0;
     }
     
     // Ensure we have default categories
-    const defaultCategories = ['Plastic', 'Paper', 'Metal', 'Glass', 'E-waste'];
+    const defaultCategories = ['Plastic', 'Paper', 'Metal', 'Glass', 'E-waste', 'Organic'];
     defaultCategories.forEach(category => {
       if (!percentages[category]) {
         percentages[category] = 0;
@@ -266,287 +297,264 @@ async function getWasteDistribution(startDate) {
     return percentages;
   } catch (error) {
     console.error('Error getting waste distribution:', error);
+    // Return default distribution
     return {
-      'Plastic': 45,
+      'Plastic': 35,
       'Paper': 25,
       'Metal': 15,
       'Glass': 10,
-      'E-waste': 5
+      'E-waste': 10,
+      'Organic': 5
     };
   }
 }
 
+// Get top collectors with their collected amounts
 async function getTopCollectors(startDate) {
   try {
     const allUsers = await User.findAll();
     const collectors = allUsers.filter(user => user.isCollector === true);
     
-    // Sort by totalRecycled (you may need to calculate this from pickups)
-    collectors.sort((a, b) => (b.totalRecycled || 0) - (a.totalRecycled || 0));
+    // Get pickup data for each collector
+    const collectorStats = await Promise.all(
+      collectors.map(async (collector) => {
+        const pickups = await Pickup.findByCollector(collector.userID);
+        
+        // Calculate total collected in the time period
+        let totalCollected = 0;
+        pickups.forEach(pickup => {
+          const completedDate = pickup.completedAt ? new Date(pickup.completedAt) : null;
+          if (pickup.status === 'Completed' && 
+              completedDate && 
+              completedDate >= startDate &&
+              pickup.actualWaste?.finalAmount) {
+            totalCollected += parseFloat(pickup.actualWaste.finalAmount);
+          }
+        });
+        
+        return {
+          userID: collector.userID,
+          name: collector.organizationName || `${collector.firstName} ${collector.lastName}`,
+          amount: Math.round(totalCollected),
+          profilePicture: collector.profilePicture || null
+        };
+      })
+    );
     
-    const topCollectors = collectors.slice(0, 10).map((user, index) => ({
-      name: user.organizationName || `${user.firstName} ${user.lastName}`,
-      amount: user.totalRecycled || 0,
-      badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : 'standard'
+    // Sort by amount collected and assign badges
+    collectorStats.sort((a, b) => b.amount - a.amount);
+    
+    return collectorStats.map((collector, index) => ({
+      ...collector,
+      badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : null,
+      rank: index + 1
     }));
-    
-    return topCollectors;
   } catch (error) {
     console.error('Error getting top collectors:', error);
     return [];
   }
 }
 
-async function getUserPosts(userID) {
+// Get user-specific statistics based on their roles
+async function getUserSpecificStats(userID, user) {
+  const stats = {
+    giver: {
+      totalKgRecycled: 0,
+      activePickups: 0,
+      successfulPickups: 0,
+      activeForumPosts: 0,
+      totalPoints: 0
+    },
+    collector: null,
+    organization: null
+  };
+
   try {
-    const posts = await Post.findByUserID(userID);
-    return posts || [];
+    // ===== GIVER STATS (All users have giver capabilities) =====
+    const userPickupsAsGiver = await Pickup.findByGiver(userID);
+    
+    stats.giver.activePickups = userPickupsAsGiver.filter(p => 
+      ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(p.status)
+    ).length;
+    
+    stats.giver.successfulPickups = userPickupsAsGiver.filter(p => 
+      p.status === 'Completed'
+    ).length;
+    
+    // Calculate total recycled weight as giver
+    userPickupsAsGiver.forEach(pickup => {
+      if (pickup.status === 'Completed' && pickup.actualWaste?.finalAmount) {
+        stats.giver.totalKgRecycled += parseFloat(pickup.actualWaste.finalAmount);
+      }
+    });
+    stats.giver.totalKgRecycled = Math.round(stats.giver.totalKgRecycled);
+    
+    // Get user's posts
+    const userPosts = await Post.findByUser(userID);
+    
+    // Count active forum posts
+    stats.giver.activeForumPosts = userPosts.filter(p => 
+      p.postType === 'Forum' && p.status === 'Active'
+    ).length;
+    
+    // Get user's total points
+    const userPoints = await Point.getUserTotal(userID);
+    stats.giver.totalPoints = userPoints || user.points || 0;
+    
+    // ===== COLLECTOR STATS (If user is a collector) =====
+    if (user.isCollector) {
+      const collectorPickups = await Pickup.findByCollector(userID);
+      
+      // Get waste posts claimed by this collector
+      const claimedWastePosts = userPosts.filter(p => 
+        p.postType === 'Waste' && 
+        p.claimedBy === userID
+      );
+      
+      stats.collector = {
+        activeWastePosts: claimedWastePosts.filter(p => 
+          p.status === 'Claimed' || p.status === 'In Progress'
+        ).length,
+        claimedPosts: claimedWastePosts.length,
+        totalCollected: 0,
+        completionRate: 0
+      };
+      
+      // Calculate total collected as collector
+      collectorPickups.forEach(pickup => {
+        if (pickup.status === 'Completed' && pickup.actualWaste?.finalAmount) {
+          stats.collector.totalCollected += parseFloat(pickup.actualWaste.finalAmount);
+        }
+      });
+      stats.collector.totalCollected = Math.round(stats.collector.totalCollected);
+      
+      // Calculate completion rate
+      const totalCollectorPickups = collectorPickups.length;
+      const completedPickups = collectorPickups.filter(p => p.status === 'Completed').length;
+      if (totalCollectorPickups > 0) {
+        stats.collector.completionRate = Math.round((completedPickups / totalCollectorPickups) * 100);
+      }
+    }
+    
+    // ===== ORGANIZATION STATS (If user is an organization) =====
+    if (user.isOrganization) {
+      const orgInitiatives = userPosts.filter(p => p.postType === 'Initiative');
+      const activeInitiatives = orgInitiatives.filter(p => 
+        p.status === 'Active' || p.status === 'Open'
+      ).length;
+      
+      stats.organization = {
+        activeInitiatives,
+        totalSupporters: 0,
+        materialsReceived: 0,
+        topContributors: []
+      };
+      
+      // Calculate supporters and materials from initiatives
+      for (const initiative of orgInitiatives) {
+        // Get supporters (users who have donated to this initiative)
+        const supporters = await getInitiativeSupporters(initiative.postID);
+        stats.organization.totalSupporters += supporters.length;
+        
+        // Calculate materials received
+        if (initiative.materialsReceived) {
+          stats.organization.materialsReceived += parseFloat(initiative.materialsReceived || 0);
+        }
+        
+        // Track top contributors
+        supporters.forEach(supporter => {
+          const existingContributor = stats.organization.topContributors.find(
+            c => c.userID === supporter.userID
+          );
+          if (existingContributor) {
+            existingContributor.amount += supporter.amount;
+          } else {
+            stats.organization.topContributors.push({
+              userID: supporter.userID,
+              name: supporter.name,
+              amount: supporter.amount
+            });
+          }
+        });
+      }
+      
+      // Sort and limit top contributors
+      stats.organization.topContributors.sort((a, b) => b.amount - a.amount);
+      stats.organization.topContributors = stats.organization.topContributors.slice(0, 5);
+      stats.organization.materialsReceived = Math.round(stats.organization.materialsReceived);
+    }
+    
   } catch (error) {
-    console.error('Error getting user posts:', error);
+    console.error('Error getting user specific stats:', error);
+  }
+  
+  return stats;
+}
+
+// Get pending applications count (for admins)
+async function getPendingApplications() {
+  try {
+    const allApplications = await Application.findAll();
+    const pending = allApplications.filter(app => 
+      app.status === 'Pending' || app.status === 'Submitted'
+    );
+    return { count: pending.length };
+  } catch (error) {
+    console.error('Error getting pending applications:', error);
+    return { count: 0 };
+  }
+}
+
+// Get supporters for an initiative
+async function getInitiativeSupporters(initiativeID) {
+  try {
+    // This would query from an InitiativeSupport collection
+    // For now, returning empty array - implement based on your support model
+    return [];
+  } catch (error) {
+    console.error('Error getting initiative supporters:', error);
     return [];
   }
 }
 
-async function getUserPickups(userID) {
-  try {
-    const pickups = await Pickup.findByUser(userID, 'both');
-    
-    let active = 0;
-    let completed = 0;
-    
-    pickups.forEach(pickup => {
-      if (pickup.status === 'Completed') {
-        completed++;
-      } else if (['Pending', 'Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(pickup.status)) {
-        active++;
-      }
-    });
-    
-    return { active, completed };
-  } catch (error) {
-    console.error('Error getting user pickups:', error);
-    return { active: 0, completed: 0 };
-  }
-}
-
-async function getRecyclingTrends(timeRange) {
-  try {
-    const trends = [];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const now = new Date();
-    
-    let periods = [];
-    
-    switch(timeRange) {
-      case 'week':
-        // Show daily trends for the last 7 days
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          date.setHours(0, 0, 0, 0);
-          
-          const nextDate = new Date(date);
-          nextDate.setDate(nextDate.getDate() + 1);
-          
-          periods.push({
-            label: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-            start: date,
-            end: nextDate
-          });
-        }
-        break;
-        
-      case 'month':
-        // Show weekly trends for the last 4 weeks
-        for (let i = 3; i >= 0; i--) {
-          const weekStart = new Date();
-          weekStart.setDate(weekStart.getDate() - (i * 7 + weekStart.getDay()));
-          weekStart.setHours(0, 0, 0, 0);
-          
-          const weekEnd = new Date(weekStart);
-          weekEnd.setDate(weekEnd.getDate() + 7);
-          
-          periods.push({
-            label: `Week ${4 - i}`,
-            start: weekStart,
-            end: weekEnd
-          });
-        }
-        break;
-        
-      case 'year':
-        // Show monthly trends for the last 12 months
-        for (let i = 11; i >= 0; i--) {
-          const monthStart = new Date();
-          monthStart.setMonth(monthStart.getMonth() - i);
-          monthStart.setDate(1);
-          monthStart.setHours(0, 0, 0, 0);
-          
-          const monthEnd = new Date(monthStart);
-          monthEnd.setMonth(monthEnd.getMonth() + 1);
-          
-          periods.push({
-            label: monthNames[monthStart.getMonth()],
-            start: monthStart,
-            end: monthEnd
-          });
-        }
-        break;
-        
-      case 'all':
-      default:
-        // Show last 6 months
-        for (let i = 5; i >= 0; i--) {
-          const monthStart = new Date();
-          monthStart.setMonth(monthStart.getMonth() - i);
-          monthStart.setDate(1);
-          monthStart.setHours(0, 0, 0, 0);
-          
-          const monthEnd = new Date(monthStart);
-          monthEnd.setMonth(monthEnd.getMonth() + 1);
-          
-          periods.push({
-            label: `${monthNames[monthStart.getMonth()]} ${monthStart.getFullYear()}`,
-            start: monthStart,
-            end: monthEnd
-          });
-        }
-        break;
-    }
-    
-    // Calculate amount for each period
-    for (const period of periods) {
-      const amount = await getTotalRecycledInRange(period.start, period.end);
-      trends.push({
-        month: period.label,
-        amount: amount
-      });
-    }
-    
-    return trends;
-  } catch (error) {
-    console.error('Error getting trends:', error);
-    // Return sample data if no real data
-    return generateSampleTrends(timeRange);
-  }
-}
-
-// Generate sample trends when no real data is available
-function generateSampleTrends(timeRange) {
-  const baseValue = 1000;
-  let trends = [];
-  
-  switch(timeRange) {
-    case 'week':
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const today = new Date().getDay();
-      for (let i = 0; i < 7; i++) {
-        const dayIndex = (today - 6 + i + 7) % 7;
-        trends.push({
-          month: days[dayIndex],
-          amount: baseValue + Math.floor(Math.random() * 500)
-        });
-      }
-      break;
-      
-    case 'month':
-      for (let i = 1; i <= 4; i++) {
-        trends.push({
-          month: `Week ${i}`,
-          amount: baseValue * i + Math.floor(Math.random() * 500)
-        });
-      }
-      break;
-      
-    case 'year':
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const currentMonth = new Date().getMonth();
-      for (let i = 0; i < 12; i++) {
-        const monthIndex = (currentMonth - 11 + i + 12) % 12;
-        trends.push({
-          month: months[monthIndex],
-          amount: baseValue + (i * 100) + Math.floor(Math.random() * 300)
-        });
-      }
-      break;
-      
-    case 'all':
-    default:
-      trends = [
-        { month: 'Jan', amount: 1200 },
-        { month: 'Feb', amount: 1450 },
-        { month: 'Mar', amount: 1680 },
-        { month: 'Apr', amount: 1890 },
-        { month: 'May', amount: 2100 },
-        { month: 'Jun', amount: 2340 }
-      ];
-      break;
-  }
-  
-  return trends;
-}
-
-async function getTotalRecycledInRange(startDate, endDate) {
-  try {
-    const allPickups = await Pickup.findAll();
-    
-    const completedPickups = allPickups.filter(pickup => {
-      const completedDate = pickup.completedAt ? new Date(pickup.completedAt) : null;
-      return pickup.status === 'Completed' && 
-             completedDate && 
-             completedDate >= startDate &&
-             completedDate < endDate;
-    });
-    
-    let totalKg = 0;
-    completedPickups.forEach(pickup => {
-      if (pickup.finalWaste?.kg) {
-        totalKg += parseFloat(pickup.finalWaste.kg);
-      }
-    });
-    
-    return Math.round(totalKg);
-  } catch (error) {
-    console.error('Error getting total recycled in range:', error);
-    return 0;
-  }
-}
-
-async function getUserRecentActivity(userID) {
+// Get user's recent activity
+async function getUserRecentActivity(userID, startDate) {
   try {
     const activities = [];
     
-    // Get recent posts
-    const posts = await Post.findByUserID(userID);
-    const recentPosts = posts.slice(0, 5); // Get most recent 5
-    
-    recentPosts.forEach(post => {
-      activities.push({
-        id: post.postID,
-        type: 'post',
-        message: `Created new ${post.postType} post: ${post.title}`,
-        time: getRelativeTime(post.createdAt),
-        timestamp: post.createdAt
-      });
+    // Get user's posts
+    const posts = await Post.findByUser(userID);
+    posts.forEach(post => {
+      const createdAt = new Date(post.createdAt);
+      if (createdAt >= startDate) {
+        activities.push({
+          type: 'post',
+          title: `Created ${post.postType.toLowerCase()} post`,
+          description: post.title,
+          time: getRelativeTime(post.createdAt),
+          timestamp: post.createdAt
+        });
+      }
     });
     
-    // Get recent pickups
-    const pickups = await Pickup.findByUser(userID, 'giver');
-    const recentPickups = pickups.slice(0, 5); // Get most recent 5
-    
-    recentPickups.forEach(pickup => {
-      activities.push({
-        id: pickup.pickupID,
-        type: 'pickup',
-        message: pickup.status === 'Completed' 
-          ? `Pickup completed with ${pickup.collectorName}`
-          : `Pickup scheduled with ${pickup.collectorName}`,
-        time: getRelativeTime(pickup.createdAt),
-        timestamp: pickup.createdAt
-      });
+    // Get user's pickups
+    const pickups = await Pickup.findByGiver(userID);
+    pickups.forEach(pickup => {
+      const createdAt = new Date(pickup.createdAt);
+      if (createdAt >= startDate) {
+        activities.push({
+          type: 'pickup',
+          title: pickup.status === 'Completed' 
+            ? 'Completed pickup' 
+            : `Pickup ${pickup.status.toLowerCase()}`,
+          description: `with ${pickup.collectorName}`,
+          time: getRelativeTime(pickup.createdAt),
+          timestamp: pickup.createdAt
+        });
+      }
     });
     
-    // Sort by date and return top 10
+    // Sort by timestamp and return top 10
     return activities
       .sort((a, b) => {
         const dateA = new Date(a.timestamp || 0);
@@ -560,102 +568,166 @@ async function getUserRecentActivity(userID) {
   }
 }
 
-async function getAreaActivity() {
-  // This would typically query posts/pickups by location
-  // For now, returning sample data
-  return [
-    { area: 'Quezon City', activity: 'high', initiatives: 12, posts: 58 },
-    { area: 'Makati', activity: 'medium', initiatives: 8, posts: 34 },
-    { area: 'Pasig', activity: 'high', initiatives: 15, posts: 67 },
-    { area: 'Taguig', activity: 'low', initiatives: 3, posts: 12 },
-    { area: 'Manila', activity: 'medium', initiatives: 9, posts: 41 },
-    { area: 'Pasay', activity: 'low', initiatives: 2, posts: 8 }
-  ];
-}
-
-async function getDisposalSites(lat, lng) {
-  // This would typically query from a disposal sites collection
-  // For now, returning sample data
-  return [
-    { 
-      id: 1, 
-      name: 'Green Earth MRF', 
-      distance: '1.2 km', 
-      types: ['Plastic', 'Paper'], 
-      active: true,
-      lat: 14.6549,
-      lng: 121.0645
-    },
-    { 
-      id: 2, 
-      name: 'City Recycling Center', 
-      distance: '2.5 km', 
-      types: ['All types'], 
-      active: true,
-      lat: 14.6589,
-      lng: 121.0689
-    },
-    { 
-      id: 3, 
-      name: 'E-Waste Hub', 
-      distance: '3.8 km', 
-      types: ['Electronics'], 
-      active: true,
-      lat: 14.6612,
-      lng: 121.0712
+// Get recycling trends over time
+async function getRecyclingTrends(timeRange, startDate) {
+  try {
+    // This would aggregate data over time periods
+    // For now, returning sample trend data
+    const trends = [];
+    const periods = timeRange === 'week' ? 7 : timeRange === 'month' ? 4 : 12;
+    
+    for (let i = 0; i < periods; i++) {
+      trends.push({
+        period: i,
+        amount: Math.floor(Math.random() * 100) + 50
+      });
     }
-  ];
+    
+    return trends;
+  } catch (error) {
+    console.error('Error getting recycling trends:', error);
+    return [];
+  }
 }
 
+// Get area activity for heatmap
+async function getAreaActivity() {
+  try {
+    // This would aggregate posts/pickups by location
+    // For now, returning sample data for Metro Manila areas
+    return [
+      { area: 'Quezon City', activity: 'high', initiatives: 12, posts: 58, color: '#3B6535' },
+      { area: 'Makati', activity: 'medium', initiatives: 8, posts: 34, color: '#F0924C' },
+      { area: 'Pasig', activity: 'high', initiatives: 15, posts: 67, color: '#3B6535' },
+      { area: 'Taguig', activity: 'low', initiatives: 3, posts: 12, color: '#B3F2AC' },
+      { area: 'Manila', activity: 'medium', initiatives: 9, posts: 41, color: '#F0924C' },
+      { area: 'Pasay', activity: 'low', initiatives: 2, posts: 8, color: '#B3F2AC' },
+      { area: 'Parañaque', activity: 'medium', initiatives: 6, posts: 28, color: '#F0924C' },
+      { area: 'Las Piñas', activity: 'low', initiatives: 4, posts: 15, color: '#B3F2AC' },
+      { area: 'Muntinlupa', activity: 'medium', initiatives: 7, posts: 31, color: '#F0924C' },
+      { area: 'Marikina', activity: 'high', initiatives: 11, posts: 52, color: '#3B6535' }
+    ];
+  } catch (error) {
+    console.error('Error getting area activity:', error);
+    return [];
+  }
+}
+
+// Get nearby disposal sites
+async function getDisposalSites(lat, lng) {
+  try {
+    // This would query from a disposal sites collection with geolocation
+    // For now, returning sample data
+    const sites = [
+      { 
+        id: 1, 
+        name: 'Green Earth MRF', 
+        distance: '1.2 km', 
+        types: ['Plastic', 'Paper', 'Metal'], 
+        active: true,
+        address: '123 Recycling St., Quezon City',
+        operatingHours: '8:00 AM - 5:00 PM',
+        contact: '+63 2 1234 5678',
+        lat: parseFloat(lat) + 0.01,
+        lng: parseFloat(lng) + 0.01
+      },
+      { 
+        id: 2, 
+        name: 'City Recycling Center', 
+        distance: '2.5 km', 
+        types: ['All waste types accepted'], 
+        active: true,
+        address: '456 Green Avenue, Makati',
+        operatingHours: '7:00 AM - 6:00 PM',
+        contact: '+63 2 9876 5432',
+        lat: parseFloat(lat) - 0.02,
+        lng: parseFloat(lng) + 0.02
+      },
+      { 
+        id: 3, 
+        name: 'E-Waste Collection Hub', 
+        distance: '3.8 km', 
+        types: ['Electronics', 'Batteries', 'Appliances'], 
+        active: true,
+        address: '789 Tech Park, BGC Taguig',
+        operatingHours: '9:00 AM - 5:00 PM',
+        contact: '+63 2 5555 1234',
+        lat: parseFloat(lat) + 0.03,
+        lng: parseFloat(lng) - 0.01
+      },
+      {
+        id: 4,
+        name: 'Community Recycling Point',
+        distance: '0.8 km',
+        types: ['Plastic', 'Paper', 'Glass'],
+        active: true,
+        address: 'Barangay Hall, Local Street',
+        operatingHours: '8:00 AM - 4:00 PM',
+        contact: '+63 917 123 4567',
+        lat: parseFloat(lat) + 0.005,
+        lng: parseFloat(lng) - 0.005
+      }
+    ];
+    
+    // Sort by distance
+    return sites.sort((a, b) => 
+      parseFloat(a.distance) - parseFloat(b.distance)
+    );
+  } catch (error) {
+    console.error('Error getting disposal sites:', error);
+    return [];
+  }
+}
+
+// Calculate environmental impact metrics
 function calculateEnvironmentalImpact(totalKg) {
   // Environmental impact calculations based on EPA estimates
   return {
     co2Saved: Math.round(totalKg * 2.97), // kg CO2 per kg recycled
-    treesEquivalent: Math.round(totalKg * 0.0154), // trees saved
-    waterSaved: Math.round(totalKg * 5.84) // liters of water saved
+    treesEquivalent: Math.round(totalKg * 0.0154), // trees saved equivalent
+    waterSaved: Math.round(totalKg * 5.84), // liters of water saved
+    energySaved: Math.round(totalKg * 0.94), // kWh of energy saved
+    landfillDiverted: totalKg // kg diverted from landfills
   };
 }
 
+// Calculate percentage changes from previous period
 function calculatePercentageChanges(timeRange, currentMetrics) {
-  // Generate realistic percentage changes based on time range
-  // In production, you would compare with previous period data
+  // In production, this would compare with actual previous period data
+  // For now, generating realistic percentage changes
   const changes = {};
   
-  // Generate random but realistic changes
-  const generateChange = () => {
-    const change = Math.floor(Math.random() * 30) - 10; // -10% to +20%
-    return change > 0 ? `+${change}%` : `${change}%`;
+  // Helper function to generate realistic change
+  const generateChange = (current) => {
+    if (current === 0) return '+0%';
+    // Generate change between -15% and +30%
+    const change = Math.floor(Math.random() * 45) - 15;
+    return change >= 0 ? `+${change}%` : `${change}%`;
   };
   
   return {
-    recycled: currentMetrics.totalRecycled > 0 ? generateChange() : '+0%',
-    initiatives: currentMetrics.initiatives.count > 0 ? generateChange() : '+0%',
-    users: currentMetrics.users.count > 0 ? generateChange() : '+0%',
-    pickups: currentMetrics.pickups.completed > 0 ? generateChange() : '+0%'
+    recycled: generateChange(currentMetrics.totalRecycled),
+    initiatives: generateChange(currentMetrics.initiatives.count),
+    users: generateChange(currentMetrics.users.count),
+    pickups: generateChange(currentMetrics.pickups.completed)
   };
 }
 
+// Convert timestamp to relative time
 function getRelativeTime(timestamp) {
-  if (!timestamp) return 'Unknown time';
-  
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
   const now = new Date();
-  const diffMs = now - date;
-  const diffDays = Math.floor(diffMs / 86400000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffMins = Math.floor(diffMs / 60000);
+  const date = new Date(timestamp);
+  const diff = now - date;
   
-  if (diffDays > 7) {
-    return date.toLocaleDateString();
-  } else if (diffDays > 0) {
-    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-  } else if (diffHours > 0) {
-    return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  } else if (diffMins > 0) {
-    return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-  } else {
-    return 'Just now';
-  }
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  return 'Just now';
 }
 
 module.exports = analyticsController;

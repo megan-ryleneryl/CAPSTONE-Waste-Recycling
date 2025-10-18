@@ -619,16 +619,8 @@
     flex-wrap: wrap;
   }
 
-  .usersContainer {
-    padding: 1rem;
-  }
-
   .usersGrid {
     grid-template-columns: 1fr;
-  }
-
-  .modalContent {
-    padding: 1.5rem;
   }
 
   .modalActions {

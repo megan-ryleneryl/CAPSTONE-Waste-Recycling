@@ -1,8 +1,8 @@
-/* client/src/components/layout/RightSection/RightSection.module.css */
-
 .rightSection {
-    /* padding: 2rem 0; */
     font-family: 'Raleway', sans-serif;
+    width: 240px;
+    min-width: 240px;
+    margin-right: 2rem;
   }
 
 .rightSectionContainer {
@@ -171,8 +171,8 @@
   /* High density displays */
   @media (min-width: 1600px) {
     .rightSection {
-      width: 340px;
-      min-width: 340px;
+      width: 240px;
+      min-width: 240px;
     }
     
     .card {
