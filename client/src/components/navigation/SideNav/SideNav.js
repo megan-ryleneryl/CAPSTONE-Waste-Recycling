@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import styles from './SideNav.module.css';
 import { useAuth } from '../../../context/AuthContext';
 import { 
+  Recycle, Sprout,
   Plus, 
   Home, 
   LayoutDashboard, 
@@ -75,8 +76,8 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
 
   const filterOptions = [
     { id: 'all', label: 'All Posts', icon: <Layers size={20} /> },
-    { id: 'Waste', label: 'Waste', icon: <Trash2 size={20} /> },
-    { id: 'Initiatives', label: 'Initiatives', icon: <Lightbulb size={20} /> },
+    { id: 'Waste', label: 'Waste', icon: <Recycle size={20} /> },
+    { id: 'Initiatives', label: 'Initiatives', icon: <Sprout size={20} /> },
     { id: 'Forum', label: 'Forum', icon: <MessagesSquare size={20} /> },
     { id: 'myPosts', label: 'My Posts', icon: <FileText size={20} /> }
   ];
