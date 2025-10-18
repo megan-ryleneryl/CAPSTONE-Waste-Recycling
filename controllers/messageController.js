@@ -85,7 +85,6 @@ class MessageController {
       const newMessage = await Message.create({
         senderID: user.userID,
         senderName: `${user.firstName} ${user.lastName}`,
-        senderType: user.userType,
         receiverID,
         postID,
         message: message.trim(),
@@ -124,8 +123,7 @@ class MessageController {
         {
           userID: user.userID,
           firstName: user.firstName,
-          lastName: user.lastName,
-          userType: user.userType
+          lastName: user.lastName
         },
         receiverID,
         postID,

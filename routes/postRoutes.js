@@ -144,7 +144,6 @@ router.get('/:postId', verifyToken, async (req, res) => {
           profilePictureUrl: postUser.profilePictureUrl,
           isOrganization: postUser.isOrganization,
           organizationName: postUser.organizationName,
-          userType: postUser.userType,
           badges: postUser.badges,
           points: postUser.points
         };
@@ -291,7 +290,6 @@ router.post('/create', verifyToken, (req, res, next) => {
     const basePostData = {
       ...postData,
       userID: user.userID,
-      userType: user.userType,
       images: imageUrls,
       isCollector: user.isCollector || false,
       isAdmin: user.isAdmin || false,

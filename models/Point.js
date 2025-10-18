@@ -175,7 +175,6 @@ class Point {
           userID: userData.userID,
           firstName: userData.firstName,
           lastName: userData.lastName,
-          userType: userData.userType,
           totalPoints: totalPoints
         });
       }
