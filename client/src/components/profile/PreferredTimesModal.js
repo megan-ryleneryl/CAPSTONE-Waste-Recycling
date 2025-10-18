@@ -199,7 +199,6 @@ const PreferredTimesModal = ({ onClose, onSubmit, currentTimes = [] }) => {
               <button 
                 type="submit" 
                 className={styles.submitButton}
-                disabled={selectedDays.length === 0 || (selectedTimes.length === 0 && !customTime)}
               >
                 Save Preferences
               </button>

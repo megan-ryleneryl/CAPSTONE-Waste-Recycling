@@ -1004,15 +1004,22 @@ const Profile = ({ user: propsUser }) => {
     }
   };
 
-  const handlePreferredLocationsSubmit = async (locations) => {
+  const handlePreferredLocationsSubmit = async (formData) => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Extract the preferredLocations from FormData
+      const locationsJSON = formData.get('preferredLocations');
+      const locations = JSON.parse(locationsJSON);
+      
+      // Send to backend
       const response = await axios.put(
         'http://localhost:3001/api/protected/profile',
         { preferredLocations: locations },
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'  // Use JSON since we're sending parsed data
           }
         }
       );
@@ -1033,6 +1040,7 @@ const Profile = ({ user: propsUser }) => {
     } catch (error) {
       console.error('Error updating preferred locations:', error);
       setError('Failed to update preferred locations');
+      alert('Failed to save locations. Please try again.');
     }
   };
 
@@ -1273,12 +1281,37 @@ const Profile = ({ user: propsUser }) => {
                   <div className={styles.preferenceValue}>
                     {user?.preferredLocations?.length > 0 ? (
                       <ul className={styles.preferenceList}>
-                        {user.preferredLocations.map((location, index) => (
-                          <li key={index}>
-                            <strong>{location.name}</strong>
-                            {location.address && <span> - {location.address}</span>}
-                          </li>
-                        ))}
+                        {user.preferredLocations.map((location, index) => {
+                          // Handle both old string format and new structured format
+                          if (typeof location === 'string') {
+                            return <li key={index}>{location}</li>;
+                          }
+                          
+                          // New structured format
+                          return (
+                            <li key={index}>
+                              <div>
+                                <strong>{location.name}</strong>
+                                <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
+                                  {location.addressLine}
+                                </div>
+                                <div style={{ fontSize: '0.8em', color: '#999', marginTop: '2px' }}>
+                                  {location.barangay?.name && (
+                                    <>
+                                      {location.barangay.name}, {location.city?.name}
+                                      {location.province?.name && location.province.name !== 'NCR' && (
+                                        <>, {location.province.name}</>
+                                      )}
+                                      {location.region?.name && (
+                                        <>, {location.region.name}</>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     ) : (
                       <p className={styles.noPreference}>No preferred locations set</p>

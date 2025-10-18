@@ -863,6 +863,7 @@
   margin: 0.2rem 0 0;
   font-size: 0.85rem;
   color: var(--text-secondary, #666);
+  text-align: left;
 }
 
 /* CTA Section */

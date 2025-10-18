@@ -142,52 +142,93 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
   };
 
   const getLocationDisplayString = (location) => {
-    const selectedRegion = regions.find(r => r.code === location.region);
-    const selectedProvince = provinces.find(p => p.code === location.province);
-    const selectedCity = cities.find(c => c.code === location.city);
-    const selectedBarangay = barangays.find(b => b.code === location.barangay);
-
     const parts = [];
-    if (selectedBarangay?.name) parts.push(selectedBarangay.name);
-    if (selectedCity?.name) parts.push(selectedCity.name);
-    if (selectedProvince?.name && selectedProvince.name !== 'NCR') parts.push(selectedProvince.name);
-    if (selectedRegion?.name) parts.push(selectedRegion.name);
+    if (location.barangay?.name) parts.push(location.barangay.name);
+    if (location.city?.name) parts.push(location.city.name);
+    if (location.province?.name && location.province.name !== 'NCR') parts.push(location.province.name);
+    if (location.region?.name) parts.push(location.region.name);
 
     return parts.join(', ');
   };
 
+  const isAddLocationFormValid = newLocation.name && 
+    newLocation.region && 
+    newLocation.city && 
+    newLocation.barangay && 
+    newLocation.addressLine && 
+    (newLocation.region === '130000000' || newLocation.province);
+
   const handleAddLocation = () => {
-    if (newLocation.name && newLocation.region && newLocation.city && newLocation.barangay && newLocation.addressLine) {
-      setLocations([...locations, { ...newLocation, id: Date.now() }]);
-      setNewLocation({
-        name: '',
-        region: '',
-        province: '',
-        city: '',
-        barangay: '',
-        addressLine: '',
-      });
-      setProvinces([]);
-      setCities([]);
-      setBarangays([]);
-      setIsAddingLocation(false);
+    if (!isAddLocationFormValid) {
+      alert('Please fill in all required fields');
+      return;
     }
+
+    const selectedRegion = regions.find(r => r.code === newLocation.region);
+    const selectedProvince = provinces.find(p => p.code === newLocation.province);
+    const selectedCity = cities.find(c => c.code === newLocation.city);
+    const selectedBarangay = barangays.find(b => b.code === newLocation.barangay);
+
+    // Build structured location object (same format as post location)
+    const locationData = {
+      name: newLocation.name,
+      region: {
+        code: newLocation.region,
+        name: selectedRegion?.name || ''
+      },
+      province: selectedProvince ? {
+        code: newLocation.province,
+        name: selectedProvince.name
+      } : null,
+      city: {
+        code: newLocation.city,
+        name: selectedCity?.name || ''
+      },
+      barangay: {
+        code: newLocation.barangay,
+        name: selectedBarangay?.name || ''
+      },
+      addressLine: newLocation.addressLine
+    };
+
+    setLocations([...locations, locationData]);
+
+    // Reset form
+    setNewLocation({
+      name: '',
+      region: '',
+      province: '',
+      city: '',
+      barangay: '',
+      addressLine: '',
+    });
+    setProvinces([]);
+    setCities([]);
+    setBarangays([]);
+    setIsAddingLocation(false);
   };
 
-  const handleRemoveLocation = (id) => {
-    setLocations(locations.filter(loc => loc.id !== id));
-  };
-
-  const handleSetPrimary = (id) => {
-    setLocations(locations.map(loc => ({
-      ...loc,
-      isPrimary: loc.id === id
-    })));
+  const handleRemoveLocation = (index) => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this location?'
+    );
+    
+    if (confirmed) {
+      setLocations(locations.filter((_, i) => i !== index));
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(locations);
+    
+    // Create FormData object
+    const formData = new FormData();
+    
+    // Append locations as JSON string
+    formData.append('preferredLocations', JSON.stringify(locations));
+    
+    // Call the onSubmit callback with FormData
+    onSubmit(formData);
   };
 
   const handleBackdropClick = (e) => {
@@ -202,8 +243,6 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
     selectedRegion.name.includes('National Capital Region') ||
     newLocation.region === '130000000'
   );
-
-  const isAddLocationFormValid = newLocation.name && newLocation.region && newLocation.city && newLocation.barangay && newLocation.addressLine && (!isNCR ? newLocation.province : true);
 
   return (
     <div className={styles.modalBackdrop} onClick={handleBackdropClick}>
@@ -240,15 +279,12 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
                 </div>
               ) : (
                 <div className={styles.locationsList}>
-                  {locations.map(location => (
-                    <div key={location.id} className={styles.locationCard}>
+                  {locations.map((location, index) => (
+                    <div key={index} className={styles.locationCard}>
                       <div className={styles.locationHeader}>
                         <div className={styles.locationInfo}>
                           <h4 className={styles.locationName}>
                             {location.name}
-                            {location.isPrimary && (
-                              <span className={styles.primaryBadge}>Primary</span>
-                            )}
                           </h4>
                           <p className={styles.locationAddress}>
                             {getLocationDisplayString(location)}
@@ -259,18 +295,9 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
                         </div>
                       </div>
                       <div className={styles.locationActions}>
-                        {!location.isPrimary && (
-                          <button
-                            type="button"
-                            onClick={() => handleSetPrimary(location.id)}
-                            className={styles.setPrimaryButton}
-                          >
-                            Set as Primary
-                          </button>
-                        )}
                         <button
                           type="button"
-                          onClick={() => handleRemoveLocation(location.id)}
+                          onClick={() => handleRemoveLocation(index)}
                           className={styles.deleteLocationButton}
                           aria-label="Remove location"
                         >
@@ -471,7 +498,6 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
               <button 
                 type="submit" 
                 className={styles.submitButton}
-                disabled={locations.length === 0}
               >
                 Save Locations
               </button>
