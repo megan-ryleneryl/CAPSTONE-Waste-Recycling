@@ -137,9 +137,7 @@ app.get('/api/posts/public', async (req, res) => {
       description: post.description,
       location: post.location,
       status: post.status,
-      createdAt: post.createdAt,
-      // Hide sensitive user data for public view
-      userType: post.userType
+      createdAt: post.createdAt
     }));
     
     res.json({ success: true, posts: publicPosts });
@@ -231,7 +229,6 @@ app.get('/api/protected/posts/:postId', async (req, res) => {
           profilePictureUrl: postUser.profilePictureUrl,
           isOrganization: postUser.isOrganization,
           organizationName: postUser.organizationName,
-          userType: postUser.userType,
           badges: postUser.badges,
           points: postUser.points
         };
@@ -242,8 +239,7 @@ app.get('/api/protected/posts/:postId', async (req, res) => {
       userData = {
         firstName: 'Unknown',
         lastName: 'User',
-        profilePictureUrl: null,
-        userType: postData.userType || 'Giver'
+        profilePictureUrl: null
       };
     }
     
@@ -324,7 +320,7 @@ app.put('/api/protected/posts/:postId', async (req, res) => {
     }
     
     // Check if user owns the post or is admin
-    if (post.userID !== req.user.userID && req.user.userType !== 'Admin') {
+    if (post.userID !== req.user.userID && !req.user.isAdmin) {
       return res.status(403).json({ success: false, error: 'Unauthorized to edit this post' });
     }
     

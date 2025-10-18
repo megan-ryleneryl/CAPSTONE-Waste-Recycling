@@ -25,7 +25,6 @@ export const initiateConversationForPost = async (postID, collectorUser, postOwn
       messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       senderID: collectorUser.userID,
       senderName: `${collectorUser.firstName} ${collectorUser.lastName}`,
-      senderType: 'Collector',
       receiverID: postOwnerID,
       receiverName: `${giverData.firstName} ${giverData.lastName}`,
       postID: postID,
@@ -55,8 +54,7 @@ export const initiateLukeKennethConversation = async () => {
   const collectorUser = {
     userID: 'a8de495e-f4a2-45f6-8cf1-7a9401595082',
     firstName: 'Luke',
-    lastName: 'Aniago',
-    userType: 'Collector'
+    lastName: 'Aniago'
   };
 
   return await initiateConversationForPost(postID, collectorUser, postOwnerID);

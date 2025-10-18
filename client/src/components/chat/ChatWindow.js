@@ -601,7 +601,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
     );
   }
 
-  const isCollector = currentUser?.userType === 'Collector' || currentUser?.isCollector;
+  const isCollector = currentUser?.isCollector || currentUser?.isAdmin;
   // Only show schedule pickup button if:
   // 1. User is a collector
   // 2. No active pickup exists

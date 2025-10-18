@@ -122,7 +122,7 @@ const SinglePost = ({ onDataUpdate }) => {
   };
 
   const handleCollect = () => {
-    if (user?.userType === 'Collector' || user?.userType === 'Admin') {
+    if (user?.isCollector || user?.isAdmin) {
       setShowPickupModal(true);
     } else {
       alert('Only Collectors can claim waste posts');
@@ -224,8 +224,7 @@ const SinglePost = ({ onDataUpdate }) => {
 
   // Determine if current user is the post owner
   const isOwner = user?.userID === post.userID;
-  const isCollector = user?.userType === 'Collector' || user?.userType === 'Admin';
-  const isGiver = user?.userType === 'Giver';
+  const isCollector = user?.isCollector || user?.isAdmin;
 
   return (
     <div className={styles.container}>
@@ -261,7 +260,9 @@ const SinglePost = ({ onDataUpdate }) => {
                    'Anonymous User'}
                 </h3>
                 <p className={styles.userType}>
-                  {post.user?.userType || post.userType}
+                  {post.user?.isAdmin ? 'Admin' :
+                   post.user?.isCollector ? 'Collector' :
+                   post.user?.isOrganization ? 'Organization' : 'Giver'}
                 </p>
               </div>
               {!isOwner && user && (
@@ -373,7 +374,7 @@ const SinglePost = ({ onDataUpdate }) => {
                   Collect This Waste
                 </button>
               )}
-              {isGiver && isOwner && (
+              {isOwner && (
                 <>
                   <button className={styles.editButton}>
                     Edit Post

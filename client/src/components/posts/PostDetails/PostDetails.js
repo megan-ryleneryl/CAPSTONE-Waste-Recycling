@@ -205,11 +205,7 @@ const PostDetails = ({ post, user: currentUser }) => {
   if (!post) return null;
 
   // Check user permissions
-  const isCollector = currentUser?.userType === 'Collector' || 
-                     currentUser?.isCollector === true ||
-                     currentUser?.userType === 'Admin';
-  
-  const isGiver = currentUser?.userType === 'Giver';
+  const isCollector = currentUser?.isCollector === true || currentUser?.isAdmin === true;
   const isOwner = currentUser?.userID === post.userID;
 
   // Show button conditions for different post types
