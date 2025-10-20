@@ -16,7 +16,6 @@ const SinglePost = ({ onDataUpdate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [imageIndex, setImageIndex] = useState(0);
-  const [showPickupModal, setShowPickupModal] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [likingPost, setLikingPost] = useState(false);
@@ -118,14 +117,6 @@ const SinglePost = ({ onDataUpdate }) => {
   const handleNextImage = () => {
     if (post?.images?.length > 1) {
       setImageIndex(prev => prev < post.images.length - 1 ? prev + 1 : 0);
-    }
-  };
-
-  const handleCollect = () => {
-    if (user?.isCollector || user?.isAdmin) {
-      setShowPickupModal(true);
-    } else {
-      alert('Only Collectors can claim waste posts');
     }
   };
 
@@ -248,7 +239,6 @@ const SinglePost = ({ onDataUpdate }) => {
 
   // Determine if current user is the post owner
   const isOwner = user?.userID === post.userID;
-  const isCollector = user?.isCollector || user?.isAdmin;
 
   return (
     <div className={styles.container}>
@@ -392,24 +382,6 @@ const SinglePost = ({ onDataUpdate }) => {
             {formatTimestamp(post.createdAt)}
           </div>
 
-          {/* Action Buttons - Different for Givers and Collectors */}
-          {post.postType === 'Waste' && (
-            <div className={styles.actions}>
-              {isCollector && !isOwner && post.status === 'Active' && (
-                <button
-                  className={styles.collectButton}
-                  onClick={handleCollect}
-                >
-                  Collect This Waste
-                </button>
-              )}
-              {post.status === 'Claimed' && !isOwner && (
-                <button className={styles.claimedButton} disabled>
-                  Already Claimed
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Like and Comment Section for Forum Posts */}
@@ -437,61 +409,12 @@ const SinglePost = ({ onDataUpdate }) => {
 
         {/* Pickup Requests Section (for Collectors view on Initiative posts)
         {post.postType === 'Initiative' && isCollector && isOwner && (
-          <PickupRequests 
+          <PickupRequests
             postId={post.postID}
             requests={post.pickupRequests || []}
           />
         )} */}
       </div>
-
-      {/* Pickup Modal */}
-      {showPickupModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowPickupModal(false)}>
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <h2>Schedule Pickup</h2>
-            <form className={styles.pickupForm}>
-              <div className={styles.formGroup}>
-                <label>Proposed Date</label>
-                <input type="date" required />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Proposed Time</label>
-                <input type="time" required />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Pickup Location</label>
-                <input
-                  type="text"
-                  defaultValue={formatLocation(post.location)}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>Additional Notes</label>
-                <textarea 
-                  placeholder="Any special instructions or requirements"
-                  rows="3"
-                />
-              </div>
-              <div className={styles.modalActions}>
-                <button 
-                  type="button" 
-                  onClick={() => setShowPickupModal(false)}
-                  className={styles.cancelButton}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className={styles.confirmButton}
-                >
-                  Send Pickup Request
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
     </div>
   );
