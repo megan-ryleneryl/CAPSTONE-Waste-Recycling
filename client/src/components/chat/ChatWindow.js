@@ -58,17 +58,18 @@ const loadChatData = async () => {
   try {
     // 1. Fetch other user data properly
     let userDataToSet = otherUser;
-    
-    if (!otherUser.firstName || !otherUser.lastName) {
+
+    if (!otherUser.firstName || !otherUser.lastName || !otherUser.profilePictureUrl) {
       const userDocRef = doc(db, 'users', otherUser.userID);
       const userDoc = await getDoc(userDocRef);
-      
+
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        userDataToSet = { 
-          userID: userDoc.id, 
+        userDataToSet = {
+          userID: userDoc.id,
           ...userData,
-          name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User'
+          name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User',
+          profilePictureUrl: userData.profilePictureUrl || otherUser.profilePictureUrl || null
         };
       } else {
         console.warn('User document not found for:', otherUser.userID);
@@ -76,16 +77,18 @@ const loadChatData = async () => {
           ...otherUser,
           name: otherUser.userName || 'Unknown User',
           firstName: otherUser.userName || 'Unknown',
-          lastName: 'User'
+          lastName: 'User',
+          profilePictureUrl: otherUser.profilePictureUrl || null
         };
       }
     } else {
       userDataToSet = {
         ...otherUser,
-        name: `${otherUser.firstName} ${otherUser.lastName}`.trim()
+        name: `${otherUser.firstName} ${otherUser.lastName}`.trim(),
+        profilePictureUrl: otherUser.profilePictureUrl || null
       };
     }
-    
+
     setOtherUserData(userDataToSet);
     
     // 2. Fetch post data - ALWAYS fetch fresh to ensure correct post is shown
