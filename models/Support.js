@@ -15,16 +15,9 @@ class Support {
     this.collectorID = data.collectorID || ''; // Initiative creator
     this.collectorName = data.collectorName || '';
 
-    // Support details - NEW: Support multiple materials
+    // Support details - Support multiple materials
     // offeredMaterials: [{materialID, materialName, quantity, unit, status: 'Pending'/'Accepted'/'Declined', rejectionReason}]
     this.offeredMaterials = data.offeredMaterials || [];
-
-    // Backward compatibility fields
-    this.materialID = data.materialID || ''; // OLD: Single material
-    this.materialName = data.materialName || '';
-    this.quantity = data.quantity || 0;
-    this.unit = data.unit || 'kg';
-    this.materials = data.materials || data.materialName || ''; // For display
 
     this.notes = data.notes || ''; // Additional notes from giver
     this.estimatedValue = data.estimatedValue || 0; // For progress tracking
@@ -45,10 +38,7 @@ class Support {
     this.pickupScheduled = data.pickupScheduled || false;
 
     // Completion details
-    this.actualMaterials = data.actualMaterials || '';
-    this.actualQuantity = data.actualQuantity || 0;
     this.completionNotes = data.completionNotes || '';
-    this.contributionValue = data.contributionValue || 0; // Final value counted toward initiative
 
     // Rejection/cancellation
     this.rejectionReason = data.rejectionReason || '';
@@ -72,19 +62,16 @@ class Support {
     if (!this.giverID) errors.push('Giver ID is required');
     if (!this.collectorID) errors.push('Collector ID is required');
 
-    // New multi-material format
-    if (this.offeredMaterials && Array.isArray(this.offeredMaterials) && this.offeredMaterials.length > 0) {
+    // Validate offeredMaterials
+    if (!this.offeredMaterials || !Array.isArray(this.offeredMaterials) || this.offeredMaterials.length === 0) {
+      errors.push('At least one offered material is required');
+    } else {
       // Validate each offered material
       this.offeredMaterials.forEach((mat, index) => {
         if (!mat.materialID) errors.push(`Material ${index + 1}: materialID is required`);
+        if (!mat.materialName) errors.push(`Material ${index + 1}: materialName is required`);
         if (!mat.quantity || mat.quantity <= 0) errors.push(`Material ${index + 1}: quantity must be greater than 0`);
       });
-    } else {
-      // Backward compatibility: validate single material fields
-      if (!this.materialID && !this.materials) {
-        errors.push('Material ID or materials is required');
-      }
-      if (!this.quantity || this.quantity <= 0) errors.push('Quantity must be greater than 0');
     }
 
     // Validate status
@@ -109,23 +96,13 @@ class Support {
       giverName: this.giverName,
       collectorID: this.collectorID,
       collectorName: this.collectorName,
-      // NEW: Multiple materials support
       offeredMaterials: this.offeredMaterials,
-      // Backward compatibility fields
-      materialID: this.materialID,
-      materialName: this.materialName,
-      materials: this.materials,
-      quantity: this.quantity,
-      unit: this.unit,
       notes: this.notes,
       estimatedValue: this.estimatedValue,
       status: this.status,
       pickupID: this.pickupID,
       pickupScheduled: this.pickupScheduled,
-      actualMaterials: this.actualMaterials,
-      actualQuantity: this.actualQuantity,
       completionNotes: this.completionNotes,
-      contributionValue: this.contributionValue,
       rejectionReason: this.rejectionReason,
       cancellationReason: this.cancellationReason,
       cancellationBy: this.cancellationBy,
@@ -327,7 +304,7 @@ class Support {
     return this;
   }
 
-  // Accept ALL materials at once (backward compatible)
+  // Accept ALL materials at once
   async accept(collectorID) {
     if (this.status !== 'Pending') {
       throw new Error('Only pending support offers can be accepted');
@@ -337,13 +314,11 @@ class Support {
       throw new Error('Only the initiative creator can accept support offers');
     }
 
-    // If using new multi-material format, accept all materials
-    if (this.offeredMaterials && this.offeredMaterials.length > 0) {
-      this.offeredMaterials.forEach(mat => {
-        mat.status = 'Accepted';
-        mat.acceptedAt = new Date();
-      });
-    }
+    // Accept all materials
+    this.offeredMaterials.forEach(mat => {
+      mat.status = 'Accepted';
+      mat.acceptedAt = new Date();
+    });
 
     await this.update({
       offeredMaterials: this.offeredMaterials,
@@ -353,9 +328,7 @@ class Support {
 
     // Send acceptance message
     const Message = require('./Message');
-    const materialsText = this.offeredMaterials && this.offeredMaterials.length > 0
-      ? this.offeredMaterials.map(m => `${m.materialName}: ${m.quantity} ${m.unit || 'kg'}`).join(', ')
-      : `${this.materials}, Quantity: ${this.quantity} ${this.unit}`;
+    const materialsText = this.offeredMaterials.map(m => `${m.materialName}: ${m.quantity} ${m.unit || 'kg'}`).join(', ');
 
     await Message.create({
       senderID: this.collectorID,
@@ -425,26 +398,20 @@ class Support {
     await this.update({
       status: 'Completed',
       completedAt: new Date(),
-      actualMaterials: completionData.actualMaterials || this.materialName || this.materials,
-      actualQuantity: completionData.actualQuantity || this.quantity,
-      completionNotes: completionData.completionNotes || '',
-      contributionValue: completionData.contributionValue || this.estimatedValue
+      completionNotes: completionData.completionNotes || ''
     });
 
-    // Update initiative progress
+    // Update initiative progress for each accepted material
     const InitiativePost = require('./InitiativePost');
     const initiative = await InitiativePost.findById(this.initiativeID);
-    if (initiative) {
-      // If using new material structure, update specific material progress
-      if (this.materialID && initiative.materials && initiative.materials.length > 0) {
+    if (initiative && initiative.materials && initiative.materials.length > 0) {
+      // Update progress for each accepted material
+      const acceptedMaterials = this.offeredMaterials.filter(m => m.status === 'Accepted');
+      for (const material of acceptedMaterials) {
         await initiative.updateMaterialProgress(
-          this.materialID,
-          completionData.actualQuantity || this.quantity
+          material.materialID,
+          material.quantity
         );
-      } else {
-        // Fallback to old method for backward compatibility
-        const newAmount = initiative.currentAmount + this.contributionValue;
-        await initiative.updateProgress(newAmount);
       }
     }
   }

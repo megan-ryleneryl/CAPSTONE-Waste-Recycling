@@ -199,7 +199,7 @@ const loadChatData = async () => {
               (data.giverID === otherUser.userID && data.collectorID === currentUser.userID) ||
               (data.collectorID === otherUser.userID && data.giverID === currentUser.userID);
 
-            const isActive = ['Pending', 'Accepted', 'PickupScheduled'].includes(data.status);
+            const isActive = ['Pending', 'PartiallyAccepted', 'Accepted', 'PickupScheduled'].includes(data.status);
 
             console.log('🟢 Support relevance check:', { isRelevant, isActive });
 
@@ -293,12 +293,18 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         }
       }
 
+      // For Initiative posts: current user (initiative owner) is collector, other user (supporter) is giver
+      // For Waste posts: post owner is giver, current user (collector) is collector
+      const isInitiativePost = post?.postType === 'Initiative';
+      const giverID = isInitiativePost ? otherUser.userID : post?.userID;
+      const giverName = isInitiativePost ? otherUserData.name : (post?.userName || otherUserData.name);
+
       const pickupData = {
         postID,
         postType: post?.postType || 'Waste',
         postTitle: post?.title || 'Waste Post',
-        giverID: post?.userID || otherUser.userID,
-        giverName: otherUserData.name,
+        giverID: giverID,
+        giverName: giverName,
         collectorID: currentUser.userID,
         collectorName: `${currentUser.firstName} ${currentUser.lastName}`,
         proposedBy: currentUser.userID,
@@ -344,9 +350,9 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
       // Send system message with actor and guidance
       const collectorName = `${currentUser.firstName} ${currentUser.lastName}`;
-      const giverName = otherUser.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim();
+      const giverDisplayName = otherUser.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim();
       await sendMessage(
-        `[Pickup] ${collectorName} [Collector] proposed a pickup schedule for ${formData.pickupDate} at ${formData.pickupTime}. Waiting for ${giverName} [Giver] to confirm the pickup schedule.`,
+        `[Pickup] ${collectorName} [Collector] proposed a pickup schedule for ${formData.pickupDate} at ${formData.pickupTime}. Waiting for ${giverDisplayName} [Giver] to confirm the pickup schedule.`,
         'system'
       );
 

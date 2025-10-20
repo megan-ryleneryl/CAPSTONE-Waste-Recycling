@@ -14,6 +14,8 @@ const PostDetails = ({ post, user: currentUser }) => {
   const [isSupportingInitiative, setIsSupportingInitiative] = useState(false);
   const [postClaimed, setPostClaimed] = useState(false);
   const [claimDetails, setClaimDetails] = useState(null);
+  const [existingSupport, setExistingSupport] = useState(null);
+  const [checkingSupport, setCheckingSupport] = useState(false);
 
   // Support form data for Initiative posts - NEW: Multiple materials
   const [supportData, setSupportData] = useState({
@@ -28,7 +30,10 @@ const PostDetails = ({ post, user: currentUser }) => {
     if (post && post.postType === 'Waste') {
       checkClaimStatus();
     }
-  }, [post]);
+    if (post && post.postType === 'Initiative' && currentUser) {
+      checkExistingSupport();
+    }
+  }, [post, currentUser]);
 
   // Reset selected materials when modal opens/closes
   useEffect(() => {
@@ -40,7 +45,7 @@ const PostDetails = ({ post, user: currentUser }) => {
 
   const checkClaimStatus = async () => {
     if (!post) return;
-    
+
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
@@ -49,13 +54,43 @@ const PostDetails = ({ post, user: currentUser }) => {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
-      
+
       if (response.data.success) {
         setPostClaimed(response.data.claimed);
         setClaimDetails(response.data.claimDetails);
       }
     } catch (error) {
       console.error('Error checking claim status:', error);
+    }
+  };
+
+  const checkExistingSupport = async () => {
+    if (!post || !currentUser) return;
+
+    setCheckingSupport(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `http://localhost:3001/api/posts/${post.postID}/supports?status=active`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        // Find if current user has an active support
+        const supports = response.data.supports || response.data.data || [];
+        const userSupport = supports.find(support =>
+          support.giverID === currentUser.userID &&
+          ['Pending', 'Accepted', 'PartiallyAccepted', 'PickupScheduled'].includes(support.status)
+        );
+        setExistingSupport(userSupport || null);
+      }
+    } catch (error) {
+      console.error('Error checking existing support:', error);
+      setExistingSupport(null);
+    } finally {
+      setCheckingSupport(false);
     }
   };
 
@@ -185,12 +220,13 @@ const PostDetails = ({ post, user: currentUser }) => {
         setSupportData({ notes: '' });
         setSelectedMaterials([]);
 
+        // Refresh existing support state to update UI
+        await checkExistingSupport();
+
         // Navigate to chat or reload
         if (response.data.data?.chatURL) {
           navigate(response.data.data.chatURL);
-        }
-
-        if (window.location.pathname.includes('/posts/')) {
+        } else if (window.location.pathname.includes('/posts/')) {
           window.location.reload();
         }
       }
@@ -209,15 +245,16 @@ const PostDetails = ({ post, user: currentUser }) => {
   const isOwner = currentUser?.userID === post.userID;
 
   // Show button conditions for different post types
-  const showRequestButton = post.postType === 'Waste' && 
-                           isCollector && 
-                           !isOwner && 
+  const showRequestButton = post.postType === 'Waste' &&
+                           isCollector &&
+                           !isOwner &&
                            !postClaimed &&
                            post.status !== 'Claimed';
 
-  const showSupportButton = post.postType === 'Initiative' && 
-                           !isOwner && 
-                           post.status === 'Active';
+  const showSupportButton = post.postType === 'Initiative' &&
+                           !isOwner &&
+                           post.status === 'Active' &&
+                           !existingSupport;
 
   // Format helpers
   const formatMaterials = (materials) => {
@@ -333,13 +370,75 @@ const PostDetails = ({ post, user: currentUser }) => {
             {/* Action Button */}
             {showRequestButton && (
               <div className={styles.actionButtons}>
-                <button 
+                <button
                   className={styles.requestButton}
                   onClick={() => setShowRequestModal(true)}
                   disabled={isRequestingPickup}
                 >
                   {isRequestingPickup ? 'Requesting...' : 'Request Pickup'}
                 </button>
+              </div>
+            )}
+
+            {/* Show note when user is not a collector */}
+            {post.postType === 'Waste' && !isOwner && !isCollector && post.status === 'Active' && (
+              <div className={styles.infoNote} style={{ borderLeftColor: '#9CA3AF', background: '#F9FAFB' }}>
+                <div className={styles.noteContent} style={{ color: '#4B5563' }}>
+                  <Package size={18} />
+                  <div>
+                    <strong>Collector accounts only</strong>
+                    <p>Only verified collectors can request waste pickup.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show note when user is viewing their own post */}
+            {post.postType === 'Waste' && isOwner && (
+              <div className={styles.infoNote} style={{ borderLeftColor: '#3B82F6', background: '#EFF6FF' }}>
+                <div className={styles.noteContent} style={{ color: '#1E40AF' }}>
+                  <MessageCircle size={18} />
+                  <div>
+                    <strong>This is your post</strong>
+                    <p>
+                      {post.status === 'Active' && 'Waiting for a collector to claim this waste.'}
+                      {post.status === 'Claimed' && postClaimed && claimDetails && `Claimed by ${claimDetails.collectorName}. Check your messages for pickup details.`}
+                      {post.status === 'Completed' && 'This waste has been successfully collected!'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show note when post is already claimed by current user */}
+            {post.postType === 'Waste' && !isOwner && postClaimed && claimDetails?.collectorID === currentUser?.userID && (
+              <div className={styles.infoNote} style={{ borderLeftColor: '#10B981', background: '#ECFDF5' }}>
+                <div className={styles.noteContent} style={{ color: '#065F46' }}>
+                  <Package size={18} />
+                  <div>
+                    <strong>You claimed this post</strong>
+                    <p>Coordinate with the giver to schedule a pickup time.</p>
+                    <button
+                      className={styles.linkButton}
+                      onClick={() => navigate(`/chat?postId=${post.postID}&userId=${post.userID}`)}
+                    >
+                      Go to Chat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show note when post is completed */}
+            {post.postType === 'Waste' && post.status === 'Completed' && !isOwner && (
+              <div className={styles.infoNote} style={{ borderLeftColor: '#8B5CF6', background: '#F5F3FF' }}>
+                <div className={styles.noteContent} style={{ color: '#5B21B6' }}>
+                  <Package size={18} />
+                  <div>
+                    <strong>Pickup completed</strong>
+                    <p>This waste has already been collected.</p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -460,6 +559,59 @@ const PostDetails = ({ post, user: currentUser }) => {
                 >
                   {isSupportingInitiative ? 'Supporting...' : 'Support Initiative'}
                 </button>
+              </div>
+            )}
+
+            {/* Show note when user has existing support */}
+            {post.postType === 'Initiative' && !isOwner && existingSupport && (
+              <div className={styles.infoNote}>
+                <div className={styles.noteContent}>
+                  <MessageCircle size={18} />
+                  <div>
+                    <strong>You have an active support request</strong>
+                    <p>Status: {existingSupport.status}</p>
+                    <button
+                      className={styles.linkButton}
+                      onClick={() => navigate(`/chat?postId=${post.postID}&userId=${post.userID}`)}
+                    >
+                      View in Chat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show note when user is viewing their own initiative */}
+            {post.postType === 'Initiative' && isOwner && (
+              <div className={styles.infoNote} style={{ borderLeftColor: '#3B82F6', background: '#EFF6FF' }}>
+                <div className={styles.noteContent} style={{ color: '#1E40AF' }}>
+                  <Sprout size={18} />
+                  <div>
+                    <strong>This is your initiative</strong>
+                    <p>
+                      {post.status === 'Active' && `You have ${post.supportCount || 0} supporter${(post.supportCount || 0) !== 1 ? 's' : ''}. Check your messages for support requests.`}
+                      {post.status === 'Completed' && 'This initiative has been completed. Thank you for your contribution!'}
+                      {post.status !== 'Active' && post.status !== 'Completed' && 'Manage your initiative from your dashboard.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show note when initiative is not active */}
+            {post.postType === 'Initiative' && !isOwner && post.status !== 'Active' && !existingSupport && (
+              <div className={styles.infoNote} style={{ borderLeftColor: '#9CA3AF', background: '#F9FAFB' }}>
+                <div className={styles.noteContent} style={{ color: '#4B5563' }}>
+                  <Goal size={18} />
+                  <div>
+                    <strong>Not accepting support</strong>
+                    <p>
+                      {post.status === 'Completed' && 'This initiative has been completed.'}
+                      {post.status === 'Cancelled' && 'This initiative has been cancelled.'}
+                      {post.status !== 'Completed' && post.status !== 'Cancelled' && 'This initiative is not currently accepting support.'}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

@@ -705,3 +705,55 @@
 .removeButton:hover {
   background: #dc2626;
 }
+
+/* Info Note for Existing Support */
+.infoNote {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #EFF6FF;
+  border-radius: 8px;
+  border-left: 4px solid #3B82F6;
+}
+
+.noteContent {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  color: #1E40AF;
+}
+
+.noteContent svg {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.noteContent strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.noteContent p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #1E3A8A;
+}
+
+.linkButton {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #3B82F6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.linkButton:hover {
+  background: #2563EB;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}

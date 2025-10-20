@@ -1117,7 +1117,7 @@ router.post('/:postID/support', verifyToken, async (req, res) => {
   try {
     const { postID } = req.params;
     const giverID = req.user.userID;
-    const { materialID, quantity, notes, unit, estimatedValue, materials, offeredMaterials } = req.body;
+    const { offeredMaterials, notes } = req.body;
 
     // No need to check for specific user type for supporting initiatives
     // Any user can support an initiative
@@ -1161,79 +1161,69 @@ router.post('/:postID/support', verifyToken, async (req, res) => {
       });
     }
 
-    // Validate required fields - support both new format (offeredMaterials array) and old format (materialID/materials)
-    const useOfferedMaterials = offeredMaterials && Array.isArray(offeredMaterials) && offeredMaterials.length > 0;
-    const useMaterialID = !!materialID;
+    // Check if user already has a pending or accepted support for this initiative
+    const existingSupports = await Support.findByInitiative(postID);
+    const userExistingSupport = existingSupports.find(s =>
+      s.giverID === giverID &&
+      ['Pending', 'Accepted', 'PartiallyAccepted', 'PickupScheduled'].includes(s.status)
+    );
 
-    if (!useOfferedMaterials && !useMaterialID && !materials) {
+    if (userExistingSupport) {
       return res.status(400).json({
         success: false,
-        message: 'Material selection is required'
+        message: 'You already have an active support request for this initiative. Please wait for the initiative owner to review your current request.',
+        existingSupportID: userExistingSupport.supportID
       });
     }
 
-    // Validate quantity only for old format (single material)
-    if (!useOfferedMaterials && (!quantity || quantity <= 0)) {
+    // Validate offeredMaterials
+    if (!offeredMaterials || !Array.isArray(offeredMaterials) || offeredMaterials.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Quantity must be greater than 0'
+        message: 'At least one offered material is required'
       });
     }
 
-    // Validate offeredMaterials if using new format
-    if (useOfferedMaterials) {
-      for (const mat of offeredMaterials) {
-        if (!mat.materialID) {
-          return res.status(400).json({
-            success: false,
-            message: 'Each material must have a materialID'
-          });
-        }
-        if (!mat.quantity || parseFloat(mat.quantity) <= 0) {
-          return res.status(400).json({
-            success: false,
-            message: `Quantity must be greater than 0 for ${mat.materialName || mat.materialID}`
-          });
-        }
+    // Validate each offered material
+    for (const mat of offeredMaterials) {
+      if (!mat.materialID) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each material must have a materialID'
+        });
       }
-    }
+      if (!mat.materialName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each material must have a materialName'
+        });
+      }
+      if (!mat.quantity || parseFloat(mat.quantity) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Quantity must be greater than 0 for ${mat.materialName || mat.materialID}`
+        });
+      }
 
-    let materialName = '';
-
-    // New format: validate materialID against initiative's materials
-    if (useMaterialID) {
-      // Check if the initiative uses structured materials
+      // Validate material against initiative's materials
       if (post.materials && Array.isArray(post.materials) && post.materials.length > 0) {
-        const requestedMaterial = post.materials.find(m => m.materialID === materialID);
+        const requestedMaterial = post.materials.find(m => m.materialID === mat.materialID);
 
         if (!requestedMaterial) {
           return res.status(400).json({
             success: false,
-            message: 'The selected material is not part of this initiative\'s needs'
+            message: `${mat.materialName} is not part of this initiative's needs`
           });
         }
-
-        materialName = requestedMaterial.materialName;
 
         // Check if target already reached for this specific material
         if (requestedMaterial.currentQuantity >= requestedMaterial.targetQuantity) {
           return res.status(400).json({
             success: false,
-            message: `This initiative has already reached its target for ${materialName}`
+            message: `This initiative has already reached its target for ${mat.materialName}`
           });
         }
-      } else {
-        // Initiative doesn't use structured materials, fall back to looking up material name
-        try {
-          const material = await Material.findById(materialID);
-          materialName = material ? (material.displayName || material.type) : materialID;
-        } catch (err) {
-          materialName = materialID;
-        }
       }
-    } else {
-      // Old format: use free text materials
-      materialName = materials;
     }
 
     // Get user names
@@ -1247,7 +1237,7 @@ router.post('/:postID/support', verifyToken, async (req, res) => {
     const giverName = `${giver.firstName} ${giver.lastName}`;
     const collectorName = `${collector.firstName} ${collector.lastName}`;
 
-    // Create Support record - NEW: Handle multiple materials
+    // Create Support record
     const supportData = {
       initiativeID: postID,
       initiativeTitle: post.title,
@@ -1255,29 +1245,11 @@ router.post('/:postID/support', verifyToken, async (req, res) => {
       giverName: giverName,
       collectorID: post.userID,
       collectorName: collectorName,
+      offeredMaterials: offeredMaterials,
       notes: notes || '',
+      estimatedValue: offeredMaterials.reduce((sum, m) => sum + (m.quantity || 0), 0),
       status: 'Pending'
     };
-
-    // NEW: If offeredMaterials array is provided, use multi-material format
-    if (offeredMaterials && Array.isArray(offeredMaterials) && offeredMaterials.length > 0) {
-      supportData.offeredMaterials = offeredMaterials;
-      // For backward compatibility, set first material as primary
-      supportData.materialID = offeredMaterials[0].materialID;
-      supportData.materialName = offeredMaterials[0].materialName;
-      supportData.materials = offeredMaterials[0].materialName;
-      supportData.quantity = offeredMaterials[0].quantity;
-      supportData.unit = offeredMaterials[0].unit || 'kg';
-      supportData.estimatedValue = offeredMaterials.reduce((sum, m) => sum + (m.quantity || 0), 0);
-    } else {
-      // OLD: Single material format (backward compatibility)
-      supportData.materialID = materialID || '';
-      supportData.materialName = materialName;
-      supportData.materials = materialName;
-      supportData.quantity = parseFloat(quantity);
-      supportData.unit = unit || 'kg';
-      supportData.estimatedValue = parseFloat(estimatedValue) || parseFloat(quantity);
-    }
 
     const support = await Support.create(supportData);
 
@@ -1285,22 +1257,12 @@ router.post('/:postID/support', verifyToken, async (req, res) => {
     const initiative = new InitiativePost(post);
     await initiative.addSupporter(giverID);
 
-    // Create support message - Handle both multi-material and single material formats
-    let messageText = '';
-    let notificationMessage = '';
-
-    if (useOfferedMaterials) {
-      // Multi-material format
-      const materialsText = offeredMaterials.map(m =>
-        `${m.quantity} ${m.unit || 'kg'} of ${m.materialName}`
-      ).join(', ');
-      messageText = `I'd like to support your initiative "${post.title}" with ${materialsText}. ${notes || ''}`;
-      notificationMessage = `${giverName} wants to support "${post.title}" with ${materialsText}`;
-    } else {
-      // Single material format
-      messageText = `I'd like to support your initiative "${post.title}" with ${quantity} ${unit || 'kg'} of ${materialName}. ${notes || ''}`;
-      notificationMessage = `${giverName} wants to support "${post.title}" with ${quantity} ${unit || 'kg'} of ${materialName}`;
-    }
+    // Create support message
+    const materialsText = offeredMaterials.map(m =>
+      `${m.quantity} ${m.unit || 'kg'} of ${m.materialName}`
+    ).join(', ');
+    const messageText = `I'd like to support your initiative "${post.title}" with ${materialsText}. ${notes || ''}`;
+    const notificationMessage = `${giverName} wants to support "${post.title}" with ${materialsText}`;
 
     await Message.create({
       senderID: giverID,
@@ -1316,12 +1278,8 @@ router.post('/:postID/support', verifyToken, async (req, res) => {
         action: 'initiative_support',
         supportID: support.supportID,
         postTitle: post.title,
-        materialID: materialID || (useOfferedMaterials ? offeredMaterials[0].materialID : null),
-        materialName: materialName || (useOfferedMaterials ? offeredMaterials[0].materialName : ''),
-        quantity: quantity || (useOfferedMaterials ? offeredMaterials[0].quantity : 0),
-        unit: unit || 'kg',
         notes: notes || '',
-        offeredMaterials: useOfferedMaterials ? offeredMaterials : undefined
+        offeredMaterials: offeredMaterials
       }
     });
 
@@ -1339,9 +1297,7 @@ router.post('/:postID/support', verifyToken, async (req, res) => {
         supportID: support.supportID,
         giverID: giverID,
         giverName: giverName,
-        materialID: materialID || (useOfferedMaterials ? offeredMaterials[0].materialID : null),
-        materialName: materialName || (useOfferedMaterials ? offeredMaterials[0].materialName : ''),
-        quantity: quantity || (useOfferedMaterials ? offeredMaterials[0].quantity : 0)
+        offeredMaterials: offeredMaterials
       }
     });
 
@@ -1595,6 +1551,12 @@ router.get('/:postID/supports', verifyToken, async (req, res) => {
       supports = await Support.getPendingForInitiative(postID);
     } else if (status === 'accepted') {
       supports = await Support.getAcceptedForInitiative(postID);
+    } else if (status === 'active') {
+      // Get all active supports (pending, accepted, partially accepted, or pickup scheduled)
+      const allSupports = await Support.findByInitiative(postID);
+      supports = allSupports.filter(s =>
+        ['Pending', 'Accepted', 'PartiallyAccepted', 'PickupScheduled'].includes(s.status)
+      );
     } else {
       supports = await Support.findByInitiative(postID);
     }

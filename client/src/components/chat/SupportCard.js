@@ -16,9 +16,6 @@ const SupportCard = ({ support, currentUser, onAccept, onDecline, onSchedulePick
   const isCollector = currentUser.userID === support.collectorID;
   const isGiver = currentUser.userID === support.giverID;
 
-  // Check if using new multi-material format
-  const hasMultipleMaterials = support.offeredMaterials && Array.isArray(support.offeredMaterials) && support.offeredMaterials.length > 0;
-
   const getStatusColor = () => {
     switch(support.status) {
       case 'Pending': return '#f59e0b'; // Orange
@@ -131,151 +128,133 @@ const SupportCard = ({ support, currentUser, onAccept, onDecline, onSchedulePick
       {isExpanded && (
         <>
           <div className={styles.details}>
-            {/* NEW: Multi-material display */}
-            {hasMultipleMaterials ? (
-              <>
-                <div className={styles.detailItem}>
-                  <Package className={styles.icon} size={20} />
-                  <span><strong>Offered Materials:</strong></span>
+            <div className={styles.detailItem}>
+              <Package className={styles.icon} size={20} />
+              <span><strong>Offered Materials:</strong></span>
+            </div>
+
+            {support.offeredMaterials && support.offeredMaterials.map((material, index) => (
+              <div key={material.materialID || index} style={{ marginLeft: '1.5rem', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <span style={{
+                    padding: '0.125rem 0.5rem',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    backgroundColor: `${getMaterialStatusColor(material.status)}20`,
+                    color: getMaterialStatusColor(material.status),
+                    fontWeight: '500'
+                  }}>
+                    {material.status}
+                  </span>
+                  <span><strong>{material.materialName}:</strong> {material.quantity} {material.unit || 'kg'}</span>
                 </div>
 
-                {support.offeredMaterials.map((material, index) => (
-                  <div key={material.materialID || index} style={{ marginLeft: '1.5rem', marginBottom: '0.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                      <span style={{
-                        padding: '0.125rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        backgroundColor: `${getMaterialStatusColor(material.status)}20`,
-                        color: getMaterialStatusColor(material.status),
-                        fontWeight: '500'
-                      }}>
-                        {material.status}
-                      </span>
-                      <span><strong>{material.materialName}:</strong> {material.quantity} {material.unit || 'kg'}</span>
-                    </div>
+                {material.status === 'Declined' && material.rejectionReason && (
+                  <div style={{ fontSize: '0.875rem', color: '#ef4444', marginTop: '0.25rem' }}>
+                    Reason: {material.rejectionReason}
+                  </div>
+                )}
 
-                    {material.status === 'Declined' && material.rejectionReason && (
-                      <div style={{ fontSize: '0.875rem', color: '#ef4444', marginTop: '0.25rem' }}>
-                        Reason: {material.rejectionReason}
+                {/* Individual material actions for collector */}
+                {isCollector && material.status === 'Pending' && (
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    {decliningMaterialID === material.materialID ? (
+                      <div style={{ width: '100%' }}>
+                        <textarea
+                          value={materialDeclineReason}
+                          onChange={(e) => setMaterialDeclineReason(e.target.value)}
+                          placeholder="Reason for declining..."
+                          style={{
+                            width: '100%',
+                            padding: '0.375rem',
+                            marginBottom: '0.25rem',
+                            borderRadius: '4px',
+                            border: '1px solid #d1d5db',
+                            fontSize: '0.875rem',
+                            minHeight: '50px'
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => handleDeclineMaterial(material.materialID, materialDeclineReason)}
+                            style={{
+                              padding: '0.25rem 0.75rem',
+                              fontSize: '0.875rem',
+                              backgroundColor: '#ef4444',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                            disabled={isLoading}
+                          >
+                            Confirm Decline
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDecliningMaterialID(null);
+                              setMaterialDeclineReason('');
+                            }}
+                            style={{
+                              padding: '0.25rem 0.75rem',
+                              fontSize: '0.875rem',
+                              backgroundColor: '#6b7280',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    )}
-
-                    {/* Individual material actions for collector */}
-                    {isCollector && material.status === 'Pending' && (
-                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        {decliningMaterialID === material.materialID ? (
-                          <div style={{ width: '100%' }}>
-                            <textarea
-                              value={materialDeclineReason}
-                              onChange={(e) => setMaterialDeclineReason(e.target.value)}
-                              placeholder="Reason for declining..."
-                              style={{
-                                width: '100%',
-                                padding: '0.375rem',
-                                marginBottom: '0.25rem',
-                                borderRadius: '4px',
-                                border: '1px solid #d1d5db',
-                                fontSize: '0.875rem',
-                                minHeight: '50px'
-                              }}
-                            />
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              <button
-                                onClick={() => handleDeclineMaterial(material.materialID, materialDeclineReason)}
-                                style={{
-                                  padding: '0.25rem 0.75rem',
-                                  fontSize: '0.875rem',
-                                  backgroundColor: '#ef4444',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer'
-                                }}
-                                disabled={isLoading}
-                              >
-                                Confirm Decline
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setDecliningMaterialID(null);
-                                  setMaterialDeclineReason('');
-                                }}
-                                style={{
-                                  padding: '0.25rem 0.75rem',
-                                  fontSize: '0.875rem',
-                                  backgroundColor: '#6b7280',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleAcceptMaterial(material.materialID)}
-                              style={{
-                                padding: '0.25rem 0.75rem',
-                                fontSize: '0.875rem',
-                                backgroundColor: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem'
-                              }}
-                              disabled={isLoading}
-                            >
-                              <CheckCircle size={14} />
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => setDecliningMaterialID(material.materialID)}
-                              style={{
-                                padding: '0.25rem 0.75rem',
-                                fontSize: '0.875rem',
-                                backgroundColor: '#ef4444',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem'
-                              }}
-                              disabled={isLoading}
-                            >
-                              <XCircle size={14} />
-                              Decline
-                            </button>
-                          </>
-                        )}
-                      </div>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleAcceptMaterial(material.materialID)}
+                          style={{
+                            padding: '0.25rem 0.75rem',
+                            fontSize: '0.875rem',
+                            backgroundColor: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}
+                          disabled={isLoading}
+                        >
+                          <CheckCircle size={14} />
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => setDecliningMaterialID(material.materialID)}
+                          style={{
+                            padding: '0.25rem 0.75rem',
+                            fontSize: '0.875rem',
+                            backgroundColor: '#ef4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}
+                          disabled={isLoading}
+                        >
+                          <XCircle size={14} />
+                          Decline
+                        </button>
+                      </>
                     )}
                   </div>
-                ))}
-              </>
-            ) : (
-              /* OLD: Single material display (backward compatibility) */
-              <>
-                <div className={styles.detailItem}>
-                  <Package className={styles.icon} size={20} />
-                  <span><strong>Materials:</strong> {support.materials}</span>
-                </div>
-
-                <div className={styles.detailItem}>
-                  <Package className={styles.icon} size={20} />
-                  <span><strong>Quantity:</strong> {support.quantity} {support.unit}</span>
-                </div>
-              </>
-            )}
+                )}
+              </div>
+            ))}
 
             {support.notes && (
               <div className={styles.detailItem}>
@@ -293,8 +272,8 @@ const SupportCard = ({ support, currentUser, onAccept, onDecline, onSchedulePick
           </div>
 
           {/* Actions for Collector (Initiative Owner) */}
-      {/* Only show Accept All/Decline All if using old format OR if all materials are still pending */}
-      {isCollector && support.status === 'Pending' && !hasMultipleMaterials && (
+      {/* Accept All/Decline All - only show if all materials are still pending */}
+      {isCollector && support.status === 'Pending' && support.offeredMaterials && support.offeredMaterials.every(m => m.status === 'Pending') && (
         <div className={styles.actions}>
           {!showDeclineReason ? (
             <>

@@ -760,16 +760,34 @@ const handleMessageOwner = async (post, event) => {
 
             {/* Action Buttons */}
             <div className={styles.actionContainer}>
-              {post.postType === 'Waste' && post.status === 'Active' && (
-                <button 
+              {/* Waste Post Actions */}
+              {post.postType === 'Waste' && post.userID === currentUser?.userID && (
+                <div className={styles.ownPostNote}>
+                  <span>Your post</span>
+                  {post.status === 'Claimed' && <span className={styles.statusDot}>●</span>}
+                  {post.status === 'Claimed' && <span>Claimed</span>}
+                </div>
+              )}
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && (currentUser?.isCollector || currentUser?.isAdmin) && (
+                <button
                   className={`${styles.actionButton} ${styles.collectButton}`}
                   onClick={(e) => handleCollect(e, post.postID)}
                 >
                   Collect
                 </button>
               )}
-              {post.postType === 'Waste' && post.status === 'Claimed' && (
-                <button 
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && !(currentUser?.isCollector || currentUser?.isAdmin) && (
+                <div className={styles.infoText}>
+                  <span>Collector accounts only</span>
+                </div>
+              )}
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy === currentUser?.userID && (
+                <div className={styles.yourClaimNote}>
+                  <span>You claimed this</span>
+                </div>
+              )}
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy !== currentUser?.userID && (
+                <button
                   className={`${styles.actionButton} ${styles.claimedButton}`}
                   disabled
                   style={{ background: '#9CA3AF', cursor: 'not-allowed' }}
@@ -778,16 +796,35 @@ const handleMessageOwner = async (post, event) => {
                   Claimed
                 </button>
               )}
-              {post.postType === 'Initiative' && (
-                <button 
+              {post.postType === 'Waste' && post.status === 'Completed' && (
+                <div className={styles.completedNote}>
+                  <span>Completed</span>
+                </div>
+              )}
+
+              {/* Initiative Post Actions */}
+              {post.postType === 'Initiative' && post.userID === currentUser?.userID && (
+                <div className={styles.ownPostNote}>
+                  <span>Your initiative</span>
+                </div>
+              )}
+              {post.postType === 'Initiative' && post.userID !== currentUser?.userID && post.status === 'Active' && (
+                <button
                   className={`${styles.actionButton} ${styles.supportButton}`}
                   onClick={(e) => handleSupport(e, post.postID)}
                 >
                   Support
                 </button>
               )}
+              {post.postType === 'Initiative' && post.userID !== currentUser?.userID && post.status !== 'Active' && (
+                <div className={styles.infoText}>
+                  <span>Not accepting support</span>
+                </div>
+              )}
+
+              {/* Forum Post Actions */}
               {post.postType === 'Forum' && (
-                <button 
+                <button
                   className={`${styles.actionButton} ${styles.viewButton}`}
                   onClick={(e) => {
                     e.stopPropagation();

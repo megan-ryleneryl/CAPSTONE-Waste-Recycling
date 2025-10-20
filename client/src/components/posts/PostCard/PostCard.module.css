@@ -625,3 +625,57 @@
     flex-wrap: wrap;
   }
 }
+
+/* Status Notes and Info Text */
+.ownPostNote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%);
+  color: #075985;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.statusDot {
+  color: #F59E0B;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.yourClaimNote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+  color: #065F46;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.completedNote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: linear-gradient(135deg, #DDD6FE 0%, #C4B5FD 100%);
+  color: #5B21B6;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.infoText {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 1rem;
+  background: #F3F4F6;
+  color: #6B7280;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-style: italic;
+}
