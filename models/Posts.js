@@ -40,19 +40,21 @@ class Post {
     this.updatedAt = data.updatedAt || new Date();
 
     this.images = data.images || [];
+
+    // For Initiative posts - support tracking
+    this.supporters = data.supporters || [];
+    this.supportCount = data.supportCount || 0;
     
+    // ADD THESE THREE LINES:
     // User flags for post permissions
     this.isCollector = data.isCollector || false;
     this.isAdmin = data.isAdmin || false;
     this.isOrganization = data.isOrganization || false;
   
+      
     // For Waste posts - claim tracking
     this.claimedBy = data.claimedBy || null;
     this.claimedAt = data.claimedAt || null;
-    
-    // For Initiative posts - support tracking
-    this.supporters = data.supporters || [];
-    this.supportCount = data.supportCount || 0;
   }
 
   // Validation
