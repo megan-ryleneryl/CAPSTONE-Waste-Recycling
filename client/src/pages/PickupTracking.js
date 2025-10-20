@@ -14,6 +14,7 @@ const PickupTracking = () => {
   const { currentUser } = useAuth();
   const [pickup, setPickup] = useState(null);
   const [postData, setPostData] = useState(null);
+  const [supportData, setSupportData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -45,6 +46,25 @@ const PickupTracking = () => {
           } catch (error) {
             console.error('Error fetching post data:', error);
           }
+        }
+
+        // Fetch support data if this pickup is linked to a support request
+        if (pickupData.supportID) {
+          try {
+            const supportRef = doc(db, 'supports', pickupData.supportID);
+            const supportSnap = await getDoc(supportRef);
+            if (supportSnap.exists()) {
+              const data = { id: supportSnap.id, ...supportSnap.data() };
+              setSupportData(data);
+              console.log('✅ Support data loaded:', data);
+            } else {
+              console.log('Support not found:', pickupData.supportID);
+            }
+          } catch (error) {
+            console.error('Error fetching support data:', error);
+          }
+        } else {
+          setSupportData(null);
         }
       } else {
         console.error('Pickup not found');
@@ -233,8 +253,35 @@ const PickupTracking = () => {
         finalAmount: completionData.totalAmount || 0
       });
 
-      // Update post status
-      if (pickup.postID) {
+      // Update support status if this is an initiative support pickup
+      if (pickup.supportID && supportData) {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`${process.env.REACT_APP_API_URL}/posts/support/${pickup.supportID}/complete`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              completionNotes: completionData.notes || '',
+              actualMaterials: completionData.wasteDetails || []
+            })
+          });
+
+          if (!response.ok) {
+            console.error('Failed to update support status');
+          } else {
+            console.log('✅ Support status updated to Completed');
+          }
+        } catch (error) {
+          console.error('Error updating support:', error);
+          // Continue anyway - pickup is still marked as completed
+        }
+      }
+
+      // Update post status (only for Waste posts, Initiative posts are updated by Support.complete())
+      if (pickup.postID && pickup.postType !== 'Initiative') {
         const postRef = doc(db, 'posts', pickup.postID);
         await updateDoc(postRef, {
           status: 'Completed',
@@ -482,57 +529,100 @@ const PickupTracking = () => {
             <div className={styles.sidebarCard}>
               <h3 className={styles.sidebarTitle}>
                 <Trash2 size={20} />
-                Waste Details
+                {pickup.postType === 'Initiative' && supportData ? 'Offered Materials' : 'Waste Details'}
               </h3>
 
-              {/* Materials */}
-              <div className={styles.materials}>
-                {postData?.materials ? (
-                  Array.isArray(postData.materials) ? (
-                    postData.materials.map((material, index) => (
-                      <span key={index} className={styles.materialTag}>
-                        {typeof material === 'object' ? material.materialName : material}
-                      </span>
-                    ))
-                  ) : (
-                    postData.materials.split(',').map((material, index) => (
-                      <span key={index} className={styles.materialTag}>{material.trim()}</span>
-                    ))
-                  )
-                ) : (
-                  <span className={styles.materialTag}>Mixed Waste</span>
-                )}
-              </div>
+              {/* For Initiative pickups with support, show offered materials */}
+              {pickup.postType === 'Initiative' && supportData?.offeredMaterials ? (
+                <>
+                  {/* Offered Materials from Support */}
+                  <div className={styles.materials}>
+                    {supportData.offeredMaterials
+                      .filter(m => m.status === 'Accepted')
+                      .map((material, index) => (
+                        <span key={index} className={styles.materialTag}>
+                          {material.materialName}
+                        </span>
+                      ))
+                    }
+                  </div>
 
-              {/* Estimated Details */}
-              <div className={styles.estimatedSection}>
-                {postData?.quantity && postData.quantity > 0 && (
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>Estimated Quantity:</span>
-                    <span className={styles.detailValue}>
-                      {postData.quantity} {postData.unit || 'kg'}
-                    </span>
+                  {/* Estimated Quantities from Support */}
+                  <div className={styles.estimatedSection}>
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Offered Materials:</span>
+                    </div>
+                    {supportData.offeredMaterials
+                      .filter(m => m.status === 'Accepted')
+                      .map((material, index) => (
+                        <div key={index} className={styles.detailRow} style={{ paddingLeft: '1rem' }}>
+                          <span className={styles.detailLabel}>{material.materialName}:</span>
+                          <span className={styles.detailValue}>
+                            {material.quantity} {material.unit || 'kg'}
+                          </span>
+                        </div>
+                      ))
+                    }
+                    {supportData.notes && (
+                      <div className={styles.estimateDescription}>
+                        <span className={styles.detailLabel}>Notes:</span>
+                        <p>{supportData.notes}</p>
+                      </div>
+                    )}
                   </div>
-                )}
-                {postData?.price !== undefined && postData?.price !== null && (
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>Estimated Price:</span>
-                    <span className={styles.detailValue}>₱{postData.price}</span>
+                </>
+              ) : (
+                <>
+                  {/* Materials for Waste posts */}
+                  <div className={styles.materials}>
+                    {postData?.materials ? (
+                      Array.isArray(postData.materials) ? (
+                        postData.materials.map((material, index) => (
+                          <span key={index} className={styles.materialTag}>
+                            {typeof material === 'object' ? material.materialName : material}
+                          </span>
+                        ))
+                      ) : (
+                        postData.materials.split(',').map((material, index) => (
+                          <span key={index} className={styles.materialTag}>{material.trim()}</span>
+                        ))
+                      )
+                    ) : (
+                      <span className={styles.materialTag}>Mixed Waste</span>
+                    )}
                   </div>
-                )}
-                {postData?.condition && (
-                  <div className={styles.detailRow}>
-                    <span className={styles.detailLabel}>Condition:</span>
-                    <span className={styles.detailValue}>{postData.condition}</span>
+
+                  {/* Estimated Details for Waste posts */}
+                  <div className={styles.estimatedSection}>
+                    {postData?.quantity && postData.quantity > 0 && (
+                      <div className={styles.detailRow}>
+                        <span className={styles.detailLabel}>Estimated Quantity:</span>
+                        <span className={styles.detailValue}>
+                          {postData.quantity} {postData.unit || 'kg'}
+                        </span>
+                      </div>
+                    )}
+                    {postData?.price !== undefined && postData?.price !== null && (
+                      <div className={styles.detailRow}>
+                        <span className={styles.detailLabel}>Estimated Price:</span>
+                        <span className={styles.detailValue}>₱{postData.price}</span>
+                      </div>
+                    )}
+                    {postData?.condition && (
+                      <div className={styles.detailRow}>
+                        <span className={styles.detailLabel}>Condition:</span>
+                        <span className={styles.detailValue}>{postData.condition}</span>
+                      </div>
+                    )}
+                    {postData?.description && (
+                      <div className={styles.estimateDescription}>
+                        <span className={styles.detailLabel}>Description:</span>
+                        <p>{postData.description}</p>
+                      </div>
+                    )}
                   </div>
-                )}
-                {postData?.description && (
-                  <div className={styles.estimateDescription}>
-                    <span className={styles.detailLabel}>Description:</span>
-                    <p>{postData.description}</p>
-                  </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           )}
 
@@ -645,7 +735,7 @@ const PickupTracking = () => {
       {/* Completion Modal */}
       {showCompletionModal && (
         <PickupCompletionModal
-          pickup={{ ...pickup, postData }}
+          pickup={{ ...pickup, postData, supportData }}
           onComplete={handleComplete}
           onCancel={() => setShowCompletionModal(false)}
           loading={updating}

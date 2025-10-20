@@ -316,6 +316,8 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         alternateContact: formData.alternateContact || '',
         specialInstructions: formData.specialInstructions || '',
         status: 'Proposed',
+        // Link supportID if this is for an Initiative post with active support
+        supportID: (post?.postType === 'Initiative' && activeSupport) ? activeSupport.supportID : null,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };

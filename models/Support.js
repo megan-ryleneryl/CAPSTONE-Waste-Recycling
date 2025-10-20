@@ -404,15 +404,23 @@ class Support {
     // Update initiative progress for each accepted material
     const InitiativePost = require('./InitiativePost');
     const initiative = await InitiativePost.findById(this.initiativeID);
+    console.log(`🔄 Completing support for initiative ${this.initiativeID}`);
+    console.log(`📦 Initiative current state: currentAmount=${initiative?.currentAmount}, targetAmount=${initiative?.targetAmount}`);
+
     if (initiative && initiative.materials && initiative.materials.length > 0) {
       // Update progress for each accepted material
       const acceptedMaterials = this.offeredMaterials.filter(m => m.status === 'Accepted');
+      console.log(`📝 Processing ${acceptedMaterials.length} accepted materials:`, acceptedMaterials.map(m => `${m.materialName}: ${m.quantity}`));
+
       for (const material of acceptedMaterials) {
+        console.log(`➕ Adding ${material.quantity} kg of ${material.materialName} (ID: ${material.materialID})`);
         await initiative.updateMaterialProgress(
           material.materialID,
           material.quantity
         );
       }
+    } else {
+      console.log('⚠️ Initiative has no materials array or was not found');
     }
   }
 

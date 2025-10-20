@@ -1644,6 +1644,56 @@ router.post('/support/:supportID/cancel', verifyToken, async (req, res) => {
   }
 });
 
+// Complete a support request (when pickup is completed)
+router.post('/support/:supportID/complete', verifyToken, async (req, res) => {
+  try {
+    const { supportID } = req.params;
+    const { completionNotes, actualMaterials } = req.body;
+    const userID = req.user.userID;
+
+    const Support = require('../models/Support');
+    const support = await Support.findById(supportID);
+
+    if (!support) {
+      return res.status(404).json({
+        success: false,
+        message: 'Support request not found'
+      });
+    }
+
+    // Verify the user is either the giver or collector
+    if (support.giverID !== userID && support.collectorID !== userID) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to complete this support request'
+      });
+    }
+
+    // Complete the support (this also updates initiative progress)
+    await support.complete({
+      completionNotes: completionNotes || '',
+      actualMaterials: actualMaterials || []
+    });
+
+    res.json({
+      success: true,
+      message: 'Support request completed successfully',
+      data: {
+        supportID: support.supportID,
+        status: support.status,
+        completedAt: support.completedAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Error completing support:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to complete support request'
+    });
+  }
+});
+
 
 
 module.exports = router;

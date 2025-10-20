@@ -38,7 +38,30 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
   };
 
   const prefillEstimatedMaterials = () => {
-    // Get materials from pickup.postData (passed from PickupTracking)
+    // For Initiative support pickups, get materials from supportData
+    if (pickup.supportData?.offeredMaterials) {
+      const supportMaterials = pickup.supportData.offeredMaterials.filter(m => m.status === 'Accepted');
+
+      if (supportMaterials.length > 0) {
+        const prefilled = supportMaterials.map(material => {
+          // Find the materialID from availableMaterials by matching the name
+          const foundMaterial = availableMaterials.find(m =>
+            (m.displayName || m.type).toLowerCase() === material.materialName.toLowerCase()
+          );
+
+          return {
+            materialID: foundMaterial?.materialID || material.materialID || '',
+            materialName: material.materialName,
+            quantity: material.quantity || '',
+            payment: ''
+          };
+        });
+        setMaterials(prefilled);
+        return;
+      }
+    }
+
+    // For Waste posts, get materials from pickup.postData
     const postMaterials = pickup.postData?.materials || [];
 
     if (Array.isArray(postMaterials) && postMaterials.length > 0) {

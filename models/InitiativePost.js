@@ -16,13 +16,15 @@ class InitiativePost extends Post {
     this.materials = Array.isArray(data.materials) ? data.materials : [];
 
     // Calculate total amounts from materials array if present, otherwise use provided values
-    this.targetAmount = data.targetAmount || (Array.isArray(data.materials)
-      ? data.materials.reduce((sum, m) => sum + (parseFloat(m.targetQuantity) || 0), 0)
-      : 0);
-
-    this.currentAmount = data.currentAmount || (Array.isArray(data.materials)
-      ? data.materials.reduce((sum, m) => sum + (parseFloat(m.currentQuantity) || 0), 0)
-      : 0);
+    // IMPORTANT: Always calculate from materials array if it exists (don't use stored targetAmount)
+    if (Array.isArray(data.materials) && data.materials.length > 0) {
+      this.targetAmount = data.materials.reduce((sum, m) => sum + (parseFloat(m.targetQuantity) || 0), 0);
+      this.currentAmount = data.materials.reduce((sum, m) => sum + (parseFloat(m.currentQuantity) || 0), 0);
+    } else {
+      // Fallback for backward compatibility with old data format
+      this.targetAmount = data.targetAmount || 0;
+      this.currentAmount = data.currentAmount || 0;
+    }
 
     this.endDate = data.endDate || null;
 
@@ -172,8 +174,12 @@ class InitiativePost extends Post {
     this.updatedAt = new Date();
 
     // Check if target is reached
+    console.log(`📊 Checking initiative completion: currentAmount=${this.currentAmount}, targetAmount=${this.targetAmount}, status=${this.status}`);
     if (this.currentAmount >= this.targetAmount && this.status === 'Active') {
       this.status = 'Completed';
+      console.log('✅ Initiative target reached! Setting status to Completed');
+    } else {
+      console.log(`⏳ Initiative not complete yet. Still need ${this.targetAmount - this.currentAmount} kg more`);
     }
 
     await updateDoc(postRef, {
