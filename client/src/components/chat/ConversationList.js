@@ -15,9 +15,8 @@ const ConversationList = ({ currentUser, onSelectConversation, selectedConversat
   useEffect(() => {
     if (currentUser && currentUser.userID) {
       loadConversations();
-      // Refresh conversations every 30 seconds
-      const interval = setInterval(loadConversations, 30000);
-      return () => clearInterval(interval);
+      // REMOVED: 30-second polling that was causing excessive reads
+      // Users can manually refresh if needed
     }
   }, [currentUser]);
 
@@ -28,20 +27,20 @@ const loadConversations = async () => {
     // Query messages where current user is sender OR receiver
     const messagesRef = collection(db, 'messages');
     
-    // Get messages where user is receiver
+    // OPTIMIZED: Reduce limit from 50 to 20 messages per query
+    // We only need the most recent message per conversation
     const receivedQuery = query(
       messagesRef,
       where('receiverID', '==', currentUser.userID),
       orderBy('sentAt', 'desc'),
-      limit(50)
+      limit(20)
     );
-    
-    // Get messages where user is sender
+
     const sentQuery = query(
       messagesRef,
       where('senderID', '==', currentUser.userID),
       orderBy('sentAt', 'desc'),
-      limit(50)
+      limit(20)
     );
     
     const [receivedSnapshot, sentSnapshot] = await Promise.all([

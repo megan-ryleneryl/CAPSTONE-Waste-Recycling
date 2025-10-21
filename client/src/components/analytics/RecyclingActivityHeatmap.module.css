@@ -1,0 +1,363 @@
+.heatmapContainer {
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.heatmapHeader {
+  margin-bottom: 2rem;
+}
+
+.titleSection {
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 0.5rem 0;
+}
+
+.titleIcon {
+  color: #3B6535;
+}
+
+.subtitle {
+  color: #718096;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.1);
+  border-color: #3B6535;
+}
+
+.statValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #3B6535;
+  margin-bottom: 0.25rem;
+}
+
+.statLabel {
+  font-size: 0.85rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.heatmapWrapper {
+  position: relative;
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+/* Override react-calendar-heatmap styles */
+.heatmapWrapper :global(.react-calendar-heatmap) {
+  width: 100%;
+  min-width: 700px;
+}
+
+.heatmapWrapper :global(.react-calendar-heatmap text) {
+  font-size: 10px;
+  fill: #718096;
+  font-weight: 500;
+}
+
+/* Color scale for activity levels */
+.heatmapWrapper :global(.color-empty) {
+  fill: #ebedf0;
+}
+
+.heatmapWrapper :global(.color-scale-0) {
+  fill: #ebedf0;
+}
+
+.heatmapWrapper :global(.color-scale-1) {
+  fill: #c6e48b;
+}
+
+.heatmapWrapper :global(.color-scale-2) {
+  fill: #7bc96f;
+}
+
+.heatmapWrapper :global(.color-scale-3) {
+  fill: #3B6535;
+}
+
+.heatmapWrapper :global(.color-scale-4) {
+  fill: #196127;
+}
+
+.heatmapWrapper :global(.react-calendar-heatmap rect) {
+  cursor: pointer;
+  transition: all 0.15s ease;
+  stroke: #ffffff;
+  stroke-width: 2px;
+}
+
+.heatmapWrapper :global(.react-calendar-heatmap rect:hover) {
+  stroke: #3B6535;
+  stroke-width: 3px;
+  transform: scale(1.1);
+}
+
+.customTooltip {
+  position: absolute;
+  background: #2d3748;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 250px;
+  font-size: 0.875rem;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltipDate {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.tooltipCount {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.tooltipDetails {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.8rem;
+  color: #cbd5e0;
+}
+
+.tooltipDetails div {
+  margin: 0.25rem 0;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.legendLabel {
+  font-size: 0.85rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.legendScale {
+  display: flex;
+  gap: 3px;
+}
+
+.legendBox {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid #e2e8f0;
+}
+
+.legendBox.level0 {
+  background-color: #ebedf0;
+}
+
+.legendBox.level1 {
+  background-color: #c6e48b;
+}
+
+.legendBox.level2 {
+  background-color: #7bc96f;
+}
+
+.legendBox.level3 {
+  background-color: #3B6535;
+}
+
+.legendBox.level4 {
+  background-color: #196127;
+}
+
+.selectedDateInfo {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 8px;
+  border-left: 4px solid #3B6535;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.infoHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: #3B6535;
+}
+
+.infoHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.infoContent {
+  color: #2d3748;
+}
+
+.infoDate {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
+}
+
+.infoCount {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.infoCount strong {
+  color: #3B6535;
+  font-size: 1.1rem;
+}
+
+.activityBreakdown {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activityBreakdown li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background-color: #3B6535;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.infoPanel {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #fffbeb;
+  border-radius: 6px;
+  border: 1px solid #fde68a;
+}
+
+.infoPanelIcon {
+  color: #d97706;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.infoPanel p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .heatmapContainer {
+    padding: 1rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .heatmapWrapper {
+    padding: 1rem;
+  }
+
+  .legend {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statValue {
+    font-size: 1.5rem;
+  }
+}

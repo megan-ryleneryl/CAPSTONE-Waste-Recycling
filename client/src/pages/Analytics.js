@@ -2,17 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Analytics.module.css';
-import { 
-  MapPin, 
-  Recycle, 
-  TrendingUp, 
-  Heart, 
-  Leaf, 
-  Trophy, 
-  Users, 
-  Package, 
-  Plus, 
-  Trees, 
+import GeographicHeatmap from '../components/analytics/GeographicHeatmap';
+import {
+  MapPin,
+  Recycle,
+  TrendingUp,
+  Heart,
+  Leaf,
+  Trophy,
+  Users,
+  Package,
+  Plus,
+  Trees,
   Droplets,
   Zap
 } from 'lucide-react';
@@ -148,9 +149,9 @@ const Analytics = () => {
   const fetchHeatMapData = async () => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      
+
       const response = await axios.get(
-        'http://localhost:3001/api/analytics/heatmap',
+        'http://localhost:3001/api/analytics/heatmap?type=geographic',
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -163,12 +164,28 @@ const Analytics = () => {
       }
     } catch (error) {
       console.error('Error fetching heatmap data:', error);
-      setHeatMapData([
-        { area: 'Quezon City', activity: 'high', initiatives: 12, posts: 58 },
-        { area: 'Makati', activity: 'medium', initiatives: 8, posts: 34 },
-        { area: 'Pasig', activity: 'high', initiatives: 15, posts: 67 },
-        { area: 'Taguig', activity: 'low', initiatives: 3, posts: 12 }
-      ]);
+      // Generate fallback geographic data
+      const fallbackData = {
+        heatmapPoints: [
+          { lat: 14.6760, lng: 121.0437, intensity: 0.7 },
+          { lat: 14.5547, lng: 121.0244, intensity: 0.4 },
+          { lat: 14.5764, lng: 121.0851, intensity: 0.8 }
+        ],
+        areas: [
+          {
+            name: 'Quezon City',
+            lat: 14.6760,
+            lng: 121.0437,
+            activityCount: 70,
+            activityLevel: 'High',
+            posts: 58,
+            color: '#f03b20',
+            radius: 3000
+          }
+        ]
+      };
+
+      setHeatMapData(fallbackData);
     }
   };
 
@@ -253,40 +270,12 @@ const Analytics = () => {
       case 'activity':
         return (
           <div className={styles.activityContent}>
-            {heatMapData.length > 0 ? (
-              <>
-                <div className={styles.heatMapGrid}>
-                  {heatMapData.map((area, index) => (
-                    <div 
-                      key={index} 
-                      className={`${styles.heatMapCard} ${styles[area.activity]}`}
-                    >
-                      <div className={styles.areaHeader}>
-                        <h3>{area.area}</h3>
-                        <span className={`${styles.activityBadge} ${styles[area.activity]}`}>
-                          {area.activity.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className={styles.areaStats}>
-                        <div className={styles.statItem}>
-                          <span className={styles.statValue}>{area.initiatives}</span>
-                          <span className={styles.statLabel}>Active Initiatives</span>
-                        </div>
-                        <div className={styles.statItem}>
-                          <span className={styles.statValue}>{area.posts || '50+'}</span>
-                          <span className={styles.statLabel}>Weekly Posts</span>
-                        </div>
-                      </div>
-                      <button 
-                        className={styles.exploreButton}
-                        onClick={() => navigate(`/posts?area=${area.area}`)}
-                      >
-                        Explore {area.area}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </>
+            {heatMapData && (heatMapData.areas || heatMapData.heatmapPoints) ? (
+              <GeographicHeatmap
+                heatmapData={heatMapData.heatmapPoints || []}
+                areaData={heatMapData.areas || []}
+                breakdown={heatMapData.breakdown || null}
+              />
             ) : (
               <div className={styles.placeholderContent}>
                 <Recycle size={48} className={styles.placeholderIcon} />

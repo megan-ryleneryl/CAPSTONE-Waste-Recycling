@@ -56,7 +56,7 @@ const loadChatData = async () => {
   }
 
   try {
-    // 1. Fetch other user data properly
+    // 1. Fetch other user data properly (one-time fetch, not subscription)
     let userDataToSet = otherUser;
 
     if (!otherUser.firstName || !otherUser.lastName || !otherUser.profilePictureUrl) {
@@ -90,8 +90,8 @@ const loadChatData = async () => {
     }
 
     setOtherUserData(userDataToSet);
-    
-    // 2. Fetch post data - ALWAYS fetch fresh to ensure correct post is shown
+
+    // 2. Fetch post data - one-time fetch only
     const postDocRef = doc(db, 'posts', postID);
     const postDoc = await getDoc(postDocRef);
     let fetchedPostData;
@@ -104,7 +104,7 @@ const loadChatData = async () => {
       setPost(fetchedPostData);
     }
 
-    // 3. Subscribe to messages
+    // 3. OPTIMIZED: Single onSnapshot for messages only - most active data
     const messagesRef = collection(db, 'messages');
     const q = query(
       messagesRef,
@@ -133,104 +133,75 @@ const loadChatData = async () => {
       setLoading(false);
     });
 
-    // 4. Subscribe to pickup updates for this specific conversation
-    const pickupsRef = collection(db, 'pickups');
-    const pickupQuery = query(
-      pickupsRef,
-      where('postID', '==', postID)
-    );
+    // 4. OPTIMIZED: Load pickup data once, then refetch on user action (not real-time)
+    const loadPickupData = async () => {
+      const pickupsRef = collection(db, 'pickups');
+      const pickupQuery = query(
+        pickupsRef,
+        where('postID', '==', postID)
+      );
 
-    const unsubscribePickup = onSnapshot(pickupQuery, (snapshot) => {
+      const snapshot = await getDocs(pickupQuery);
       if (!snapshot.empty) {
-        // Find the pickup that matches this specific conversation
         const relevantPickup = snapshot.docs.find(doc => {
           const data = doc.data();
-          const isRelevant = 
+          const isRelevant =
             (data.giverID === otherUser.userID && data.collectorID === currentUser.userID) ||
             (data.collectorID === otherUser.userID && data.giverID === currentUser.userID);
-          
+
           const isActive = ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(data.status);
-          
+
           return isRelevant && isActive;
         });
-        
+
         if (relevantPickup) {
           const pickupData = { id: relevantPickup.id, ...relevantPickup.data() };
           setActivePickup(pickupData);
         } else {
-          console.log('No active pickup for this conversation');
           setActivePickup(null);
         }
       } else {
-        console.log('No pickups found for this post');
         setActivePickup(null);
       }
-    });
+    };
 
-    // 5. Subscribe to support updates for Initiative posts
-    let unsubscribeSupport = () => {};
+    await loadPickupData();
+
+    // 5. OPTIMIZED: Load support data once for Initiative posts (not real-time)
     if (fetchedPostData?.postType === 'Initiative') {
-      console.log('🟢 Setting up support subscription for Initiative post:', postID);
       const supportsRef = collection(db, 'supports');
       const supportQuery = query(
         supportsRef,
         where('initiativeID', '==', postID)
       );
 
-      unsubscribeSupport = onSnapshot(supportQuery, (snapshot) => {
-        console.log('🟢 Support snapshot received. Empty?', snapshot.empty, 'Docs count:', snapshot.docs.length);
+      const snapshot = await getDocs(supportQuery);
+      if (!snapshot.empty) {
+        const relevantSupport = snapshot.docs.find(doc => {
+          const data = doc.data();
+          const isRelevant =
+            (data.giverID === otherUser.userID && data.collectorID === currentUser.userID) ||
+            (data.collectorID === otherUser.userID && data.giverID === currentUser.userID);
 
-        if (!snapshot.empty) {
-          // Log all supports for debugging
-          snapshot.docs.forEach(doc => {
-            console.log('🟢 Support document:', doc.id, doc.data());
-          });
+          const isActive = ['Pending', 'PartiallyAccepted', 'Accepted', 'PickupScheduled'].includes(data.status);
 
-          // Find the support that matches this specific conversation
-          const relevantSupport = snapshot.docs.find(doc => {
-            const data = doc.data();
-            console.log('🟢 Checking support relevance:', {
-              supportID: doc.id,
-              giverID: data.giverID,
-              collectorID: data.collectorID,
-              currentUserID: currentUser.userID,
-              otherUserID: otherUser.userID,
-              status: data.status
-            });
+          return isRelevant && isActive;
+        });
 
-            const isRelevant =
-              (data.giverID === otherUser.userID && data.collectorID === currentUser.userID) ||
-              (data.collectorID === otherUser.userID && data.giverID === currentUser.userID);
-
-            const isActive = ['Pending', 'PartiallyAccepted', 'Accepted', 'PickupScheduled'].includes(data.status);
-
-            console.log('🟢 Support relevance check:', { isRelevant, isActive });
-
-            return isRelevant && isActive;
-          });
-
-          if (relevantSupport) {
-            const supportData = { id: relevantSupport.id, ...relevantSupport.data() };
-            console.log('✅ Active support found:', supportData);
-            setActiveSupport(supportData);
-          } else {
-            console.log('⚠️ No active support for this conversation');
-            setActiveSupport(null);
-          }
+        if (relevantSupport) {
+          const supportData = { id: relevantSupport.id, ...relevantSupport.data() };
+          setActiveSupport(supportData);
         } else {
-          console.log('⚠️ No supports found for this initiative');
           setActiveSupport(null);
         }
-      });
-    } else {
-      console.log('ℹ️ Post is not an Initiative, skipping support subscription');
+      } else {
+        setActiveSupport(null);
+      }
     }
 
-    // Store combined unsubscribe function
+    // Store unsubscribe function - now only for messages
     unsubscribeRef.current = () => {
       unsubscribeMessages();
-      unsubscribePickup();
-      unsubscribeSupport();
     };
 
   } catch (error) {
@@ -372,6 +343,39 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
     }
   };
 
+  const refreshPickupData = async () => {
+    if (!postID) return;
+
+    const pickupsRef = collection(db, 'pickups');
+    const pickupQuery = query(
+      pickupsRef,
+      where('postID', '==', postID)
+    );
+
+    const snapshot = await getDocs(pickupQuery);
+    if (!snapshot.empty) {
+      const relevantPickup = snapshot.docs.find(doc => {
+        const data = doc.data();
+        const isRelevant =
+          (data.giverID === otherUser.userID && data.collectorID === currentUser.userID) ||
+          (data.collectorID === otherUser.userID && data.giverID === currentUser.userID);
+
+        const isActive = ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(data.status);
+
+        return isRelevant && isActive;
+      });
+
+      if (relevantPickup) {
+        const pickupData = { id: relevantPickup.id, ...relevantPickup.data() };
+        setActivePickup(pickupData);
+      } else {
+        setActivePickup(null);
+      }
+    } else {
+      setActivePickup(null);
+    }
+  };
+
   const updatePickupStatus = async (status) => {
     if (!activePickup?.id) return;
 
@@ -400,7 +404,8 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
       await updateDoc(pickupRef, updateData);
 
-      setActivePickup(prev => ({ ...prev, status }));
+      // Refresh pickup data after update
+      await refreshPickupData();
 
       // Generate user-friendly status message with actor and guidance
       const actorName = `${currentUser.firstName} ${currentUser.lastName}`;
@@ -466,13 +471,9 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       status: 'Proposed', // Reset to proposed when edited
       updatedAt: serverTimestamp()
     });
-    
-    // Update local state
-    setActivePickup(prev => ({ 
-      ...prev, 
-      ...updatedData,
-      status: 'Proposed'
-    }));
+
+    // Refresh pickup data after edit
+    await refreshPickupData();
     
     // Send system message about the edit with actor and guidance
     const collectorName = `${currentUser.firstName} ${currentUser.lastName}`;

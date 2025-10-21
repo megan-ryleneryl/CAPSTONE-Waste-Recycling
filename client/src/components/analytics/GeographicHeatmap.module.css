@@ -1,0 +1,406 @@
+.heatmapContainer {
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.titleSection {
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 0.5rem 0;
+}
+
+.titleIcon {
+  color: #3B6535;
+}
+
+.subtitle {
+  color: #718096;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.1);
+  border-color: #3B6535;
+}
+
+.statValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #3B6535;
+  margin-bottom: 0.25rem;
+}
+
+.statLabel {
+  font-size: 0.85rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.mapWrapper {
+  position: relative;
+  height: 600px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.mapControls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.controlButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 2px solid #3B6535;
+  border-radius: 6px;
+  color: #3B6535;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-size: 0.9rem;
+}
+
+.controlButton:hover {
+  background: #3B6535;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
+}
+
+.controlButton:active {
+  transform: translateY(0);
+}
+
+.popupContent {
+  padding: 0.5rem;
+  min-width: 200px;
+}
+
+.popupContent h3 {
+  margin: 0 0 0.75rem 0;
+  color: #2d3748;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.popupStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.popupStat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #4a5568;
+}
+
+.popupStat svg {
+  color: #3B6535;
+}
+
+.popupBreakdown {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.popupBreakdownTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.popupBreakdownItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #4a5568;
+  margin: 0.35rem 0;
+}
+
+.popupDot {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.popupLevel {
+  margin: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+.popupLevel strong {
+  color: #3B6535;
+  font-weight: 600;
+}
+
+.legend {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.legendTitle {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.legendGradient {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gradientBar {
+  height: 30px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    #ffffff 0%,
+    #ffffb2 20%,
+    #fed976 40%,
+    #feb24c 60%,
+    #fd8d3c 80%,
+    #f03b20 100%
+  );
+  border: 1px solid #e2e8f0;
+}
+
+.legendLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #718096;
+  font-weight: 500;
+  padding: 0 0.5rem;
+}
+
+.breakdownSection {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.breakdownTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.breakdownSubtitle {
+  margin: 0 0 1.5rem 0;
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.breakdownGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.breakdownCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.breakdownCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.1);
+  border-color: #3B6535;
+}
+
+.breakdownCard.total {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #3B6535;
+  border-width: 2px;
+}
+
+.breakdownIcon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.breakdownContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.breakdownValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #3B6535;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.breakdownLabel {
+  font-size: 0.85rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.infoPanel {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 8px;
+  border-left: 4px solid #3B6535;
+}
+
+.infoPanelHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: #3B6535;
+}
+
+.infoPanelHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.infoList {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #2d3748;
+}
+
+.infoList li {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Leaflet popup customization */
+:global(.leaflet-popup-content-wrapper) {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+:global(.leaflet-popup-content) {
+  margin: 0.75rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .heatmapContainer {
+    padding: 1rem;
+  }
+
+  .statsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .mapWrapper {
+    height: 400px;
+  }
+
+  .mapControls {
+    top: 10px;
+    left: 10px;
+    right: auto;
+  }
+
+  .controlButton {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .controlButton span {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .statsRow {
+    grid-template-columns: 1fr;
+  }
+
+  .mapWrapper {
+    height: 350px;
+  }
+
+  .statValue {
+    font-size: 1.5rem;
+  }
+}

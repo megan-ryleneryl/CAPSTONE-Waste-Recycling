@@ -3,7 +3,12 @@
     "allow": [
       "Bash(node:*)",
       "Bash(cat models/InitiativePost.js)",
-      "Bash(npm run dev)"
+      "Bash(npm run dev)",
+      "Bash(find \"c:\\Users\\aniag\\Documents\\GitHub\\CAPSTONE-Waste-Recycling\\client\\src\\pages\" -type f ( -name \"*.js\" -o -name \"*.jsx\" ))",
+      "Bash(find \"c:\\Users\\aniag\\Documents\\GitHub\\CAPSTONE-Waste-Recycling\\client\\src\\components\\analytics\" -type f ( -name \"*.js\" -o -name \"*.jsx\" -o -name \"*.css\" ))",
+      "Bash(npm install react-calendar-heatmap)",
+      "Bash(npm start)",
+      "Bash(npm install leaflet.heat)"
     ],
     "deny": [],
     "ask": []

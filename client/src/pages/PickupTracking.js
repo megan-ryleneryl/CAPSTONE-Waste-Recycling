@@ -25,14 +25,22 @@ const PickupTracking = () => {
       return;
     }
 
-    // Subscribe to real-time pickup updates
-    const pickupRef = doc(db, 'pickups', pickupId);
-    const unsubscribe = onSnapshot(pickupRef, async (pickupDoc) => {
-      if (pickupDoc.exists()) {
-        const pickupData = { id: pickupDoc.id, ...pickupDoc.data() };
+    // OPTIMIZED: Fetch post and support data ONCE on mount, only subscribe to pickup changes
+    const loadInitialData = async () => {
+      try {
+        const pickupRef = doc(db, 'pickups', pickupId);
+        const pickupSnap = await getDoc(pickupRef);
+
+        if (!pickupSnap.exists()) {
+          console.error('Pickup not found');
+          navigate('/pickups');
+          return;
+        }
+
+        const pickupData = { id: pickupSnap.id, ...pickupSnap.data() };
         setPickup(pickupData);
 
-        // Fetch post data for more details
+        // Fetch post data ONCE
         if (pickupData.postID) {
           try {
             const postRef = doc(db, 'posts', pickupData.postID);
@@ -40,15 +48,13 @@ const PickupTracking = () => {
             if (postSnap.exists()) {
               const data = { id: postSnap.id, ...postSnap.data() };
               setPostData(data);
-            } else {
-              console.log('Post not found:', pickupData.postID);
             }
           } catch (error) {
             console.error('Error fetching post data:', error);
           }
         }
 
-        // Fetch support data if this pickup is linked to a support request
+        // Fetch support data ONCE
         if (pickupData.supportID) {
           try {
             const supportRef = doc(db, 'supports', pickupData.supportID);
@@ -56,21 +62,29 @@ const PickupTracking = () => {
             if (supportSnap.exists()) {
               const data = { id: supportSnap.id, ...supportSnap.data() };
               setSupportData(data);
-              console.log('✅ Support data loaded:', data);
-            } else {
-              console.log('Support not found:', pickupData.supportID);
             }
           } catch (error) {
             console.error('Error fetching support data:', error);
           }
-        } else {
-          setSupportData(null);
         }
-      } else {
-        console.error('Pickup not found');
-        navigate('/pickups');
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading pickup data:', error);
+        setLoading(false);
       }
-      setLoading(false);
+    };
+
+    loadInitialData();
+
+    // OPTIMIZED: Subscribe ONLY to pickup updates (not post/support)
+    const pickupRef = doc(db, 'pickups', pickupId);
+    const unsubscribe = onSnapshot(pickupRef, (pickupDoc) => {
+      if (pickupDoc.exists()) {
+        const pickupData = { id: pickupDoc.id, ...pickupDoc.data() };
+        setPickup(pickupData);
+        // Post and support data remain static - no need to refetch
+      }
     });
 
     return () => unsubscribe();
