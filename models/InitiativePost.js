@@ -9,9 +9,6 @@ class InitiativePost extends Post {
     // Ensure this is an Initiative post
     this.postType = 'Initiative';
 
-    // Initiative-specific fields
-    this.goal = data.goal || '';
-
     // Materials needed for initiative: [{materialID, targetQuantity, currentQuantity, materialName}, ...]
     this.materials = Array.isArray(data.materials) ? data.materials : [];
 
@@ -42,9 +39,6 @@ class InitiativePost extends Post {
     if (!this.title) errors.push('Title is required');
     if (!this.description) errors.push('Description is required');
     if (!this.location) errors.push('Location is required');
-
-    // Initiative-specific validation
-    if (!this.goal) errors.push('Initiative goal is required');
 
     // Check materials array (new format)
     if (this.materials && Array.isArray(this.materials) && this.materials.length > 0) {
@@ -87,8 +81,7 @@ class InitiativePost extends Post {
       updatedAt: this.updatedAt,
       images: this.images || [],
       // Initiative-specific fields
-      goal: this.goal,
-      materials: this.materials, // New: Array of materials with target/current quantities
+      materials: this.materials, // Array of materials with target/current quantities
       targetAmount: this.targetAmount,
       currentAmount: this.currentAmount,
       endDate: this.endDate,

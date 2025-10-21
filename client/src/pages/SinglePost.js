@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import PostDetails from '../components/posts/PostDetails/PostDetails';
 import CommentsSection from '../components/posts/CommentsSection/CommentsSection';
 // import PickupRequests from '../components/posts/PickupRequests/PickupRequests';
+import InitiativeSupportsModal from '../components/posts/InitiativeSupportsModal/InitiativeSupportsModal';
 import styles from './SinglePost.module.css';
 // Lucide icon imports
 import { Heart, MessageCircle, Trash2 } from 'lucide-react';
@@ -19,6 +19,7 @@ const SinglePost = ({ onDataUpdate }) => {
   const [likeCount, setLikeCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [likingPost, setLikingPost] = useState(false);
+  const [showSupportsModal, setShowSupportsModal] = useState(false);
 
   useEffect(() => {
     fetchPost();
@@ -31,7 +32,10 @@ const SinglePost = ({ onDataUpdate }) => {
       setIsLiked(post.isLiked || false);
 
       if (onDataUpdate) {
-        onDataUpdate({ post });
+        onDataUpdate({
+          post,
+          onViewSupports: () => setShowSupportsModal(true)
+        });
       }
     }
   }, [post, onDataUpdate]);
@@ -415,6 +419,16 @@ const SinglePost = ({ onDataUpdate }) => {
           />
         )} */}
       </div>
+
+      {/* Initiative Supports Modal */}
+      {post.postType === 'Initiative' && isOwner && (
+        <InitiativeSupportsModal
+          isOpen={showSupportsModal}
+          onClose={() => setShowSupportsModal(false)}
+          initiativeID={post.postID}
+          initiativeTitle={post.title}
+        />
+      )}
 
     </div>
   );

@@ -6,7 +6,7 @@ import styles from './PostDetails.module.css';
 import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
 
 
-const PostDetails = ({ post, user: currentUser }) => {
+const PostDetails = ({ post, user: currentUser, onViewSupports }) => {
   const navigate = useNavigate();
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -448,11 +448,6 @@ const PostDetails = ({ post, user: currentUser }) => {
         {post.postType === 'Initiative' && (
           <div className={styles.detailsSection}>
             <div className={styles.detailItem}>
-              <span className={styles.icon}><Goal size={18} /></span>
-              <span className={styles.value}>{post.goal || 'Environmental initiative'}</span>
-            </div>
-
-            <div className={styles.detailItem}>
               <span className={styles.icon}><Tag size={18} /></span>
               <span className={styles.value}>{formatLocation(post.location)}</span>
             </div>
@@ -593,6 +588,13 @@ const PostDetails = ({ post, user: currentUser }) => {
                       {post.status === 'Completed' && 'This initiative has been completed. Thank you for your contribution!'}
                       {post.status !== 'Active' && post.status !== 'Completed' && 'Manage your initiative from your dashboard.'}
                     </p>
+                    <button
+                      className={styles.viewSupportsButton}
+                      onClick={onViewSupports}
+                    >
+                      <Users size={16} />
+                      View All Supports
+                    </button>
                   </div>
                 </div>
               </div>

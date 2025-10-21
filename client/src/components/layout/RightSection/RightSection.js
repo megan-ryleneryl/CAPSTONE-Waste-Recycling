@@ -10,16 +10,22 @@ const RightSection = ({ user, data }) => {
   const renderSectionContent = () => {
     // Check if we're on a single post page
     if (location.pathname.startsWith('/posts/') && location.pathname !== '/posts/') {
-      return <PostDetails post={data?.post} user={user} />;
+      return (
+        <PostDetails
+          post={data?.post}
+          user={user}
+          onViewSupports={data?.onViewSupports}
+        />
+      );
     }
-    
+
     switch (location.pathname) {
       case '/posts':
         return <PostsAnalytics data={data} user={user} />;
 
       case '/create-post':
         return <PostsAnalytics data={data} user={user} />;
-      
+
       default:
         return null;
     }

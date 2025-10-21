@@ -662,10 +662,6 @@ const handleMessageOwner = async (post, event) => {
               {post.postType === 'Initiative' && (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}><Goal size={18} /></span>
-                    <span className={styles.detailText}>{post.goal || 'Environmental initiative'}</span>
-                  </div>
-                  <div className={styles.detailItem}>
                     <span className={styles.detailIcon}><MapPin size={18} /></span>
                     <span className={styles.detailText}>{formatLocation(post.location)}</span>
                   </div>

@@ -34,8 +34,7 @@ const Chat = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ✅ NOW SAFE TO HAVE EARLY RETURNS AFTER ALL HOOKS
-  
+
   // Add loading state while user loads
   if (loading || !user) {
     return (

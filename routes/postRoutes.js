@@ -376,8 +376,6 @@ router.post('/create', verifyToken, (req, res, next) => {
           });
         }
 
-        basePostData.goal = postData.goal || '';
-
         // DEBUG: Log received materials data
         console.log('📦 Received materials data:', postData.materials);
         console.log('📦 Materials type:', typeof postData.materials);
@@ -461,7 +459,6 @@ router.post('/create', verifyToken, (req, res, next) => {
         basePostData.status = 'Active';
 
         console.log('🔥 Final basePostData before create:', {
-          goal: basePostData.goal,
           materials: basePostData.materials,
           targetAmount: basePostData.targetAmount
         });

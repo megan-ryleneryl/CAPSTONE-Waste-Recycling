@@ -59,7 +59,6 @@ const CreatePost = () => {
     pickupDate: '',
     pickupTime: '',
     // Initiative specific
-    goal: '',
     targetAmount: '',
     endDate: '',
     // Forum specific
@@ -285,11 +284,6 @@ const CreatePost = () => {
           }
         }
       } else if (postType === 'Initiative') {
-      if (!formData.goal.trim()) {
-        setError('Goal is required for Initiative posts');
-        return false;
-      }
-
       // Validate materials array (new format)
       if (!formData.materials || formData.materials.length === 0) {
         setError('At least one material is required for Initiative posts');
@@ -460,7 +454,6 @@ const handleRemoveImage = (index) => {
       if (formData.pickupDate) formDataToSend.append('pickupDate', formData.pickupDate);
       if (formData.pickupTime) formDataToSend.append('pickupTime', formData.pickupTime);
     } else if (postType === 'Initiative') {
-      formDataToSend.append('goal', formData.goal.trim());
       // Send materials as JSON string to preserve structure (similar to Waste posts)
       formDataToSend.append('materials', JSON.stringify(formData.materials));
       formDataToSend.append('targetAmount', parseFloat(formData.targetAmount));
@@ -620,6 +613,9 @@ const handleRemoveImage = (index) => {
           <div className={styles.formGroup}>
             <label htmlFor="description" className={styles.label}>
               Description *
+              {postType === 'Initiative' && (
+                <span className={styles.hint}>What are you doing? Describe the initiative details and activities</span>
+              )}
             </label>
             <textarea
               id="description"
@@ -627,7 +623,11 @@ const handleRemoveImage = (index) => {
               value={formData.description}
               onChange={handleInputChange}
               className={styles.textarea}
-              placeholder="Provide details about your post"
+              placeholder={
+                postType === 'Initiative'
+                  ? "e.g., We're collecting PET Bottles to create sustainable house bricks"
+                  : "Provide details about your post"
+              }
               rows="5"
               required
               maxLength="1000"
@@ -796,7 +796,6 @@ const handleRemoveImage = (index) => {
                 onChange={(materials) => setFormData({ ...formData, materials })}
               />
               
-              {/* Remove the quantity and unit inputs - now handled in MaterialSelector */}
               
               {/* Keep pickupDate and pickupTime */}
               <div className={styles.formRow}>
@@ -839,27 +838,9 @@ const handleRemoveImage = (index) => {
                 <Goal size={20} /> Initiative Details
               </h3>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="goal" className={styles.label}>
-                  Initiative Goal / Description *
-                </label>
-                <textarea
-                  id="goal"
-                  name="goal"
-                  value={formData.goal}
-                  onChange={handleInputChange}
-                  className={styles.textarea}
-                  placeholder="What do you want to achieve with this initiative? Describe your environmental goal."
-                  rows="3"
-                  required
-                  maxLength="500"
-                />
-              </div>
-
               {/* Material Selector - Materials Needed */}
               <div className={styles.formGroup}>
                 <label className={styles.label}>
-                  <Package size={16} /> Materials Needed *
                   <span className={styles.hint}>Select the materials you need for this initiative</span>
                 </label>
                 <MaterialSelector

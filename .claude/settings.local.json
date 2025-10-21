@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(cat models/InitiativePost.js)",
+      "Bash(npm run dev)"
     ],
     "deny": [],
     "ask": []
