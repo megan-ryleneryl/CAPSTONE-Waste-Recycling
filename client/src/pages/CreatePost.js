@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import styles from './CreatePost.module.css';
+import PSGCService from '../services/psgcService';
+import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
+import { Image, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -10,16 +15,47 @@ const CreatePost = () => {
   const [isCollector, setIsCollector] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrganization, setIsOrganization] = useState(false);
-  const [postType, setPostType] = useState('Waste');
+
+  const location = useLocation();
+
+  // Start with whatever state was passed, or default to 'Waste'
+  const [postType, setPostType] = useState(location.state?.postType || 'Waste');
+
+  // Update if navigation provides a new postType after initial load
+  useEffect(() => {
+    if (location.state?.postType && location.state.postType !== postType) {
+      setPostType(location.state.postType);
+    }
+  }, [location.state, postType]);
+
+  // PSGC Location states
+  const [regions, setRegions] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [barangays, setBarangays] = useState([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  
+  // Scroll to top when page loads (i.e. after redirect from Dashboard page)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
   
   // Form data state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    location: '',
+    // Location fields (PSGC)
+    region: '',
+    province: '',
+    city: '',
+    barangay: '',
+    addressLine: '',  
     // Waste specific
-    materials: '',
+    materials: [], 
     quantity: '',
+    unit: 'kg',
     pickupDate: '',
     pickupTime: '',
     // Initiative specific
@@ -50,6 +86,129 @@ const CreatePost = () => {
     fetchUserProfile();
   }, []);
 
+  // Load regions on component mount
+  useEffect(() => {
+    loadRegions();
+  }, []);
+
+  const loadRegions = async () => {
+    setLoadingLocations(true);
+    try {
+      const data = await PSGCService.getRegions();
+      setRegions(data);
+    } catch (error) {
+      console.error('Error loading regions:', error);
+      setError('Failed to load regions. Please refresh the page.');
+    } finally {
+      setLoadingLocations(false);
+    }
+  };
+
+  const handleRegionChange = async (e) => {
+    const regionCode = e.target.value;
+    const selectedRegion = regions.find(r => r.code === regionCode);
+  
+    // Check if selected region is NCR (National Capital Region)
+    const isNCR = selectedRegion && (
+      selectedRegion.name.includes('NCR') || 
+      selectedRegion.name.includes('National Capital Region') ||
+      regionCode === '130000000' // NCR's region code
+    );
+    
+    setFormData({
+      ...formData,
+      region: regionCode,
+      province: isNCR ? 'NCR' : '', // Auto-set province to 'NCR' if it's NCR
+      city: '',
+      barangay: ''
+  });
+    
+    // Reset dependent dropdowns
+    setProvinces([]);
+    setCities([]);
+    setBarangays([]);
+      
+    if (regionCode) {
+        setLoadingLocations(true);
+        try {
+          if (isNCR) {
+            // For NCR, directly load cities/municipalities from region
+            console.log('Loading NCR cities for region:', regionCode);
+            const data = await PSGCService.getCitiesFromRegion(regionCode);
+            console.log('NCR cities loaded:', data);
+            setCities(data);
+          } else {
+            // For other regions, load provinces first
+            const data = await PSGCService.getProvinces(regionCode);
+            setProvinces(data);
+          }
+        } catch (error) {
+          console.error('Error loading location data:', error);
+          setError('Failed to load location data. Please try again.');
+        } finally {
+          setLoadingLocations(false);
+        }
+      }
+    };
+    
+  const handleProvinceChange = async (e) => {
+    const provinceCode = e.target.value;
+    setFormData({
+      ...formData,
+      province: provinceCode,
+      city: '',
+      barangay: ''
+    });
+    
+    // Reset dependent dropdowns
+    setCities([]);
+    setBarangays([]);
+    
+    if (provinceCode) {
+      setLoadingLocations(true);
+      try {
+        const data = await PSGCService.getCitiesMunicipalities(provinceCode);
+        setCities(data);
+      } catch (error) {
+        console.error('Error loading cities/municipalities:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleCityChange = async (e) => {
+    const cityCode = e.target.value;
+    setFormData({
+      ...formData,
+      city: cityCode,
+      barangay: ''
+    });
+    
+    // Reset barangays
+    setBarangays([]);
+    
+    if (cityCode) {
+      setLoadingLocations(true);
+      try {
+        const data = await PSGCService.getBarangays(cityCode);
+        setBarangays(data);
+      } catch (error) {
+        console.error('Error loading barangays:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }
+  };
+
+  const handleBarangayChange = (e) => {
+    setFormData({
+      ...formData,
+      barangay: e.target.value
+    });
+  };
+
+
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -72,34 +231,183 @@ const CreatePost = () => {
       return false;
     }
     
-    if (!formData.location.trim()) {
-      setError('Location is required');
+    // Location validation
+    if (!formData.region) {
+      setError('Please select a region');
+      return false;
+    }
+
+    if (!formData.addressLine.trim()) {
+      setError('Specific address is required');
+      return false;
+    }
+    
+    const selectedRegion = regions.find(r => r.code === formData.region);
+    const isNCR = selectedRegion && (
+    selectedRegion.name.includes('NCR') || 
+    selectedRegion.name.includes('National Capital Region') ||
+    formData.region === '130000000'
+  );
+  
+    // Province is not required for NCR
+    if (!isNCR && !formData.province) {
+    setError('Please select a province');
+    return false;
+  }
+    
+    if (!formData.city) {
+      setError('Please select a city/municipality');
+      return false;
+    }
+    
+    if (!formData.barangay) {
+      setError('Please select a barangay');
       return false;
     }
     
     // Type-specific validation
-    if (postType === 'Waste') {
-      if (!formData.materials.trim()) {
-        setError('Materials are required for Waste posts');
-        return false;
-      }
-      if (!formData.quantity || formData.quantity <= 0) {
-        setError('Valid quantity is required for Waste posts');
-        return false;
-      }
-    } else if (postType === 'Initiative') {
+      if (postType === 'Waste') {
+        if (!formData.materials || formData.materials.length === 0) {
+          setError('At least one material is required for Waste posts');
+          return false;
+        }
+        
+        // Validate each material has required fields
+        for (let i = 0; i < formData.materials.length; i++) {
+          const material = formData.materials[i];
+          if (!material.materialID) {
+            setError(`Please select a material for item ${i + 1}`);
+            return false;
+          }
+          if (!material.quantity || material.quantity <= 0) {
+            setError(`Please enter a valid quantity for item ${i + 1}`);
+            return false;
+          }
+        }
+      } else if (postType === 'Initiative') {
       if (!formData.goal.trim()) {
         setError('Goal is required for Initiative posts');
         return false;
       }
-      if (!formData.targetAmount || formData.targetAmount <= 0) {
-        setError('Target amount is required for Initiative posts');
+
+      // Validate materials array (new format)
+      if (!formData.materials || formData.materials.length === 0) {
+        setError('At least one material is required for Initiative posts');
         return false;
+      }
+
+      // Validate each material has required fields
+      for (let i = 0; i < formData.materials.length; i++) {
+        const material = formData.materials[i];
+        if (!material.materialID) {
+          setError(`Please select a material for item ${i + 1}`);
+          return false;
+        }
+        if (!material.quantity || material.quantity <= 0) {
+          setError(`Please enter a valid target quantity for item ${i + 1}`);
+          return false;
+        }
       }
     }
     
     return true;
   };
+
+  // Get structured location data for API submission
+  const getLocationData = () => {
+    const selectedRegion = regions.find(r => r.code === formData.region);
+    const selectedProvince = provinces.find(p => p.code === formData.province);
+    const selectedCity = cities.find(c => c.code === formData.city);
+    const selectedBarangay = barangays.find(b => b.code === formData.barangay);
+
+    // Build structured location object
+    const locationData = {
+      region: {
+        code: formData.region,
+        name: selectedRegion?.name || ''
+      },
+      province: selectedProvince ? {
+        code: formData.province,
+        name: selectedProvince.name
+      } : null,
+      city: {
+        code: formData.city,
+        name: selectedCity?.name || ''
+      },
+      barangay: {
+        code: formData.barangay,
+        name: selectedBarangay?.name || ''
+      },
+      addressLine: formData.addressLine
+    };
+
+    return JSON.stringify(locationData);
+  };
+
+  // Get human-readable location string for display
+  const getLocationDisplayString = () => {
+    const selectedRegion = regions.find(r => r.code === formData.region);
+    const selectedProvince = provinces.find(p => p.code === formData.province);
+    const selectedCity = cities.find(c => c.code === formData.city);
+    const selectedBarangay = barangays.find(b => b.code === formData.barangay);
+
+    const parts = [];
+    if (selectedBarangay?.name) parts.push(selectedBarangay.name);
+    if (selectedCity?.name) parts.push(selectedCity.name);
+    if (selectedProvince?.name && selectedProvince.name !== 'NCR') parts.push(selectedProvince.name);
+    if (selectedRegion?.name) parts.push(selectedRegion.name);
+
+    return parts.join(', ');
+  };
+
+// Handle image selection
+const handleImageChange = (e) => {
+  const files = Array.from(e.target.files);
+  
+  // Limit to 5 images
+  if (files.length + selectedImages.length > 5) {
+    setError('Maximum 5 images allowed');
+    return;
+  }
+  
+  // Validate file types and sizes
+  const validFiles = [];
+  const newPreviews = [];
+  
+  for (const file of files) {
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are allowed');
+      continue;
+    }
+    
+    // Check file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Each image must be less than 5MB');
+      continue;
+    }
+    
+    validFiles.push(file);
+    
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      newPreviews.push(reader.result);
+      if (newPreviews.length === validFiles.length) {
+        setImagePreviews(prev => [...prev, ...newPreviews]);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+  
+  setSelectedImages(prev => [...prev, ...validFiles]);
+};
+
+// Remove selected image
+const handleRemoveImage = (index) => {
+  setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  setImagePreviews(prev => prev.filter((_, i) => i !== index));
+};
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -125,50 +433,56 @@ const CreatePost = () => {
     // Log the token (remove in production)
     console.log('Token exists:', !!token);
     console.log('Token preview:', token.substring(0, 20) + '...');
-    
-    // Prepare data based on post type
-    let postData = {
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      location: formData.location.trim(),
-      postType
-    };
-    
+
+    // Prepare location data
+    const locationData = getLocationData();
+
+    // Prepare FormData for file upload
+    const formDataToSend = new FormData();
+
+    // Add all form fields
+    formDataToSend.append('postType', postType);
+    formDataToSend.append('title', formData.title.trim());
+    formDataToSend.append('description', formData.description.trim());
+    formDataToSend.append('location', locationData);
+
     // Add type-specific fields
     if (postType === 'Waste') {
-      postData = {
-        ...postData,
-        materials: formData.materials.split(',').map(m => m.trim()).filter(m => m),
-        quantity: parseFloat(formData.quantity),
-        pickupDate: formData.pickupDate || null,
-        pickupTime: formData.pickupTime || null
-      };
+      // Calculate total quantity from all materials
+      const totalQuantity = formData.materials.reduce((sum, material) => {
+        return sum + parseFloat(material.quantity || 0);
+      }, 0);
+
+      // Send materials as JSON string to preserve the structure
+      formDataToSend.append('materials', JSON.stringify(formData.materials));
+      formDataToSend.append('quantity', totalQuantity);
+      formDataToSend.append('unit', 'kg');
+      if (formData.pickupDate) formDataToSend.append('pickupDate', formData.pickupDate);
+      if (formData.pickupTime) formDataToSend.append('pickupTime', formData.pickupTime);
     } else if (postType === 'Initiative') {
-      postData = {
-        ...postData,
-        goal: formData.goal.trim(),
-        targetAmount: parseFloat(formData.targetAmount),
-        endDate: formData.endDate || null
-      };
+      formDataToSend.append('goal', formData.goal.trim());
+      // Send materials as JSON string to preserve structure (similar to Waste posts)
+      formDataToSend.append('materials', JSON.stringify(formData.materials));
+      formDataToSend.append('targetAmount', parseFloat(formData.targetAmount));
+      if (formData.endDate) formDataToSend.append('endDate', formData.endDate);
     } else if (postType === 'Forum') {
-      postData = {
-        ...postData,
-        category: formData.category,
-        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(t => t) : []
-      };
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('tags', formData.tags);
     }
-    
-    // Log the data being sent (remove in production)
-    console.log('Sending post data:', postData);
-    
-    // Make API call to the correct endpoint
+
+    // Add images
+    selectedImages.forEach((image) => {
+      formDataToSend.append('images', image);
+    });
+
+    // Make API call
     const response = await axios.post(
       'http://localhost:3001/api/posts/create',
-      postData,
+      formDataToSend,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'multipart/form-data'
         }
       }
     );
@@ -217,12 +531,13 @@ const CreatePost = () => {
   } finally {
     setLoading(false);
   }
-};
+  };
 
   // Handle cancel
   const handleCancel = () => {
     navigate('/posts');
   };
+
 
   // Check if user can create initiative posts
   const canCreateInitiative = isCollector || isAdmin;
@@ -252,7 +567,7 @@ const CreatePost = () => {
             className={`${styles.typeButton} ${postType === 'Waste' ? styles.active : ''}`}
             onClick={() => setPostType('Waste')}
           >
-            <span>♻️ Waste Post</span>
+            <span><Recycle size={16} /> Waste Post</span>
             <small>Offer recyclable materials</small>
           </button>
           
@@ -263,8 +578,13 @@ const CreatePost = () => {
             disabled={!canCreateInitiative}
             title={!canCreateInitiative ? 'Only Collectors can create Initiative posts' : ''}
           >
-            <span>🌱 Initiative</span>
-            <small>{canCreateInitiative ? 'Start a green project' : 'Collectors only'}</small>
+            <span><Sprout size={16} /> Initiative</span>
+            <small>{canCreateInitiative ? 'Start a green project' : ''}</small>
+            {!canCreateInitiative && (
+              <Link to="/profile" className={styles.signupLink}>
+                Sign up as collector
+              </Link>
+            )}
           </button>
           
           <button
@@ -272,7 +592,7 @@ const CreatePost = () => {
             className={`${styles.typeButton} ${postType === 'Forum' ? styles.active : ''}`}
             onClick={() => setPostType('Forum')}
           >
-            <span>💬 Forum Post</span>
+            <span><MessageCircle size={14} /> Forum Post</span>
             <small>Share and discuss</small>
           </button>
         </div>
@@ -314,68 +634,175 @@ const CreatePost = () => {
             />
           </div>
 
-          <div className={styles.formGroup}>
-            <label htmlFor="location" className={styles.label}>
-              Location *
-            </label>
-            <input
-              type="text"
-              id="location"
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              className={styles.input}
-              placeholder="e.g., Quezon City, Metro Manila"
-              required
-            />
-          </div>
+          {/* PSGC Location Fields */}
+          <div className={styles.locationSection}>
+            <h3 className={styles.sectionTitle}><MapPin size={20}/> Location *</h3>
+            <p className={styles.sectionHint}>Select your complete address using the dropdowns below</p>
+            
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label htmlFor="region" className={styles.label}>
+                  Region *
+                </label>
+                <select
+                  id="region"
+                  value={formData.region}
+                  onChange={handleRegionChange}
+                  className={styles.select}
+                  required
+                  disabled={loadingLocations || regions.length === 0}
+                >
+                  <option value="">
+                    {loadingLocations ? 'Loading...' : 'Select Region'}
+                  </option>
+                  {regions.map((region) => (
+                    <option key={region.code} value={region.code}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Only show province dropdown if NOT NCR */}
+              {formData.region && (() => {
+                const selectedRegion = regions.find(r => r.code === formData.region);
+                const isNCR = selectedRegion && (
+                  selectedRegion.name.includes('NCR') || 
+                  selectedRegion.name.includes('National Capital Region') ||
+                  formData.region === '130000000'
+                );
+                
+                return !isNCR && (
+                  <div className={styles.formGroup}>
+                    <label htmlFor="province" className={styles.label}>
+                      Province *
+                    </label>
+                    <select
+                      id="province"
+                      value={formData.province}
+                      onChange={handleProvinceChange}
+                      className={styles.select}
+                      required
+                      disabled={!formData.region || loadingLocations}
+                    >
+                      <option value="">
+                        {loadingLocations ? 'Loading...' : 'Select Province'}
+                      </option>
+                      {provinces.map((province) => (
+                        <option key={province.code} value={province.code}>
+                          {province.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className={styles.formRow}>
+              <div className={styles.formGroup}>
+                <label htmlFor="city" className={styles.label}>
+                  City/Municipality *
+                </label>
+                <select
+                  id="city"
+                  value={formData.city}
+                  onChange={handleCityChange}
+                  className={styles.select}
+                  required
+                  disabled={(() => {
+                    const selectedRegion = regions.find(r => r.code === formData.region);
+                    const isNCR = selectedRegion && (
+                      selectedRegion.name.includes('NCR') || 
+                      selectedRegion.name.includes('National Capital Region') ||
+                      formData.region === '130000000'
+                    );
+                    return (!formData.region || (!isNCR && !formData.province) || loadingLocations);
+                  })()}
+                >
+                  <option value="">
+                    {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
+                  </option>
+                  {cities.map((city) => (
+                    <option key={city.code} value={city.code}>
+                      {city.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label htmlFor="barangay" className={styles.label}>
+                  Barangay *
+                </label>
+                <select
+                  id="barangay"
+                  value={formData.barangay}
+                  onChange={handleBarangayChange}
+                  className={styles.select}
+                  required
+                  disabled={!formData.city || loadingLocations}
+                >
+                  <option value="">
+                    {loadingLocations ? 'Loading...' : 'Select Barangay'}
+                  </option>
+                  {barangays.map((barangay) => (
+                    <option key={barangay.code} value={barangay.code}>
+                      {barangay.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Show selected location preview */}
+            {formData.barangay && (
+              <div className={styles.locationPreview}>
+                <strong>Selected Location:</strong> {getLocationDisplayString()}
+              </div>
+            )}
+
+            <div className={styles.formGroup}>
+                <label htmlFor="addressLine" className={styles.label}>
+                  Specific Address / Landmark *
+                </label>
+                <input
+                  type="text"
+                  id="addressLine"
+                  name="addressLine"
+                  value={formData.addressLine}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  placeholder="e.g., Unit 5B, Greenview Bldg., near 7-Eleven"
+                  required
+                />
+                <span className={styles.hint}>
+                  Be specific to help collectors find your location
+                </span>
+              </div>
+          </div> 
+
 
           {/* Waste-specific Fields */}
           {postType === 'Waste' && (
-            <>
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="materials" className={styles.label}>
-                    Materials *
-                    <span className={styles.hint}>Separate with commas</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="materials"
-                    name="materials"
-                    value={formData.materials}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    placeholder="e.g., plastic bottles, cardboard, paper"
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="quantity" className={styles.label}>
-                    Quantity *
-                  </label>
-                    <input
-                      type="number"
-                      id="quantity"
-                      name="quantity"
-                      value={formData.quantity}
-                      onChange={handleInputChange}
-                      className={styles.input}
-                      placeholder="0"
-                      min="0.1"
-                      step="0.1"
-                      required
-                    />
-                </div>
-
-              </div>
-
+            <div className={styles.wasteSpecific}>
+              <h3 className={styles.sectionTitle}>
+                <Package size={20} /> Waste Details
+              </h3>
+              
+              {/* Use Material Selector instead of text input */}
+              <MaterialSelector
+                selectedMaterials={formData.materials}
+                onChange={(materials) => setFormData({ ...formData, materials })}
+              />
+              
+              {/* Remove the quantity and unit inputs - now handled in MaterialSelector */}
+              
+              {/* Keep pickupDate and pickupTime */}
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label htmlFor="pickupDate" className={styles.label}>
                     Preferred Pickup Date
-                    <span className={styles.hint}>Optional</span>
                   </label>
                   <input
                     type="date"
@@ -387,11 +814,10 @@ const CreatePost = () => {
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
-
+                
                 <div className={styles.formGroup}>
                   <label htmlFor="pickupTime" className={styles.label}>
                     Preferred Pickup Time
-                    <span className={styles.hint}>Optional</span>
                   </label>
                   <input
                     type="time"
@@ -403,15 +829,19 @@ const CreatePost = () => {
                   />
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {/* Initiative-specific Fields */}
           {postType === 'Initiative' && (
-            <>
+            <div className={styles.initiativeSpecific}>
+              <h3 className={styles.sectionTitle}>
+                <Goal size={20} /> Initiative Details
+              </h3>
+
               <div className={styles.formGroup}>
                 <label htmlFor="goal" className={styles.label}>
-                  Initiative Goal *
+                  Initiative Goal / Description *
                 </label>
                 <textarea
                   id="goal"
@@ -419,50 +849,113 @@ const CreatePost = () => {
                   value={formData.goal}
                   onChange={handleInputChange}
                   className={styles.textarea}
-                  placeholder="What do you want to achieve with this initiative?"
+                  placeholder="What do you want to achieve with this initiative? Describe your environmental goal."
                   rows="3"
                   required
                   maxLength="500"
                 />
               </div>
 
-              <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="targetAmount" className={styles.label}>
-                    Target Amount (kg) *
-                  </label>
-                  <input
-                    type="number"
-                    id="targetAmount"
-                    name="targetAmount"
-                    value={formData.targetAmount}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    placeholder="0"
-                    min="1"
-                    step="0.1"
-                    required
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="endDate" className={styles.label}>
-                    End Date
-                    <span className={styles.hint}>Optional</span>
-                  </label>
-                  <input
-                    type="date"
-                    id="endDate"
-                    name="endDate"
-                    value={formData.endDate}
-                    onChange={handleInputChange}
-                    className={styles.input}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
+              {/* Material Selector - Materials Needed */}
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  <Package size={16} /> Materials Needed *
+                  <span className={styles.hint}>Select the materials you need for this initiative</span>
+                </label>
+                <MaterialSelector
+                  selectedMaterials={formData.materials}
+                  onChange={(materials) => {
+                    // Calculate total target amount from materials
+                    const totalTarget = materials.reduce((sum, mat) => sum + parseFloat(mat.quantity || 0), 0);
+                    setFormData({
+                      ...formData,
+                      materials,
+                      targetAmount: totalTarget.toString()
+                    });
+                  }}
+                  labelOverride={{
+                    quantity: 'Target Quantity'
+                  }}
+                />
               </div>
-            </>
+
+              {/* Show calculated target amount */}
+              {formData.materials && formData.materials.length > 0 && (
+                <div className={styles.targetAmountDisplay}>
+                  <BarChart3 size={16} />
+                  <strong>Total Target Amount:</strong> {formData.targetAmount} kg
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                <label htmlFor="endDate" className={styles.label}>
+                  <Clock size={16} /> End Date
+                  <span className={styles.hint}>Optional deadline for this initiative</span>
+                </label>
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleInputChange}
+                  className={styles.input}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            </div>
           )}
+
+          {/* Image Upload Section - For All Post Types */}
+          <div className={styles.imageUploadSection}>
+            <h3 className={styles.sectionTitle}>
+              <Image size={20} /> Images (Optional)
+            </h3>
+            <p className={styles.sectionHint}>Add up to 5 images to your post</p>
+            
+            <div className={styles.formGroup}>
+              <label htmlFor="images" className={styles.label}>
+                Upload Images
+                <span className={styles.hint}>Max 5 images, 5MB each</span>
+              </label>
+              
+              <input
+                type="file"
+                id="images"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className={styles.fileInput}
+                disabled={selectedImages.length >= 5}
+              />
+              
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className={styles.imagePreviewContainer}>
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className={styles.imagePreview}>
+                      <img src={preview} alt={`Preview ${index + 1}`} />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className={styles.removeImageButton}
+                        aria-label="Remove image"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <p className={styles.imageCount}>
+                {selectedImages.length} / 5 images selected
+              </p>
+            </div>
+          </div>
+
+
+
+          
 
           {/* Forum-specific Fields */}
           {postType === 'Forum' && (

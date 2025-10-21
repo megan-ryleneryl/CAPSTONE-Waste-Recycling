@@ -1,156 +1,156 @@
 // controllers/pickupController.js - Complete controller for Pickup Management
 const Pickup = require('../models/Pickup');
 const Post = require('../models/Posts');
-const User = require('../models/User');
+const User = require('../models/Users');
 const Message = require('../models/Message');
+const GeocodingService = require('../services/geocodingService');
 
 class PickupController {
   // Create a new pickup schedule
-  static async createPickup(req, res) {
-    try {
-      const user = req.user;
-      const {
-        postID,
-        pickupDate,
-        pickupTime,
-        pickupLocation,
-        contactPerson,
-        contactNumber,
-        alternateContact,
-        specialInstructions
-      } = req.body;
+static async createPickup(req, res) {
+  try {
+    const user = req.user;
+    const {
+      postID,
+      pickupDate,
+      pickupTime,
+      pickupLocation,
+      contactPerson,
+      contactNumber,
+      alternateContact,
+      specialInstructions
+    } = req.body;
 
-      // Validate required fields
-      if (!postID || !pickupDate || !pickupTime || !pickupLocation || !contactPerson || !contactNumber) {
-        return res.status(400).json({
-          success: false,
-          message: 'Missing required fields'
-        });
-      }
-
-      // Get the post details
-      const post = await Post.findById(postID);
-      if (!post) {
-        return res.status(404).json({
-          success: false,
-          message: 'Post not found'
-        });
-      }
-
-      // Check if there's already an active pickup for this post
-      const existingPickup = await Pickup.getActiveForPost(postID);
-      if (existingPickup) {
-        return res.status(400).json({
-          success: false,
-          message: 'An active pickup already exists for this post'
-        });
-      }
-
-      // Determine giver and collector based on post type
-      let giverID, collectorID, giverName, collectorName;
-      
-      if (post.postType === 'Waste') {
-        // For Waste posts, the post creator is the giver
-        giverID = post.userID;
-        collectorID = user.userID;
-        
-        // Only collectors can schedule pickups for waste posts
-        if (user.userType !== 'Collector') {
-          return res.status(403).json({
-            success: false,
-            message: 'Only collectors can schedule pickups for waste posts'
-          });
-        }
-      } else if (post.postType === 'Initiative') {
-        // For Initiative posts, the post creator is the collector
-        giverID = user.userID;
-        collectorID = post.userID;
-        
-        // For initiatives, we need to check if the giver's donation was accepted
-        // This would require additional logic to track initiative support
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid post type for pickup'
-        });
-      }
-
-      // Get user names
-      const [giver, collector] = await Promise.all([
-        User.findById(giverID),
-        User.findById(collectorID)
-      ]);
-      
-      giverName = `${giver.firstName} ${giver.lastName}`;
-      collectorName = `${collector.firstName} ${collector.lastName}`;
-
-      // Get expected waste details from post
-      const expectedWaste = {
-        types: post.wasteType || [],
-        estimatedAmount: post.amount || 0,
-        unit: post.unit || 'kg',
-        description: post.description
-      };
-
-      // Create the pickup
-      const pickupData = {
-        postID,
-        postType: post.postType,
-        postTitle: post.title,
-        giverID,
-        giverName,
-        collectorID,
-        collectorName,
-        proposedBy: user.userID,
-        pickupDate,
-        pickupTime,
-        pickupLocation,
-        contactPerson,
-        contactNumber,
-        alternateContact,
-        specialInstructions,
-        expectedWaste,
-        status: 'Proposed'
-      };
-
-      const pickup = await Pickup.create(pickupData);
-
-      // Send notification message to the other party
-      const recipientID = user.userID === giverID ? collectorID : giverID;
-      await Message.create({
-        senderID: user.userID,
-        senderName: user.userID === giverID ? giverName : collectorName,
-        senderType: user.userType,
-        receiverID: recipientID,
-        postID,
-        messageType: 'pickup_request',
-        message: `Pickup scheduled for ${pickupDate} at ${pickupTime}`,
-        metadata: {
-          pickupID: pickup.pickupID,
-          pickupDetails: {
-            date: pickupDate,
-            time: pickupTime,
-            location: pickupLocation,
-            contactPerson,
-            contactNumber
-          }
-        }
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'Pickup schedule created successfully',
-        data: pickup
-      });
-
-    } catch (error) {
-      console.error('Error creating pickup:', error);
-      res.status(500).json({
+    // Validate required fields
+    if (!postID || !pickupDate || !pickupTime || !pickupLocation || !contactPerson || !contactNumber) {
+      return res.status(400).json({
         success: false,
-        message: error.message || 'Failed to create pickup schedule'
+        message: 'Missing required fields'
       });
     }
+
+    // Get the post details
+    const post = await Post.findById(postID);
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
+    // Check if there's already an active pickup for this post
+    const existingPickup = await Pickup.getActiveForPost(postID);
+    if (existingPickup) {
+      return res.status(400).json({
+        success: false,
+        message: 'An active pickup already exists for this post'
+      });
+    }
+
+    // Determine giver and collector based on post type
+    let giverID, collectorID, giverName, collectorName;
+    
+    if (post.postType === 'Waste') {
+      // For Waste posts, the post creator is the giver
+      giverID = post.userID;
+      collectorID = user.userID;
+      
+      // FIXED: Check isCollector instead of userType
+      if (!user.isCollector) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only collectors can schedule pickups for waste posts'
+        });
+      }
+    } else if (post.postType === 'Initiative') {
+      // For Initiative posts, the post creator is the collector
+      giverID = user.userID;
+      collectorID = post.userID;
+      
+      // For initiatives, we need to check if the giver's donation was accepted
+      // This would require additional logic to track initiative support
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid post type for pickup scheduling'
+      });
+    }
+
+    // Get user names for the pickup record
+    const giverUser = await User.findById(giverID);
+    const collectorUser = await User.findById(collectorID);
+    
+    giverName = `${giverUser.firstName} ${giverUser.lastName}`;
+    collectorName = `${collectorUser.firstName} ${collectorUser.lastName}`;
+
+    // Geocode the pickup location if coordinates are not provided
+    let locationWithCoords = pickupLocation;
+    if (pickupLocation && !pickupLocation.coordinates?.lat) {
+      console.log('🗺️ Geocoding pickup location...');
+      const coords = await GeocodingService.getCoordinates(pickupLocation);
+
+      if (coords) {
+        locationWithCoords = {
+          ...pickupLocation,
+          coordinates: {
+            lat: coords.lat,
+            lng: coords.lng
+          }
+        };
+        console.log('✅ Pickup location coordinates added:', coords);
+      } else {
+        console.log('⚠️ Geocoding failed for pickup location, proceeding without coordinates');
+      }
+    }
+
+    // Create the pickup
+    const pickupData = {
+      postID,
+      postType: post.postType,
+      giverID,
+      collectorID,
+      giverName,
+      collectorName,
+      pickupDate,
+      pickupTime,
+      pickupLocation: locationWithCoords,
+      contactPerson,
+      contactNumber,
+      alternateContact,
+      specialInstructions,
+      status: 'Proposed',
+      createdBy: user.userID
+    };
+
+    const pickup = await Pickup.create(pickupData);
+
+    // Send notification to the giver
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      userID: giverID,
+      type: Notification.TYPES.PICKUP_SCHEDULED,
+      title: 'New Pickup Schedule Proposed',
+      message: `${collectorName} has proposed a pickup schedule for "${post.title}"`,
+      referenceID: pickup.pickupID,
+      referenceType: 'pickup',
+      actionURL: `/pickups/${pickup.pickupID}`,
+      priority: 'high'
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Pickup schedule created successfully',
+      data: pickup
+    });
+
+  } catch (error) {
+    console.error('Error creating pickup:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to create pickup schedule'
+    });
   }
+}
 
   // Get pickup by ID
   static async getPickupById(req, res) {
@@ -182,56 +182,62 @@ class PickupController {
     }
   }
 
-  // Get all pickups for current user
-  static async getUserPickups(req, res) {
-    try {
-      const userID = req.user.userID;
-      const { role, status } = req.query;
+static async getUserPickups(req, res) {
+  try {
+    const userID = req.user.userID;
+    const { role = 'both', status } = req.query;
 
-      let pickups = await Pickup.findByUser(userID, role || 'both');
-      
-      // Filter by status if provided
-      if (status) {
-        pickups = pickups.filter(p => p.status === status);
-      }
-
-      res.json({
-        success: true,
-        data: pickups,
-        count: pickups.length
-      });
-
-    } catch (error) {
-      console.error('Error fetching user pickups:', error);
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Failed to fetch pickups'
-      });
+    const pickups = await Pickup.findByUser(userID, role);
+    
+    // Filter by status if provided
+    let filteredPickups = pickups;
+    if (status) {
+      filteredPickups = pickups.filter(p => p.status === status);
     }
+
+    res.status(200).json({
+      success: true,
+      data: filteredPickups,
+      count: filteredPickups.length
+    });
+  } catch (error) {
+    console.error('Error fetching user pickups:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch pickups'
+    });
   }
+}
 
-  // Get upcoming pickups
-  static async getUpcomingPickups(req, res) {
-    try {
-      const userID = req.user.userID;
-      const { role } = req.query;
+static async getUpcomingPickups(req, res) {
+  try {
+    const userID = req.user.userID;
+    const pickups = await Pickup.findByUser(userID, 'both');
+    
+    // Filter for upcoming pickups (Proposed or Confirmed)
+    const upcomingPickups = pickups.filter(p => 
+      ['Proposed', 'Confirmed'].includes(p.status) &&
+      new Date(p.pickupDate) >= new Date()
+    );
 
-      const pickups = await Pickup.getUpcoming(userID, role || 'both');
+    // Sort by date
+    upcomingPickups.sort((a, b) => 
+      new Date(a.pickupDate) - new Date(b.pickupDate)
+    );
 
-      res.json({
-        success: true,
-        data: pickups,
-        count: pickups.length
-      });
-
-    } catch (error) {
-      console.error('Error fetching upcoming pickups:', error);
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Failed to fetch upcoming pickups'
-      });
-    }
+    res.status(200).json({
+      success: true,
+      data: upcomingPickups.slice(0, 5), // Return top 5
+      count: upcomingPickups.length
+    });
+  } catch (error) {
+    console.error('Error fetching upcoming pickups:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch upcoming pickups'
+    });
   }
+}
 
   // Get pickups for a specific post
   static async getPostPickups(req, res) {
@@ -393,7 +399,7 @@ class PickupController {
       const userID = req.user.userID;
 
       const pickup = await Pickup.findById(pickupID);
-      
+
       // Only giver can complete the pickup
       if (pickup.giverID !== userID) {
         return res.status(403).json({
@@ -403,10 +409,25 @@ class PickupController {
       }
 
       // Validate status
-      if (pickup.status !== 'In-Progress' && pickup.status !== 'Confirmed') {
+      if (pickup.status !== 'In-Transit' && pickup.status !== 'ArrivedAtPickup' && pickup.status !== 'Confirmed') {
         return res.status(400).json({
           success: false,
           message: 'Invalid pickup status for completion'
+        });
+      }
+
+      // Validate required completion data
+      if (!actualWaste || !actualWaste.finalAmount) {
+        return res.status(400).json({
+          success: false,
+          message: 'Actual waste details are required to complete the pickup'
+        });
+      }
+
+      if (paymentReceived === undefined || paymentReceived === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment information is required to complete the pickup'
         });
       }
 
@@ -519,10 +540,10 @@ class PickupController {
 
       // Allowed fields for update
       const allowedFields = [
-        'pickupDate', 
-        'pickupTime', 
-        'pickupLocation', 
-        'contactPerson', 
+        'pickupDate',
+        'pickupTime',
+        'pickupLocation',
+        'contactPerson',
         'contactNumber',
         'alternateContact',
         'specialInstructions'
@@ -534,6 +555,36 @@ class PickupController {
           filteredUpdates[field] = updates[field];
         }
       });
+
+      // Geocode the pickup location if it's being updated
+      if (filteredUpdates.pickupLocation) {
+        // Check if location is a string (from edit form) or object without coordinates
+        const isString = typeof filteredUpdates.pickupLocation === 'string';
+        const needsGeocoding = !filteredUpdates.pickupLocation.coordinates?.lat;
+
+        if (isString) {
+          console.log('⚠️ Location received as string, cannot geocode without PSGC structure. Keeping as string.');
+          // If it's a string, we can't geocode it properly without PSGC data
+          // Keep it as is for now - ideally the frontend should send proper PSGC structure
+        } else if (needsGeocoding) {
+          // Location is an object without coordinates, try to geocode it
+          console.log('🗺️ Geocoding updated pickup location...');
+          const coords = await GeocodingService.getCoordinates(filteredUpdates.pickupLocation);
+
+          if (coords) {
+            filteredUpdates.pickupLocation = {
+              ...filteredUpdates.pickupLocation,
+              coordinates: {
+                lat: coords.lat,
+                lng: coords.lng
+              }
+            };
+            console.log('✅ Updated pickup location coordinates added:', coords);
+          } else {
+            console.log('⚠️ Geocoding failed for updated pickup location, proceeding without coordinates');
+          }
+        }
+      }
 
       await pickup.update(filteredUpdates);
 

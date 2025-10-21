@@ -69,6 +69,31 @@ router.get('/', async (req, res) => {
       });
     }
 
+    console.log('Fetching profile for userID:', req.user.userID);
+
+    // Calculate total donations (kg) from completed pickups where user is giver
+    const Pickup = require('../models/Pickup');
+    let totalDonations = 0;
+
+    try {
+      const giverPickups = await Pickup.findByUser(req.user.userID, 'giver');
+          
+      // Filter and sum up completed pickups
+      const completedPickups = giverPickups.filter(pickup => {
+        const isCompleted = pickup.status === 'Completed';
+        const hasPayment = pickup.paymentReceived && pickup.paymentReceived > 0;        
+        return isCompleted && hasPayment;
+      });
+            
+      totalDonations = completedPickups.reduce((sum, pickup) => {
+        console.log(`Adding ${pickup.paymentReceived} kg to total`);
+        return sum + pickup.paymentReceived;
+      }, 0);
+    } catch (pickupError) {
+      console.error('Error calculating total donations:', pickupError);
+      // Continue with totalDonations = 0 if there's an error
+    }
+
     // Return user profile data
     const profileData = {
       success: true,
@@ -85,9 +110,9 @@ router.get('/', async (req, res) => {
         isOrganization: req.user.isOrganization || false,
         organizationName: req.user.organizationName || '',
         points: req.user.points || 0,
-        totalDonations: req.user.totalDonations || 0,
+        totalDonations: totalDonations,
         badges: req.user.badges || [],
-        profilePicture: req.user.profilePictureUrl || null,  // For backward compatibility with TopNav
+        profilePicture: req.user.profilePictureUrl || null,
         profilePictureUrl: req.user.profilePictureUrl || null,
         authProvider: req.user.authProvider || 'email',
         createdAt: req.user.createdAt,

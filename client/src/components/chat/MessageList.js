@@ -2,7 +2,7 @@ import React from 'react';
 import MessageItem from './MessageItem';
 import styles from './MessageList.module.css';
 
-const MessageList = ({ messages, currentUser, className = '' }) => {
+const MessageList = ({ messages, currentUser, className = '', messagesEndRef }) => {
   if (messages.length === 0) {
     return (
       <div className={`${styles.messagesList} ${className}`}>
@@ -17,14 +17,17 @@ const MessageList = ({ messages, currentUser, className = '' }) => {
   return (
     <div className={`${styles.messagesList} ${className}`}>
       {messages.map((message, index) => {
-        const isLastInGroup = index === messages.length - 1 || 
+        const isLastInGroup = index === messages.length - 1 ||
           messages[index + 1]?.senderID !== message.senderID;
-        const isFirstInGroup = index === 0 || 
+        const isFirstInGroup = index === 0 ||
           messages[index - 1]?.senderID !== message.senderID;
+
+        // Create a unique key - use messageID if available, otherwise use index with timestamp
+        const uniqueKey = message.messageID || `msg-${index}-${message.sentAt?.seconds || Date.now()}`;
 
         return (
           <MessageItem
-            key={message.messageID}
+            key={uniqueKey}
             message={message}
             isOwn={message.senderID === currentUser.userID}
             isLastInGroup={isLastInGroup}
@@ -33,6 +36,7 @@ const MessageList = ({ messages, currentUser, className = '' }) => {
           />
         );
       })}
+      <div ref={messagesEndRef} />
     </div>
   );
 };

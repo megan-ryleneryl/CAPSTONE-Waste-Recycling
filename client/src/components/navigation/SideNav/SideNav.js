@@ -1,24 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styles from './SideNav.module.css';
+import { useAuth } from '../../../context/AuthContext';
+import { 
+  Recycle, Sprout,
+  Plus, 
+  Home, 
+  LayoutDashboard, 
+  Map,
+  MessageCircle, 
+  Package, 
+  User, 
+  CheckSquare, 
+  Users,
+  Layers,
+  Trash2,
+  Lightbulb,
+  MessagesSquare,
+  FileText,
+  ClipboardPenLine } 
+  from 'lucide-react';
 
-const SideNav = ({ activeFilter, onFilterChange }) => {
+const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     main: true,
     filters: true,
-    actions: true
+    actions: true,
+    admin: true
   });
-  const [user, setUser] = useState(null);
+  const { currentUser: user } = useAuth();
   const location = useLocation();
-
-  useEffect(() => {
-    // Get user data from localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -28,36 +40,63 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
   };
 
   const mainNavItems = [
-    { path: '/posts', label: 'Browse Posts' },
-    { path: '/dashboard', label: 'Dashboard'},
-    { path: '/chat', label: 'Messages' },
-    { path: '/profile', label: 'Profile' },
+    { path: '/posts', label: 'Browse Posts', icon: <Home size={20} /> },
+    { path: '/dashboard', label: 'My Stats', icon: <LayoutDashboard size={20} /> },
+    { path: '/analytics', label: 'Community Stats', icon: <Map size={20} /> },
+    { path: '/chat', label: 'Messages', icon: <MessageCircle size={20} /> },
+    { path: '/pickups', label: 'My Pickups', icon: <Package size={20} /> },
+    { path: '/profile', label: 'Profile', icon: <User size={20} /> },
   ];
+
+  // Add "My Initiatives" only for Collectors and Admins
+  if (user?.isCollector || user?.isAdmin) {
+    mainNavItems.splice(5, 0, { path: '/my-initiatives', label: 'My Initiatives', icon: <Lightbulb size={20} /> });
+  }
+
+  const adminNavItems = [];
 
   // Add Approvals menu for Admin users
   if (user?.isAdmin) {
-    mainNavItems.push({ path: '/admin/approvals', label: 'Approvals' });
-    mainNavItems.push({ path: '/admin/users', label: 'All Users' });
+    adminNavItems.push({ 
+      path: '/admin/approvals', 
+      label: 'Approvals', 
+      icon: <CheckSquare size={20} /> 
+    });
+    adminNavItems.push({ 
+      path: '/admin/users', 
+      label: 'All Users', 
+      icon: <Users size={20} /> 
+    });
+    adminNavItems.push({
+      path: '/admin/edit-materials',
+      label: 'Edit Materials',
+      icon: <ClipboardPenLine size={20} />
+    });
   }
 
   const filterOptions = [
-    { id: 'all', label: 'All Posts' },
-    { id: 'recyclables', label: 'Recyclables' },
-    { id: 'initiatives', label: 'Initiatives' },
-    { id: 'forum', label: 'Forum' },
-    { id: 'nearby', label: 'Nearby' },
-    { id: 'myPosts', label: 'My Posts' }
-  ];
-
-  const quickActions = [
-    { id: 'pickups', label: 'My Pickups' },
-    { id: 'badges', label: 'My Badges' },
-    { id: 'settings', label: 'Settings' }
+    { id: 'all', label: 'All Posts', icon: <Layers size={20} /> },
+    { id: 'Waste', label: 'Waste', icon: <Recycle size={20} /> },
+    { id: 'Initiatives', label: 'Initiatives', icon: <Sprout size={20} /> },
+    { id: 'Forum', label: 'Forum', icon: <MessagesSquare size={20} /> },
+    { id: 'myPosts', label: 'My Posts', icon: <FileText size={20} /> }
   ];
 
   return (
-    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''}`}>
+    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isMobile && isOpen ? styles.open : ''}`}>
       <div className={styles.sidebarContent}>
+
+        {/* Create Post Button */}
+        <div className={styles.actionsList}>
+          <button 
+            className={styles.createbtn}
+            onClick={() => window.location.href = '/create-post'}
+            title={isCollapsed ? 'Create Post' : ''}
+          >
+            {!isCollapsed && <span className={styles.createButton}><Plus size={30}/>Create Post</span>}
+          </button>
+        </div>
+
         {/* Main Navigation */}
         <div className={styles.section}>
           <button 
@@ -90,6 +129,41 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
             </nav>
           )}
         </div>
+
+        {/* Admin Actions Section */}
+        {user?.isAdmin && (
+          <div className={styles.section}>
+            <button 
+              className={styles.sectionHeader}
+              onClick={() => toggleSection('admin')}
+            >
+              {!isCollapsed && (
+                <>
+                  <span>Admin Actions</span>
+                  <span className={`${styles.chevron} ${expandedSections.admin ? styles.expanded : ''}`}>
+                    ▼
+                  </span>
+                </>
+              )}
+            </button>
+
+            {expandedSections.admin && (
+              <div className={styles.adminList}>
+                {adminNavItems.map(action => (
+                  <Link
+                    key={action.path}
+                    to={action.path}
+                    className={`${styles.navItem} ${location.pathname === action.path ? styles.active : ''}`}
+                    title={isCollapsed ? action.label : ''}
+                  >
+                    <span className={styles.icon}>{action.icon}</span>
+                    {!isCollapsed && <span className={styles.label}>{action.label}</span>}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Filters Section - Only show on Posts page */}
         {location.pathname === '/posts' && (
@@ -129,58 +203,18 @@ const SideNav = ({ activeFilter, onFilterChange }) => {
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className={styles.section}>
-          <button 
-            className={styles.sectionHeader}
-            onClick={() => toggleSection('actions')}
-          >
-            {!isCollapsed && (
-              <>
-                <span>Quick Actions</span>
-                <span className={`${styles.chevron} ${expandedSections.actions ? styles.expanded : ''}`}>
-                  ▼
-                </span>
-              </>
-            )}
+        {isMobile && (
+          <button className={styles.mobileClose} onClick={onClose}>
+            ✕
           </button>
-
-          {expandedSections.actions && (
-            <div className={styles.actionsList}>
-              <Link 
-                to="/create-post" 
-                className={styles.createButton}
-                title={isCollapsed ? 'Create Post' : ''}
-              >
-                {!isCollapsed && <span>Create Post</span>}
-              </Link>
-              
-              {quickActions.map(action => (
-                <button 
-                  key={action.id}
-                  className={styles.actionButton}
-                  title={isCollapsed ? action.label : ''}
-                >
-                  <span className={styles.icon}>{action.icon}</span>
-                  {!isCollapsed && <span className={styles.label}>{action.label}</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* User Stats (Bottom) - Fixed position */}
       {!isCollapsed && (
         <div className={styles.userStats}>
-          <div className={styles.statItem}>
             <span className={styles.statLabel}>Points</span>
-            <span className={styles.statValue}>1,250</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Rank</span>
-            <span className={styles.statValue}>Gold</span>
-          </div>
+            <span className={styles.statValue}>{user?.points || 0}</span>
         </div>
       )}
     </aside>

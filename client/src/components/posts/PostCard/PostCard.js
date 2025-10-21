@@ -3,8 +3,17 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './PostCard.module.css';
+// Add these imports at the top of PostCard.js
+import { db } from '../../../services/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '../../../context/AuthContext';
+// Lucide icon imports
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins } from 'lucide-react';
 
-const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
+
+const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
+
+  const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -13,15 +22,20 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
 
   useEffect(() => {
     fetchPosts();
-  }, [postType]);
+
+    // Cleanup function to ensure posts is reset properly
+    return () => {
+      setPosts([]);
+    };
+  }, [postType, userID]); // Add userID as dependency
 
   const fetchPosts = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       const token = localStorage.getItem('token');
-      
+
       // Check if token exists
       if (!token) {
         console.error('No token found, redirecting to login');
@@ -30,11 +44,20 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
       }
 
       // FIXED: Use the correct protected endpoint
-      let url = 'http://localhost:3001/api/protected/posts';
-      
-      // Add filter for post type if not 'all'
-      // Only add type filter if a specific type is requested
-      if (postType && postType !== 'all') {
+      let url = 'http://localhost:3001/api/posts';
+
+      // Build query parameters
+      const params = new URLSearchParams();
+
+      // Add userID filter if provided (for "My Posts" filter)
+      if (userID) {
+        console.log('PostCard: Filtering by userID:', userID);
+        params.append('userID', userID);
+      }
+
+      // Add type filter if not 'all' and no userID filter
+      // (userID filter takes precedence - shows all post types by that user)
+      if (postType && postType !== 'all' && !userID) {
         // Map component prop values to database values
         const typeMap = {
           'Waste Post': 'Waste',
@@ -44,16 +67,19 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
           'Initiative': 'Initiative',
           'Forum': 'Forum'
         };
-        
+
         const mappedType = typeMap[postType] || postType;
-        url += `?type=${mappedType}`;
-        console.log('Filtering by type:', mappedType);
-      } else {
-        console.log('Fetching all post types');
+        console.log('PostCard: Filtering by postType:', mappedType);
+        params.append('type', mappedType);
       }
-      
-      console.log('Fetching posts from:', url);
-      
+
+      // Append params to URL if any exist
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      console.log('PostCard: Fetching posts from URL:', url);
+          
       const response = await axios.get(url, {
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -61,31 +87,33 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
         }
       });
       
-      console.log('Posts response:', response.data);
-      console.log('Number of posts:', response.data.posts?.length);
-      console.log('Post types:', response.data.posts?.map(p => p.postType));
-      
       if (response.data.success) {
+        // Ensure posts is always an array
+        const postsData = response.data.posts;
+        if (!Array.isArray(postsData)) {
+          console.error('Posts data is not an array:', postsData);
+          setPosts([]);
+          return;
+        }
+        
         // Limit posts based on maxPosts prop
-        const limitedPosts = response.data.posts.slice(0, maxPosts);
+        const limitedPosts = postsData.slice(0, maxPosts);
         
         // Log the types of posts received
         const postTypes = limitedPosts.reduce((acc, post) => {
           acc[post.postType] = (acc[post.postType] || 0) + 1;
           return acc;
         }, {});
-        console.log('Post type distribution:', postTypes);
-        console.log('Sample post with user:', limitedPosts[0]);
         
         // Check if posts already have user data
-        if (limitedPosts.length > 0 && !limitedPosts[0].user) {
-          console.log('Posts do not have user data, fetching separately...');
-          
+        if (limitedPosts.length > 0 && !limitedPosts[0].user) {          
           // Fetch user details for each post if not included
           const postsWithUsers = await Promise.all(
             limitedPosts.map(async (post) => {
               try {
                 const userResponse = await axios.get(
+                  
+
                   `http://localhost:3001/api/protected/users/${post.userID}`,
                   {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -114,10 +142,11 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
           setPosts(postsWithUsers);
         } else {
           // Posts already have user data
-          console.log('Posts already include user data');
           setPosts(limitedPosts);
         }
       } else {
+        console.error('Response not successful:', response.data);
+        setPosts([]); // Set empty array on failure
         setError('Failed to load posts');
       }
     } catch (err) {
@@ -203,15 +232,26 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
     return postDate.toLocaleDateString();
   };
 
+  // Handle clicking on the post card
+  const handlePostClick = (postId, event) => {
+    // Prevent navigation if clicking on buttons or interactive elements
+    if (event.target.closest('button') || event.target.closest('a')) {
+      return;
+    }
+    navigate(`/posts/${postId}`);
+  };
+
   // Handle image carousel navigation
-  const handlePrevImage = (postId, totalImages) => {
+  const handlePrevImage = (event, postId, totalImages) => {
+    event.stopPropagation(); // Prevent post navigation
     setImageIndexes(prev => ({
       ...prev,
       [postId]: prev[postId] > 0 ? prev[postId] - 1 : totalImages - 1
     }));
   };
 
-  const handleNextImage = (postId, totalImages) => {
+  const handleNextImage = (event, postId, totalImages) => {
+    event.stopPropagation(); // Prevent post navigation
     setImageIndexes(prev => ({
       ...prev,
       [postId]: (prev[postId] || 0) < totalImages - 1 ? (prev[postId] || 0) + 1 : 0
@@ -222,9 +262,31 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
   const formatMaterials = (materials) => {
     if (!materials) return 'Not specified';
     if (Array.isArray(materials)) {
-      return materials.length > 0 ? materials.join(', ') : 'Not specified';
+      if (materials.length === 0) return 'Not specified';
+
+      // Check if materials are objects with materialName
+      if (typeof materials[0] === 'object' && materials[0].materialName) {
+        return materials.map(m => m.materialName).join(', ');
+      }
+
+      // Fallback for old string format
+      return materials.join(', ');
     }
     return materials.toString();
+  };
+
+  // Format location object to string
+  const formatLocation = (location) => {
+    if (!location) return 'Location not specified';
+    if (typeof location === 'string') return location;
+
+    const parts = [];
+    if (location.barangay?.name) parts.push(location.barangay.name);
+    if (location.city?.name) parts.push(location.city.name);
+    if (location.province?.name && location.province.name !== 'NCR') parts.push(location.province.name);
+    if (location.region?.name) parts.push(location.region.name);
+
+    return parts.length > 0 ? parts.join(', ') : 'Location not specified';
   };
 
   // Format pickup time preference
@@ -258,45 +320,100 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
   };
 
   // Handle action button clicks
-  const handleCollect = async (postId) => {
+  const handleCollect = async (event, postId) => {
+    event.stopPropagation(); // Prevent post navigation
     try {
-      console.log('Collecting post:', postId);
-      // For now, just navigate to the post details
       navigate(`/posts/${postId}`);
     } catch (err) {
       console.error('Error collecting post:', err);
     }
   };
 
-  const handleSupport = async (postId) => {
+  const handleSupport = async (event, postId) => {
+    event.stopPropagation(); // Prevent post navigation
     try {
-      console.log('Supporting initiative:', postId);
       navigate(`/posts/${postId}`);
     } catch (err) {
       console.error('Error supporting initiative:', err);
     }
   };
 
-  const handleLike = async (postId) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `http://localhost:3001/api/posts/${postId}/like`,
-        {},
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
+  const handleLike = async (event, postId) => {
+  event.stopPropagation();
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `http://localhost:3001/api/posts/${postId}/like`,
+      {},
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+
+    if (response.data.success) {
+      // Update the specific post in state with the count from backend
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.postID === postId
+            ? {
+                ...post,
+                isLiked: response.data.liked,
+                likeCount: response.data.likeCount // Use count from backend
+              }
+            : post
+        )
       );
-      // Refresh posts to update like count
-      fetchPosts();
-    } catch (err) {
-      console.error('Error liking post:', err);
     }
+  } catch (err) {
+    console.error('Error liking post:', err);
+    alert(err.response?.data?.message || 'Failed to like post');
+  }
+};
+
+  const handleComment = (event, postId) => {
+    event.stopPropagation(); // Prevent post navigation
+    navigate(`/posts/${postId}#comments`);
   };
 
-  const handleComment = (postId) => {
-    navigate(`/posts/${postId}`);
-  };
+const handleMessageOwner = async (post, event) => {
+  // Stop event propagation
+  if (event) {
+    event.stopPropagation();
+  }
+
+  // Check if user is logged in
+  if (!currentUser || !currentUser.userID) {
+    alert("Please log in to message the post owner");
+    navigate('/login');
+    return;
+  }
+
+  // Check if trying to message yourself
+  if (currentUser.userID === post.userID) {
+    alert("You can't message yourself!");
+    return;
+  }
+
+  try {
+    // Navigate to chat
+    navigate('/chat', {
+      state: {
+        postID: post.postID || post.id,
+        otherUser: {
+          userID: post.userID,
+          name: post.user?.firstName ? `${post.user.firstName} ${post.user.lastName}` : 'User',
+          firstName: post.user?.firstName || 'Unknown',
+          lastName: post.user?.lastName || 'User'
+        },
+        postData: post
+      }
+    });
+  } catch (error) {
+    console.error('Error creating message:', error);
+    alert('Failed to start conversation. Please try again.');
+  }
+};
 
   // Loading state
   if (loading) {
@@ -330,7 +447,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
   }
 
   // Empty state
-  if (!posts || posts.length === 0) {
+  if (!posts || !Array.isArray(posts) || posts.length === 0) {
     return (
       <div className={styles.container}>
         <div className={styles.empty}>
@@ -351,7 +468,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
 
   return (
     <div className={styles.container}>
-      {posts.map((post) => {
+      {Array.isArray(posts) && posts.map((post) => {
         const currentImageIndex = imageIndexes[post.postID] || 0;
         const postImages = post.images || [];
         
@@ -371,73 +488,94 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
         
         // Get profile picture
         const profilePicture = user.profilePictureUrl || post.profilePictureUrl || null;
+        
         return (
-          <div key={post.postID} className={styles.postCard}>
-
-                {/* Post Header with User Info */}
-                <div className={styles.header}>
-                  <div className={styles.userInfo}>
-                    <div className={styles.avatar}>
-                      {profilePicture ? (
-                        <img 
-                          src={profilePicture} 
-                          alt={displayName}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                        ) : null}
-                        <span style={profilePicture ? {display: 'none'} : {}}>
-                          {userInitial}
-                        </span>
-                    </div>
-                    <div className={styles.userDetails}>
-                      <h3 className={styles.authorName}>
-                        {displayName}
-                      </h3>
-                      {post.user?.organizationName && (
-                        <span className={styles.username}>
-                          {`${post.user.firstName} ${post.user.lastName}`}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className={styles.timestamp}>
-                    {formatTimestamp(post.createdAt)}
+          <div 
+            key={post.postID} 
+            className={styles.postCard}
+            onClick={(e) => handlePostClick(post.postID, e)}
+            style={{ cursor: 'pointer' }}
+          >
+            {/* Post Header with User Info */}
+            <div className={styles.header}>
+              <div className={styles.userInfo}>
+                <div className={styles.avatar}>
+                  {profilePicture ? (
+                    <img
+                      src={profilePicture}
+                      alt={displayName}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <span style={profilePicture ? {display: 'none'} : {}}>
+                    {userInitial}
                   </span>
                 </div>
-
-            {/* Top Section of the post card */}
-            <div className={styles.topSection}>
-
-                {/* Post Type Tag */}
-                <div className={styles.tagContainer}>
-                  <span className={`${styles.tag} ${
-                    post.postType === 'Waste' ? styles.wasteTag :
-                    post.postType === 'Initiative' ? styles.initiativeTag :
-                    styles.forumTag
-                  }`}>
-                    <span className={styles.tagIcon}>
-                      {post.postType === 'Waste' ? '♻️' :
-                      post.postType === 'Initiative' ? '🌱' : '💬'}
-                    </span>
-                    {post.postType} Post
-                  </span>
-                </div>
-
-                {/* Post Title and Description */}
-                <h2 className={styles.title}>{post.title}</h2>
-                <p className={styles.description}>
-                  {post.description?.length > 100 
-                    ? `${post.description.substring(0, 100)}...` 
-                    : post.description}
-                  {post.description?.length > 100 && (
-                    <span className={styles.seeMore} onClick={() => navigate(`/posts/${post.postID}`)}>
-                      See more
+                <div className={styles.userDetails}>
+                  <h3 className={styles.authorName}>
+                    {displayName}
+                  </h3>
+                  {user.organizationName && user.firstName && (
+                    <span className={styles.username}>
+                      {`${user.firstName} ${user.lastName}`}
                     </span>
                   )}
-                </p>
+                </div>
+                {currentUser && currentUser.userID !== post.userID && (
+                  <button
+                    className={styles.messageButton}
+                    onClick={(e) => handleMessageOwner(post, e)}
+                    title="Message Owner"
+                  >
+                    <MessageCircle size={18} />
+                  </button>
+                )}
+              </div>
+              <span className={styles.timestamp}>
+                {formatTimestamp(post.createdAt)}
+              </span>
+            </div>
+
+            {/* Top Section */}
+              <div className={styles.topSection}>
+              
+              {/* Post Type Tag */}
+              <div className={styles.tagContainer}>
+                <span className={`${styles.tag} ${
+                  post.postType === 'Waste' ? styles.wasteTag :
+                  post.postType === 'Initiative' ? styles.initiativeTag :
+                  styles.forumTag
+                }`}>
+                  <span className={styles.tagIcon}>
+                    {post.postType === 'Waste' ? <Recycle size={16} /> :
+                    post.postType === 'Initiative' ? <Sprout size={16} /> :
+                    <MessageSquare size={16} />}
+                  </span>
+                  <span className={styles.tagText}>
+                  </span>
+                  {post.postType} Post
+                </span>
+              </div>
+
+              {/* Post Title and Description */}
+              <h2 className={styles.title}>{post.title}</h2>
+              <p className={styles.description}>
+                {post.description?.length > 200 
+                  ? `${post.description.substring(0, 200)}...` 
+                  : post.description}
+                {post.description?.length > 200 && (
+                  <Link 
+                    to={`/posts/${post.postID}`} 
+                    className={styles.seeMore}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    See more
+                  </Link>
+                )}
+              </p>
 
             </div>
 
@@ -448,19 +586,23 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
                   src={postImages[currentImageIndex]} 
                   alt={`${post.title} - Image ${currentImageIndex + 1}`}
                   className={styles.postImage}
+                  onError={(e) => {
+                    console.error('Failed to load image:', postImages[currentImageIndex]);
+                    e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23f3f4f6" width="400" height="300"/%3E%3Ctext fill="%239ca3af" font-family="sans-serif" font-size="18" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EImage not available%3C/text%3E%3C/svg%3E';
+                  }}
                 />
                 {postImages.length > 1 && (
                   <>
                     <button 
                       className={`${styles.navButton} ${styles.prevButton}`}
-                      onClick={() => handlePrevImage(post.postID, postImages.length)}
+                      onClick={(e) => handlePrevImage(e, post.postID, postImages.length)}
                       aria-label="Previous image"
                     >
                       ←
                     </button>
                     <button 
                       className={`${styles.navButton} ${styles.nextButton}`}
-                      onClick={() => handleNextImage(post.postID, postImages.length)}
+                      onClick={(e) => handleNextImage(e, post.postID, postImages.length)}
                       aria-label="Next image"
                     >
                       →
@@ -479,24 +621,24 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
               {post.postType === 'Waste' && (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>📦</span>
+                    <span className={styles.detailIcon}><Package size={18} /></span>
                     <span className={styles.detailText}>
                       {formatMaterials(post.materials)}
                     </span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>📍</span>
-                    <span className={styles.detailText}>{post.location}</span>
+                    <span className={styles.detailIcon}><MapPin size={18} /></span>
+                    <span className={styles.detailText}>{formatLocation(post.location)}</span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>⚖️</span>
+                    <span className={styles.detailIcon}><Weight size={18} /></span>
                     <span className={styles.detailText}>
                       {post.quantity} {post.unit || 'kg'}
                     </span>
                   </div>
                   {formatPickupTime(post.pickupDate, post.pickupTime) && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailIcon}>🕐</span>
+                      <span className={styles.detailIcon}><Clock size={18} /></span>
                       <span className={styles.detailText}>
                         {formatPickupTime(post.pickupDate, post.pickupTime)}
                       </span>
@@ -504,7 +646,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
                   )}
                   {post.price > 0 && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailIcon}>💰</span>
+                      <span className={styles.detailIcon}><Coins size={18} /></span>
                       <span className={styles.detailText}>₱{post.price}</span>
                     </div>
                   )}
@@ -520,17 +662,17 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
               {post.postType === 'Initiative' && (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>🎯</span>
+                    <span className={styles.detailIcon}><Goal size={18} /></span>
                     <span className={styles.detailText}>{post.goal || 'Environmental initiative'}</span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>📍</span>
-                    <span className={styles.detailText}>{post.location}</span>
+                    <span className={styles.detailIcon}><MapPin size={18} /></span>
+                    <span className={styles.detailText}>{formatLocation(post.location)}</span>
                   </div>
                   {post.targetAmount && (
                     <>
                       <div className={styles.detailItem}>
-                        <span className={styles.detailIcon}>📊</span>
+                        <span className={styles.detailIcon}><BarChart3 size={18} /></span>
                         <span className={styles.detailText}>
                           Progress: {post.currentAmount || 0} / {post.targetAmount} kg
                         </span>
@@ -550,7 +692,7 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
                   )}
                   {post.endDate && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailIcon}>📅</span>
+                      <span className={styles.detailIcon}><Calendar size={18} /></span>
                       <span className={styles.detailText}>
                         Ends: {(() => {
                           let endDate;
@@ -572,12 +714,12 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
               {post.postType === 'Forum' && (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>🏷️</span>
+                    <span className={styles.detailIcon}><Tag size={18} /></span>
                     <span className={styles.detailText}>{post.category || 'General'}</span>
                   </div>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}>📍</span>
-                    <span className={styles.detailText}>{post.location}</span>
+                    <span className={styles.detailIcon}><MapPin size={18} /></span>
+                    <span className={styles.detailText}>{formatLocation(post.location)}</span>
                   </div>
                   {post.tags && post.tags.length > 0 && (
                     <div className={styles.tags}>
@@ -596,64 +738,100 @@ const PostCard = ({ postType = 'all', maxPosts = 20 }) => {
             {post.postType === 'Forum' && (
               <div className={styles.interactions}>
                 <button 
-                  className={styles.interactionButton}
-                  onClick={() => handleLike(post.postID)}
+                  className={`${styles.interactionButton} ${post.isLiked ? styles.liked : ''}`}
+                  onClick={(e) => handleLike(e, post.postID)}
+                  title={post.isLiked ? 'Unlike' : 'Like'}
                 >
-                  <span>{post.isLiked ? '❤️' : '🤍'}</span>
-                  <span>{post.likeCount || 0} Likes</span>
+                  <span className={styles.interactionIcon}>
+                    <Heart size={18} fill={post.isLiked ? 'currentColor' : 'none'} />
+                  </span>
+                  <span>{post.likeCount || 0} {post.likeCount === 1 ? 'Like' : 'Likes'}</span>
                 </button>
                 <button 
                   className={styles.interactionButton}
-                  onClick={() => handleComment(post.postID)}
+                  onClick={(e) => handleComment(e, post.postID)}
+                  title="View comments"
                 >
-                  <span>💬</span>
-                  <span>{post.commentCount || 0} Comments</span>
+                  <span className={styles.interactionIcon}><MessageCircle size={18} /></span>
+                  <span>{post.commentCount || 0} {post.commentCount === 1 ? 'Comment' : 'Comments'}</span>
                 </button>
               </div>
             )}
 
             {/* Action Buttons */}
             <div className={styles.actionContainer}>
-              {post.postType === 'Waste' && post.status === 'Available' && (
-                <button 
+              {/* Waste Post Actions */}
+              {post.postType === 'Waste' && post.userID === currentUser?.userID && (
+                <div className={styles.ownPostNote}>
+                  <span>Your post</span>
+                  {post.status === 'Claimed' && <span className={styles.statusDot}>●</span>}
+                  {post.status === 'Claimed' && <span>Claimed</span>}
+                </div>
+              )}
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && (currentUser?.isCollector || currentUser?.isAdmin) && (
+                <button
                   className={`${styles.actionButton} ${styles.collectButton}`}
-                  onClick={() => handleCollect(post.postID)}
+                  onClick={(e) => handleCollect(e, post.postID)}
                 >
                   Collect
                 </button>
               )}
-              {post.postType === 'Waste' && post.status === 'Claimed' && (
-                <button 
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && !(currentUser?.isCollector || currentUser?.isAdmin) && (
+                <div className={styles.infoText}>
+                  <span>Collector accounts only</span>
+                </div>
+              )}
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy === currentUser?.userID && (
+                <div className={styles.yourClaimNote}>
+                  <span>You claimed this</span>
+                </div>
+              )}
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy !== currentUser?.userID && (
+                <button
                   className={`${styles.actionButton} ${styles.claimedButton}`}
                   disabled
                   style={{ background: '#9CA3AF', cursor: 'not-allowed' }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   Claimed
                 </button>
               )}
-              {post.postType === 'Initiative' && (
-                <button 
+              {post.postType === 'Waste' && post.status === 'Completed' && (
+                <div className={styles.completedNote}>
+                  <span>Completed</span>
+                </div>
+              )}
+
+              {/* Initiative Post Actions */}
+              {post.postType === 'Initiative' && post.userID === currentUser?.userID && (
+                <div className={styles.ownPostNote}>
+                  <span>Your initiative</span>
+                </div>
+              )}
+              {post.postType === 'Initiative' && post.userID !== currentUser?.userID && post.status === 'Active' && (
+                <button
                   className={`${styles.actionButton} ${styles.supportButton}`}
-                  onClick={() => handleSupport(post.postID)}
+                  onClick={(e) => handleSupport(e, post.postID)}
                 >
                   Support
                 </button>
               )}
+              {post.postType === 'Initiative' && post.userID !== currentUser?.userID && post.status !== 'Active' && (
+                <div className={styles.infoText}>
+                  <span>Not accepting support</span>
+                </div>
+              )}
+
+              {/* Forum Post Actions */}
               {post.postType === 'Forum' && (
-                <button 
+                <button
                   className={`${styles.actionButton} ${styles.viewButton}`}
-                  onClick={() => navigate(`/posts/${post.postID}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/posts/${post.postID}`);
+                  }}
                 >
                   Join Discussion
-                </button>
-              )}
-              {post.isOwner && (
-                <button 
-                  className={`${styles.actionButton} ${styles.editButton}`}
-                  onClick={() => navigate(`/posts/edit/${post.postID}`)}
-                  style={{ marginLeft: 'auto', background: '#F0924C' }}
-                >
-                  Edit
                 </button>
               )}
             </div>

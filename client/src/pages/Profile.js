@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
@@ -1004,15 +1005,22 @@ const Profile = ({ user: propsUser }) => {
     }
   };
 
-  const handlePreferredLocationsSubmit = async (locations) => {
+  const handlePreferredLocationsSubmit = async (formData) => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Extract the preferredLocations from FormData
+      const locationsJSON = formData.get('preferredLocations');
+      const locations = JSON.parse(locationsJSON);
+      
+      // Send to backend
       const response = await axios.put(
         'http://localhost:3001/api/protected/profile',
         { preferredLocations: locations },
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'  // Use JSON since we're sending parsed data
           }
         }
       );
@@ -1033,6 +1041,7 @@ const Profile = ({ user: propsUser }) => {
     } catch (error) {
       console.error('Error updating preferred locations:', error);
       setError('Failed to update preferred locations');
+      alert('Failed to save locations. Please try again.');
     }
   };
 
@@ -1139,40 +1148,37 @@ const Profile = ({ user: propsUser }) => {
                     </p>
                   )}
                   
-                  <div className={styles.statusContainer}>
-                    <span 
-                      className={styles.statusBadge}
-                      style={{
-                        backgroundColor: 
-                          user?.status === 'Verified' ? '#E8F5E9' :
-                          user?.status === 'Pending' ? '#FFF3E0' :
-                          user?.status === 'Submitted' ? '#FFF3E0' :
-                          user?.status === 'Rejected' ? '#FFEBEE' : '#FFF3E0',
-                        color: 
-                          user?.status === 'Verified' ? '#2E7D32' :
-                          user?.status === 'Pending' ? '#E65100' :
-                          user?.status === 'Submitted' ? '#E65100' :
-                          user?.status === 'Rejected' ? '#C62828' : '#E65100'
-                      }}
-                    >
-                      <span 
-                        className={styles.statusDot} 
-                        style={{ 
-                          backgroundColor: 
-                            user?.status === 'Verified' ? '#2E7D32' :
-                            user?.status === 'Pending' ? '#E65100' :
-                            user?.status === 'Submitted' ? '#E65100' :
-                            user?.status === 'Rejected' ? '#C62828' : '#E65100'
-                        }}
-                      ></span>
+                  <div className={styles.badgesContainer}>
+                    {/* User Status Badge */}
+                    <span className={`${styles.badge} ${styles[`status${user?.status || 'Pending'}`]}`}>
                       {user?.status === 'Verified' ? 'Verified' :
-                      user?.status === 'Pending' ? 'Pending Verification' :
-                      user?.status === 'Submitted' ? 'Waiting for Admin Approval' :
-                      user?.status === 'Rejected' ? 'Verification Rejected' : 'Pending Verification'}
+                      user?.status === 'Submitted' ? 'Submitted' :
+                      user?.status === 'Suspended' ? 'Suspended' :
+                      user?.status === 'Rejected' ? 'Rejected' : 'Pending'}
                     </span>
-
+                    
+                    {/* Giver Badge - All users have this */}
+                    <span className={`${styles.badge} ${styles.roleGiver}`}>
+                      Giver
+                    </span>
+                    
+                    {/* Collector Badge */}
+                    {user?.isCollector && (
+                      <span className={`${styles.badge} ${styles.roleCollector}`}>
+                        Collector
+                      </span>
+                    )}
+                    
+                    {/* Admin Badge */}
+                    {user?.isAdmin && (
+                      <span className={`${styles.badge} ${styles.roleAdmin}`}>
+                        Admin
+                      </span>
+                    )}
+                    
+                    {/* Organization Badge */}
                     {user?.isOrganization && (
-                      <span className={styles.organizationBadge}>
+                      <span className={`${styles.badge} ${styles.roleOrganization}`}>
                         Organization
                       </span>
                     )}
@@ -1180,12 +1186,26 @@ const Profile = ({ user: propsUser }) => {
                 </div>
                 
                 <div className={styles.profileActions}>
-                  <button 
-                    className={styles.editButton}
-                    onClick={() => setActiveModal('edit')}
-                  >
-                    Edit Profile
-                  </button>
+                  <div className={styles.iconButtonGroup}>
+                    <button
+                      className={styles.iconButton}
+                      onClick={() => setActiveModal('edit')}
+                      title="Edit Profile"
+                    >
+                      <Pencil size={20} />
+                    </button>
+
+                    <button
+                      className={styles.iconButtonDelete}
+                      onClick={() => {
+                        setActiveModal(null);
+                        setShowDeleteModal(true);
+                      }}
+                      title="Delete Account"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
 
                   {userApplications.length > 0 && (
                     <button
@@ -1204,16 +1224,6 @@ const Profile = ({ user: propsUser }) => {
                       View Application Status ({userApplications.length})
                     </button>
                   )}
-
-                  <button
-                    className={styles.deleteButton}
-                    onClick={() => {
-                      setActiveModal(null);
-                      setShowDeleteModal(true);
-                    }}
-                  >
-                    Delete Account
-                  </button>
                 </div>
               </div>
             </div>
@@ -1224,7 +1234,7 @@ const Profile = ({ user: propsUser }) => {
                 <span>Points: {user.points || 0}</span>
               </div>
               <div className={styles.statItem}>
-                <strong>{user.totalDonations || '0 kg'}</strong> Donations
+                <strong>{user.totalDonations || '0'}</strong> kg Donations
               </div>
             </div>
 
@@ -1276,12 +1286,37 @@ const Profile = ({ user: propsUser }) => {
                   <div className={styles.preferenceValue}>
                     {user?.preferredLocations?.length > 0 ? (
                       <ul className={styles.preferenceList}>
-                        {user.preferredLocations.map((location, index) => (
-                          <li key={index}>
-                            <strong>{location.name}</strong>
-                            {location.address && <span> - {location.address}</span>}
-                          </li>
-                        ))}
+                        {user.preferredLocations.map((location, index) => {
+                          // Handle both old string format and new structured format
+                          if (typeof location === 'string') {
+                            return <li key={index}>{location}</li>;
+                          }
+                          
+                          // New structured format
+                          return (
+                            <li key={index}>
+                              <div>
+                                <strong>{location.name}</strong>
+                                <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
+                                  {location.addressLine}
+                                </div>
+                                <div style={{ fontSize: '0.8em', color: '#999', marginTop: '2px' }}>
+                                  {location.barangay?.name && (
+                                    <>
+                                      {location.barangay.name}, {location.city?.name}
+                                      {location.province?.name && location.province.name !== 'NCR' && (
+                                        <>, {location.province.name}</>
+                                      )}
+                                      {location.region?.name && (
+                                        <>, {location.region.name}</>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     ) : (
                       <p className={styles.noPreference}>No preferred locations set</p>

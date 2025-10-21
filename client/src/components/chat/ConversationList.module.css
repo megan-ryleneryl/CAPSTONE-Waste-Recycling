@@ -106,3 +106,109 @@
   color: #95a5a6;
   margin-top: 0.5rem;
 }
+
+/* Tablet styles */
+@media (max-width: 1024px) {
+  .header {
+    padding: 1rem 1.25rem;
+  }
+
+  .header h2 {
+    font-size: 1.2rem;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .conversationList {
+    border-radius: 0;
+  }
+
+  .header {
+    padding: 1rem;
+  }
+
+  .header h2 {
+    font-size: 1.125rem;
+  }
+
+  .refreshButton {
+    padding: 0.4rem;
+  }
+
+  .conversationItems::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .loading, .error, .emptyState {
+    padding: 1.5rem;
+  }
+
+  .loadingSpinner {
+    width: 26px;
+    height: 26px;
+    border-width: 2.5px;
+  }
+
+  .retryButton {
+    padding: 0.4rem 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .emptyIcon {
+    font-size: 2.5rem;
+  }
+
+  .emptyState p {
+    font-size: 0.875rem;
+  }
+
+  .emptyHint {
+    font-size: 0.8rem;
+  }
+}
+
+/* Small mobile styles */
+@media (max-width: 480px) {
+  .header {
+    padding: 0.875rem;
+  }
+
+  .header h2 {
+    font-size: 1rem;
+  }
+
+  .refreshButton {
+    padding: 0.35rem;
+  }
+
+  .loading, .error, .emptyState {
+    padding: 1.25rem;
+  }
+
+  .loadingSpinner {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+    margin-bottom: 0.75rem;
+  }
+
+  .retryButton {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .emptyIcon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .emptyState p {
+    font-size: 0.8125rem;
+  }
+
+  .emptyHint {
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+  }
+}

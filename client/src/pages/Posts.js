@@ -1,21 +1,46 @@
-// PostList.js
 import React from 'react';
-// From any page in src/pages/
 import PostCard from '../components/posts/PostCard/PostCard';
+import { useAuth } from '../context/AuthContext';
 
-const PostList = () => {
+const Posts = ({ activeFilter = 'all' }) => {
+  const { currentUser } = useAuth();
+  
+  // Map filter IDs from SideNav to PostCard postType values
+  const getPostTypeFromFilter = (filter) => {
+    switch(filter) {
+      case 'Waste':
+        return 'Waste';
+      case 'Initiatives':
+        return 'Initiative';
+      case 'Forum':
+        return 'Forum';
+      case 'myPosts':
+        // For "My Posts", we still pass 'all' but with userID
+        return 'all';
+      case 'all':
+      default:
+        return 'all';
+    }
+  };
+
+  const postType = getPostTypeFromFilter(activeFilter);
+  const userID = activeFilter === 'myPosts' ? currentUser?.userID : null;
+
+  console.log('Posts Component - activeFilter:', activeFilter);
+  console.log('Posts Component - currentUser:', currentUser);
+  console.log('Posts Component - userID being passed:', userID);
+  console.log('Posts Component - postType being passed:', postType);
+
   return (
     <div>
-      
-      {/* Show all posts */}
-      <PostCard postType="all" maxPosts={20} />
-      
-      {/* Or filter by specific post type */}
-      {/* <PostCard postType="Waste Post" maxPosts={10} /> */}
-      {/* <PostCard postType="Initiative Post" maxPosts={10} /> */}
-      {/* <PostCard postType="Forum Post" maxPosts={10} /> */}
+      {/* Pass the appropriate postType and userID to PostCard */}
+      <PostCard 
+        postType={postType} 
+        userID={userID}
+        maxPosts={20} 
+      />
     </div>
   );
 };
 
-export default PostList;
+export default Posts;

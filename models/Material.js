@@ -7,6 +7,7 @@ class Material {
     this.materialID = data.materialID || uuidv4();
     this.category = data.category || 'Recyclable';
     this.type = data.type || '';
+    this.displayName = data.displayName || data.type || '';
     this.averagePricePerKg = data.averagePricePerKg || 0;
     this.pricingHistory = data.pricingHistory || []; // Array of {price, date}
     this.createdAt = data.createdAt || new Date();
@@ -16,10 +17,10 @@ class Material {
   // Validation
   validate() {
     const validTypes = [
-      'pet_bottles', 'plastic_bottle_caps', 'hdpe_containers', 
-      'plastic_bags_sachets', 'courier_bags', 'plastic_cups', 
-      'microwavable_containers', 'used_beverage_cartons', 
-      'aluminum_cans', 'boxes_cartons', 'paper'
+      'cardboard', 'paper', 'wooden_utensils', 
+      'pet_bottles', 'plastic_utensils', 'glass_bottles', 
+      'metals', 'organic_waste', 
+      'textiles', 'electronics'
     ];
     
     const errors = [];
@@ -42,6 +43,7 @@ class Material {
       materialID: this.materialID,
       category: this.category,
       type: this.type,
+      displayName: this.displayName,
       averagePricePerKg: this.averagePricePerKg,
       pricingHistory: this.pricingHistory,
       createdAt: this.createdAt,

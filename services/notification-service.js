@@ -153,16 +153,16 @@ class NotificationService {
     }, userToken);
   }
 
-  // Message notifications
-  async notifyNewMessage(receiverID, senderName, messagePreview, messageID, receiverToken = null) {
-    return await this.createAndSendNotification({
-      userID: receiverID,
-      type: 'Message',
-      title: `Message from ${senderName}`,
-      message: messagePreview,
-      referenceID: messageID
-    }, receiverToken);
-  }
+// Message notifications
+async notifyNewMessage(receiverID, senderName, messagePreview, messageID, postTitle = '', receiverToken = null) {
+  return await this.createAndSendNotification({
+    userID: receiverID,
+    type: 'Message',
+    title: `Message from ${senderName}`,
+    message: postTitle ? `Re: ${postTitle} - ${messagePreview}` : messagePreview,
+    referenceID: messageID
+  }, receiverToken);
+}
 
   // Comment notifications
   async notifyNewComment(postOwnerID, commenterName, postTitle, commentID, ownerToken = null) {

@@ -1,0 +1,679 @@
+/* Page Font */
+body {
+  font-family: 'Raleway', sans-serif;
+}
+
+/* Days Grid */
+.daysGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.dayOption {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.dayOption:hover {
+  background: #e9ecef;
+}
+
+.dayOption:has(input:checked) {
+  background: #e8f5e7;
+  border-color: #3B6535;
+}
+
+.dayLabel {
+  margin-left: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Time Slots Grid */
+.timeSlotsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.timeSlot {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.timeSlot:hover {
+  background: #e9ecef;
+}
+
+.timeSlot:has(input:checked) {
+  background: #e8f5e7;
+  border-color: #3B6535;
+}
+
+.slotContent {
+  margin-left: 0.5rem;
+}
+
+.slotLabel {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Custom Time */
+.customTimeContainer {
+  margin-top: 0.5rem;
+}
+
+.customInput {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.customInput:focus {
+  outline: none;
+  border-color: #3B6535;
+  box-shadow: 0 0 0 3px rgba(59, 101, 53, 0.1);
+}
+
+.helpText {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Checkbox and Radio Styles */
+.checkbox,
+.radio {
+  margin-right: 0.5rem;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Summary */
+.summary {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.summary h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.summary p {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.summary strong {
+  color: #3B6535;
+  font-weight: 600;
+}
+
+.noSelection {
+  font-style: italic;
+  color: #999;
+}
+
+/* Modal Backdrop */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: transparent;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  position: relative;
+  animation: modalSlideIn 0.3s ease forwards;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalContent {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  background: linear-gradient(135deg, #3B6535 0%, #2d4e29 100%);
+  color: #B3F2AC;
+  padding: 1.5rem 2rem;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #B3F2AC;
+  padding-right: 40px;
+}
+
+.closeButton {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #B3F2AC;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* Form Styles */
+.form {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: #D9D9D9 #f0f0f0;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 1rem 0;
+}
+
+.formTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #3B6535;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Buttons */
+.addButton {
+  background: #3B6535;
+  color: #B3F2AC;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addButton:hover {
+  background: #2d4e29;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 101, 53, 0.3);
+}
+
+.ctaButton {
+  background: #3B6535;
+  color: #B3F2AC;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ctaButton:hover {
+  background: #2d4e29;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
+}
+
+/* Locations List */
+.locationsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.locationCard {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.locationCard:hover {
+  border-color: #3B6535;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.locationHeader {
+  display: flex;
+  gap: 1rem;
+}
+
+.locationInfo {
+  flex: 1;
+}
+
+.locationName {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.primaryBadge {
+  background: #3B6535;
+  color: #B3F2AC;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.locationAddress {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.locationInstructions {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #999;
+  font-style: italic;
+}
+
+.locationActions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.setPrimaryButton,
+.deleteLocationButton {
+  background: transparent;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.setPrimaryButton {
+  color: #3B6535;
+  border: 1px solid #3B6535;
+}
+
+.setPrimaryButton:hover {
+  background: #3B6535;
+  color: white;
+}
+
+.deleteLocationButton {
+  color: #dc3545;
+  border: 1px solid #dc3545;
+}
+
+.deleteLocationButton:hover {
+  background: #c82333;
+  color: white;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.emptyState p {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+/* Add Location Form */
+.addLocationForm {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  border: 2px solid #3B6535;
+}
+
+/* Form Group and Inputs */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.label {
+  display: block;
+  font-weight: 600;
+  color: #333;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.hint {
+  font-weight: normal;
+  color: #666;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.input,
+.textarea,
+.select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  outline: none;
+  border-color: #3B6535;
+  box-shadow: 0 0 0 3px rgba(59, 101, 53, 0.1);
+}
+
+.input:hover:not(:focus),
+.textarea:hover:not(:focus),
+.select:hover:not(:focus) {
+  border-color: #999;
+}
+
+.select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.5em;
+  padding-right: 2.5rem;
+}
+
+.select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Location Section in Modal */
+.locationSectionInModal .formTitle {
+  margin-top: 0;
+}
+
+/* Modal Footer */
+.modalFooter {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 1.5rem;
+}
+
+.saveButton {
+  background: #3B6535;
+  color: #B3F2AC;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.saveButton:hover:not(:disabled) {
+  background: #2d4e29;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submitButton {
+  background: #3B6535;
+  color: #B3F2AC;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #2d4e29;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  background: transparent;
+  color: #666;
+  border: 2px solid #e0e0e0;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: #f8f9fa;
+  border-color: #999;
+  color: #333;
+}
+
+/* Add Location Actions */
+.addLocationActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Optional Label */
+.optional {
+  font-weight: 400;
+  color: #999;
+  font-size: 0.85rem;
+  margin-left: 0.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .modal {
+    max-width: 100%;
+    margin: 0 10px;
+  }
+
+  .modalHeader {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .modalHeader h2 {
+    font-size: 1.25rem;
+  }
+
+  .form {
+    padding: 1.5rem;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+
+  .cancelButton,
+  .submitButton,
+  .saveButton {
+    width: 100%;
+  }
+
+  .addButton {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  .label {
+    font-size: 0.9rem;
+  }
+
+  .input,
+  .textarea,
+  .select {
+    padding: 0.65rem;
+    font-size: 0.9rem;
+  }
+
+  .locationSectionInModal {
+    padding: 0.75rem;
+  }
+
+  .daysGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .timeSlotsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .typeSelector {
+    flex-direction: column;
+  }
+
+  .buttonGroup,
+  .modalFooter,
+  .addLocationActions {
+    flex-direction: column;
+  }
+
+  .cancelButton,
+  .submitButton,
+  .saveButton {
+    width: 100%;
+  }
+}

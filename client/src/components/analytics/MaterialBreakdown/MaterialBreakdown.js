@@ -47,9 +47,10 @@ const MaterialBreakdown = ({ material, onMaterialChange }) => {
               selectedMaterial === mat.type ? styles.active : ''
             }`}
             onClick={() => handleMaterialClick(mat.type)}
-            style={{ 
+            style={{
               backgroundColor: selectedMaterial === mat.type ? mat.color : 'transparent',
-              borderColor: mat.color 
+              borderColor: mat.color,
+              color: selectedMaterial === mat.type ? '#fff' : mat.color
             }}
           >
             {mat.type}

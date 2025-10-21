@@ -1,0 +1,292 @@
+/* client/src/components/chat/PickupCard.module.css */
+.pickupCard {
+  background: white;
+  border-radius: 8px;
+  border-left: 4px solid;
+  margin: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.statusBadge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.details {
+  padding: 1rem;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.icon {
+  width: 1.5rem;
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+
+/* Button Styles */
+.confirmButton,
+.declineButton,
+.startButton,
+.completeButton,
+.cancelButton,
+.editButton,
+.saveButton,
+.cancelEditButton,
+.trackButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trackButton {
+  background: #8b5cf6;
+  color: white;
+}
+
+.trackButton:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+}
+
+.confirmButton {
+  background: #10b981;
+  color: white;
+}
+
+.confirmButton:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.declineButton {
+  background: #ef4444;
+  color: white;
+}
+
+.declineButton:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.startButton {
+  background: #3b82f6;
+  color: white;
+}
+
+.startButton:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.completeButton {
+  background: #059669;
+  color: white;
+}
+
+.completeButton:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.cancelButton {
+  background: #6b7280;
+  color: white;
+}
+
+.cancelButton:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.2);
+}
+
+.editButton {
+  background: #3B6535;
+  color: white;
+}
+
+.editButton:hover {
+  background: #2d4e29;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 101, 53, 0.2);
+}
+
+/* Edit Form Styles */
+.editForm {
+  padding: 1rem;
+  background: #f9fafb;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.formField label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.formField input,
+.formField select,
+.formField textarea {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+  background: white;
+}
+
+.formField select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 2rem;
+}
+
+.formField select:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.formField input:focus,
+.formField select:focus,
+.formField textarea:focus {
+  outline: none;
+  border-color: #3B6535;
+  box-shadow: 0 0 0 3px rgba(59, 101, 53, 0.1);
+}
+
+.formField textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Location Fields Section */
+.locationSection {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #e5e7eb;
+}
+
+.locationSection .formField:not(:last-child) {
+  margin-bottom: 1rem;
+}
+
+.formField label span.required {
+  color: #ef4444;
+  margin-left: 0.25rem;
+}
+
+/* Loading state for dropdowns */
+.formField select option:first-child {
+  color: #9ca3af;
+}
+
+.editActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.saveButton {
+  background: #10b981;
+  color: white;
+}
+
+.saveButton:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.cancelEditButton {
+  background: #6b7280;
+  color: white;
+}
+
+.cancelEditButton:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(107, 114, 128, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+  
+  .actions {
+    justify-content: stretch;
+  }
+  
+  .actions button {
+    flex: 1;
+    justify-content: center;
+  }
+}

@@ -11,10 +11,14 @@ const fs = require('fs');
 const multer = require('multer');
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const postRoutes = require('./routes/posts');
+const authRoutes = require('./routes/authRoutes');
+const postRoutes = require('./routes/postRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const psgcRoutes = require('./routes/psgc');
+const analyticsRoutes = require('./routes/analyticsRoutes');
+const materialRoutes = require('./routes/materialRoutes');
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -27,6 +31,7 @@ const Post = require('./models/Posts');
 const WastePost = require('./models/WastePost');
 const Application = require('./models/Application'); 
 const Pickup = require('./models/Pickup');
+const Material = require('./models/Material');
 
 // Import the middleware
 const { verifyToken } = require('./middleware/auth');
@@ -35,8 +40,17 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Security middleware
-app.use(helmet());
+// Configure helmet with relaxed policies for development
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginEmbedderPolicy: false, // Important for images!
+  contentSecurityPolicy: false, // Disable for development (or configure properly below)
+}));
 app.use(compression());
+
+// Body parsing middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // CORS configuration
 const corsOptions = {
@@ -45,10 +59,6 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
-
-// Body parsing middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Logging
 if (process.env.NODE_ENV !== 'test') {
@@ -67,15 +77,26 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Static file serving with proper CORS headers
+// Static file serving with CORS - CRITICAL: Headers MUST come BEFORE static middleware!
 app.use('/uploads', (req, res, next) => {
-  // Set CORS headers BEFORE serving the static files
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
-  res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  // Set CORS headers for cross-origin requests
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
   next();
-}, express.static(path.join(__dirname, 'uploads')));
+}, express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res, path) => {
+    // Additional headers for each static file
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -91,6 +112,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', verifyToken, postRoutes);
 app.use('/api/protected/profile', profileRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/psgc', psgcRoutes);
+app.use('/api/protected/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/materials', materialRoutes);
 
 app.use('/api/admin', (req, res, next) => {
   next();
@@ -113,15 +138,7 @@ app.get('/api/posts/public', async (req, res) => {
       description: post.description,
       location: post.location,
       status: post.status,
-      createdAt: post.createdAt,
-      // Hide sensitive user data for public view
-      userType: post.userType
-
-      // TODO
-      // isCollector: post.isCollector,
-      // isAdmin: post.isAdmin,
-      // isOrganization: post.isOrganization
-      // Remove userType, but need to update the Posts schema and Firebase
+      createdAt: post.createdAt
     }));
     
     res.json({ success: true, posts: publicPosts });
@@ -172,7 +189,6 @@ app.get('/api/protected/posts', async (req, res) => {
     } else if (location) {
       posts = await Post.findByLocation(location);
     } else {
-      // Correct - gets all posts
       posts = await Post.findAll();
     }
     
@@ -183,16 +199,88 @@ app.get('/api/protected/posts', async (req, res) => {
   }
 });
 
+// Get single post by ID with user data
 app.get('/api/protected/posts/:postId', async (req, res) => {
   try {
+    const Post = require('./models/Posts');
+    const User = require('./models/Users');
+    
+    // Fetch the post
     const post = await Post.findById(req.params.postId);
+    
     if (!post) {
-      return res.status(404).json({ success: false, error: 'Post not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
     }
-    res.json({ success: true, post });
+    
+    // Get the post data
+    const postData = post.toFirestore ? post.toFirestore() : post;
+    
+    // Fetch the user who created this post
+    let userData = null;
+    try {
+      const postUser = await User.findById(postData.userID);
+      if (postUser) {
+        userData = {
+          userID: postUser.userID,
+          firstName: postUser.firstName,
+          lastName: postUser.lastName,
+          profilePictureUrl: postUser.profilePictureUrl,
+          isOrganization: postUser.isOrganization,
+          organizationName: postUser.organizationName,
+          badges: postUser.badges,
+          points: postUser.points
+        };
+      }
+    } catch (userError) {
+      console.error(`Failed to fetch user ${postData.userID}:`, userError);
+      // Provide fallback user data
+      userData = {
+        firstName: 'Unknown',
+        lastName: 'User',
+        profilePictureUrl: null
+      };
+    }
+    
+    // Get interaction data
+    let likeCount = 0;
+    let isLiked = false;
+    let commentCount = 0;
+    let comments = [];
+    
+    try {
+      likeCount = await post.getLikeCount();
+      isLiked = await post.isLikedByUser(req.user.userID);
+      comments = await post.getComments();
+      commentCount = comments.length;
+    } catch (interactionError) {
+      console.error('Error getting interactions:', interactionError);
+    }
+    
+    // Combine everything
+    const enrichedPost = {
+      ...postData,
+      user: userData,
+      likeCount,
+      isLiked,
+      comments,
+      commentCount,
+      isOwner: postData.userID === req.user.userID
+    };
+    
+    res.json({
+      success: true,
+      post: enrichedPost
+    });
   } catch (error) {
-    console.error('Post fetch error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Single post fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching post',
+      error: error.message
+    });
   }
 });
 
@@ -245,71 +333,71 @@ app.put('/api/protected/posts/:postId', async (req, res) => {
   }
 });
 
-// Pickup routes
-app.get('/api/protected/pickups', async (req, res) => {
-  try {
-    const { type = 'all' } = req.query;
-    let pickups;
+// // Pickup routes
+// app.get('/api/protected/pickups', async (req, res) => {
+//   try {
+//     const { type = 'all' } = req.query;
+//     let pickups;
     
-    if (type === 'given') {
-      pickups = await Pickup.findByGiverID(req.user.userID);
-    } else if (type === 'collected') {
-      pickups = await Pickup.findByCollectorID(req.user.userID);
-    } else {
-      // Get all pickups for this user (both given and collected)
-      const givenPickups = await Pickup.findByGiverID(req.user.userID);
-      const collectedPickups = await Pickup.findByCollectorID(req.user.userID);
-      pickups = [...givenPickups, ...collectedPickups];
-    }
+//     if (type === 'given') {
+//       pickups = await Pickup.findByGiverID(req.user.userID);
+//     } else if (type === 'collected') {
+//       pickups = await Pickup.findByCollectorID(req.user.userID);
+//     } else {
+//       // Get all pickups for this user (both given and collected)
+//       const givenPickups = await Pickup.findByGiverID(req.user.userID);
+//       const collectedPickups = await Pickup.findByCollectorID(req.user.userID);
+//       pickups = [...givenPickups, ...collectedPickups];
+//     }
     
-    res.json({ success: true, pickups });
-  } catch (error) {
-    console.error('Pickups fetch error:', error.message);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+//     res.json({ success: true, pickups });
+//   } catch (error) {
+//     console.error('Pickups fetch error:', error.message);
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// });
 
-app.post('/api/protected/pickups', async (req, res) => {
-  try {
-    const pickupData = {
-      ...req.body,
-      collectorID: req.user.userID
-    };
+// app.post('/api/protected/pickups', async (req, res) => {
+//   try {
+//     const pickupData = {
+//       ...req.body,
+//       collectorID: req.user.userID
+//     };
     
-    const pickup = await Pickup.create(pickupData);
-    res.status(201).json({ 
-      success: true, 
-      pickup, 
-      message: 'Pickup request created successfully' 
-    });
-  } catch (error) {
-    console.error('Pickup creation error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
+//     const pickup = await Pickup.create(pickupData);
+//     res.status(201).json({ 
+//       success: true, 
+//       pickup, 
+//       message: 'Pickup request created successfully' 
+//     });
+//   } catch (error) {
+//     console.error('Pickup creation error:', error.message);
+//     res.status(400).json({ success: false, error: error.message });
+//   }
+// });
 
-app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
-  try {
-    const pickup = await Pickup.findById(req.params.pickupId);
-    if (!pickup) {
-      return res.status(404).json({ success: false, error: 'Pickup not found' });
-    }
+// app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
+//   try {
+//     const pickup = await Pickup.findById(req.params.pickupId);
+//     if (!pickup) {
+//       return res.status(404).json({ success: false, error: 'Pickup not found' });
+//     }
     
-    // Only the giver can confirm pickups
-    if (pickup.giverID !== req.user.userID) {
-      return res.status(403).json({ success: false, error: 'Unauthorized to confirm this pickup' });
-    }
+//     // Only the giver can confirm pickups
+//     if (pickup.giverID !== req.user.userID) {
+//       return res.status(403).json({ success: false, error: 'Unauthorized to confirm this pickup' });
+//     }
     
-    await pickup.confirm();
-    res.json({ success: true, pickup, message: 'Pickup confirmed successfully' });
-  } catch (error) {
-    console.error('Pickup confirm error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
+//     await pickup.confirm();
+//     res.json({ success: true, pickup, message: 'Pickup confirmed successfully' });
+//   } catch (error) {
+//     console.error('Pickup confirm error:', error.message);
+//     res.status(400).json({ success: false, error: error.message });
+//   }
+// });
 
 app.post('/api/protected/upload/profile-picture',
-  upload.single('profilePicture'), // Changed from 'picture' to 'profilePicture'
+  upload.single('profilePicture'),
   async (req, res) => {
     try {
       if (!req.file) {
@@ -318,20 +406,13 @@ app.post('/api/protected/upload/profile-picture',
 
       const uploadedFile = await StorageService.uploadProfilePicture(req.file, req.user.userID);
       
-      // Update user profile with new picture URL
-      await User.update(req.user.userID, { 
-        profilePicture: uploadedFile,
-        profilePictureUrl: uploadedFile // Support both field names during transition
-      });
-      
-      // Get updated user data
-      const updatedUser = await User.findById(req.user.userID);
+      // Update user profile with new picture URL - using correct field name
+      await User.update(req.user.userID, { profilePictureUrl: uploadedFile });
       
       res.json({ 
         success: true, 
         message: 'Profile picture uploaded successfully',
-        fileUrl: uploadedFile,
-        user: updatedUser // Return complete updated user
+        fileUrl: uploadedFile 
       });
     } catch (error) {
       console.error('Profile picture upload error:', error.message);
@@ -374,7 +455,7 @@ app.post('/api/protected/applications', async (req, res) => {
 app.get('/api/protected/notifications', async (req, res) => {
   try {
     const Notification = require('./models/Notification');
-    const notifications = await Notification.findByUserID(req.user.userID);
+    const notifications = await Notification.findByUser(req.user.userID);
     res.json({ success: true, notifications });
   } catch (error) {
     console.error('Notifications fetch error:', error.message);
@@ -455,9 +536,9 @@ app.get('/api/protected/users/:userId', async (req, res) => {
       userID: user.userID,
       firstName: user.firstName,
       lastName: user.lastName,
+      isOrganization: user.isOrganization,
       isCollector: user.isCollector,
       isAdmin: user.isAdmin,
-      isOrganization: user.isOrganization,
       organizationName: user.organizationName,
       profilePictureUrl: user.profilePictureUrl,
       points: user.points,
@@ -773,10 +854,13 @@ app.put('/api/admin/users/:userId/make-admin', async (req, res) => {
       });
     }
 
+    // Revoke admin role
+    await authService.updateUserFlags(userId, {
+      isAdmin: true,
+    });
+
     // Update user to admin
     await User.update(userId, {
-      isAdmin: true,
-      status: 'Verified', // Admins should always be verified
       updatedAt: new Date().toISOString(),
       elevatedBy: req.user.userID,
       elevatedAt: new Date().toISOString()
@@ -825,9 +909,13 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
       });
     }
 
-    // Update user type from Admin to determined type
-    await User.update(userId, {
+    // Revoke admin role
+    await authService.updateUserFlags(userId, {
       isAdmin: false,
+    });
+    
+    // Add metadata about the revocation
+    await User.update(userId, {
       updatedAt: new Date().toISOString(),
       revokedBy: req.user.userID,
       revokedAt: new Date().toISOString()
@@ -842,6 +930,92 @@ app.put('/api/admin/users/:userId/revoke-admin', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Failed to revoke admin privileges' 
+    });
+  }
+});
+
+app.get('/api/admin/materials', async (req, res) => {
+  try {
+    const materials = await Material.getAllMaterials();
+    
+    materials.sort((a, b) => {
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
+      }
+      return a.type.localeCompare(b.type);
+    });
+    
+    res.json({
+      success: true,
+      materials
+    });
+  } catch (error) {
+    console.error('Error fetching materials:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch materials'
+    });
+  }
+});
+
+app.post('/api/admin/materials', async (req, res) => {
+  try {
+    const material = await Material.create(req.body);
+    
+    res.status(201).json({
+      success: true,
+      material,
+      message: 'Material created successfully'
+    });
+  } catch (error) {
+    console.error('Error creating material:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.put('/api/admin/materials/:materialID', async (req, res) => {
+  try {
+    const material = await Material.findById(req.params.materialID);
+    
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        error: 'Material not found'
+      });
+    }
+    
+    const updatedMaterial = await Material.update(req.params.materialID, req.body);
+    
+    res.json({
+      success: true,
+      material: updatedMaterial,
+      message: 'Material updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating material:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.delete('/api/admin/materials/:materialID', async (req, res) => {
+  try {
+    await Material.delete(req.params.materialID);
+    
+    res.json({
+      success: true,
+      message: 'Material deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting material:', error);
+    res.status(400).json({
+      success: false,
+      error: error.message
     });
   }
 });

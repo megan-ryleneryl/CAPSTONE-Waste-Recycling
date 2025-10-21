@@ -16,7 +16,7 @@ const PostsAnalytics = ({ data, user }) => {
   useEffect(() => {
     // Process data from props or fetch analytics data
     if (data) {
-      processAnalyticsData(data);
+      // processAnalyticsData(data);
     } else {
       fetchAnalyticsData();
     }

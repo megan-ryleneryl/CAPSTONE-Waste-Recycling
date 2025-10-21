@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Logo from '../components/common/Logo/logo';
+import EcoTayoLogo from '../components/navigation/TopNav/EcoTayoLogo.svg';
 import styles from './Landing.module.css';
 
 const Landing = () => {
@@ -9,7 +9,7 @@ const Landing = () => {
       {/* Navigation Bar */}
       <nav className={styles.navbar}>
         <div className={styles.navContent}>
-          <Logo size="medium" />
+          <img src={EcoTayoLogo} alt="EcoTayo Logo" className={styles.logo} />
           <div className={styles.navLinks}>
             <a href="#features" className={styles.navLink}>Features</a>
             <a href="#how-it-works" className={styles.navLink}>How It Works</a>

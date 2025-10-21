@@ -22,8 +22,9 @@ class StorageService {
       // Save file
       await fs.writeFile(filePath, file.buffer);
       
-      // Return the relative URL that can be served by your static middleware
-      const url = `/uploads/${subfolder}/${filename}`.replace(/\\/g, '/');
+      // Return the full URL with server domain
+      const baseUrl = process.env.CLIENT_URL?.replace('3000', '3001') || 'http://localhost:3001';
+      const url = `${baseUrl}/uploads/${subfolder}/${filename}`.replace(/\\/g, '/');
       
       return {
         url,
@@ -55,8 +56,9 @@ class StorageService {
       // Save file
       await fs.writeFile(filePath, file.buffer);
       
-      // Return the URL that will be served by static middleware
-      const url = `/uploads/profile-pictures/${userID}/${filename}`.replace(/\\/g, '/');
+      // Return the full URL with server domain
+      const baseUrl = process.env.CLIENT_URL?.replace('3000', '3001') || 'http://localhost:3001';
+      const url = `${baseUrl}/uploads/profile-pictures/${userID}/${filename}`.replace(/\\/g, '/');
       
       return url;
     } catch (error) {

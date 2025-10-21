@@ -1,19 +1,17 @@
-/* client/src/components/layout/RightSection/RightSection.module.css */
-
 .rightSection {
-    padding: 2rem 0;
     font-family: 'Raleway', sans-serif;
+    width: 400px;
+    min-width: 400px;
+    margin: 2rem;
+    /* margin-right: 2rem; */
   }
 
 .rightSectionContainer {
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: calc(100vh - 70px); /* Full height minus top nav */
-    padding: 1rem;
+    height: calc(100vh - 140px);
     box-sizing: border-box;
-    background: #f9f9f9;
-    border-radius: 1rem;
     position: sticky;
     overflow-y: auto;
     transition: all 0.3s ease;
@@ -127,8 +125,8 @@
   /* Responsive adjustments */
   @media (max-width: 1400px) {
     .rightSection {
-      width: 240px;
-      min-width: 240px;
+      width: 300px;
+      min-width: 300px
     }
     
     .card {
@@ -149,8 +147,8 @@
   /* Tablet landscape - show but smaller */
   @media (max-width: 1024px) and (orientation: landscape) {
     .rightSection {
-      width: 220px;
-      min-width: 220px;
+      width: 300px;
+      min-width: 300px
     }
     
     .card {
@@ -171,8 +169,8 @@
   /* High density displays */
   @media (min-width: 1600px) {
     .rightSection {
-      width: 340px;
-      min-width: 340px;
+      width: 300px;
+      min-width: 300px
     }
     
     .card {

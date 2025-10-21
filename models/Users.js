@@ -217,31 +217,21 @@ class User {
 
       // Cancel all pickups where this user is either giver or collector
       const Pickup = require('./Pickup');
-      
-      // Find pickups where user is the giver
-      const giverPickups = await Pickup.findByGiverID(userID);
-      for (const pickup of giverPickups) {
+      const userPickups = await Pickup.findByUser(userID);
+      for (const pickup of userPickups) {
         if (pickup.canBeCancelled()) {
-          await pickup.cancel('User account was deleted');
-        }
-      }
-      
-      // Find pickups where user is the collector
-      const collectorPickups = await Pickup.findByCollectorID(userID);
-      for (const pickup of collectorPickups) {
-        if (pickup.canBeCancelled()) {
-          await pickup.cancel('User account was deleted');
+          await pickup.cancel(userID, 'User account was deleted');
         }
       }
 
       // Set all this user's posts to inactive
-      // const Post = require('./Post');
-      // const userPosts = await Post.findByUserID(userID);
-      // for (const post of userPosts) {
-      //   if (post.status !== 'Inactive') {
-      //     await post.update({ status: 'Inactive' });
-      //   }
-      // }
+      const Post = require('./Posts');
+      const userPosts = await Post.findByUserID(userID);
+      for (const post of userPosts) {
+        if (post.status !== 'Inactive') {
+          await post.update({ status: 'Inactive' });
+        }
+      }
       
       await updateDoc(userRef, updateData);
       

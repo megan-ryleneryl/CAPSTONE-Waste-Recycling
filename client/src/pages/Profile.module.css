@@ -1,5 +1,5 @@
 .container {
-  padding: 2rem;
+  padding-top: 2rem;
   max-width: 1400px;
   margin: 0 auto;
   font-family: var(--font-family-primary);
@@ -29,10 +29,10 @@
 
 /* Profile Card */
 .profileCard {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
   border-radius: var(--border-radius-xl, 20px);
   padding: 2rem;
-  box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
   min-height: 400px;
 }
 
@@ -73,28 +73,49 @@
   font-family: 'Raleway', sans-serif;
 }
 
-.editButton {
-  background: #F0924C;
-  color: white;
-  border: none;
-  padding: 0.75rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: 'Raleway', sans-serif;
-  white-space: nowrap;
-  flex: 0 0 auto;
-  align-self: flex-start;
-  width: auto;
-  margin-left: auto;
+.iconButtonGroup {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.editButton:hover {
-  background: #e67e2e;
+.iconButton,
+.iconButtonDelete {
+  background: white;
+  border: 2px solid #E5E7EB;
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.iconButton {
+  color: #F0924C;
+  border-color: #F0924C;
+}
+
+.iconButton:hover {
+  background: #F0924C;
+  color: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(240, 146, 76, 0.3);
+}
+
+.iconButtonDelete {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.iconButtonDelete:hover {
+  background: #dc3545;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
 /* Stats Grid */
@@ -625,22 +646,6 @@
   font-family: 'Raleway', sans-serif;
 }
 
-.organizationBadge {
-  margin-left: 1rem;
-  display: inline-flex;
-  background: linear-gradient(135deg, #F0924C, #e67e2e);
-  color: white;
-  align-items: center;
-  vertical-align: middle;
-  font-family: 'Raleway', sans-serif;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
 .organizationName {
   display: flex;
   align-items: center;
@@ -651,30 +656,70 @@
   font-family: 'Raleway', sans-serif;
 }
 
-.statusContainer {
-  margin-top: 0.75rem;
-  text-align: left;
+.badgesContainer {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
 }
 
-.statusBadge {
+/* Base Badge Style */
+.badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
   font-weight: 600;
-  transition: all 0.3s ease;
-  font-family: 'Raleway', sans-serif;
+  font-family: var(--font-family-primary, 'Raleway', sans-serif);
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  border: 1.5px solid transparent;
 }
 
-.statusDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
+/* Status Badges */
+.statusVerified, 
+.roleGiver, 
+.roleCollector, 
+.roleAdmin, 
+.roleOrganization {
+  background: var(--success-bg, #E8F5E9);
+  color: var(--success-color, #2E7D32);
+  border-color: var(--success-border, #A5D6A7);
 }
 
+.statusPending {
+  background: var(--warning-bg, #FFF3E0);
+  color: var(--warning-color, #E65100);
+  border-color: var(--warning-border, #FFCC80);
+}
+
+.statusSubmitted {
+  background: #FFF3E0;
+  color: #F57C00;
+  border-color: #f9a95a;
+}
+
+.statusSuspended {
+  background: var(--danger-bg, #FFEBEE);
+  color: var(--danger-color, #B71C1C);
+  border-color: var(--danger-border, #EF9A9A);
+}
+
+.statusRejected {
+  background: var(--danger-bg, #FFEBEE);
+  color: var(--danger-color, #C62828);
+  border-color: var(--danger-border, #EF9A9A);
+}
+
+/* Hover Effects */
+.badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Legacy delete button style - kept for backwards compatibility */
 .deleteButton {
   background: #dc3545;
   color: white;
@@ -797,11 +842,13 @@
   .profileHeader {
     flex-direction: column;
     text-align: center;
+    align-items: center;
     gap: 1rem;
   }
 
   .profileInfo {
     flex-direction: column;
+    align-items: center;
   }
 
   .statsGrid {
@@ -811,6 +858,22 @@
 
   .ctaGrid {
     grid-template-columns: 1fr;
+  }
+
+  .preferencesContent {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .preferenceItem {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .preferenceHeader {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
   }
 }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import Logo from '../components/common/Logo/logo';
+import EcoTayoLogo from '../components/navigation/TopNav/EcoTayoLogo.svg';
 import styles from './Login.module.css';
 import axios from 'axios';
 import GoogleLoginButton from '../components/common/Button/GoogleLoginButton';
@@ -71,7 +71,8 @@ const Login = () => {
       <div className={styles.loginCard}>
         <div className={styles.logoSection}>
           <Link to="/" style={{ textDecoration: 'none' }}>
-            <Logo size="large" />
+            <img src={EcoTayoLogo} alt="EcoTayo Logo" className={styles.logo} />
+            
           </Link>
           <p className={styles.tagline}>Your Partner in a Circular Economy</p>
         </div>

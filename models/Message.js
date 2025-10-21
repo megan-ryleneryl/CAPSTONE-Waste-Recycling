@@ -1,24 +1,22 @@
-// TODO
-// Check for userType usage
-
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy, or } = require('firebase/firestore');
-const { v4: uuidv4 } = require('uuid');
 
 class Message {
   constructor(data = {}) {
-    this.messageID = data.messageID || uuidv4();
+    this.messageID = data.messageID || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.senderID = data.senderID || '';
+    this.senderName = data.senderName || '';
     this.receiverID = data.receiverID || '';
+    this.receiverName = data.receiverName || '';
     this.postID = data.postID || '';
+    this.postTitle = data.postTitle || '';
+    this.postType = data.postType || '';
     this.message = data.message || '';
     this.sentAt = data.sentAt || new Date();
     this.isRead = data.isRead || false;
     this.isDeleted = data.isDeleted || false;
-    
+
     // Extended fields for Module 2 chat functionality
-    this.messageType = data.messageType || 'text'; // 'text', 'system', 'pickup_request', 'pickup_confirmation'
-    this.senderName = data.senderName || '';
-    this.senderType = data.senderType || ''; // 'Giver', 'Collector', 'system'
+    this.messageType = data.messageType || 'text'; // 'text', 'system', 'pickup_request', 'pickup_confirmation', 'claim'
     this.metadata = data.metadata || {}; // For storing pickup details, system actions, etc.
   }
 
@@ -45,23 +43,25 @@ class Message {
     };
   }
 
-  // Convert to plain object for Firestore
-  toFirestore() {
-    return {
-      messageID: this.messageID,
-      senderID: this.senderID,
-      receiverID: this.receiverID,
-      postID: this.postID,
-      message: this.message.trim(),
-      sentAt: this.sentAt,
-      isRead: this.isRead,
-      isDeleted: this.isDeleted,
-      messageType: this.messageType,
-      senderName: this.senderName,
-      senderType: this.senderType,
-      metadata: this.metadata
-    };
-  }
+// Convert to plain object for Firestore
+toFirestore() {
+  return {
+    messageID: this.messageID,
+    senderID: this.senderID,
+    senderName: this.senderName || 'Unknown User',
+    receiverID: this.receiverID,
+    receiverName: this.receiverName || 'Unknown User',
+    postID: this.postID,
+    postTitle: this.postTitle || 'Unknown Post',
+    postType: this.postType || 'Waste',
+    message: this.message.trim(),
+    sentAt: this.sentAt,
+    isRead: this.isRead,
+    isDeleted: this.isDeleted,
+    messageType: this.messageType,
+    metadata: this.metadata
+  };
+}
 
   // Static method to create a new message
   static async create(data) {
@@ -138,7 +138,6 @@ class Message {
     const messageData = {
       senderID: senderData.userID,
       senderName: `${senderData.firstName} ${senderData.lastName}`,
-      senderType: senderData.userType,
       receiverID,
       postID,
       message: messageText,
@@ -154,7 +153,6 @@ class Message {
     const messageData = {
       senderID: 'system',
       senderName: 'System',
-      senderType: 'system',
       receiverID,
       postID,
       message: messageText,

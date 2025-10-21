@@ -1,6 +1,3 @@
-// TODO
-// Check for userType usage
-
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
 
@@ -8,17 +5,55 @@ class Post {
   constructor(data = {}) {
     this.postID = data.postID || uuidv4();
     this.userID = data.userID || '';
-    this.userType = data.userType || ''; // Add userType field
     this.postType = data.postType || ''; // Waste, Initiative, Forum
     this.title = data.title || '';
     this.description = data.description || '';
-    this.location = data.location || '';
-    this.status = data.status || 'Active'; // Active, Available, Claimed, Completed, Cancelled, Inactive, Locked, Hidden
+
+    this.location = data.location ? (
+      typeof data.location === 'string' ? data.location : {
+        region: {
+          code: data.location.region?.code || '',
+          name: data.location.region?.name || ''
+        },
+        province: data.location.province ? {
+          code: data.location.province.code || '',
+          name: data.location.province.name || ''
+        } : null,
+        city: {
+          code: data.location.city?.code || '',
+          name: data.location.city?.name || ''
+        },
+        barangay: {
+          code: data.location.barangay?.code || '',
+          name: data.location.barangay?.name || ''
+        },
+        addressLine: data.location.addressLine || '',
+        coordinates: {
+          lat: data.location.coordinates?.lat || null,
+          lng: data.location.coordinates?.lng || null
+        }
+      }
+    ) : null;
+    
+    this.status = data.status || 'Active'; // Active, Claimed, Completed, Cancelled, Inactive, Locked, Hidden
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
-    
-    // REMOVED typeSpecificData - fields should be added directly by subclasses
-    // This ensures consistent flat structure in Firestore
+
+    this.images = data.images || [];
+
+    // User flags for post permissions
+    this.isCollector = data.isCollector || false;
+    this.isAdmin = data.isAdmin || false;
+    this.isOrganization = data.isOrganization || false;
+  
+      
+    // For Waste posts - claim tracking
+    this.claimedBy = data.claimedBy || null;
+    this.claimedAt = data.claimedAt || null;
+
+    // For Initiative posts - support tracking
+    this.supporters = data.supporters || [];
+    this.supportCount = data.supportCount || 0;
   }
 
   // Validation
@@ -38,7 +73,7 @@ class Post {
     // Set default status based on post type
     switch(this.postType) {
       case 'Waste':
-        this.status = 'Available';
+        this.status = 'Active';
         break;
       case 'Initiative':
       case 'Forum':
@@ -59,7 +94,7 @@ class Post {
   getValidStatuses() {
     switch(this.postType) {
       case 'Waste':
-        return ['Available', 'Claimed', 'Completed', 'Cancelled'];
+        return ['Active', 'Claimed', 'Completed', 'Cancelled'];
       case 'Initiative':
         return ['Active', 'Completed', 'Cancelled'];
       case 'Forum':
@@ -75,14 +110,25 @@ class Post {
     return {
       postID: this.postID,
       userID: this.userID,
-      userType: this.userType,
       postType: this.postType,
       title: this.title,
       description: this.description,
       location: this.location,
       status: this.status,
       createdAt: this.createdAt,
-      updatedAt: this.updatedAt
+      updatedAt: this.updatedAt,
+      images: this.images || [],
+      // Include claim tracking fields
+      claimedBy: this.claimedBy,
+      claimedAt: this.claimedAt,
+      // Include support tracking fields
+      supporters: this.supporters,
+      supportCount: this.supportCount,
+      // ADD THESE THREE LINES:
+      // User flags
+      isCollector: this.isCollector,
+      isAdmin: this.isAdmin,
+      isOrganization: this.isOrganization
     };
   }
 
@@ -198,7 +244,8 @@ class Post {
     const db = getFirestore();
     try {
       const postsRef = collection(db, 'posts');
-      const q = query(postsRef, where('userID', '==', userID), orderBy('createdAt', 'desc'));
+      // Remove orderBy to avoid composite index requirement
+      const q = query(postsRef, where('userID', '==', userID));
       const querySnapshot = await getDocs(q);
       
       const posts = [];
@@ -223,7 +270,12 @@ class Post {
         }
       });
       
-      return posts;
+     // Sort posts by createdAt on client side
+      return posts.sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return dateB - dateA; // Descending order (newest first)
+      });
     } catch (error) {
       throw new Error(`Failed to find posts by user: ${error.message}`);
     }

@@ -67,6 +67,7 @@ const Chat = () => {
       userID: conversation.otherUserID,
       firstName: conversation.otherUserName?.split(' ')[0] || 'Unknown',
       lastName: conversation.otherUserName?.split(' ')[1] || 'User',
+      profilePictureUrl: conversation.otherUserProfilePicture || null,
       isCollector: false, // You might want to fetch from User model
       isAdmin: false, // You might want to fetch from User model
       isOrganization: false // You might want to fetch from User model

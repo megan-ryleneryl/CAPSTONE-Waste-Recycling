@@ -35,7 +35,8 @@
 .filters {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 2rem;
+  flex-wrap: wrap;
   margin-bottom: 2rem;
   padding: 1rem;
   padding-left: 2rem;
@@ -120,7 +121,11 @@
 }
 
 .cardBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .applicantInfo {
@@ -141,6 +146,9 @@
   border-radius: var(--border-radius-md);
   font-size: 0.9rem;
   border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
+
 }
 
 .justification strong {
@@ -277,16 +285,6 @@
 }
 
 .modalContent {
-  /* background: white;
-  border-radius: var(--border-radius-xl);
-  padding: 2rem;
-  max-width: 600px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-xl);
-  animation: slideUp 0.3s ease; */
-
   background: white;
   border-radius: 20px;
   overflow: hidden;
@@ -510,7 +508,7 @@
 }
 
 .modal {
-  background: white;
+  background: transparent;
   border-radius: 20px;
   max-width: 600px;
   width: 90%;
@@ -531,12 +529,6 @@
     transform: scale(1) translateY(0);
     opacity: 1;
   }
-}
-
-.modalContent {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 }
 
 .modalHeader {
@@ -586,6 +578,7 @@
   flex: 1;
   scrollbar-width: thin;
   scrollbar-color: #d9d9d9 #f0f0f0;
+  margin: 0;
 }
 
 /* Webkit Scrollbar Styling */
@@ -737,7 +730,8 @@
     text-align: center;
   }
 
-  .filters {
+  .filters,
+  .filterGroup {
     flex-wrap: wrap;
   }
 
@@ -747,10 +741,6 @@
 
   .applicationsGrid {
     grid-template-columns: 1fr;
-  }
-
-  .modalContent {
-    padding: 1.5rem;
   }
 
   .modalActions {

@@ -1,38 +1,60 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import TopNav from '../../navigation/TopNav/TopNav';
 import SideNav from '../../navigation/SideNav/SideNav';
 import RightSection from '../RightSection/RightSection';
 import styles from './AppLayout.module.css';
 
 const AppLayout = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const { currentUser, loading } = useAuth();
   const [activeFilter, setActiveFilter] = useState('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [rightSectionData, setRightSectionData] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   // Pages that don't need the layout
   const noLayoutPages = ['/login', '/register', '/'];
 
-  // Define which pages should show the right section
-  const pagesWithRightSection = ['/posts', '/dashboard'];
-  const showRightSection = pagesWithRightSection.includes(location.pathname) && !isMobile;
- 
+  // Define which pages should show the right section - memoize this function
+  const shouldShowRightSection = useCallback(() => {
+    if (isMobile) return false;
+    
+    // Show on posts feed
+    if (location.pathname === '/posts') return true;    
+    
+    // Show on single post pages
+    if (location.pathname.startsWith('/posts/') && location.pathname !== '/posts/') return true;
+    
+    // Show on dashboard
+    if (location.pathname === '/dashboard') return true;
 
+    // Show on create post page
+    if (location.pathname === '/create-post') return true;
+    
+    return false;
+  }, [isMobile, location.pathname]);
+  
+  const showRightSection = shouldShowRightSection();
+
+  const handleMobileMenuToggle = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  // Memoize the admin route check to prevent unnecessary re-renders
   useEffect(() => {
-    // Load user data from localStorage
-    const path = window.location.pathname;
+    // Check admin routes only when currentUser or path changes
+    const path = location.pathname;
     if (path.startsWith('/admin')) {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.isAdmin) {
+      if (currentUser && !currentUser.isAdmin) {
         console.error('Non-admin user attempting to access admin route');
         navigate('/posts');
       }
     }
-  }, []);
+  }, [currentUser?.isAdmin, location.pathname, navigate]);
 
   useEffect(() => {
     // Handle responsive behavior
@@ -44,18 +66,39 @@ const AppLayout = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
+  // Memoize the sidebar toggle function
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed(prev => !prev);
+  }, []);
+
+  // Memoize the data update handler to prevent infinite re-renders
+  const handleDataUpdate = useCallback((data) => {
+    setRightSectionData(data);
+  }, []);
 
   // Don't show layout on certain pages
   if (noLayoutPages.includes(location.pathname)) {
     return children;
   }
 
+  // Show loading state while user is loading
+  if (loading) {
+    return (
+      <div className={styles.appContainer}>
+        <div className={styles.loading}>Loading...</div>
+      </div>
+    );
+  }
+
+  // Clone children and pass both handleDataUpdate and activeFilter
+  const childrenWithProps = React.cloneElement(children, {
+    onDataUpdate: handleDataUpdate,
+    activeFilter: activeFilter  // Pass the filter state to child pages
+  });
+
   return (
     <div className={styles.appContainer}>
-      <TopNav user={user} />
+      <TopNav user={currentUser} />
       
       <div className={styles.mainLayout}>
         <SideNav 
@@ -63,22 +106,21 @@ const AppLayout = ({ children }) => {
           onFilterChange={setActiveFilter}
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={toggleSidebar}
-          user={user}
+          user={currentUser}
+          isMobile={isMobile}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
         
-        <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''} ${showRightSection ? styles.hasRightSection : ''}`}>
-          {React.cloneElement(children, { 
-            user, 
-            activeFilter,
-            onDataUpdate: setRightSectionData // Pass data update function to pages
-          })}
+        <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''} ${showRightSection ? styles.withRightSection : ''}`}>
+          {childrenWithProps}
         </main>
 
-        {/* Right Section with Components */}
-        {showRightSection && (
-          <RightSection 
-            user={user} 
-            data={rightSectionData}
+        {/* Mobile Overlay */}
+        {isMobile && sidebarOpen && (
+          <div 
+            className={styles.mobileOverlay}
+            onClick={() => setSidebarOpen(false)}
           />
         )}
 
@@ -86,11 +128,20 @@ const AppLayout = ({ children }) => {
         {isMobile && (
           <button 
             className={styles.mobileMenuToggle}
-            onClick={toggleSidebar}
+            onClick={handleMobileMenuToggle}
             aria-label="Toggle menu"
           >
-            ☰
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 12h18M3 6h18M3 18h18" />
+            </svg>
           </button>
+        )}
+        
+        {showRightSection && (
+          <RightSection 
+            user={currentUser} 
+            data={rightSectionData}
+          />
         )}
       </div>
     </div>
