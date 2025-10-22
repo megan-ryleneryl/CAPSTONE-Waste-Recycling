@@ -41,6 +41,9 @@ router.get('/', verifyToken, async (req, res) => {
       posts = await Post.findAll();
     }
 
+    // Filter out inactive posts (posts from deleted users)
+    posts = posts.filter(post => post.status !== 'Inactive');
+
     // Create a map of user IDs to fetch
     const userIds = [...new Set(posts.map(post => post.userID))];
 
@@ -102,7 +105,7 @@ router.get('/', verifyToken, async (req, res) => {
         supportCount: postData.supportCount || 0
       };
     }));
-    
+
     res.json({
       success: true,
       posts: enrichedPosts
@@ -128,7 +131,15 @@ router.get('/:postId', verifyToken, async (req, res) => {
         message: 'Post not found'
       });
     }
-    
+
+    // Check if post is inactive (from deleted user)
+    if (post.status === 'Inactive') {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
     // Get the post data
     const postData = post.toFirestore ? post.toFirestore() : post;
     
@@ -807,7 +818,7 @@ router.get('/:postId/comments', verifyToken, async (req, res) => {
     // Fetch user data for all comments in one batch
     const userIds = [...new Set(comments.map(c => c.userID))];
     const usersMap = {};
-    
+
     for (const userId of userIds) {
       try {
         const user = await User.findById(userId);

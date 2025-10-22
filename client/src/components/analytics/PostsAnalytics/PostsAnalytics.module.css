@@ -1,10 +1,518 @@
+/* Container */
 .analyticsContainer {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border: 1px solid #E5E7EB;
-  /* margin: 2rem; */
   height: 100%;
   width: 100%;
   box-sizing: border-box;
   border-radius: 12px;
   padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading & Error States */
+.loadingState,
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 1rem;
+  color: #6B7280;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #E5E7EB;
+  border-top-color: #3B6535;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorState svg {
+  color: #EF4444;
+}
+
+.retryButton {
+  padding: 0.75rem 1.5rem;
+  background: #3B6535;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.retryButton:hover {
+  background: #2d4e28;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.2);
+}
+
+/* Header */
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.header h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 0;
+}
+
+.headerIcon {
+  color: #3B6535;
+}
+
+.subtitle {
+  color: #6B7280;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* Metrics Grid */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.metricCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: white;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.metricCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: #D1D5DB;
+}
+
+.metricIcon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.metricContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.metricValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1F2937;
+  line-height: 1;
+}
+
+.metricLabel {
+  font-size: 0.85rem;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+/* Section Titles */
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0 0 1rem 0;
+}
+
+.sectionTitle svg {
+  color: #3B6535;
+}
+
+/* Role Insights */
+.roleInsights {
+  background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #BBF7D0;
+}
+
+.insightsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.insightCard {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid #D1FAE5;
+  transition: all 0.2s ease;
+}
+
+.insightCard:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.1);
+}
+
+.insightValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #3B6535;
+}
+
+.insightLabel {
+  font-size: 0.85rem;
+  color: #6B7280;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Material Section */
+.materialSection {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+}
+
+.topMaterial {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #E5E7EB;
+}
+
+.topMaterialBadge {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.topMaterialInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.topMaterialType {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+.topMaterialPercentage {
+  font-size: 0.9rem;
+  color: #6B7280;
+}
+
+.materialBars {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.materialBar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.materialBarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.materialType {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.materialPercentage {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.progressBar {
+  width: 100%;
+  height: 8px;
+  background: #F3F4F6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  animation: fillBar 1s ease-out;
+}
+
+@keyframes fillBar {
+  from {
+    width: 0;
+  }
+}
+
+/* Impact Section */
+.impactSection {
+  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #A7F3D0;
+}
+
+.impactGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.impactCard {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid #D1FAE5;
+  transition: all 0.2s ease;
+}
+
+.impactCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.15);
+}
+
+.impactIcon {
+  width: 32px;
+  height: 32px;
+}
+
+.impactValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #065F46;
+}
+
+.impactLabel {
+  font-size: 0.85rem;
+  color: #6B7280;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Activity Status */
+.activityStatus {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+}
+
+.statusCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.statusHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.statusHeader svg {
+  color: #3B6535;
+}
+
+.statusBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.statusItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: #4B5563;
+}
+
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Quick Insight */
+.quickInsight {
+  background: linear-gradient(135deg, #3B6535 0%, #2d4e28 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #2d4e28;
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.2);
+}
+
+.insightContent {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.insightIconLarge {
+  width: 48px;
+  height: 48px;
+  color: #B3F2AC;
+  flex-shrink: 0;
+}
+
+.insightText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.insightText h4 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.insightText p {
+  font-size: 0.95rem;
+  color: #D1FAE5;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .analyticsContainer {
+    padding: 1.25rem;
+    gap: 1.25rem;
+  }
+
+  .header h2 {
+    font-size: 1.5rem;
+  }
+
+  .metricsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .insightsGrid,
+  .impactGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .insightContent {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .metricValue {
+    font-size: 1.25rem;
+  }
+
+  .insightValue,
+  .impactValue {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .analyticsContainer {
+    padding: 1rem;
+  }
+
+  .header h2 {
+    font-size: 1.25rem;
+  }
+
+  .metricCard {
+    padding: 1rem;
+  }
+
+  .roleInsights,
+  .materialSection,
+  .impactSection,
+  .activityStatus,
+  .quickInsight {
+    padding: 1rem;
+  }
 }

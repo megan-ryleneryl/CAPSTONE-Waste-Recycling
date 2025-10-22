@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styles from './SideNav.module.css';
 import { useAuth } from '../../../context/AuthContext';
 import { 
@@ -14,14 +14,12 @@ import {
   CheckSquare, 
   Users,
   Layers,
-  Trash2,
-  Lightbulb,
   MessagesSquare,
   FileText,
   ClipboardPenLine } 
   from 'lucide-react';
 
-const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) => {
+const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose, chatCounts = { all: 0, waste: 0, initiative: 0, forum: 0 }, postCounts = { all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 } }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     main: true,
@@ -31,6 +29,7 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
   });
   const { currentUser: user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -78,15 +77,22 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
     { id: 'myPosts', label: 'My Posts', icon: <FileText size={20} /> }
   ];
 
+  const chatFilterOptions = [
+    { id: 'all', label: 'All Chats', icon: <Layers size={20} /> },
+    { id: 'waste', label: 'Waste', icon: <Recycle size={20} /> },
+    { id: 'initiative', label: 'Initiative', icon: <Sprout size={20} /> },
+    { id: 'forum', label: 'Forum', icon: <MessagesSquare size={20} /> }
+  ];
+
   return (
     <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${isMobile && isOpen ? styles.open : ''}`}>
       <div className={styles.sidebarContent}>
 
         {/* Create Post Button */}
         <div className={styles.actionsList}>
-          <button 
+          <button
             className={styles.createbtn}
-            onClick={() => window.location.href = '/create-post'}
+            onClick={() => navigate('/create-post')}
             title={isCollapsed ? 'Create Post' : ''}
           >
             {!isCollapsed && <span className={styles.createButton}><Plus size={30}/>Create Post</span>}
@@ -164,7 +170,7 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
         {/* Filters Section - Only show on Posts page */}
         {location.pathname === '/posts' && (
           <div className={styles.section}>
-            <button 
+            <button
               className={styles.sectionHeader}
               onClick={() => toggleSection('filters')}
             >
@@ -180,20 +186,74 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose }) =>
 
             {expandedSections.filters && (
               <div className={styles.filterList}>
-                {filterOptions.map(filter => (
-                  <button
-                    key={filter.id}
-                    className={`${styles.filterItem} ${activeFilter === filter.id ? styles.activeFilter : ''}`}
-                    onClick={() => onFilterChange(filter.id)}
-                    title={isCollapsed ? filter.label : ''}
-                  >
-                    <span className={styles.icon}>{filter.icon}</span>
-                    {!isCollapsed && <span className={styles.label}>{filter.label}</span>}
-                    {!isCollapsed && activeFilter === filter.id && (
-                      <span className={styles.indicator}></span>
-                    )}
-                  </button>
-                ))}
+                {filterOptions.map(filter => {
+                  const count = postCounts[filter.id] || 0;
+                  return (
+                    <button
+                      key={filter.id}
+                      className={`${styles.filterItem} ${activeFilter === filter.id ? styles.activeFilter : ''}`}
+                      onClick={() => onFilterChange(filter.id)}
+                      title={isCollapsed ? filter.label : ''}
+                    >
+                      <span className={styles.icon}>{filter.icon}</span>
+                      {!isCollapsed && (
+                        <>
+                          <span className={styles.label}>{filter.label}</span>
+                          {count > 0 && <span className={styles.badge}>{count}</span>}
+                        </>
+                      )}
+                      {/* {!isCollapsed && activeFilter === filter.id && (
+                        <span className={styles.indicator}></span>
+                      )} */}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Chat Filters Section - Only show on Chat page */}
+        {location.pathname === '/chat' && (
+          <div className={styles.section}>
+            <button
+              className={styles.sectionHeader}
+              onClick={() => toggleSection('filters')}
+            >
+              {!isCollapsed && (
+                <>
+                  <span>Filter Chats</span>
+                  <span className={`${styles.chevron} ${expandedSections.filters ? styles.expanded : ''}`}>
+                    ▼
+                  </span>
+                </>
+              )}
+            </button>
+
+            {expandedSections.filters && (
+              <div className={styles.filterList}>
+                {chatFilterOptions.map(filter => {
+                  const count = chatCounts[filter.id] || 0;
+                  return (
+                    <button
+                      key={filter.id}
+                      className={`${styles.filterItem} ${activeFilter === filter.id ? styles.activeFilter : ''}`}
+                      onClick={() => onFilterChange(filter.id)}
+                      title={isCollapsed ? filter.label : ''}
+                    >
+                      <span className={styles.icon}>{filter.icon}</span>
+                      {!isCollapsed && (
+                        <>
+                          <span className={styles.label}>{filter.label}</span>
+                          {count > 0 && <span className={styles.badge}>{count}</span>}
+                        </>
+                      )}
+                      {/* {!isCollapsed && activeFilter === filter.id && (
+                        <span className={styles.indicator}></span>
+                      )} */}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

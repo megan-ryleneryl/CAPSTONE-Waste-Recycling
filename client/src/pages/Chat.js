@@ -6,21 +6,40 @@ import ConversationList from '../components/chat/ConversationList';
 import ChatWindow from '../components/chat/ChatWindow';
 import styles from './Chat.module.css';
 
-const Chat = () => {
+const Chat = ({ activeFilter = 'all', onChatCountsUpdate }) => {
   const { currentUser: user, loading } = useAuth();
   const location = useLocation();
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showConversationList, setShowConversationList] = useState(true);
 
+  const handleCountsUpdate = (counts) => {
+    if (onChatCountsUpdate) {
+      onChatCountsUpdate(counts);
+    }
+  };
+
+  const handleOpenChat = (postID, otherUser, postData = null) => {
+    setSelectedConversation({
+      postID,
+      otherUser,
+      postData
+    });
+
+    // On mobile, hide conversation list when chat opens
+    if (isMobile) {
+      setShowConversationList(false);
+    }
+  };
+
   // ✅ MOVE ALL HOOKS BEFORE ANY EARLY RETURNS
-  
+
   // Handle initial conversation from navigation state
   useEffect(() => {
     if (location.state?.postID && location.state?.otherUser) {
       handleOpenChat(location.state.postID, location.state.otherUser, location.state.postData);
     }
-  }, [location.state]);
+  }, [location.state, isMobile]);
 
   // Handle responsive design
   useEffect(() => {
@@ -46,19 +65,6 @@ const Chat = () => {
       </div>
     );
   }
-
-  const handleOpenChat = (postID, otherUser, postData = null) => {
-    setSelectedConversation({
-      postID,
-      otherUser,
-      postData
-    });
-    
-    // On mobile, hide conversation list when chat opens
-    if (isMobile) {
-      setShowConversationList(false);
-    }
-  };
 
   const handleConversationSelect = (conversation) => {
     // Create otherUser object from conversation data
@@ -98,10 +104,12 @@ const Chat = () => {
             currentUser={user}
             onSelectConversation={handleConversationSelect}
             selectedConversationId={
-              selectedConversation 
+              selectedConversation
                 ? `${selectedConversation.postID}-${selectedConversation.otherUser.userID}`
                 : null
             }
+            activeFilter={activeFilter}
+            onCountsUpdate={handleCountsUpdate}
           />
         </div>
 

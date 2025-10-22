@@ -2,15 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { MessageCircle, RefreshCw } from 'lucide-react';
+import { MessageCircle, RefreshCw, User, Users } from 'lucide-react';
 import ConversationListItem from './ConversationListItem';
 import styles from './ConversationList.module.css';
 
-const ConversationList = ({ currentUser, onSelectConversation, selectedConversationId }) => {
+const ConversationList = ({ currentUser, onSelectConversation, selectedConversationId, activeFilter = 'all', onCountsUpdate }) => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
     if (currentUser && currentUser.userID) {
@@ -107,6 +106,7 @@ const loadConversations = async () => {
             postCache.set(postID, {
               title: postData.title || 'Untitled Post',
               postType: postData.postType || 'Unknown',
+              status: postData.status || 'Unknown',
               posterID: postData.userID,
               exists: true
             });
@@ -114,6 +114,7 @@ const loadConversations = async () => {
             postCache.set(postID, {
               title: 'Unknown Post',
               postType: 'Unknown',
+              status: 'Unknown',
               posterID: null,
               exists: false
             });
@@ -154,6 +155,7 @@ const loadConversations = async () => {
           postID: msg.postID,
           postTitle: postData.title,
           postType: postData.postType,
+          postStatus: postData.status,
           posterID: postData.posterID,
           otherUserID: msg.senderID,
           otherUserName: userData.name,
@@ -185,6 +187,7 @@ const loadConversations = async () => {
           postID: msg.postID,
           postTitle: postData.title,
           postType: postData.postType,
+          postStatus: postData.status,
           posterID: postData.posterID,
           otherUserID: msg.receiverID,
           otherUserName: userData.name,
@@ -212,62 +215,64 @@ const loadConversations = async () => {
   }
 };
 
-  // Filter conversations based on active tab
-  const getFilteredConversations = () => {
-    if (activeTab === 'all') return conversations;
+  // Filter and group conversations based on active filter from parent
+  const getFilteredAndGroupedConversations = () => {
+    let filtered = conversations;
 
-    return conversations.filter(conv => {
-      const isGiver = conv.posterID === currentUser.userID;
-      const isCollector = !isGiver;
+    // Filter by post type if not 'all'
+    if (activeFilter === 'waste') {
+      filtered = conversations.filter(conv => conv.postType === 'Waste');
+    } else if (activeFilter === 'initiative') {
+      filtered = conversations.filter(conv => conv.postType === 'Initiative');
+    } else if (activeFilter === 'forum') {
+      filtered = conversations.filter(conv => conv.postType === 'Forum');
+    }
 
-      switch (activeTab) {
-        case 'waste-giving':
-          return conv.postType === 'Waste' && isGiver;
-        case 'waste-collecting':
-          return conv.postType === 'Waste' && isCollector;
-        case 'initiative-owner':
-          return conv.postType === 'Initiative' && isGiver;
-        case 'initiative-supporter':
-          return conv.postType === 'Initiative' && isCollector;
-        case 'forum':
-          return conv.postType === 'Forum';
-        default:
-          return true;
+    // Group conversations by ownership
+    const myConversations = [];
+    const othersConversations = [];
+
+    filtered.forEach(conv => {
+      const isMyPost = conv.posterID === currentUser.userID;
+      if (isMyPost) {
+        myConversations.push(conv);
+      } else {
+        othersConversations.push(conv);
       }
     });
+
+    return {
+      myConversations,
+      othersConversations,
+      allConversations: filtered
+    };
   };
 
-  const filteredConversations = getFilteredConversations();
+  const { myConversations, othersConversations, allConversations } = getFilteredAndGroupedConversations();
 
-  // Count conversations for each tab
-  const getCounts = () => {
+  // Calculate counts for all filter types
+  useEffect(() => {
+    if (!onCountsUpdate) return;
+
     const counts = {
       all: conversations.length,
-      wasteGiving: 0,
-      wasteCollecting: 0,
-      initiativeOwner: 0,
-      initiativeSupporter: 0,
+      waste: 0,
+      initiative: 0,
       forum: 0
     };
 
     conversations.forEach(conv => {
-      const isGiver = conv.posterID === currentUser.userID;
-
       if (conv.postType === 'Waste') {
-        if (isGiver) counts.wasteGiving++;
-        else counts.wasteCollecting++;
+        counts.waste++;
       } else if (conv.postType === 'Initiative') {
-        if (isGiver) counts.initiativeOwner++;
-        else counts.initiativeSupporter++;
+        counts.initiative++;
       } else if (conv.postType === 'Forum') {
         counts.forum++;
       }
     });
 
-    return counts;
-  };
-
-  const counts = getCounts();
+    onCountsUpdate(counts);
+  }, [conversations, onCountsUpdate]);
 
   if (loading && !conversations.length) {
     return (
@@ -315,67 +320,69 @@ const loadConversations = async () => {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className={styles.tabs}>
-        <button
-          className={`${styles.tab} ${activeTab === 'all' ? styles.activeTab : ''}`}
-          onClick={() => setActiveTab('all')}
-        >
-          All {counts.all > 0 && `(${counts.all})`}
-        </button>
-        {counts.wasteGiving > 0 && (
-          <button
-            className={`${styles.tab} ${activeTab === 'waste-giving' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('waste-giving')}
-          >
-            Giving Waste ({counts.wasteGiving})
-          </button>
-        )}
-        {counts.wasteCollecting > 0 && (
-          <button
-            className={`${styles.tab} ${activeTab === 'waste-collecting' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('waste-collecting')}
-          >
-            Collecting Waste ({counts.wasteCollecting})
-          </button>
-        )}
-        {counts.initiativeOwner > 0 && (
-          <button
-            className={`${styles.tab} ${activeTab === 'initiative-owner' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('initiative-owner')}
-          >
-            My Initiatives ({counts.initiativeOwner})
-          </button>
-        )}
-        {counts.initiativeSupporter > 0 && (
-          <button
-            className={`${styles.tab} ${activeTab === 'initiative-supporter' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('initiative-supporter')}
-          >
-            Supporting ({counts.initiativeSupporter})
-          </button>
-        )}
-        {counts.forum > 0 && (
-          <button
-            className={`${styles.tab} ${activeTab === 'forum' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('forum')}
-          >
-            Forum ({counts.forum})
-          </button>
-        )}
-      </div>
-
       <div className={styles.conversationItems}>
-        {filteredConversations.length > 0 ? (
-          filteredConversations.map((conversation) => (
-            <ConversationListItem
-              key={conversation.id}
-              conversation={conversation}
-              currentUser={currentUser}
-              onClick={onSelectConversation}
-              isSelected={selectedConversationId === conversation.id}
-            />
-          ))
+        {allConversations.length > 0 ? (
+          <>
+            {/* Show sections for Waste and Initiative filters */}
+            {(activeFilter === 'waste' || activeFilter === 'initiative') ? (
+              <>
+                {/* My Posts Section */}
+                {myConversations.length > 0 && (
+                  <>
+                    <div className={styles.sectionHeader}>
+                      <h3 className={styles.sectionTitle}>
+                        <User size={16} className={styles.sectionIcon} />
+                        {activeFilter === 'waste' ? 'My Waste' : 'My Initiatives'}
+                      </h3>
+                      <span className={styles.sectionCount}>{myConversations.length}</span>
+                    </div>
+                    {myConversations.map((conversation) => (
+                      <ConversationListItem
+                        key={conversation.id}
+                        conversation={conversation}
+                        currentUser={currentUser}
+                        onClick={onSelectConversation}
+                        isSelected={selectedConversationId === conversation.id}
+                      />
+                    ))}
+                  </>
+                )}
+
+                {/* Others' Posts Section */}
+                {othersConversations.length > 0 && (
+                  <>
+                    <div className={styles.sectionHeader}>
+                      <h3 className={styles.sectionTitle}>
+                        <Users size={16} className={styles.sectionIcon} />
+                        {activeFilter === 'waste' ? 'Others Waste' : 'Other Initiatives'}
+                      </h3>
+                      <span className={styles.sectionCount}>{othersConversations.length}</span>
+                    </div>
+                    {othersConversations.map((conversation) => (
+                      <ConversationListItem
+                        key={conversation.id}
+                        conversation={conversation}
+                        currentUser={currentUser}
+                        onClick={onSelectConversation}
+                        isSelected={selectedConversationId === conversation.id}
+                      />
+                    ))}
+                  </>
+                )}
+              </>
+            ) : (
+              /* For 'all' and 'forum' filters, show all conversations without sections */
+              allConversations.map((conversation) => (
+                <ConversationListItem
+                  key={conversation.id}
+                  conversation={conversation}
+                  currentUser={currentUser}
+                  onClick={onSelectConversation}
+                  isSelected={selectedConversationId === conversation.id}
+                />
+              ))
+            )}
+          </>
         ) : (
           <div className={styles.emptyTabState}>
             <p>No conversations in this category</p>

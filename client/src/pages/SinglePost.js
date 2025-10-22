@@ -69,7 +69,15 @@ const SinglePost = ({ onDataUpdate }) => {
       );
 
       if (response.data.success) {
-        setPost(response.data.post);
+        const fetchedPost = response.data.post;
+
+        // Check if post is inactive (from deleted user)
+        if (fetchedPost.status === 'Inactive') {
+          setError('Post not found');
+          return;
+        }
+
+        setPost(fetchedPost);
       } else {
         setError('Post not found');
       }

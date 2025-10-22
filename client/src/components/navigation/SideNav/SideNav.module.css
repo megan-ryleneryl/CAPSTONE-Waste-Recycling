@@ -203,6 +203,20 @@
   margin-left: auto;
 }
 
+/* Count badge */
+.badge {
+  margin-left: auto;
+  background: var(--secondary-color);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 12px;
+  min-width: 20px;
+  text-align: center;
+  line-height: 1.4;
+}
+
 /* Create Post Button */
 .createButton {
   display: flex;

@@ -11,7 +11,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins } from 'lucide-react';
 
 
-const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
+const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID }) => {
 
   const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
@@ -28,6 +28,58 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
       setPosts([]);
     };
   }, [postType, userID]); // Add userID as dependency
+
+  // Calculate and report post counts whenever posts change
+  useEffect(() => {
+    if (!onCountsUpdate || !currentUserID) return;
+
+    // Fetch all posts to count them properly (not just the filtered ones)
+    const fetchAllPostsForCounts = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await axios.get('http://localhost:3001/api/posts', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.data.success) {
+          const allPosts = response.data.posts.filter(post => post.status !== 'Inactive');
+
+          const counts = {
+            all: allPosts.length,
+            Waste: 0,
+            Initiatives: 0,
+            Forum: 0,
+            myPosts: 0
+          };
+
+          allPosts.forEach(post => {
+            if (post.postType === 'Waste') {
+              counts.Waste++;
+            } else if (post.postType === 'Initiative') {
+              counts.Initiatives++;
+            } else if (post.postType === 'Forum') {
+              counts.Forum++;
+            }
+
+            if (post.userID === currentUserID) {
+              counts.myPosts++;
+            }
+          });
+
+          onCountsUpdate(counts);
+        }
+      } catch (err) {
+        console.error('Error fetching posts for counts:', err);
+      }
+    };
+
+    fetchAllPostsForCounts();
+  }, [posts, onCountsUpdate, currentUserID]);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -95,9 +147,12 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
           setPosts([]);
           return;
         }
-        
+
+        // Filter out inactive posts (posts from deleted users)
+        const activePosts = postsData.filter(post => post.status !== 'Inactive');
+
         // Limit posts based on maxPosts prop
-        const limitedPosts = postsData.slice(0, maxPosts);
+        const limitedPosts = activePosts.slice(0, maxPosts);
         
         // Log the types of posts received
         const postTypes = limitedPosts.reduce((acc, post) => {
@@ -541,8 +596,8 @@ const handleMessageOwner = async (post, event) => {
 
             {/* Top Section */}
               <div className={styles.topSection}>
-              
-              {/* Post Type Tag */}
+
+              {/* Post Type Tag and Info Text */}
               <div className={styles.tagContainer}>
                 <span className={`${styles.tag} ${
                   post.postType === 'Waste' ? styles.wasteTag :
@@ -558,6 +613,42 @@ const handleMessageOwner = async (post, event) => {
                   </span>
                   {post.postType} Post
                 </span>
+
+                {/* Inline Info Text for non-collectors */}
+                {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && !(currentUser?.isCollector || currentUser?.isAdmin) && (
+                  <span className={styles.inlineInfoText}>
+                    Collector accounts only
+                  </span>
+                )}
+
+                {/* Inline Info Text for claimed posts */}
+                {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy !== currentUser?.userID && (
+                  <span className={styles.inlineInfoText}>
+                    Claimed by another collector
+                  </span>
+                )}
+
+                {/* Inline Info Text for completed posts */}
+                {post.postType === 'Waste' && post.status === 'Completed' && (
+                  <span className={styles.inlineInfoText}>
+                    Completed
+                  </span>
+                )}
+
+                {/* Inline Info Text for own posts */}
+                {post.postType === 'Waste' && post.userID === currentUser?.userID && (
+                  <span className={styles.inlineInfoText}>
+                    Your post
+                    {post.status === 'Claimed' && <> • Claimed</>}
+                  </span>
+                )}
+
+                {/* Inline Info Text for posts you claimed */}
+                {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy === currentUser?.userID && (
+                  <span className={styles.inlineInfoText}>
+                    You claimed this
+                  </span>
+                )}
               </div>
 
               {/* Post Title and Description */}
@@ -757,13 +848,6 @@ const handleMessageOwner = async (post, event) => {
             {/* Action Buttons */}
             <div className={styles.actionContainer}>
               {/* Waste Post Actions */}
-              {post.postType === 'Waste' && post.userID === currentUser?.userID && (
-                <div className={styles.ownPostNote}>
-                  <span>Your post</span>
-                  {post.status === 'Claimed' && <span className={styles.statusDot}>●</span>}
-                  {post.status === 'Claimed' && <span>Claimed</span>}
-                </div>
-              )}
               {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && (currentUser?.isCollector || currentUser?.isAdmin) && (
                 <button
                   className={`${styles.actionButton} ${styles.collectButton}`}
@@ -771,31 +855,6 @@ const handleMessageOwner = async (post, event) => {
                 >
                   Collect
                 </button>
-              )}
-              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && !(currentUser?.isCollector || currentUser?.isAdmin) && (
-                <div className={styles.infoText}>
-                  <span>Collector accounts only</span>
-                </div>
-              )}
-              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy === currentUser?.userID && (
-                <div className={styles.yourClaimNote}>
-                  <span>You claimed this</span>
-                </div>
-              )}
-              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy !== currentUser?.userID && (
-                <button
-                  className={`${styles.actionButton} ${styles.claimedButton}`}
-                  disabled
-                  style={{ background: '#9CA3AF', cursor: 'not-allowed' }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Claimed
-                </button>
-              )}
-              {post.postType === 'Waste' && post.status === 'Completed' && (
-                <div className={styles.completedNote}>
-                  <span>Completed</span>
-                </div>
               )}
 
               {/* Initiative Post Actions */}

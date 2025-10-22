@@ -13,6 +13,8 @@ const AppLayout = ({ children }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [rightSectionData, setRightSectionData] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [chatCounts, setChatCounts] = useState({ all: 0, waste: 0, initiative: 0, forum: 0 });
+  const [postCounts, setPostCounts] = useState({ all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 });
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -66,6 +68,19 @@ const AppLayout = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Reset activeFilter to 'all' when navigating away from pages that use filters
+  useEffect(() => {
+    // Only reset if we're not on a page that uses filters
+    if (location.pathname !== '/posts' && location.pathname !== '/chat') {
+      setActiveFilter('all');
+    }
+
+    // Close mobile sidebar on navigation
+    if (isMobile && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile, sidebarOpen]);
+
   // Memoize the sidebar toggle function
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed(prev => !prev);
@@ -74,6 +89,16 @@ const AppLayout = ({ children }) => {
   // Memoize the data update handler to prevent infinite re-renders
   const handleDataUpdate = useCallback((data) => {
     setRightSectionData(data);
+  }, []);
+
+  // Memoize the chat counts update handler
+  const handleChatCountsUpdate = useCallback((counts) => {
+    setChatCounts(counts);
+  }, []);
+
+  // Memoize the post counts update handler
+  const handlePostCountsUpdate = useCallback((counts) => {
+    setPostCounts(counts);
   }, []);
 
   // Don't show layout on certain pages
@@ -90,19 +115,21 @@ const AppLayout = ({ children }) => {
     );
   }
 
-  // Clone children and pass both handleDataUpdate and activeFilter
+  // Clone children and pass props including counts update handlers
   const childrenWithProps = React.cloneElement(children, {
     onDataUpdate: handleDataUpdate,
-    activeFilter: activeFilter  // Pass the filter state to child pages
+    activeFilter: activeFilter,  // Pass the filter state to child pages
+    onChatCountsUpdate: handleChatCountsUpdate,  // Pass chat counts handler
+    onPostCountsUpdate: handlePostCountsUpdate  // Pass post counts handler
   });
 
   return (
     <div className={styles.appContainer}>
       <TopNav user={currentUser} />
-      
+
       <div className={styles.mainLayout}>
-        <SideNav 
-          activeFilter={activeFilter} 
+        <SideNav
+          activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={toggleSidebar}
@@ -110,9 +137,11 @@ const AppLayout = ({ children }) => {
           isMobile={isMobile}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          chatCounts={chatCounts}
+          postCounts={postCounts}
         />
-        
-        <main className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''} ${showRightSection ? styles.withRightSection : ''}`}>
+
+        <main key={location.pathname} className={`${styles.mainContent} ${sidebarCollapsed ? styles.sidebarCollapsed : ''} ${showRightSection ? styles.withRightSection : ''}`}>
           {childrenWithProps}
         </main>
 

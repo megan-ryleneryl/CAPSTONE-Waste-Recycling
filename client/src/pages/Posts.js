@@ -2,9 +2,15 @@ import React from 'react';
 import PostCard from '../components/posts/PostCard/PostCard';
 import { useAuth } from '../context/AuthContext';
 
-const Posts = ({ activeFilter = 'all' }) => {
+const Posts = ({ activeFilter = 'all', onPostCountsUpdate }) => {
   const { currentUser } = useAuth();
-  
+
+  const handleCountsUpdate = (counts) => {
+    if (onPostCountsUpdate) {
+      onPostCountsUpdate(counts);
+    }
+  };
+
   // Map filter IDs from SideNav to PostCard postType values
   const getPostTypeFromFilter = (filter) => {
     switch(filter) {
@@ -34,10 +40,12 @@ const Posts = ({ activeFilter = 'all' }) => {
   return (
     <div>
       {/* Pass the appropriate postType and userID to PostCard */}
-      <PostCard 
-        postType={postType} 
+      <PostCard
+        postType={postType}
         userID={userID}
-        maxPosts={20} 
+        maxPosts={20}
+        onCountsUpdate={handleCountsUpdate}
+        currentUserID={currentUser?.userID}
       />
     </div>
   );

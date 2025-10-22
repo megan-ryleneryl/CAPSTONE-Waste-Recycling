@@ -35,8 +35,9 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  // Use userID as key to force complete remount when user changes
-  return <AppLayout key={currentUser.userID}>{children}</AppLayout>;
+  // AppLayout persists across routes - don't use key here
+  // The key on <main> in AppLayout handles route changes
+  return <AppLayout>{children}</AppLayout>;
 };
 
 // Auto-login Route Component
