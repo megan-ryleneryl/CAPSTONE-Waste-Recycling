@@ -1,6 +1,6 @@
 /* client/src/components/pickup/PickupsList.module.css */
 .pickupsList {
-  padding: 1rem;
+  /* padding: 1rem; */
 }
 
 .pickupsList.grid {
@@ -35,14 +35,16 @@
 }
 
 .pickupTitle {
+  text-align: left;
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #111827;
   margin: 0;
   flex: 1;
 }
 
 .pickupDetails {
+  text-align: left;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

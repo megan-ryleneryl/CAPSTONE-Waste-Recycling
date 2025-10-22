@@ -206,7 +206,7 @@
 /* Count badge */
 .badge {
   margin-left: auto;
-  background: var(--secondary-color);
+  background: #a9a7a7;
   color: white;
   font-size: 0.75rem;
   font-weight: 600;

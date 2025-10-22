@@ -1,7 +1,7 @@
 /* client/src/pages/PickupTracking.module.css */
 .container {
+  padding-top: 2rem;
   min-height: 100vh;
-  background: var(--bg-light);
 }
 
 .header {
@@ -9,9 +9,9 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-lg) var(--spacing-xl);
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: var(--shadow-xs);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
 }
 
 .backButton {
@@ -33,7 +33,7 @@
 
 .title {
   font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-semibold);
+  font-weight: 700;
   color: var(--text-primary);
   font-family: var(--font-family-primary);
   margin: 0;
@@ -54,14 +54,14 @@
   gap: var(--spacing-xl);
   max-width: 1200px;
   margin: var(--spacing-xl) auto;
-  padding: 0 var(--spacing-xl);
 }
 
 .mainSection {
-  background: var(--bg-primary);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid var(--border-color);
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-xl);
-  box-shadow: var(--shadow-sm);
+
 }
 
 .pickupInfo {
@@ -133,9 +133,11 @@
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  text-align: left;
 }
 
 .infoValue {
+  text-align: left;
   font-size: 0.95rem;
   color: var(--text-primary);
   font-weight: var(--font-weight-semibold);
@@ -152,6 +154,7 @@
   gap: var(--spacing-lg);
   position: relative;
   margin-bottom: var(--spacing-xl);
+  text-align: left;
 }
 
 .timelineItem:last-child {

@@ -649,6 +649,13 @@ const handleMessageOwner = async (post, event) => {
                     You claimed this
                   </span>
                 )}
+
+                {/* Inline Info Text for your initiative */}
+                {post.postType === 'Initiative' && post.userID === currentUser?.userID && (
+                <span className={styles.inlineInfoText}>
+                  Your initiative
+                </span>
+              )}
               </div>
 
               {/* Post Title and Description */}
@@ -857,12 +864,7 @@ const handleMessageOwner = async (post, event) => {
                 </button>
               )}
 
-              {/* Initiative Post Actions */}
-              {post.postType === 'Initiative' && post.userID === currentUser?.userID && (
-                <div className={styles.ownPostNote}>
-                  <span>Your initiative</span>
-                </div>
-              )}
+              
               {post.postType === 'Initiative' && post.userID !== currentUser?.userID && post.status === 'Active' && (
                 <button
                   className={`${styles.actionButton} ${styles.supportButton}`}
