@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Package, Edit3 } from 'lucide-react';
+import { Calendar, Package, Edit3, XCircle } from 'lucide-react';
 import PickupScheduleForm from './PickupScheduleForm';
 import PickupCard from './PickupCard';
 import SupportCard from './SupportCard';
@@ -620,6 +620,55 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
     setShowScheduleForm(true);
   };
 
+  // Handle cancelling a claim
+  const handleCancelClaim = async () => {
+    if (!post?.postID) return;
+
+    const confirmCancel = window.confirm(
+      'Are you sure you want to cancel your claim? This post will become available for other collectors to claim.'
+    );
+
+    if (!confirmCancel) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/posts/${post.postID}/cancel-claim`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to cancel claim');
+      }
+
+      // Update local post state
+      setPost(prev => ({
+        ...prev,
+        status: 'Active',
+        claimedBy: null,
+        claimedAt: null
+      }));
+
+      alert('Claim cancelled successfully. The post is now available for others.');
+
+      // Optionally, close the chat or navigate away
+      if (onClose) {
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error cancelling claim:', error);
+      alert(error.message || 'Failed to cancel claim. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.chatWindow}>
@@ -642,6 +691,17 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
     post.postType !== 'Forum' &&
     post.claimedBy === currentUser?.userID &&
     post.status !== 'Completed';
+
+  // Show cancel claim button if:
+  // 1. User is a collector
+  // 2. Post is a Waste post
+  // 3. Post is currently claimed by the current user
+  // 4. No active pickup scheduled yet (can't cancel if pickup is already scheduled)
+  const canCancelClaim = isCollector && post &&
+    post.postType === 'Waste' &&
+    post.status === 'Claimed' &&
+    post.claimedBy === currentUser?.userID &&
+    !activePickup;
 
 return (
   <div className={styles.chatWindow}>
@@ -684,6 +744,16 @@ return (
           >
             <Calendar className={styles.buttonIcon} size={20} />
             <span className={styles.buttonText}>Schedule Pickup</span>
+          </button>
+        )}
+        {canCancelClaim && (
+          <button
+            onClick={handleCancelClaim}
+            className={styles.cancelClaimButton}
+            title="Cancel your claim on this post"
+          >
+            <XCircle className={styles.buttonIcon} size={20} />
+            <span className={styles.buttonText}>Cancel Claim</span>
           </button>
         )}
         {onClose && (

@@ -1134,17 +1134,17 @@ router.get('/:postId/claim-status', verifyToken, async (req, res) => {
   try {
     const { postId } = req.params;
     const post = await Post.findById(postId);
-    
+
     if (!post) {
       return res.status(404).json({
         success: false,
         message: 'Post not found'
       });
     }
-    
+
     const claimed = post.status === 'Claimed' || post.status === 'Completed';
     let claimDetails = null;
-    
+
     if (claimed && post.claimedBy) {
       const collector = await User.findById(post.claimedBy);
       if (collector) {
@@ -1155,19 +1155,145 @@ router.get('/:postId/claim-status', verifyToken, async (req, res) => {
         };
       }
     }
-    
+
     res.json({
       success: true,
       claimed: claimed,
       claimDetails: claimDetails,
       postStatus: post.status
     });
-    
+
   } catch (error) {
     console.error('Error checking claim status:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to check claim status'
+    });
+  }
+});
+
+// Cancel claim on a Waste Post (Collectors only)
+router.post('/:postId/cancel-claim', verifyToken, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const collectorID = req.user.userID;
+
+    // Import required models
+    const User = require('../models/Users');
+    const Message = require('../models/Message');
+    const Notification = require('../models/Notification');
+
+    // Get the post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
+    // Check if it's a Waste post
+    if (post.postType !== 'Waste') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only Waste posts can have claims cancelled'
+      });
+    }
+
+    // Check if the post is actually claimed
+    if (post.status !== 'Claimed') {
+      return res.status(400).json({
+        success: false,
+        message: 'This post is not currently claimed'
+      });
+    }
+
+    // Check if the current user is the one who claimed it
+    if (post.claimedBy !== collectorID) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only cancel your own claim'
+      });
+    }
+
+    // Update post status back to Active and remove claim info
+    const updateData = {
+      status: 'Active',
+      claimedBy: null,
+      claimedAt: null,
+      updatedAt: new Date().toISOString()
+    };
+
+    await Post.update(postId, updateData);
+
+    // Get collector's and giver's names for the messages
+    const collector = await User.findById(collectorID);
+    const giver = await User.findById(post.userID);
+
+    if (!collector || !giver) {
+      throw new Error('User data not found');
+    }
+
+    const collectorName = `${collector.firstName} ${collector.lastName}`;
+    const giverName = `${giver.firstName} ${giver.lastName}`;
+
+    // Create system message about the cancellation
+    await Message.create({
+      senderID: collectorID,
+      senderName: collectorName,
+      receiverID: post.userID,
+      receiverName: giverName,
+      postID: postId,
+      postTitle: post.title,
+      postType: post.postType || 'Waste',
+      messageType: 'system',
+      message: `${collectorName} has cancelled their claim on "${post.title}". This post is now available for other collectors to claim.`,
+      isRead: false,
+      isDeleted: false,
+      sentAt: new Date(),
+      metadata: {
+        action: 'claim_cancelled',
+        postTitle: post.title,
+        collectorName: collectorName
+      }
+    });
+
+    // Send notification to post owner
+    await Notification.create({
+      userID: post.userID,
+      type: 'Pickup',
+      title: 'Claim cancelled',
+      message: `${collectorName} cancelled their claim on "${post.title}". Your post is now available for other collectors.`,
+      referenceID: postId,
+      referenceType: 'post',
+      actionURL: `/posts/${postId}`,
+      priority: 'medium',
+      metadata: {
+        collectorID: collectorID,
+        collectorName: collectorName,
+        postID: postId,
+        action: 'claim_cancelled'
+      }
+    });
+
+    // Invalidate cache when claim is cancelled
+    invalidatePostsCache();
+
+    res.json({
+      success: true,
+      message: 'Claim cancelled successfully. The post is now available for others to claim.',
+      data: {
+        postID: postId,
+        status: 'Active'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error cancelling claim:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to cancel claim. Please try again.'
     });
   }
 });
