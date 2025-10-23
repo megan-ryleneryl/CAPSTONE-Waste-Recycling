@@ -22,11 +22,38 @@ router.use(verifyToken);
 
 // ============= READ OPERATIONS =============
 
-// Get all posts (with filters)
+// CACHE for posts (5 minute TTL)
+const postsCache = {
+  data: null,
+  timestamp: 0,
+  ttl: 5 * 60 * 1000 // 5 minutes
+};
+
+// Helper to invalidate cache
+function invalidatePostsCache() {
+  postsCache.data = null;
+  postsCache.timestamp = 0;
+  console.log('🗑️ Posts cache invalidated');
+}
+
+// Get all posts (with filters) - OPTIMIZED
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const { type, status, location, userID } = req.query;
+    const { type, status, location, userID, skipInteractions } = req.query;
     const User = require('../models/Users');
+
+    // Check cache first (only for non-filtered requests)
+    const now = Date.now();
+    const useCache = !type && !status && !location && !userID;
+
+    if (useCache && postsCache.data && (now - postsCache.timestamp) < postsCache.ttl) {
+      console.log('📦 Using cached posts data');
+      return res.json({
+        success: true,
+        posts: postsCache.data,
+        cached: true
+      });
+    }
 
     let posts;
     if (userID) {
@@ -70,22 +97,29 @@ router.get('/', verifyToken, async (req, res) => {
       }
     }
 
-    // Add user data and interaction data to posts
+    // OPTIMIZED: Only fetch interactions for Forum posts (where likes/comments are shown)
+    // This dramatically reduces reads while keeping Forum posts interactive
+    const shouldFetchInteractions = skipInteractions !== 'true';
+
     const enrichedPosts = await Promise.all(posts.map(async (post) => {
       const postData = post.toFirestore ? post.toFirestore() : post;
 
-      // Get interaction data with error handling
+      // Default values
       let likeCount = 0;
       let isLiked = false;
       let commentCount = 0;
 
-      try {
-        likeCount = await post.getLikeCount();
-        isLiked = await post.isLikedByUser(req.user.userID);
-        const comments = await post.getComments();
-        commentCount = comments.length;
-      } catch (err) {
-        // Silently handle if these methods don't exist
+      // OPTIMIZED: Only fetch interactions for Forum posts (not Waste/Initiative)
+      // Forum posts need likes/comments, but Waste/Initiative posts don't display them
+      if (shouldFetchInteractions && postData.postType === 'Forum') {
+        try {
+          likeCount = await post.getLikeCount();
+          isLiked = await post.isLikedByUser(req.user.userID);
+          const comments = await post.getComments();
+          commentCount = comments.length;
+        } catch (err) {
+          console.error(`Error fetching interactions for post ${postData.postID}:`, err.message);
+        }
       }
 
       return {
@@ -105,6 +139,13 @@ router.get('/', verifyToken, async (req, res) => {
         supportCount: postData.supportCount || 0
       };
     }));
+
+    // Cache the result (only for non-filtered, with interactions)
+    if (useCache && shouldFetchInteractions) {
+      postsCache.data = enrichedPosts;
+      postsCache.timestamp = now;
+      console.log('💾 Cached posts data');
+    }
 
     res.json({
       success: true,
@@ -505,6 +546,9 @@ router.post('/create', verifyToken, (req, res, next) => {
         });
     }
         
+    // Invalidate cache when new post is created
+    invalidatePostsCache();
+
     res.status(201).json({
       success: true,
       message: `${postType} post created successfully`,
@@ -555,6 +599,9 @@ router.put('/:postId', verifyToken, async (req, res) => {
     
     const updatedPost = await Post.update(req.params.postId, updateData);
     
+    // Invalidate cache when post is updated
+    invalidatePostsCache();
+
     res.json({
       success: true,
       message: 'Post updated successfully',
@@ -606,6 +653,9 @@ router.patch('/:postId/status', verifyToken, async (req, res) => {
     
     const updatedPost = await Post.update(req.params.postId, { status });
     
+    // Invalidate cache when status is updated
+    invalidatePostsCache();
+
     res.json({
       success: true,
       message: 'Post status updated successfully',
@@ -664,6 +714,9 @@ router.delete('/:postId', verifyToken, async (req, res) => {
     // Delete the post
     await Post.delete(req.params.postId);
     
+    // Invalidate cache when post is deleted
+    invalidatePostsCache();
+
     res.json({
       success: true,
       message: 'Post deleted successfully'

@@ -46,8 +46,8 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
         return;
       }
 
-      // OPTIMIZED: Always fetch ALL posts first for accurate counts (single API call)
-      // Then filter on client side to avoid multiple API calls
+      // OPTIMIZED: Fetch interactions, but backend only loads them for Forum posts
+      // This keeps Forum posts responsive while avoiding reads for Waste/Initiative posts
       const response = await axios.get('http://localhost:3001/api/posts', {
         headers: {
           'Authorization': `Bearer ${token}`,
