@@ -19,6 +19,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const psgcRoutes = require('./routes/psgc');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const materialRoutes = require('./routes/materialRoutes');
+const disposalHubRoutes = require('./routes/disposalHubRoutes');
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -116,6 +117,7 @@ app.use('/api/psgc', psgcRoutes);
 app.use('/api/protected/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/materials', materialRoutes);
+app.use('/api/disposal-hubs', disposalHubRoutes);
 
 app.use('/api/admin', (req, res, next) => {
   next();

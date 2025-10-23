@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Analytics.module.css';
 import GeographicHeatmap from '../components/analytics/GeographicHeatmap';
+import DisposalHubMap from '../components/analytics/DisposalHubMap';
+import AddDisposalHubForm from '../components/analytics/AddDisposalHubForm';
 import {
   MapPin,
   Recycle,
@@ -29,6 +31,7 @@ const Analytics = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [heatMapData, setHeatMapData] = useState([]);
   const [disposalSites, setDisposalSites] = useState([]);
+  const [showAddHubForm, setShowAddHubForm] = useState(false);
 
   const navigate = useNavigate();
 
@@ -222,41 +225,12 @@ const Analytics = () => {
       case 'nearby':
         return (
           <div className={styles.nearbyContent}>
-            {disposalSites.length > 0 ? (
-              <>
-                <div className={styles.mapPlaceholder}>
-                  <MapPin size={48} className={styles.placeholderIcon} />
-                  <h3>Interactive Map Coming Soon</h3>
-                  <p>Showing {disposalSites.length} disposal sites near you.</p>
-                </div>
-                <div className={styles.disposalSitesList}>
-                  <h3>Disposal Sites Near You</h3>
-                  {disposalSites.map(site => (
-                    <div key={site.id} className={styles.disposalSite}>
-                      <div className={styles.siteInfo}>
-                        <h4>{site.name}</h4>
-                        <span className={styles.distance}>{site.distance}</span>
-                        <div className={styles.acceptedTypes}>
-                          {site.types.map(type => (
-                            <span key={type} className={styles.typeTag}>{type}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className={styles.siteActions}>
-                        <button 
-                          className={styles.postButton}
-                          onClick={() => navigate('/create-post')}
-                        >
-                          <Plus size={16} /> Post
-                        </button>
-                        <button className={styles.messageButton}>
-                          Message
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
+            {user ? (
+              <DisposalHubMap
+                disposalSites={disposalSites}
+                userLocation={user?.location?.coordinates || { lat: 14.5995, lng: 121.0000 }}
+                onSuggestHub={() => setShowAddHubForm(true)}
+              />
             ) : (
               <div className={styles.placeholderContent}>
                 <MapPin size={48} className={styles.placeholderIcon} />
@@ -266,7 +240,7 @@ const Analytics = () => {
             )}
           </div>
         );
-      
+
       case 'activity':
         return (
           <div className={styles.activityContent}>
@@ -285,10 +259,10 @@ const Analytics = () => {
             )}
           </div>
         );
-      
+
       case 'impact':
         return renderImpactDashboard();
-      
+
       default:
         return null;
     }
@@ -575,6 +549,21 @@ const Analytics = () => {
 
   return (
     <div className={styles.dashboardContainer}>
+      {/* Add Disposal Hub Form Modal */}
+      {showAddHubForm && (
+        <AddDisposalHubForm
+          onClose={() => setShowAddHubForm(false)}
+          onSuccess={(newHub) => {
+            console.log('New hub suggested:', newHub);
+            // Refresh disposal sites
+            if (activeTab === 'nearby' && user) {
+              fetchDisposalSites();
+            }
+          }}
+          userLocation={user?.location?.coordinates || null}
+        />
+      )}
+
       <div className={styles.welcomeSection}>
         <div className={styles.welcomeHeader}>
           <div>

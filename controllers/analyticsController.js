@@ -939,56 +939,75 @@ async function getAreaActivity() {
 
 async function getDisposalSites(lat, lng) {
   try {
-    const sites = [
-      { 
-        id: 1, 
-        name: 'Green Earth MRF', 
-        distance: '1.2 km', 
-        types: ['Plastic', 'Paper', 'Metal'], 
-        active: true,
-        address: '123 Recycling St., Quezon City',
-        operatingHours: '8:00 AM - 5:00 PM',
-        contact: '+63 2 1234 5678'
-      },
-      { 
-        id: 2, 
-        name: 'City Recycling Center', 
-        distance: '2.5 km', 
-        types: ['All waste types accepted'], 
-        active: true,
-        address: '456 Green Avenue, Makati',
-        operatingHours: '7:00 AM - 6:00 PM',
-        contact: '+63 2 9876 5432'
-      },
-      { 
-        id: 3, 
-        name: 'E-Waste Collection Hub', 
-        distance: '3.8 km', 
-        types: ['Electronics', 'Batteries', 'Appliances'], 
-        active: true,
-        address: '789 Tech Park, BGC Taguig',
-        operatingHours: '9:00 AM - 5:00 PM',
-        contact: '+63 2 5555 1234'
-      },
-      {
-        id: 4,
-        name: 'Community Recycling Point',
-        distance: '0.8 km',
-        types: ['Plastic', 'Paper', 'Glass'],
-        active: true,
-        address: 'Barangay Hall, Local Street',
-        operatingHours: '8:00 AM - 4:00 PM',
-        contact: '+63 917 123 4567'
-      }
-    ];
-    
-    return sites.sort((a, b) => 
-      parseFloat(a.distance) - parseFloat(b.distance)
-    );
+    const DisposalHub = require('../models/DisposalHub');
+
+    // Validate coordinates
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      console.error('Invalid coordinates provided');
+      return [];
+    }
+
+    // Find hubs within 10km radius
+    const nearbyHubs = await DisposalHub.findNearby(latitude, longitude, 10);
+
+    // Transform to match the format expected by frontend
+    const sites = nearbyHubs.map(hub => ({
+      id: hub.hubID,
+      hubID: hub.hubID,
+      name: hub.name,
+      type: hub.type,
+      distance: hub.distanceFormatted,
+      distanceKm: hub.distance,
+      types: hub.acceptedMaterials || [],
+      acceptedMaterials: hub.acceptedMaterials || [],
+      active: hub.status === 'Active',
+      status: hub.status,
+      address: formatAddress(hub.address),
+      fullAddress: hub.address,
+      coordinates: hub.coordinates,
+      operatingHours: formatOperatingHours(hub.operatingHours),
+      contact: hub.contact?.phone || '',
+      email: hub.contact?.email || '',
+      website: hub.contact?.website || '',
+      description: hub.description || '',
+      ratings: hub.ratings || { average: 0, count: 0 },
+      verified: hub.verified
+    }));
+
+    return sites;
   } catch (error) {
     console.error('Error getting disposal sites:', error);
+    // Return empty array instead of dummy data on error
     return [];
   }
+}
+
+// Helper function to format address object to string
+function formatAddress(address) {
+  if (!address) return 'Address not available';
+
+  const parts = [];
+  if (address.street) parts.push(address.street);
+  if (address.barangay) parts.push(address.barangay);
+  if (address.city) parts.push(address.city);
+  if (address.province) parts.push(address.province);
+
+  return parts.length > 0 ? parts.join(', ') : 'Address not available';
+}
+
+// Helper function to format operating hours
+function formatOperatingHours(hours) {
+  if (!hours) return 'Hours not available';
+
+  // If it's already a string, return it
+  if (typeof hours === 'string') return hours;
+
+  // If it's an object with days, format it
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  return hours[today] || 'Hours not available';
 }
 
 // FIXED: Environmental impact - all 3 values are now returned and calculated
