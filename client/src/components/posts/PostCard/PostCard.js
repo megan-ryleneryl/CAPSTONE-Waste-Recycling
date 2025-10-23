@@ -609,7 +609,13 @@ const handleMessageOwner = async (post, event) => {
                 {post.postType === 'Waste' && post.userID === currentUser?.userID && (
                   <span className={styles.inlineInfoText}>
                     Your post
-                    {post.status === 'Claimed' && <> • Claimed</>}
+                  </span>
+                )}
+
+                {/* Inline Info Text for claimed posts */}
+                {post.postType === 'Waste' && post.userID === currentUser?.userID && post.status === 'Claimed' && (
+                  <span className={styles.inlineInfoText}>
+                    Claimed
                   </span>
                 )}
 

@@ -22,6 +22,7 @@
 }
 
 .welcomeTitle {
+  text-align: left;
   color: var(--text-primary, #333);
   font-size: 2rem;
   font-weight: 700;
@@ -29,6 +30,7 @@
 }
 
 .welcomeSubtitle {
+  text-align: left;
   color: var(--text-secondary, #666);
   font-size: 1rem;
 }
@@ -90,16 +92,16 @@
 /* Navigation Tabs */
 .navTabs {
   display: flex;
+  flex-direction: row;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1rem 0;
   border-radius: var(--border-radius-lg, 12px);
-  justify-content: center;
-  flex-wrap: wrap;
 }
 
 .navTab {
   display: flex;
   align-items: center;
+  width: 100%;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   background: transparent;

@@ -119,9 +119,6 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub }) => {
             <MapPin size={24} />
             Disposal Hub Locator
           </h2>
-          <p className={styles.subtitle}>
-            {filteredSites.length} {filterType === 'all' ? 'disposal hubs' : filterType + 's'} found near you
-          </p>
         </div>
 
         <div className={styles.headerActions}>
@@ -228,13 +225,15 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub }) => {
                     <div className={styles.popupContent}>
                       <h3 className={styles.popupTitle}>
                         {hub.name}
-                        {hub.verified && <span className={styles.verifiedBadge}>✓ Verified</span>}
                       </h3>
 
                       <div className={styles.popupType}>
-                        <span className={hub.type === 'MRF' ? styles.typeMRF : styles.typeJunkShop}>
+                        <div className={hub.type === 'MRF' ? styles.typeMRF : styles.typeJunkShop}>
                           {hub.type}
-                        </span>
+                        </div>
+                        <div>
+                         {hub.verified && <span className={styles.verifiedBadge}>✓ Verified</span>}
+                         </div>
                       </div>
 
                       <div className={styles.popupInfo}>
@@ -302,7 +301,11 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub }) => {
 
         {/* Sidebar with list */}
         <div className={styles.sidebar}>
-          <h3 className={styles.sidebarTitle}>Nearby Hubs</h3>
+          <div className={styles.sidebarTitle}>Nearby Hubs
+            <p className={styles.subtitle}>
+              {filteredSites.length} {filterType === 'all' ? 'disposal hubs' : filterType + 's'}
+            </p>
+          </div>
 
           {filteredSites.length === 0 ? (
             <div className={styles.noResults}>
@@ -323,11 +326,11 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub }) => {
                   <div className={styles.hubCardHeader}>
                     <h4 className={styles.hubName}>
                       {hub.name}
-                      {hub.verified && <span className={styles.verifiedBadge}>✓</span>}
                     </h4>
                     <span className={hub.type === 'MRF' ? styles.typeBadgeMRF : styles.typeBadgeJunk}>
                       {hub.type}
                     </span>
+                      {hub.verified && <span className={styles.verifiedBadge}>✓</span>}
                   </div>
 
                   {hub.distance && (
