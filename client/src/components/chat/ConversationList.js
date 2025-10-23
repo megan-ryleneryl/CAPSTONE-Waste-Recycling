@@ -1,5 +1,5 @@
 // client/src/components/chat/ConversationList.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { MessageCircle, RefreshCw, User, Users } from 'lucide-react';
@@ -10,6 +10,7 @@ const ConversationList = ({ currentUser, onSelectConversation, selectedConversat
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const previousCountsRef = useRef(null);
 
   useEffect(() => {
     if (currentUser && currentUser.userID) {
@@ -271,7 +272,16 @@ const loadConversations = async () => {
       }
     });
 
-    onCountsUpdate(counts);
+    // Only update if counts have actually changed
+    const prevCounts = previousCountsRef.current;
+    if (!prevCounts ||
+        prevCounts.all !== counts.all ||
+        prevCounts.waste !== counts.waste ||
+        prevCounts.initiative !== counts.initiative ||
+        prevCounts.forum !== counts.forum) {
+      previousCountsRef.current = counts;
+      onCountsUpdate(counts);
+    }
   }, [conversations, onCountsUpdate]);
 
   if (loading && !conversations.length) {

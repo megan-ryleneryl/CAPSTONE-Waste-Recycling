@@ -1,5 +1,5 @@
 // client/src/pages/Chat.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import ConversationList from '../components/chat/ConversationList';
@@ -13,11 +13,12 @@ const Chat = ({ activeFilter = 'all', onChatCountsUpdate }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showConversationList, setShowConversationList] = useState(true);
 
-  const handleCountsUpdate = (counts) => {
+  // Memoize the counts update handler to prevent infinite loops
+  const handleCountsUpdate = useCallback((counts) => {
     if (onChatCountsUpdate) {
       onChatCountsUpdate(counts);
     }
-  };
+  }, [onChatCountsUpdate]);
 
   const handleOpenChat = (postID, otherUser, postData = null) => {
     setSelectedConversation({

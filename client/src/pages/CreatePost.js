@@ -4,7 +4,7 @@ import axios from 'axios';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
 import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
-import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { Image, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -15,6 +15,7 @@ const CreatePost = () => {
   const [isCollector, setIsCollector] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrganization, setIsOrganization] = useState(false);
+  const [isLocationExpanded, setIsLocationExpanded] = useState(true);
 
   const location = useLocation();
 
@@ -636,8 +637,21 @@ const handleRemoveImage = (index) => {
 
           {/* PSGC Location Fields */}
           <div className={styles.locationSection}>
-            <h3 className={styles.sectionTitle}><MapPin size={20}/> Location *</h3>
-            <p className={styles.sectionHint}>Select your complete address using the dropdowns below</p>
+            <div className={styles.sectionHeader}>
+              <h3 className={styles.sectionTitle}><MapPin size={20}/> Location *</h3>
+              <button
+                type="button"
+                className={styles.toggleButton}
+                onClick={() => setIsLocationExpanded(!isLocationExpanded)}
+                aria-expanded={isLocationExpanded}
+                aria-label={isLocationExpanded ? "Collapse location section" : "Expand location section"}
+              >
+                {isLocationExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </button>
+            </div>
+            {isLocationExpanded && (
+              <>
+                <p className={styles.sectionHint}>Select your complete address using the dropdowns below</p>
             
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
@@ -780,6 +794,8 @@ const handleRemoveImage = (index) => {
                   Be specific to help collectors find your location
                 </span>
               </div>
+              </>
+            )}
           </div> 
 
 
@@ -891,7 +907,7 @@ const handleRemoveImage = (index) => {
             <h3 className={styles.sectionTitle}>
               <Image size={20} /> Images (Optional)
             </h3>
-            <p className={styles.sectionHint}>Add up to 5 images to your post</p>
+            {/* <p className={styles.sectionHint}>Add up to 5 images to your post</p> */}
             
             <div className={styles.formGroup}>
               <label htmlFor="images" className={styles.label}>

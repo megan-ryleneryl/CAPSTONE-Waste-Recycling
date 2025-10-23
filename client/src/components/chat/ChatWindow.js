@@ -1,5 +1,5 @@
 // client/src/components/chat/ChatWindow.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useNavigate } from 'react-router-dom';
@@ -24,31 +24,25 @@ const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData 
   const messagesEndRef = useRef(null);
   const unsubscribeRef = useRef(null);
 
-useEffect(() => {
-    // Reset state when switching conversations
-    setMessages([]);
-    setPost(postData);
-    setOtherUserData(otherUser);
-    setActivePickup(null);
-    setActiveSupport(null);
-    setLoading(true);
-
-    loadChatData();
-
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-      }
-    };
-  }, [postID, otherUser?.userID, currentUser?.userID]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // Store latest prop values in refs to avoid dependency issues
+  const otherUserRef = useRef(otherUser);
+  const currentUserRef = useRef(currentUser);
+  const postDataRef = useRef(postData);
 
   const navigate = useNavigate();
 
-const loadChatData = async () => {
+  useEffect(() => {
+    otherUserRef.current = otherUser;
+    currentUserRef.current = currentUser;
+    postDataRef.current = postData;
+  }, [otherUser, currentUser, postData]);
+
+  // Define loadChatData BEFORE the useEffect that calls it
+  const loadChatData = useCallback(async () => {
+  const otherUser = otherUserRef.current;
+  const currentUser = currentUserRef.current;
+  const postData = postDataRef.current;
+
   if (!postID || !otherUser?.userID || !currentUser?.userID) {
     console.log('Missing required data:', { postID, otherUserID: otherUser?.userID, currentUserID: currentUser?.userID });
     setLoading(false);
@@ -208,7 +202,31 @@ const loadChatData = async () => {
     console.error('Error loading chat data:', error);
     setLoading(false);
   }
-};
+}, [postID]); // Only depend on postID since we use refs for the others
+
+  // useEffects that depend on loadChatData must come AFTER its definition
+  useEffect(() => {
+    // Reset state when switching conversations
+    setMessages([]);
+    setPost(postDataRef.current);
+    setOtherUserData(otherUserRef.current);
+    setActivePickup(null);
+    setActiveSupport(null);
+    setLoading(true);
+
+    loadChatData();
+
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+    };
+  }, [postID, otherUser?.userID, currentUser?.userID, loadChatData]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   };

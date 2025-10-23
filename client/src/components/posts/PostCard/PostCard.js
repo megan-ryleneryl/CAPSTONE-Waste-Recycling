@@ -29,57 +29,8 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
     };
   }, [postType, userID]); // Add userID as dependency
 
-  // Calculate and report post counts whenever posts change
-  useEffect(() => {
-    if (!onCountsUpdate || !currentUserID) return;
-
-    // Fetch all posts to count them properly (not just the filtered ones)
-    const fetchAllPostsForCounts = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        const response = await axios.get('http://localhost:3001/api/posts', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.data.success) {
-          const allPosts = response.data.posts.filter(post => post.status !== 'Inactive');
-
-          const counts = {
-            all: allPosts.length,
-            Waste: 0,
-            Initiatives: 0,
-            Forum: 0,
-            myPosts: 0
-          };
-
-          allPosts.forEach(post => {
-            if (post.postType === 'Waste') {
-              counts.Waste++;
-            } else if (post.postType === 'Initiative') {
-              counts.Initiatives++;
-            } else if (post.postType === 'Forum') {
-              counts.Forum++;
-            }
-
-            if (post.userID === currentUserID) {
-              counts.myPosts++;
-            }
-          });
-
-          onCountsUpdate(counts);
-        }
-      } catch (err) {
-        console.error('Error fetching posts for counts:', err);
-      }
-    };
-
-    fetchAllPostsForCounts();
-  }, [posts, onCountsUpdate, currentUserID]);
+  // REMOVED: This was causing double fetching - we now calculate counts from existing posts
+  // The counts are calculated once in fetchPosts() instead of re-fetching all posts
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -95,45 +46,10 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
         return;
       }
 
-      // FIXED: Use the correct protected endpoint
-      let url = 'http://localhost:3001/api/posts';
-
-      // Build query parameters
-      const params = new URLSearchParams();
-
-      // Add userID filter if provided (for "My Posts" filter)
-      if (userID) {
-        console.log('PostCard: Filtering by userID:', userID);
-        params.append('userID', userID);
-      }
-
-      // Add type filter if not 'all' and no userID filter
-      // (userID filter takes precedence - shows all post types by that user)
-      if (postType && postType !== 'all' && !userID) {
-        // Map component prop values to database values
-        const typeMap = {
-          'Waste Post': 'Waste',
-          'Initiative Post': 'Initiative',
-          'Forum Post': 'Forum',
-          'Waste': 'Waste',
-          'Initiative': 'Initiative',
-          'Forum': 'Forum'
-        };
-
-        const mappedType = typeMap[postType] || postType;
-        console.log('PostCard: Filtering by postType:', mappedType);
-        params.append('type', mappedType);
-      }
-
-      // Append params to URL if any exist
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-
-      console.log('PostCard: Fetching posts from URL:', url);
-          
-      const response = await axios.get(url, {
-        headers: { 
+      // OPTIMIZED: Always fetch ALL posts first for accurate counts (single API call)
+      // Then filter on client side to avoid multiple API calls
+      const response = await axios.get('http://localhost:3001/api/posts', {
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
@@ -151,8 +67,31 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
         // Filter out inactive posts (posts from deleted users)
         const activePosts = postsData.filter(post => post.status !== 'Inactive');
 
+        // CLIENT-SIDE FILTERING: Apply filters based on props
+        let filteredPosts = activePosts;
+
+        // Filter by userID if provided (for "My Posts")
+        if (userID) {
+          filteredPosts = filteredPosts.filter(post => post.userID === userID);
+        }
+
+        // Filter by post type if not 'all' and no userID filter
+        if (postType && postType !== 'all' && !userID) {
+          // Map component prop values to database values
+          const typeMap = {
+            'Waste Post': 'Waste',
+            'Initiative Post': 'Initiative',
+            'Forum Post': 'Forum',
+            'Waste': 'Waste',
+            'Initiative': 'Initiative',
+            'Forum': 'Forum'
+          };
+          const mappedType = typeMap[postType] || postType;
+          filteredPosts = filteredPosts.filter(post => post.postType === mappedType);
+        }
+
         // Limit posts based on maxPosts prop
-        const limitedPosts = activePosts.slice(0, maxPosts);
+        const limitedPosts = filteredPosts.slice(0, maxPosts);
         
         // Log the types of posts received
         const postTypes = limitedPosts.reduce((acc, post) => {
@@ -161,20 +100,21 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
         }, {});
         
         // Check if posts already have user data
-        if (limitedPosts.length > 0 && !limitedPosts[0].user) {          
+        let finalPosts;
+        if (limitedPosts.length > 0 && !limitedPosts[0].user) {
           // Fetch user details for each post if not included
           const postsWithUsers = await Promise.all(
             limitedPosts.map(async (post) => {
               try {
                 const userResponse = await axios.get(
-                  
+
 
                   `http://localhost:3001/api/protected/users/${post.userID}`,
                   {
                     headers: { 'Authorization': `Bearer ${token}` }
                   }
                 );
-                
+
                 return {
                   ...post,
                   user: userResponse.data.user
@@ -193,11 +133,41 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
               }
             })
           );
-          
+
+          finalPosts = postsWithUsers;
           setPosts(postsWithUsers);
         } else {
           // Posts already have user data
+          finalPosts = limitedPosts;
           setPosts(limitedPosts);
+        }
+
+        // OPTIMIZED: Calculate counts from the activePosts we already fetched (not a separate API call)
+        // This uses the unfiltered activePosts to get accurate counts for all categories
+        if (onCountsUpdate && currentUserID) {
+          const counts = {
+            all: activePosts.length,
+            Waste: 0,
+            Initiatives: 0,
+            Forum: 0,
+            myPosts: 0
+          };
+
+          activePosts.forEach(post => {
+            if (post.postType === 'Waste') {
+              counts.Waste++;
+            } else if (post.postType === 'Initiative') {
+              counts.Initiatives++;
+            } else if (post.postType === 'Forum') {
+              counts.Forum++;
+            }
+
+            if (post.userID === currentUserID) {
+              counts.myPosts++;
+            }
+          });
+
+          onCountsUpdate(counts);
         }
       } else {
         console.error('Response not successful:', response.data);

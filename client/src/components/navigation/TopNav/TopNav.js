@@ -96,16 +96,17 @@ const TopNav = ({ user: propUser }) => {
   }, []);
 
   useEffect(() => {
-    // Set up polling for notifications
+    // OPTIMIZED: Reduced polling frequency to reduce server load
     if (user && isPolling) {
       // Initial fetch
       fetchNotifications();
-      
-      // Set up polling interval (every 30 seconds)
+
+      // Set up polling interval (every 2 minutes instead of 30 seconds)
+      // This reduces API calls from 120/hour to 30/hour per user
       pollingIntervalRef.current = setInterval(() => {
         fetchNotifications();
-      }, 30000); // 30 seconds
-      
+      }, 120000); // 2 minutes (was 30 seconds)
+
       return () => {
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current);

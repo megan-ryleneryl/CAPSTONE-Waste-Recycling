@@ -1,16 +1,10 @@
 // client/src/components/analytics/PostsAnalytics/PostsAnalytics.js
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import styles from './PostsAnalytics.module.css';
 import {
   TrendingUp,
-  Package,
   Award,
-  Leaf,
-  BarChart3,
-  Target,
-  Calendar,
-  MapPin,
   Recycle,
   AlertCircle
 } from 'lucide-react';
@@ -19,10 +13,12 @@ const PostsAnalytics = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [topLocations, setTopLocations] = useState([]);
 
   useEffect(() => {
     if (user) {
       fetchAnalyticsData();
+      fetchTopLocations();
     }
   }, [user]);
 
@@ -49,6 +45,11 @@ const PostsAnalytics = ({ user }) => {
 
       if (response.data.success && response.data.data) {
         setAnalyticsData(response.data.data);
+
+        // Check if topAreas is included in the response
+        if (response.data.data.topAreas) {
+          setTopLocations(response.data.data.topAreas);
+        }
       } else {
         setError('Failed to load analytics data');
       }
@@ -60,17 +61,138 @@ const PostsAnalytics = ({ user }) => {
     }
   };
 
+  const extractCityName = (locationData) => {
+    // Handle both string and object inputs
+    let locationString = '';
+    let cityFromData = null;
+
+    if (typeof locationData === 'string') {
+      locationString = locationData;
+    } else if (locationData && typeof locationData === 'object') {
+      // Try to extract city from location object structure
+      cityFromData = locationData.city || locationData.municipality;
+      locationString = locationData.name || locationData.area || '';
+    }
+
+    // If we have city from object structure, use it
+    if (cityFromData) {
+      return cityFromData.trim();
+    }
+
+    if (!locationString) return null;
+
+    let cityName = locationString.trim();
+
+    // Skip if it's a region (NCR, Region IV-A, etc.)
+    if (cityName.match(/^(NCR|Region|REGION|Metropolitan Manila)/i)) {
+      return null;
+    }
+
+    // Skip barangay entries
+    if (cityName.toLowerCase().includes('barangay') ||
+        cityName.toLowerCase().includes('brgy.') ||
+        cityName.toLowerCase().includes('brgy ')) {
+      return null;
+    }
+
+    // Handle comma-separated format: "Barangay, City, Province"
+    // For NCR: "Barangay, City" (no province)
+    if (cityName.includes(',')) {
+      const parts = cityName.split(',').map(p => p.trim());
+
+      // If there are 3 parts: barangay, city, province - take the middle one (city)
+      if (parts.length === 3) {
+        cityName = parts[1];
+      }
+      // If there are 2 parts: barangay, city - take the last one (city)
+      else if (parts.length === 2) {
+        // Check if first part looks like barangay
+        if (parts[0].toLowerCase().includes('barangay') ||
+            parts[0].toLowerCase().includes('brgy')) {
+          cityName = parts[1];
+        } else {
+          // Otherwise take the last part
+          cityName = parts[parts.length - 1];
+        }
+      }
+    }
+
+    // Clean up common patterns
+    cityName = cityName
+      .replace(/^City of /i, '')
+      .replace(/^Municipality of /i, '')
+      .replace(/^Lungsod ng /i, '') // Filipino for "City of"
+      .trim();
+
+    // Keep "City" suffix for proper names (e.g., "Quezon City")
+    // This is already in the correct format
+
+    return cityName || null;
+  };
+
+  const fetchTopLocations = async () => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+
+      if (!token) return;
+
+      // Try fetching area activity data
+      const response = await axios.get(
+        'http://localhost:3001/api/analytics/heatmap?type=geographic',
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success && response.data.data?.areas) {
+        // Filter and aggregate by city only (exclude barangay-level data)
+        const cityAggregation = {};
+
+        response.data.data.areas.forEach(area => {
+          // Extract city name from the location string
+          const rawName = area.name || area.area || '';
+          const cityName = extractCityName(rawName);
+
+          // Skip if null (barangay) or unknown
+          if (!cityName || cityName === 'Unknown') {
+            return;
+          }
+
+          const count = area.activityCount || area.posts || 0;
+
+          if (cityAggregation[cityName]) {
+            cityAggregation[cityName] += count;
+          } else {
+            cityAggregation[cityName] = count;
+          }
+        });
+
+        // Convert to array, sort by count, and get top 5 cities
+        const sortedCities = Object.entries(cityAggregation)
+          .map(([city, count]) => ({
+            name: city,
+            count: count,
+            area: city
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+
+        setTopLocations(sortedCities);
+      }
+    } catch (error) {
+      console.error('Error fetching top locations:', error);
+      // If API fails, locations will remain empty array
+    }
+  };
+
   const getMaterialBreakdown = () => {
     if (!analyticsData?.wasteByType) return [];
     return Object.entries(analyticsData.wasteByType)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 5)
+      .slice(0, 6)
       .map(([type, percentage]) => ({ type, percentage }));
-  };
-
-  const getTopMaterial = () => {
-    const breakdown = getMaterialBreakdown();
-    return breakdown.length > 0 ? breakdown[0] : null;
   };
 
   const getMaterialColor = (type) => {
@@ -83,28 +205,6 @@ const PostsAnalytics = ({ user }) => {
       'Organic': '#84CC16'
     };
     return colors[type] || '#6B7280';
-  };
-
-  const getUserRole = () => {
-    if (!user) return 'Giver';
-    if (user.isCollector) return 'Collector';
-    if (user.isOrganization) return 'Organization';
-    return 'Giver';
-  };
-
-  const getRoleSpecificStats = () => {
-    const role = getUserRole();
-    if (!analyticsData) return null;
-
-    switch (role) {
-      case 'Collector':
-        return analyticsData.collectorStats;
-      case 'Organization':
-        return analyticsData.organizationStats;
-      case 'Giver':
-      default:
-        return analyticsData.giverStats;
-    }
   };
 
   if (loading) {
@@ -132,147 +232,28 @@ const PostsAnalytics = ({ user }) => {
     );
   }
 
-  const userStats = analyticsData?.userStats || {};
-  const roleStats = getRoleSpecificStats() || {};
-  const topMaterial = getTopMaterial();
   const materialBreakdown = getMaterialBreakdown();
-  const impact = analyticsData?.communityImpact || {};
 
   return (
     <div className={styles.analyticsContainer}>
-      {/* Header Section */}
-      <div className={styles.header}>
-        <h2>
-          <BarChart3 className={styles.headerIcon} />
-          My Stats Dashboard
-        </h2>
-        <p className={styles.subtitle}>Track your waste journey and environmental impact</p>
-      </div>
-
-      {/* Key Metrics Grid */}
-      <div className={styles.metricsGrid}>
-        <div className={styles.metricCard}>
-          <div className={styles.metricIcon} style={{ background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)' }}>
-            <Package size={24} />
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricValue}>{userStats.totalPosts || 0}</span>
-            <span className={styles.metricLabel}>Total Posts</span>
-          </div>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={styles.metricIcon} style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }}>
-            <Recycle size={24} />
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricValue}>{(userStats.totalKgRecycled || 0).toFixed(1)} kg</span>
-            <span className={styles.metricLabel}>Waste Recycled</span>
-          </div>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={styles.metricIcon} style={{ background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' }}>
-            <Award size={24} />
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricValue}>{userStats.totalPoints || 0}</span>
-            <span className={styles.metricLabel}>Points Earned</span>
-          </div>
-        </div>
-
-        <div className={styles.metricCard}>
-          <div className={styles.metricIcon} style={{ background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' }}>
-            <TrendingUp size={24} />
-          </div>
-          <div className={styles.metricContent}>
-            <span className={styles.metricValue}>{userStats.completedPickups || 0}</span>
-            <span className={styles.metricLabel}>Completed Pickups</span>
-          </div>
+      {/* Total Recycled - Hero Section */}
+      <div className={styles.heroSection}>
+        {/* <div className={styles.heroIcon}>
+          <Recycle size={48} />
+        </div> */}
+        <div className={styles.heroContent}>
+          <h2 className={styles.heroValue}>{(analyticsData?.totalRecycled || 0).toLocaleString()} kg</h2>
+          <p className={styles.heroLabel}>Total Waste Recycled</p>
         </div>
       </div>
 
-      {/* Role-Specific Insights */}
-      <div className={styles.roleInsights}>
-        <h3 className={styles.sectionTitle}>
-          <Target size={20} />
-          Your {getUserRole()} Insights
-        </h3>
-
-        {getUserRole() === 'Giver' && (
-          <div className={styles.insightsGrid}>
-            <div className={styles.insightCard}>
-              <span className={styles.insightValue}>{roleStats.activePickups || 0}</span>
-              <span className={styles.insightLabel}>Active Pickups</span>
-            </div>
-            <div className={styles.insightCard}>
-              <span className={styles.insightValue}>{roleStats.successfulPickups || 0}</span>
-              <span className={styles.insightLabel}>Successful Pickups</span>
-            </div>
-            <div className={styles.insightCard}>
-              <span className={styles.insightValue}>{roleStats.activeForumPosts || 0}</span>
-              <span className={styles.insightLabel}>Forum Posts</span>
-            </div>
-          </div>
-        )}
-
-        {getUserRole() === 'Collector' && (
-          <div className={styles.insightsGrid}>
-            <div className={styles.insightCard}>
-              <span className={styles.insightValue}>{roleStats.claimedPosts || 0}</span>
-              <span className={styles.insightLabel}>Claimed Posts</span>
-            </div>
-            <div className={styles.insightCard}>
-              <span className={styles.insightValue}>{(roleStats.totalCollected || 0).toFixed(1)} kg</span>
-              <span className={styles.insightLabel}>Total Collected</span>
-            </div>
-            <div className={styles.insightCard}>
-              <span className={styles.insightValue}>{roleStats.completionRate || 0}%</span>
-              <span className={styles.insightLabel}>Completion Rate</span>
-            </div>
-          </div>
-        )}
-
-        {getUserRole() === 'Organization' && (
-          <div className={styles.insightsGrid}>
-            <div className={styles.insightCard}>
-              <span className={styles.insightValue}>{roleStats.activeInitiatives || 0}</span>
-              <span className={styles.insightLabel}>Active Initiatives</span>
-            </div>
-            <div className={styles.insightCard}>
-              <span className={styles.insightValue}>{roleStats.totalSupporters || 0}</span>
-              <span className={styles.insightLabel}>Total Supporters</span>
-            </div>
-            <div className={styles.insightCard}>
-              <span className={styles.insightValue}>{(roleStats.materialsReceived || 0).toFixed(1)} kg</span>
-              <span className={styles.insightLabel}>Materials Received</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Material Breakdown */}
+      {/* Waste Distribution by Type */}
       {materialBreakdown.length > 0 && (
-        <div className={styles.materialSection}>
+        <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
-            <Leaf size={20} />
-            Material Breakdown
+            {/* <Recycle size={20} /> */}
+            Waste Distribution by Type
           </h3>
-
-          {topMaterial && (
-            <div className={styles.topMaterial}>
-              <div
-                className={styles.topMaterialBadge}
-                style={{ background: getMaterialColor(topMaterial.type) }}
-              >
-                <Recycle size={20} />
-              </div>
-              <div className={styles.topMaterialInfo}>
-                <span className={styles.topMaterialType}>{topMaterial.type}</span>
-                <span className={styles.topMaterialPercentage}>{topMaterial.percentage}% of your waste</span>
-              </div>
-            </div>
-          )}
 
           <div className={styles.materialBars}>
             {materialBreakdown.map((material, index) => (
@@ -296,61 +277,84 @@ const PostsAnalytics = ({ user }) => {
         </div>
       )}
 
-      {/* Environmental Impact */}
-      <div className={styles.impactSection}>
-        <h3 className={styles.sectionTitle}>
-          <Leaf size={20} />
-          Your Environmental Impact
-        </h3>
+      {/* Top Locations */}
+      {topLocations.length > 0 ? (
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>
+            <TrendingUp size={20} />
+            Top Cities Actively Collecting
+          </h3>
 
-        <div className={styles.impactGrid}>
-          <div className={styles.impactCard}>
-            <Leaf className={styles.impactIcon} style={{ color: '#10B981' }} />
-            <span className={styles.impactValue}>{(impact.co2Saved || 0).toFixed(1)} kg</span>
-            <span className={styles.impactLabel}>CO₂ Saved</span>
-          </div>
-          <div className={styles.impactCard}>
-            <Calendar className={styles.impactIcon} style={{ color: '#8B5CF6' }} />
-            <span className={styles.impactValue}>{impact.treesEquivalent || 0}</span>
-            <span className={styles.impactLabel}>Trees Equivalent</span>
+          <div className={styles.locationList}>
+            {topLocations.map((location, index) => {
+              const maxCount = topLocations[0]?.count || 1;
+              const currentCount = location.count || 0;
+              const percentage = (currentCount / maxCount) * 100;
+
+              return (
+                <div key={index} className={styles.locationItem}>
+                  <div className={styles.locationRank}>#{index + 1}</div>
+                  <div className={styles.locationInfo}>
+                    <span className={styles.locationName}>{location.name}</span>
+                    <span className={styles.locationCount}>{currentCount} active posts</span>
+                    <div className={styles.locationBar}>
+                      <div
+                        className={styles.locationBarFill}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
-      </div>
+      ) : (
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>
+            <TrendingUp size={20} />
+            Top Cities Actively Collecting
+          </h3>
+          <p className={styles.noDataMessage}>No city data available yet.</p>
+        </div>
+      )}
 
-      {/* Activity Status */}
-      <div className={styles.activityStatus}>
-        <div className={styles.statusCard}>
-          <div className={styles.statusHeader}>
-            <MapPin size={18} />
-            <span>Current Activity</span>
-          </div>
-          <div className={styles.statusBody}>
-            <div className={styles.statusItem}>
-              <span className={styles.statusDot} style={{ background: '#10B981' }}></span>
-              <span>{userStats.activePickups || 0} Active Pickups</span>
-            </div>
-            <div className={styles.statusItem}>
-              <span className={styles.statusDot} style={{ background: '#3B82F6' }}></span>
-              <span>{userStats.totalPosts || 0} Total Posts</span>
-            </div>
+      {/* Top Collectors */}
+      {analyticsData?.topCollectors && analyticsData.topCollectors.length > 0 && (
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>
+            <Award size={20} />
+            Top Collectors
+          </h3>
+          <div className={styles.collectorList}>
+            {analyticsData.topCollectors.slice(0, 5).map((collector, index) => (
+              <div key={index} className={styles.collectorItem}>
+                <div className={styles.collectorRank} style={{
+                  background: index === 0 ? 'linear-gradient(135deg, #FFD700, #FFA500)' :
+                             index === 1 ? 'linear-gradient(135deg, #C0C0C0, #A9A9A9)' :
+                             index === 2 ? 'linear-gradient(135deg, #CD7F32, #B8860B)' :
+                             'linear-gradient(135deg, #6B7280, #4B5563)'
+                }}>
+                  #{index + 1}
+                </div>
+                <div className={styles.collectorDetails}>
+                  <span className={styles.collectorName}>{collector.name || 'Anonymous'}</span>
+                  <span className={styles.collectorAmount}>{(collector.amount || 0).toLocaleString()} kg</span>
+                </div>
+                {index < 3 && (
+                  <div className={styles.collectorBadge}>
+                    <Award size={18} style={{
+                      color: index === 0 ? '#FFD700' :
+                             index === 1 ? '#C0C0C0' :
+                             '#CD7F32'
+                    }} />
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-
-      {/* Quick Insight */}
-      <div className={styles.quickInsight}>
-        <div className={styles.insightContent}>
-          <TrendingUp className={styles.insightIconLarge} />
-          <div className={styles.insightText}>
-            <h4>Keep Going!</h4>
-            <p>
-              {userStats.totalKgRecycled > 0
-                ? `You've recycled ${(userStats.totalKgRecycled || 0).toFixed(1)} kg of waste. Every kilogram makes a difference!`
-                : "Start posting your recyclables to track your environmental impact!"}
-            </p>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
