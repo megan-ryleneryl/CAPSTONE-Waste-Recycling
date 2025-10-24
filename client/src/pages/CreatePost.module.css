@@ -531,7 +531,8 @@
 }
 
 /* Sign up link for disabled Initiative button */
-.signupLink {
+.signupLink,
+.verifyLink {
   display: block;
   margin-top: 0.5rem;
   font-size: 0.8rem;
@@ -541,12 +542,30 @@
   transition: color 0.2s ease;
 }
 
-.signupLink:hover {
+.selectedSignupLink {
+  color: white;
+}
+
+.signupLink:hover,
+.verifyLink:hover {
   color: #2d4e29;
+  text-decoration: underline;
+}
+
+.selectedSignupLink:hover {
+  color: #e0e0e0;
   text-decoration: underline;
 }
 
 .typeButton:disabled .signupLink {
   cursor: pointer;
   pointer-events: all;
+}
+
+.unverifiedMessage {
+  margin-top: 2rem;
+}
+
+.verifyLink {
+  font-size: 1rem;
 }

@@ -1,5 +1,5 @@
-// client/src/components/analytics/PostsAnalytics/PostsAnalytics.js
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './PostsAnalytics.module.css';
 import {
@@ -14,6 +14,7 @@ const PostsAnalytics = ({ user }) => {
   const [error, setError] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [topLocations, setTopLocations] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -355,6 +356,14 @@ const PostsAnalytics = ({ user }) => {
           </div>
         </div>
       )}
+
+      <p className={styles.subheading}>Want to know how your community is doing?</p>
+      <button
+        className={styles.analyticsButton}
+        onClick={() => navigate('/analytics')}
+      >
+        See full analytics
+      </button>
     </div>
   );
 };

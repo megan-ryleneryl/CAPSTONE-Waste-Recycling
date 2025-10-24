@@ -12,6 +12,7 @@ const CreatePost = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
   const [isCollector, setIsCollector] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrganization, setIsOrganization] = useState(false);
@@ -75,6 +76,7 @@ const CreatePost = () => {
         const response = await axios.get('http://localhost:3001/api/protected/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        setIsVerified(response.data.user.status === "Verified" || false);
         setIsCollector(response.data.user.isCollector || false);
         setIsAdmin(response.data.user.isAdmin || false);
         setIsOrganization(response.data.user.isOrganization || false);
@@ -534,6 +536,7 @@ const handleRemoveImage = (index) => {
 
 
   // Check if user can create initiative posts
+  const canCreatePost = isVerified || isAdmin;
   const canCreateInitiative = isCollector || isAdmin;
 
   return (
@@ -560,9 +563,19 @@ const handleRemoveImage = (index) => {
             type="button"
             className={`${styles.typeButton} ${postType === 'Waste' ? styles.active : ''}`}
             onClick={() => setPostType('Waste')}
+            disabled={!canCreatePost}
+            title={!canCreatePost ? 'Only Verified users can create Posts' : ''}
           >
             <span><Recycle size={16} /> Waste Post</span>
-            <small>Offer recyclable materials</small>
+            <small>{canCreateInitiative ? 'Offer recyclable materials' : ''}</small>
+            {!canCreateInitiative && (
+              <Link 
+                to="/profile" 
+                className={`${styles.signupLink} ${postType === 'Waste' ? styles.selectedSignupLink : ''}`}
+              >
+                Verify your account
+              </Link>
+            )}
           </button>
           
           <button
@@ -575,453 +588,475 @@ const handleRemoveImage = (index) => {
             <span><Sprout size={16} /> Initiative</span>
             <small>{canCreateInitiative ? 'Start a green project' : ''}</small>
             {!canCreateInitiative && (
-              <Link to="/profile" className={styles.signupLink}>
+              <Link 
+                to="/profile" 
+                className={`${styles.signupLink} ${postType === 'Initiative' ? styles.selectedSignupLink : ''}`}
+              >
                 Sign up as collector
               </Link>
             )}
           </button>
-          
+
           <button
             type="button"
             className={`${styles.typeButton} ${postType === 'Forum' ? styles.active : ''}`}
             onClick={() => setPostType('Forum')}
+            disabled={!canCreatePost}
+            title={!canCreatePost ? 'Only Verified users can create Posts' : ''}
           >
-            <span><MessageCircle size={14} /> Forum Post</span>
-            <small>Share and discuss</small>
+            <span><MessageCircle size={16} /> Forum Post</span>
+            <small>{canCreateInitiative ? 'Share and discuss' : ''}</small>
+            {!canCreateInitiative && (
+              <Link 
+                to="/profile" 
+                className={`${styles.signupLink} ${postType === 'Forum' ? styles.selectedSignupLink : ''}`}
+              >
+                Verify your account
+              </Link>
+            )}
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Common Fields */}
-          <div className={styles.formGroup}>
-            <label htmlFor="title" className={styles.label}>
-              Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              className={styles.input}
-              placeholder="Give your post a clear title"
-              required
-              maxLength="100"
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label htmlFor="description" className={styles.label}>
-              Description *
-              {postType === 'Initiative' && (
-                <span className={styles.hint}>What are you doing? Describe the initiative details and activities</span>
-              )}
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              className={styles.textarea}
-              placeholder={
-                postType === 'Initiative'
-                  ? "e.g., We're collecting PET Bottles to create sustainable house bricks"
-                  : "Provide details about your post"
-              }
-              rows="5"
-              required
-              maxLength="1000"
-            />
-          </div>
-
-          {/* PSGC Location Fields */}
-          <div className={styles.locationSection}>
-            <div className={styles.sectionHeader}>
-              <h3 className={styles.sectionTitle}><MapPin size={20}/> Location *</h3>
-              <button
-                type="button"
-                className={styles.toggleButton}
-                onClick={() => setIsLocationExpanded(!isLocationExpanded)}
-                aria-expanded={isLocationExpanded}
-                aria-label={isLocationExpanded ? "Collapse location section" : "Expand location section"}
-              >
-                {isLocationExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-              </button>
+        {/* Form - Only show if user can create posts */}
+        {canCreatePost ? (
+          <form onSubmit={handleSubmit} className={styles.form}>
+            {/* Common Fields */}
+            <div className={styles.formGroup}>
+              <label htmlFor="title" className={styles.label}>
+                Title *
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                className={styles.input}
+                placeholder="Give your post a clear title"
+                required
+                maxLength="100"
+              />
             </div>
-            {isLocationExpanded && (
-              <>
-                <p className={styles.sectionHint}>Select your complete address using the dropdowns below</p>
-            
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label htmlFor="region" className={styles.label}>
-                  Region *
-                </label>
-                <select
-                  id="region"
-                  value={formData.region}
-                  onChange={handleRegionChange}
-                  className={styles.select}
-                  required
-                  disabled={loadingLocations || regions.length === 0}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select Region'}
-                  </option>
-                  {regions.map((region) => (
-                    <option key={region.code} value={region.code}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Only show province dropdown if NOT NCR */}
-              {formData.region && (() => {
-                const selectedRegion = regions.find(r => r.code === formData.region);
-                const isNCR = selectedRegion && (
-                  selectedRegion.name.includes('NCR') || 
-                  selectedRegion.name.includes('National Capital Region') ||
-                  formData.region === '130000000'
-                );
-                
-                return !isNCR && (
-                  <div className={styles.formGroup}>
-                    <label htmlFor="province" className={styles.label}>
-                      Province *
-                    </label>
-                    <select
-                      id="province"
-                      value={formData.province}
-                      onChange={handleProvinceChange}
-                      className={styles.select}
-                      required
-                      disabled={!formData.region || loadingLocations}
-                    >
-                      <option value="">
-                        {loadingLocations ? 'Loading...' : 'Select Province'}
-                      </option>
-                      {provinces.map((province) => (
-                        <option key={province.code} value={province.code}>
-                          {province.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                );
-              })()}
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.formGroup}>
-                <label htmlFor="city" className={styles.label}>
-                  City/Municipality *
-                </label>
-                <select
-                  id="city"
-                  value={formData.city}
-                  onChange={handleCityChange}
-                  className={styles.select}
-                  required
-                  disabled={(() => {
-                    const selectedRegion = regions.find(r => r.code === formData.region);
-                    const isNCR = selectedRegion && (
-                      selectedRegion.name.includes('NCR') || 
-                      selectedRegion.name.includes('National Capital Region') ||
-                      formData.region === '130000000'
-                    );
-                    return (!formData.region || (!isNCR && !formData.province) || loadingLocations);
-                  })()}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
-                  </option>
-                  {cities.map((city) => (
-                    <option key={city.code} value={city.code}>
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="barangay" className={styles.label}>
-                  Barangay *
-                </label>
-                <select
-                  id="barangay"
-                  value={formData.barangay}
-                  onChange={handleBarangayChange}
-                  className={styles.select}
-                  required
-                  disabled={!formData.city || loadingLocations}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select Barangay'}
-                  </option>
-                  {barangays.map((barangay) => (
-                    <option key={barangay.code} value={barangay.code}>
-                      {barangay.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Show selected location preview */}
-            {formData.barangay && (
-              <div className={styles.locationPreview}>
-                <strong>Selected Location:</strong> {getLocationDisplayString()}
-              </div>
-            )}
 
             <div className={styles.formGroup}>
-                <label htmlFor="addressLine" className={styles.label}>
-                  Specific Address / Landmark *
-                </label>
-                <input
-                  type="text"
-                  id="addressLine"
-                  name="addressLine"
-                  value={formData.addressLine}
-                  onChange={handleInputChange}
-                  className={styles.input}
-                  placeholder="e.g., Unit 5B, Greenview Bldg., near 7-Eleven"
-                  required
-                />
-                <span className={styles.hint}>
-                  Be specific to help collectors find your location
-                </span>
-              </div>
-              </>
-            )}
-          </div> 
-
-
-          {/* Waste-specific Fields */}
-          {postType === 'Waste' && (
-            <div className={styles.wasteSpecific}>
-              <h3 className={styles.sectionTitle}>
-                <Package size={20} /> Waste Details
-              </h3>
-              
-              {/* Use Material Selector instead of text input */}
-              <MaterialSelector
-                selectedMaterials={formData.materials}
-                onChange={(materials) => setFormData({ ...formData, materials })}
+              <label htmlFor="description" className={styles.label}>
+                Description *
+                {postType === 'Initiative' && (
+                  <span className={styles.hint}>What are you doing? Describe the initiative details and activities</span>
+                )}
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                className={styles.textarea}
+                placeholder={
+                  postType === 'Initiative'
+                    ? "e.g., We're collecting PET Bottles to create sustainable house bricks"
+                    : "Provide details about your post"
+                }
+                rows="5"
+                required
+                maxLength="1000"
               />
+            </div>
+
+            {/* PSGC Location Fields */}
+            <div className={styles.locationSection}>
+              <div className={styles.sectionHeader}>
+                <h3 className={styles.sectionTitle}><MapPin size={20}/> Location *</h3>
+                <button
+                  type="button"
+                  className={styles.toggleButton}
+                  onClick={() => setIsLocationExpanded(!isLocationExpanded)}
+                  aria-expanded={isLocationExpanded}
+                  aria-label={isLocationExpanded ? "Collapse location section" : "Expand location section"}
+                >
+                  {isLocationExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
+              </div>
+              {isLocationExpanded && (
+                <>
+                  <p className={styles.sectionHint}>Select your complete address using the dropdowns below</p>
               
-              
-              {/* Keep pickupDate and pickupTime */}
               <div className={styles.formRow}>
                 <div className={styles.formGroup}>
-                  <label htmlFor="pickupDate" className={styles.label}>
-                    Preferred Pickup Date
+                  <label htmlFor="region" className={styles.label}>
+                    Region *
+                  </label>
+                  <select
+                    id="region"
+                    value={formData.region}
+                    onChange={handleRegionChange}
+                    className={styles.select}
+                    required
+                    disabled={loadingLocations || regions.length === 0}
+                  >
+                    <option value="">
+                      {loadingLocations ? 'Loading...' : 'Select Region'}
+                    </option>
+                    {regions.map((region) => (
+                      <option key={region.code} value={region.code}>
+                        {region.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Only show province dropdown if NOT NCR */}
+                {formData.region && (() => {
+                  const selectedRegion = regions.find(r => r.code === formData.region);
+                  const isNCR = selectedRegion && (
+                    selectedRegion.name.includes('NCR') || 
+                    selectedRegion.name.includes('National Capital Region') ||
+                    formData.region === '130000000'
+                  );
+                  
+                  return !isNCR && (
+                    <div className={styles.formGroup}>
+                      <label htmlFor="province" className={styles.label}>
+                        Province *
+                      </label>
+                      <select
+                        id="province"
+                        value={formData.province}
+                        onChange={handleProvinceChange}
+                        className={styles.select}
+                        required
+                        disabled={!formData.region || loadingLocations}
+                      >
+                        <option value="">
+                          {loadingLocations ? 'Loading...' : 'Select Province'}
+                        </option>
+                        {provinces.map((province) => (
+                          <option key={province.code} value={province.code}>
+                            {province.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="city" className={styles.label}>
+                    City/Municipality *
+                  </label>
+                  <select
+                    id="city"
+                    value={formData.city}
+                    onChange={handleCityChange}
+                    className={styles.select}
+                    required
+                    disabled={(() => {
+                      const selectedRegion = regions.find(r => r.code === formData.region);
+                      const isNCR = selectedRegion && (
+                        selectedRegion.name.includes('NCR') || 
+                        selectedRegion.name.includes('National Capital Region') ||
+                        formData.region === '130000000'
+                      );
+                      return (!formData.region || (!isNCR && !formData.province) || loadingLocations);
+                    })()}
+                  >
+                    <option value="">
+                      {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
+                    </option>
+                    {cities.map((city) => (
+                      <option key={city.code} value={city.code}>
+                        {city.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="barangay" className={styles.label}>
+                    Barangay *
+                  </label>
+                  <select
+                    id="barangay"
+                    value={formData.barangay}
+                    onChange={handleBarangayChange}
+                    className={styles.select}
+                    required
+                    disabled={!formData.city || loadingLocations}
+                  >
+                    <option value="">
+                      {loadingLocations ? 'Loading...' : 'Select Barangay'}
+                    </option>
+                    {barangays.map((barangay) => (
+                      <option key={barangay.code} value={barangay.code}>
+                        {barangay.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Show selected location preview */}
+              {formData.barangay && (
+                <div className={styles.locationPreview}>
+                  <strong>Selected Location:</strong> {getLocationDisplayString()}
+                </div>
+              )}
+
+              <div className={styles.formGroup}>
+                  <label htmlFor="addressLine" className={styles.label}>
+                    Specific Address / Landmark *
+                  </label>
+                  <input
+                    type="text"
+                    id="addressLine"
+                    name="addressLine"
+                    value={formData.addressLine}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    placeholder="e.g., Unit 5B, Greenview Bldg., near 7-Eleven"
+                    required
+                  />
+                  <span className={styles.hint}>
+                    Be specific to help collectors find your location
+                  </span>
+                </div>
+                </>
+              )}
+            </div> 
+
+
+            {/* Waste-specific Fields */}
+            {postType === 'Waste' && (
+              <div className={styles.wasteSpecific}>
+                <h3 className={styles.sectionTitle}>
+                  <Package size={20} /> Waste Details
+                </h3>
+                
+                {/* Use Material Selector instead of text input */}
+                <MaterialSelector
+                  selectedMaterials={formData.materials}
+                  onChange={(materials) => setFormData({ ...formData, materials })}
+                />
+                
+                
+                {/* Keep pickupDate and pickupTime */}
+                <div className={styles.formRow}>
+                  <div className={styles.formGroup}>
+                    <label htmlFor="pickupDate" className={styles.label}>
+                      Preferred Pickup Date
+                    </label>
+                    <input
+                      type="date"
+                      id="pickupDate"
+                      name="pickupDate"
+                      value={formData.pickupDate}
+                      onChange={handleInputChange}
+                      className={styles.input}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  
+                  <div className={styles.formGroup}>
+                    <label htmlFor="pickupTime" className={styles.label}>
+                      Preferred Pickup Time
+                    </label>
+                    <input
+                      type="time"
+                      id="pickupTime"
+                      name="pickupTime"
+                      value={formData.pickupTime}
+                      onChange={handleInputChange}
+                      className={styles.input}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Initiative-specific Fields */}
+            {postType === 'Initiative' && (
+              <div className={styles.initiativeSpecific}>
+                <h3 className={styles.sectionTitle}>
+                  <Goal size={20} /> Initiative Details
+                </h3>
+
+                {/* Material Selector - Materials Needed */}
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    <span className={styles.hint}>Select the materials you need for this initiative</span>
+                  </label>
+                  <MaterialSelector
+                    selectedMaterials={formData.materials}
+                    onChange={(materials) => {
+                      // Calculate total target amount from materials
+                      const totalTarget = materials.reduce((sum, mat) => sum + parseFloat(mat.quantity || 0), 0);
+                      setFormData({
+                        ...formData,
+                        materials,
+                        targetAmount: totalTarget.toString()
+                      });
+                    }}
+                    labelOverride={{
+                      quantity: 'Target Quantity'
+                    }}
+                  />
+                </div>
+
+                {/* Show calculated target amount */}
+                {formData.materials && formData.materials.length > 0 && (
+                  <div className={styles.targetAmountDisplay}>
+                    <BarChart3 size={16} />
+                    <strong>Total Target Amount:</strong> {formData.targetAmount} kg
+                  </div>
+                )}
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="endDate" className={styles.label}>
+                    <Clock size={16} /> End Date
+                    <span className={styles.hint}>Optional deadline for this initiative</span>
                   </label>
                   <input
                     type="date"
-                    id="pickupDate"
-                    name="pickupDate"
-                    value={formData.pickupDate}
+                    id="endDate"
+                    name="endDate"
+                    value={formData.endDate}
                     onChange={handleInputChange}
                     className={styles.input}
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Image Upload Section - For All Post Types */}
+            <div className={styles.imageUploadSection}>
+              <h3 className={styles.sectionTitle}>
+                <Image size={20} /> Images (Optional)
+              </h3>
+              {/* <p className={styles.sectionHint}>Add up to 5 images to your post</p> */}
+              
+              <div className={styles.formGroup}>
+                <label htmlFor="images" className={styles.label}>
+                  Upload Images
+                  <span className={styles.hint}>Max 5 images, 5MB each</span>
+                </label>
                 
+                <input
+                  type="file"
+                  id="images"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                  className={styles.fileInput}
+                  disabled={selectedImages.length >= 5}
+                />
+                
+                {/* Image Previews */}
+                {imagePreviews.length > 0 && (
+                  <div className={styles.imagePreviewContainer}>
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className={styles.imagePreview}>
+                        <img src={preview} alt={`Preview ${index + 1}`} />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className={styles.removeImageButton}
+                          aria-label="Remove image"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <p className={styles.imageCount}>
+                  {selectedImages.length} / 5 images selected
+                </p>
+              </div>
+            </div>
+
+
+
+            
+
+            {/* Forum-specific Fields */}
+            {postType === 'Forum' && (
+              <>
                 <div className={styles.formGroup}>
-                  <label htmlFor="pickupTime" className={styles.label}>
-                    Preferred Pickup Time
+                  <label htmlFor="category" className={styles.label}>
+                    Category *
+                  </label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    className={styles.select}
+                    required
+                  >
+                    <option value="General">General Discussion</option>
+                    <option value="Tips">Tips & Guides</option>
+                    <option value="News">News & Updates</option>
+                    <option value="Questions">Questions</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label htmlFor="tags" className={styles.label}>
+                    Tags
+                    <span className={styles.hint}>Separate with commas (optional)</span>
                   </label>
                   <input
-                    type="time"
-                    id="pickupTime"
-                    name="pickupTime"
-                    value={formData.pickupTime}
+                    type="text"
+                    id="tags"
+                    name="tags"
+                    value={formData.tags}
                     onChange={handleInputChange}
                     className={styles.input}
+                    placeholder="e.g., recycling, environment, tips"
+                    maxLength="200"
                   />
                 </div>
-              </div>
-            </div>
-          )}
+              </>
+            )}
 
-          {/* Initiative-specific Fields */}
-          {postType === 'Initiative' && (
-            <div className={styles.initiativeSpecific}>
-              <h3 className={styles.sectionTitle}>
-                <Goal size={20} /> Initiative Details
-              </h3>
-
-              {/* Material Selector - Materials Needed */}
-              <div className={styles.formGroup}>
-                <label className={styles.label}>
-                  <span className={styles.hint}>Select the materials you need for this initiative</span>
-                </label>
-                <MaterialSelector
-                  selectedMaterials={formData.materials}
-                  onChange={(materials) => {
-                    // Calculate total target amount from materials
-                    const totalTarget = materials.reduce((sum, mat) => sum + parseFloat(mat.quantity || 0), 0);
-                    setFormData({
-                      ...formData,
-                      materials,
-                      targetAmount: totalTarget.toString()
-                    });
-                  }}
-                  labelOverride={{
-                    quantity: 'Target Quantity'
-                  }}
-                />
-              </div>
-
-              {/* Show calculated target amount */}
-              {formData.materials && formData.materials.length > 0 && (
-                <div className={styles.targetAmountDisplay}>
-                  <BarChart3 size={16} />
-                  <strong>Total Target Amount:</strong> {formData.targetAmount} kg
-                </div>
-              )}
-
-              <div className={styles.formGroup}>
-                <label htmlFor="endDate" className={styles.label}>
-                  <Clock size={16} /> End Date
-                  <span className={styles.hint}>Optional deadline for this initiative</span>
-                </label>
-                <input
-                  type="date"
-                  id="endDate"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleInputChange}
-                  className={styles.input}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Image Upload Section - For All Post Types */}
-          <div className={styles.imageUploadSection}>
-            <h3 className={styles.sectionTitle}>
-              <Image size={20} /> Images (Optional)
-            </h3>
-            {/* <p className={styles.sectionHint}>Add up to 5 images to your post</p> */}
-            
-            <div className={styles.formGroup}>
-              <label htmlFor="images" className={styles.label}>
-                Upload Images
-                <span className={styles.hint}>Max 5 images, 5MB each</span>
-              </label>
+            {/* Form Actions */}
+            <div className={styles.formActions}>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className={styles.cancelButton}
+                disabled={loading}
+              >
+                Cancel
+              </button>
               
-              <input
-                type="file"
-                id="images"
-                accept="image/*"
-                multiple
-                onChange={handleImageChange}
-                className={styles.fileInput}
-                disabled={selectedImages.length >= 5}
-              />
-              
-              {/* Image Previews */}
-              {imagePreviews.length > 0 && (
-                <div className={styles.imagePreviewContainer}>
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className={styles.imagePreview}>
-                      <img src={preview} alt={`Preview ${index + 1}`} />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveImage(index)}
-                        className={styles.removeImageButton}
-                        aria-label="Remove image"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              <p className={styles.imageCount}>
-                {selectedImages.length} / 5 images selected
-              </p>
+              <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <span className={styles.spinner}></span>
+                    Creating...
+                  </>
+                ) : (
+                  `Create ${postType} Post`
+                )}
+              </button>
             </div>
+          </form>
+        ) : (
+          <div className={styles.unverifiedMessage}>
+            <p>You need to verify your account to create posts.</p>
+            <Link to="/profile" className={styles.verifyLink}>
+              Verify your account
+            </Link>
           </div>
-
-
-
-          
-
-          {/* Forum-specific Fields */}
-          {postType === 'Forum' && (
-            <>
-              <div className={styles.formGroup}>
-                <label htmlFor="category" className={styles.label}>
-                  Category *
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className={styles.select}
-                  required
-                >
-                  <option value="General">General Discussion</option>
-                  <option value="Tips">Tips & Guides</option>
-                  <option value="News">News & Updates</option>
-                  <option value="Questions">Questions</option>
-                </select>
-              </div>
-
-              <div className={styles.formGroup}>
-                <label htmlFor="tags" className={styles.label}>
-                  Tags
-                  <span className={styles.hint}>Separate with commas (optional)</span>
-                </label>
-                <input
-                  type="text"
-                  id="tags"
-                  name="tags"
-                  value={formData.tags}
-                  onChange={handleInputChange}
-                  className={styles.input}
-                  placeholder="e.g., recycling, environment, tips"
-                  maxLength="200"
-                />
-              </div>
-            </>
-          )}
-
-          {/* Form Actions */}
-          <div className={styles.formActions}>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className={styles.cancelButton}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <span className={styles.spinner}></span>
-                  Creating...
-                </>
-              ) : (
-                `Create ${postType} Post`
-              )}
-            </button>
-          </div>
-        </form>
+        )}
       </div>
     </div>
   );

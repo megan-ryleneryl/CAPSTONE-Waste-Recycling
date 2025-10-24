@@ -1267,7 +1267,7 @@ const Profile = ({ user: propsUser }) => {
                         ))}
                       </ul>
                     ) : (
-                      <p className={styles.noPreference}>No preferred times set</p>
+                      <p className={styles.noPreference}>Add your preferred times to get started</p>
                     )}
                   </div>
                 </div>
@@ -1319,7 +1319,7 @@ const Profile = ({ user: propsUser }) => {
                         })}
                       </ul>
                     ) : (
-                      <p className={styles.noPreference}>No preferred locations set</p>
+                      <p className={styles.noPreference}>Add your preferred locations to get started</p>
                     )}
                   </div>
                 </div>
@@ -1335,7 +1335,7 @@ const Profile = ({ user: propsUser }) => {
                     className={styles.ctaButton}
                     onClick={() => setActiveModal('verification')}
                   >
-                    Submit your Verification
+                    Verify Your Account
                   </button>
                 </div>
               )}
@@ -1354,7 +1354,7 @@ const Profile = ({ user: propsUser }) => {
 
               {!user.isOrganization && !hasPendingOrganizationApplication() && (
                 <div className={styles.ctaCard}>
-                  <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects and build your reputation as a leader in sustainable waste management.</p>
+                  <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects and build your reputation by making Initiative Posts.</p>
                   <button 
                     className={styles.ctaButton}
                     onClick={() => setActiveModal('organization')}
@@ -1363,6 +1363,12 @@ const Profile = ({ user: propsUser }) => {
                   </button>
                 </div>
               )}
+
+              {(!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication()) || (!user.isOrganization && !hasPendingOrganizationApplication()) ? (
+                <p className={styles.ctaNote}>
+                  <strong>Note:</strong> These preferences help collectors schedule pickups more conveniently. If you're applying for <strong>verification or collector status</strong>, your application requires admin approval before your account status changes.
+                </p>
+              ) : null}
             </div>
 
             {/* Badges Section */}
