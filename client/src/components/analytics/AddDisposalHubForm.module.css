@@ -92,7 +92,6 @@
   justify-content: center;
   transition: all 0.2s ease;
   font-weight: 300;
-  padding: 0;
 }
 
 .closeButton:hover:not(:disabled) {
@@ -341,7 +340,6 @@
   border-top: 2px solid #e5e7eb;
   background: linear-gradient(to top, #fafafa 0%, #ffffff 100%);
   flex-shrink: 0;
-  margin: 0 -2rem -2rem -2rem;
 }
 
 .cancelButton {
@@ -511,8 +509,8 @@
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  margin: 1.5rem 0 0 0;
-  padding: 1rem 1.25rem;
+  margin: 1.5rem 2rem 0 2rem;
+  padding: 1rem 1.5rem;
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   border-left: 4px solid #3b82f6;
   border-radius: 8px;
@@ -560,7 +558,6 @@
   .actions {
     padding: 1.25rem;
     flex-direction: column-reverse;
-    margin: 0 -1.5rem -1.5rem -1.5rem;
   }
 
   .cancelButton,
@@ -584,5 +581,10 @@
 
   .mapContainer {
     height: 250px;
+  }
+
+  .note {
+    margin: 1rem 1rem 0 1rem;
+    padding: 0.875rem 1rem;
   }
 }

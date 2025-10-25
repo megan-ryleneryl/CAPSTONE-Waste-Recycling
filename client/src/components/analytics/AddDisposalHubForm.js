@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import styles from './AddDisposalHubForm.module.css';
 import { MapPin, X, Plus, Trash2, Navigation } from 'lucide-react';
 import PSGCService from '../../services/psgcService';
+import ModalPortal from '../modal/ModalPortal';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -394,20 +395,21 @@ const AddDisposalHubForm = ({ onClose, onSuccess, userLocation }) => {
   };
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.modal}>
-        <div className={styles.modalContent}>
-          <div className={styles.header}>
-            <h2 className={styles.title}>
-              <MapPin size={24} />
-              Suggest a Disposal Hub
-            </h2>
-            <button className={styles.closeButton} onClick={onClose} type="button">
-              <X size={24} />
-            </button>
-          </div>
+    <ModalPortal>
+      <div className={styles.overlay}>
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <div className={styles.header}>
+              <h2 className={styles.title}>
+                <MapPin size={24} />
+                Suggest a Disposal Hub
+              </h2>
+              <button className={styles.closeButton} onClick={onClose} type="button">
+                <X size={24} />
+              </button>
+            </div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form id="disposal-hub-form" onSubmit={handleSubmit} className={styles.form}>
           {error && (
             <div className={styles.error}>
               {error}
@@ -716,6 +718,13 @@ const AddDisposalHubForm = ({ onClose, onSuccess, userLocation }) => {
             </div>
           </div>
 
+          </form>
+
+          {/* Note Banner */}
+          <p className={styles.note}>
+            Note: Your suggestion will be reviewed by our team before being added to the map.
+          </p>
+
           {/* Actions */}
           <div className={styles.actions}>
             <button
@@ -728,20 +737,17 @@ const AddDisposalHubForm = ({ onClose, onSuccess, userLocation }) => {
             </button>
             <button
               type="submit"
+              form="disposal-hub-form"
               className={styles.submitButton}
               disabled={loading}
             >
               {loading ? 'Submitting...' : 'Submit Suggestion'}
             </button>
           </div>
-
-            <p className={styles.note}>
-              Note: Your suggestion will be reviewed by our team before being added to the map.
-            </p>
-          </form>
         </div>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };
 
