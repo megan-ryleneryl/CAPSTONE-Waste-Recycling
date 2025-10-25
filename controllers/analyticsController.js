@@ -734,7 +734,7 @@ async function getAreaActivity() {
         initiatives: 12,
         posts: 58,
         activityCount: 70,
-        color: '#f03b20',
+        color: '#2d7a2d',
         radius: 3000
       },
       {
@@ -746,7 +746,7 @@ async function getAreaActivity() {
         initiatives: 8,
         posts: 34,
         activityCount: 42,
-        color: '#feb24c',
+        color: '#64db64',
         radius: 2500
       },
       {
@@ -758,7 +758,7 @@ async function getAreaActivity() {
         initiatives: 15,
         posts: 67,
         activityCount: 82,
-        color: '#f03b20',
+        color: '#2d7a2d',
         radius: 3000
       },
       {
@@ -770,7 +770,7 @@ async function getAreaActivity() {
         initiatives: 3,
         posts: 12,
         activityCount: 15,
-        color: '#ffffb2',
+        color: '#d4f1d4',
         radius: 2000
       },
       {
@@ -782,7 +782,7 @@ async function getAreaActivity() {
         initiatives: 9,
         posts: 41,
         activityCount: 50,
-        color: '#feb24c',
+        color: '#64db64',
         radius: 2800
       },
       {
@@ -794,7 +794,7 @@ async function getAreaActivity() {
         initiatives: 2,
         posts: 8,
         activityCount: 10,
-        color: '#ffffb2',
+        color: '#d4f1d4',
         radius: 2000
       },
       {
@@ -806,7 +806,7 @@ async function getAreaActivity() {
         initiatives: 6,
         posts: 28,
         activityCount: 34,
-        color: '#feb24c',
+        color: '#64db64',
         radius: 2500
       },
       {
@@ -818,7 +818,7 @@ async function getAreaActivity() {
         initiatives: 4,
         posts: 15,
         activityCount: 19,
-        color: '#ffffb2',
+        color: '#d4f1d4',
         radius: 2000
       },
       {
@@ -830,7 +830,7 @@ async function getAreaActivity() {
         initiatives: 7,
         posts: 31,
         activityCount: 38,
-        color: '#feb24c',
+        color: '#64db64',
         radius: 2500
       },
       {
@@ -842,7 +842,7 @@ async function getAreaActivity() {
         initiatives: 11,
         posts: 52,
         activityCount: 63,
-        color: '#f03b20',
+        color: '#2d7a2d',
         radius: 3000
       },
       {
@@ -854,7 +854,7 @@ async function getAreaActivity() {
         initiatives: 6,
         posts: 25,
         activityCount: 31,
-        color: '#feb24c',
+        color: '#64db64',
         radius: 2200
       },
       {
@@ -866,7 +866,7 @@ async function getAreaActivity() {
         initiatives: 5,
         posts: 22,
         activityCount: 27,
-        color: '#feb24c',
+        color: '#64db64',
         radius: 2000
       },
       {
@@ -878,7 +878,7 @@ async function getAreaActivity() {
         initiatives: 10,
         posts: 45,
         activityCount: 55,
-        color: '#f03b20',
+        color: '#2d7a2d',
         radius: 3000
       },
       {
@@ -890,7 +890,7 @@ async function getAreaActivity() {
         initiatives: 3,
         posts: 14,
         activityCount: 17,
-        color: '#ffffb2',
+        color: '#d4f1d4',
         radius: 2000
       },
       {
@@ -902,7 +902,7 @@ async function getAreaActivity() {
         initiatives: 2,
         posts: 9,
         activityCount: 11,
-        color: '#ffffb2',
+        color: '#d4f1d4',
         radius: 1800
       },
       {
@@ -914,7 +914,7 @@ async function getAreaActivity() {
         initiatives: 7,
         posts: 30,
         activityCount: 37,
-        color: '#feb24c',
+        color: '#64db64',
         radius: 2500
       }
     ];
@@ -1207,13 +1207,13 @@ async function getGeographicHeatmapData() {
 
       // Determine activity level
       let activityLevel = 'Low';
-      let color = '#ffffb2';
+      let color = '#d4f1d4';
       if (data.totalActivity >= 20) {
         activityLevel = 'High';
-        color = '#f03b20';
+        color = '#2d7a2d';
       } else if (data.totalActivity >= 10) {
         activityLevel = 'Medium';
-        color = '#feb24c';
+        color = '#64db64';
       }
 
       // Add to areas for circle overlays

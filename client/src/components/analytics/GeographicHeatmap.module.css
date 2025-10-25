@@ -179,6 +179,11 @@
   line-height: 1;
 }
 
+.popupIcon {
+  color: #3B6535;
+  flex-shrink: 0;
+}
+
 .popupLevel {
   margin: 0;
   padding-top: 0.75rem;
@@ -219,11 +224,11 @@
   background: linear-gradient(
     to right,
     #ffffff 0%,
-    #ffffb2 20%,
-    #fed976 40%,
-    #feb24c 60%,
-    #fd8d3c 80%,
-    #f03b20 100%
+    #d4f1d4 20%,
+    #9ce69c 40%,
+    #64db64 60%,
+    #3fb03f 80%,
+    #2d7a2d 100%
   );
   border: 1px solid #e2e8f0;
 }
@@ -291,8 +296,8 @@
 }
 
 .breakdownIcon {
-  font-size: 2rem;
-  line-height: 1;
+  color: #3B6535;
+  flex-shrink: 0;
 }
 
 .breakdownContent {
@@ -345,6 +350,13 @@
 .infoList li {
   margin: 0.5rem 0;
   font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.infoText {
+  margin: 0;
+  color: #2d3748;
+  font-size: 0.95rem;
   line-height: 1.5;
 }
 

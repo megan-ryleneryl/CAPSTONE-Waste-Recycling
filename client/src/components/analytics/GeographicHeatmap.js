@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import styles from './GeographicHeatmap.module.css';
-import { MapPin, ZoomIn, ZoomOut, Maximize2, Activity, TrendingUp } from 'lucide-react';
+import { MapPin, ZoomIn, ZoomOut, Maximize2, Activity, TrendingUp, Package, MessageSquare, Target, CheckCircle, HandshakeIcon, BarChart3 } from 'lucide-react';
 
 // Fix for default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -41,11 +41,11 @@ const HeatmapLayer = ({ points }) => {
       max: 1.0,
       gradient: {
         0.0: '#ffffff',
-        0.2: '#ffffb2',
-        0.4: '#fed976',
-        0.6: '#feb24c',
-        0.8: '#fd8d3c',
-        1.0: '#f03b20'
+        0.2: '#d4f1d4',
+        0.4: '#9ce69c',
+        0.6: '#64db64',
+        0.8: '#3fb03f',
+        1.0: '#2d7a2d'
       }
     }).addTo(map);
 
@@ -115,31 +115,31 @@ const AreaMarkers = ({ areas }) => {
                 <div className={styles.popupBreakdownTitle}>Activity Breakdown:</div>
                 {area.wastePosts > 0 && (
                   <div className={styles.popupBreakdownItem}>
-                    <span className={styles.popupDot}>📦</span>
+                    <Package size={16} className={styles.popupIcon} />
                     <span>{area.wastePosts} Waste Posts</span>
                   </div>
                 )}
                 {area.forumPosts > 0 && (
                   <div className={styles.popupBreakdownItem}>
-                    <span className={styles.popupDot}>💬</span>
+                    <MessageSquare size={16} className={styles.popupIcon} />
                     <span>{area.forumPosts} Forum Posts</span>
                   </div>
                 )}
                 {area.initiativePosts > 0 && (
                   <div className={styles.popupBreakdownItem}>
-                    <span className={styles.popupDot}>🎯</span>
+                    <Target size={16} className={styles.popupIcon} />
                     <span>{area.initiativePosts} Initiative Posts</span>
                   </div>
                 )}
                 {area.completedPickups > 0 && (
                   <div className={styles.popupBreakdownItem}>
-                    <span className={styles.popupDot}>✅</span>
+                    <CheckCircle size={16} className={styles.popupIcon} />
                     <span>{area.completedPickups} Completed Pickups</span>
                   </div>
                 )}
                 {area.completedSupports > 0 && (
                   <div className={styles.popupBreakdownItem}>
-                    <span className={styles.popupDot}>🤝</span>
+                    <HandshakeIcon size={16} className={styles.popupIcon} />
                     <span>{area.completedSupports} Completed Supports</span>
                   </div>
                 )}
@@ -274,42 +274,42 @@ const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }
           </p>
           <div className={styles.breakdownGrid}>
             <div className={styles.breakdownCard}>
-              <div className={styles.breakdownIcon}>📦</div>
+              <Package size={32} className={styles.breakdownIcon} />
               <div className={styles.breakdownContent}>
                 <span className={styles.breakdownValue}>{breakdown.wastePosts}</span>
                 <span className={styles.breakdownLabel}>Waste Posts</span>
               </div>
             </div>
             <div className={styles.breakdownCard}>
-              <div className={styles.breakdownIcon}>💬</div>
+              <MessageSquare size={32} className={styles.breakdownIcon} />
               <div className={styles.breakdownContent}>
                 <span className={styles.breakdownValue}>{breakdown.forumPosts}</span>
                 <span className={styles.breakdownLabel}>Forum Posts</span>
               </div>
             </div>
             <div className={styles.breakdownCard}>
-              <div className={styles.breakdownIcon}>🎯</div>
+              <Target size={32} className={styles.breakdownIcon} />
               <div className={styles.breakdownContent}>
                 <span className={styles.breakdownValue}>{breakdown.initiativePosts}</span>
                 <span className={styles.breakdownLabel}>Initiative Posts</span>
               </div>
             </div>
             <div className={styles.breakdownCard}>
-              <div className={styles.breakdownIcon}>✅</div>
+              <CheckCircle size={32} className={styles.breakdownIcon} />
               <div className={styles.breakdownContent}>
                 <span className={styles.breakdownValue}>{breakdown.completedPickups}</span>
                 <span className={styles.breakdownLabel}>Completed Pickups</span>
               </div>
             </div>
             <div className={styles.breakdownCard}>
-              <div className={styles.breakdownIcon}>🤝</div>
+              <HandshakeIcon size={32} className={styles.breakdownIcon} />
               <div className={styles.breakdownContent}>
                 <span className={styles.breakdownValue}>{breakdown.completedSupports}</span>
                 <span className={styles.breakdownLabel}>Completed Supports</span>
               </div>
             </div>
             <div className={`${styles.breakdownCard} ${styles.total}`}>
-              <div className={styles.breakdownIcon}>📊</div>
+              <BarChart3 size={32} className={styles.breakdownIcon} />
               <div className={styles.breakdownContent}>
                 <span className={styles.breakdownValue}>{breakdown.totalActivity}</span>
                 <span className={styles.breakdownLabel}>Total Activities</span>
@@ -322,14 +322,11 @@ const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }
       <div className={styles.infoPanel}>
         <div className={styles.infoPanelHeader}>
           <Activity size={18} />
-          <h3>How to Use</h3>
+          <h3>Tip</h3>
         </div>
-        <ul className={styles.infoList}>
-          <li>Use the buttons above to zoom to Philippines or Metro Manila</li>
-          <li>Red/orange areas indicate high recycling activity</li>
-          <li>Click on circles to see detailed area statistics</li>
-          <li>Zoom in/out using the map controls or mouse wheel</li>
-        </ul>
+        <p className={styles.infoText}>
+          Click on the zones to see detailed area statistics
+        </p>
       </div>
     </div>
   );
