@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import CommentsSection from '../components/posts/CommentsSection/CommentsSection';
 // import PickupRequests from '../components/posts/PickupRequests/PickupRequests';
 import InitiativeSupportsModal from '../components/posts/InitiativeSupportsModal/InitiativeSupportsModal';
 import styles from './SinglePost.module.css';
 // Lucide icon imports
-import { Heart, MessageCircle, Trash2 } from 'lucide-react';
+import { MessageCircle, Trash2 } from 'lucide-react';
 
 const SinglePost = ({ onDataUpdate }) => {
   const { postId } = useParams();
@@ -34,11 +33,15 @@ const SinglePost = ({ onDataUpdate }) => {
       if (onDataUpdate) {
         onDataUpdate({
           post,
-          onViewSupports: () => setShowSupportsModal(true)
+          onViewSupports: () => setShowSupportsModal(true),
+          likeCount,
+          isLiked,
+          onLikeToggle: handleLikeToggle,
+          likingPost
         });
       }
     }
-  }, [post, onDataUpdate]);
+  }, [post, onDataUpdate, likeCount, isLiked, likingPost]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -395,29 +398,6 @@ const SinglePost = ({ onDataUpdate }) => {
           </div>
 
         </div>
-
-        {/* Like and Comment Section for Forum Posts */}
-      {post.postType === 'Forum' && (
-        <div className={styles.interactionsSection}>
-          <div className={styles.likeSection}>
-            <button
-              className={`${styles.likeButton} ${isLiked ? styles.liked : ''}`}
-              onClick={handleLikeToggle}
-              disabled={likingPost}
-            >
-              <span className={styles.likeIcon}><Heart size={18} fill={post.isLiked ? 'currentColor' : 'none'} /></span>
-              <span className={styles.likeText}>
-                {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
-              </span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Comments Section for Forum Posts */}
-      {post.postType === 'Forum' && (
-        <CommentsSection post={post} currentUser={user} />
-      )}
 
         {/* Pickup Requests Section (for Collectors view on Initiative posts)
         {post.postType === 'Initiative' && isCollector && isOwner && (

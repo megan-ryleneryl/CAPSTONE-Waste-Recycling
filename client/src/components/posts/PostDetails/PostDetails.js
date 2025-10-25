@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ModalPortal from '../../modal/ModalPortal';
+import CommentsSection from '../CommentsSection/CommentsSection';
 import styles from './PostDetails.module.css';
 import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
 
 
-const PostDetails = ({ post, user: currentUser, onViewSupports }) => {
+const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLiked, onLikeToggle, likingPost }) => {
   const navigate = useNavigate();
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -569,6 +570,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports }) => {
                       className={styles.linkButton}
                       onClick={() => navigate(`/chat?postId=${post.postID}&userId=${post.userID}`)}
                     >
+
                       View in Chat
                     </button>
                   </div>
@@ -626,7 +628,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports }) => {
               <span className={styles.icon}><Tag size={18} /></span>
               <span className={styles.value}>{post.category || 'General'}</span>
             </div>
-            
+
             <div className={styles.detailItem}>
               <span className={styles.icon}><MapPin size={18} /></span>
               <span className={styles.value}>{formatLocation(post.location)}</span>
@@ -660,6 +662,27 @@ const PostDetails = ({ post, user: currentUser, onViewSupports }) => {
               </div>
             )}
           </div>
+        )}
+
+        {/* LIKES SECTION FOR FORUM POSTS */}
+        {post.postType === 'Forum' && (
+          <div className={styles.likesSection}>
+            <button
+              className={`${styles.likeButton} ${isLiked ? styles.liked : ''}`}
+              onClick={onLikeToggle}
+              disabled={likingPost}
+            >
+              <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
+              <span className={styles.likeText}>
+                {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* COMMENTS SECTION FOR FORUM POSTS */}
+        {post.postType === 'Forum' && (
+          <CommentsSection post={post} currentUser={currentUser} />
         )}
       </div>
 

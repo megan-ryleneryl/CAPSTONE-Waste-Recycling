@@ -51,17 +51,29 @@
   }
 }
 
+@media (max-width: 1200px) {
+  .mainContent.withRightSection {
+    /* Add padding for the collapsed bottom sheet handle */
+    padding-bottom: 60px;
+  }
+}
+
 @media (max-width: 1024px) {
   .mainLayout {
     padding: 0;
     gap: 0;
     width: 100%;
   }
-  
+
   .mainContent {
     margin-left: 0 !important;
     width: 100% !important;
     padding: 1rem;
+  }
+
+  .mainContent.withRightSection {
+    /* Add padding for the collapsed bottom sheet handle */
+    padding-bottom: 60px;
   }
 }
 
@@ -94,7 +106,7 @@
   .mobileMenuToggle {
     display: block;
     position: fixed;
-    bottom: 4rem;
+    bottom: 70px;
     right: 20px;
     z-index: 1000;
     background: var(--primary-color);
@@ -107,10 +119,18 @@
     cursor: pointer;
     transition: var(--transition-all);
   }
-  
+
   .mobileMenuToggle:hover {
     transform: scale(1.1);
     box-shadow: var(--shadow-xl);
+  }
+
+  .mobileMenuToggle svg {
+    transition: transform 0.3s ease;
+  }
+
+  .mobileMenuToggle:active {
+    transform: scale(0.95);
   }
 }
 

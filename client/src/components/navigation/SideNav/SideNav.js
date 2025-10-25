@@ -1,26 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styles from './SideNav.module.css';
 import { useAuth } from '../../../context/AuthContext';
-import { 
+import {
   Recycle, Sprout,
-  Plus, 
-  Home, 
-  LayoutDashboard, 
+  Plus,
+  Home,
+  LayoutDashboard,
   Map,
-  MessageCircle, 
-  Package, 
-  User, 
-  CheckSquare, 
+  MessageCircle,
+  Package,
+  User,
+  CheckSquare,
   Users,
   Layers,
   MessagesSquare,
   FileText,
-  ClipboardPenLine } 
+  ClipboardPenLine }
   from 'lucide-react';
 
-const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose, chatCounts = { all: 0, waste: 0, initiative: 0, forum: 0 }, postCounts = { all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 } }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = { all: 0, waste: 0, initiative: 0, forum: 0 }, postCounts = { all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 } }) => {
+  const [isCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     main: true,
     filters: true,
@@ -257,12 +257,6 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, onClose, chat
               </div>
             )}
           </div>
-        )}
-
-        {isMobile && (
-          <button className={styles.mobileClose} onClick={onClose}>
-            ✕
-          </button>
         )}
       </div>
 

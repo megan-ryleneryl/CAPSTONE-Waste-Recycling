@@ -296,30 +296,6 @@
   .sidebar.open {
     transform: translateX(0);
   }
-
-  .mobileClose {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: white;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--text-muted);
-    padding: 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-  }
-
-  .mobileClose:hover {
-    background: var(--primary-alpha-10);
-    color: var(--primary-color);
-  }
 }
 
 @media (max-width: 768px) {

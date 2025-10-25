@@ -82,6 +82,7 @@
 }
 
 .pickupTitle {
+  text-align: left;
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
@@ -454,6 +455,7 @@
 }
 
 .contactLabel {
+  text-align: left;
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
   font-weight: var(--font-weight-medium);
@@ -484,6 +486,7 @@
 }
 
 .estimateDescription {
+  text-align: left;
   margin-top: var(--spacing-sm);
   padding-top: 0.75rem;
   border-top: 1px solid var(--border-color);
