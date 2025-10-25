@@ -1366,7 +1366,7 @@ const Profile = ({ user: propsUser }) => {
 
               {(!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication()) || (!user.isOrganization && !hasPendingOrganizationApplication()) ? (
                 <p className={styles.ctaNote}>
-                  <strong>Note:</strong> These preferences help collectors schedule pickups more conveniently. If you're applying for <strong>verification or collector status</strong>, your application requires admin approval before your account status changes.
+                  <strong>Note: If you're applying for verification or applications</strong>, your application requires admin approval before your account status changes. Please give us 3-5 business days to review and process your application.
                 </p>
               ) : null}
             </div>
