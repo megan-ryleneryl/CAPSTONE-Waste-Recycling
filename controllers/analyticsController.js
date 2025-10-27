@@ -61,15 +61,24 @@ const analyticsController = {
       const userID = req.user.userID;
       const timeRange = req.query.timeRange || 'month';
 
-      // Create cache key based on user and time range
-      const cacheKey = `analytics_${userID}_${timeRange}`;
+      // Location filters (optional)
+      const locationFilter = {
+        region: req.query.region || null,
+        province: req.query.province || null,
+        city: req.query.city || null,
+        barangay: req.query.barangay || null
+      };
+
+      // Create cache key based on user, time range, AND location
+      const locationKey = `${locationFilter.region || 'all'}_${locationFilter.province || 'all'}_${locationFilter.city || 'all'}_${locationFilter.barangay || 'all'}`;
+      const cacheKey = `analytics_${userID}_${timeRange}_${locationKey}`;
 
       // Check if we have cached results
       const now = Date.now();
       const cachedResult = analyticsCache.get(cacheKey);
 
       if (cachedResult && (now - cachedResult.timestamp) < ANALYTICS_CACHE_TTL) {
-        console.log(`✓ Returning CACHED analytics for user ${userID}, timeRange: ${timeRange}`);
+        console.log(`✓ Returning CACHED analytics for user ${userID}, timeRange: ${timeRange}, location: ${locationKey}`);
         console.log(`  Cache age: ${Math.round((now - cachedResult.timestamp) / 1000)}s / ${ANALYTICS_CACHE_TTL / 1000}s`);
         return res.json({
           success: true,
@@ -78,7 +87,9 @@ const analyticsController = {
         });
       }
 
-      console.log(`⚙ Computing FRESH analytics for user ${userID}, timeRange: ${timeRange}`);
+      const locationFilterStr = locationFilter.city ?
+        ` (Location: ${locationFilter.barangay || locationFilter.city || locationFilter.province || locationFilter.region})` : '';
+      console.log(`⚙ Computing FRESH analytics for user ${userID}, timeRange: ${timeRange}${locationFilterStr}`);
 
       // Calculate date range based on timeRange parameter
       const nowDate = new Date();
@@ -122,26 +133,26 @@ const analyticsController = {
         pendingApplications,
         recentActivity
       ] = await Promise.all([
-        getTotalRecycled(startDate),
-        getActiveInitiatives(),
+        getTotalRecycled(startDate, locationFilter),
+        getActiveInitiatives(locationFilter),
         getActiveUsers(),
-        getTotalPickups(startDate),
-        getCompletedSupports(startDate),
-        getWasteDistribution(startDate),
-        getTopCollectors(startDate),
+        getTotalPickups(startDate, locationFilter),
+        getCompletedSupports(startDate, locationFilter),
+        getWasteDistribution(startDate, locationFilter),
+        getTopCollectors(startDate, locationFilter),
         getUserSpecificStats(userID, currentUser),
         currentUser.isAdmin ? getPendingApplications() : { count: 0 },
         getUserRecentActivity(userID, startDate)
       ]);
 
       const environmentalImpact = calculateEnvironmentalImpact(totalRecycled);
-      const trends = await getRecyclingTrends(timeRange, startDate);
+      const trends = await getRecyclingTrends(timeRange, startDate, locationFilter);
       const percentageChanges = await calculatePercentageChanges(timeRange, startDate, {
         totalRecycled,
         initiatives,
         users,
         pickups
-      });
+      }, locationFilter);
 
       console.log('Analytics Data Summary:', {
         totalRecycled,
@@ -181,7 +192,8 @@ const analyticsController = {
         recyclingTrends: trends,
         recentActivity,
         percentageChanges,
-        timeRange
+        timeRange,
+        locationFilter: locationFilter  // Include selected location filter
       };
 
       // Cache the computed results
@@ -275,6 +287,33 @@ const analyticsController = {
 // HELPER FUNCTIONS
 // ============================================================================
 
+// Helper to check if a location matches the filter
+function matchesLocationFilter(itemLocation, filter) {
+  if (!filter || (!filter.region && !filter.province && !filter.city && !filter.barangay)) {
+    return true; // No filter applied, match all
+  }
+
+  if (!itemLocation) {
+    return false; // Item has no location, doesn't match filter
+  }
+
+  // Match at the most specific level provided
+  if (filter.barangay) {
+    return itemLocation.barangay?.code === filter.barangay;
+  }
+  if (filter.city) {
+    return itemLocation.city?.code === filter.city;
+  }
+  if (filter.province) {
+    return itemLocation.province?.code === filter.province;
+  }
+  if (filter.region) {
+    return itemLocation.region?.code === filter.region;
+  }
+
+  return true;
+}
+
 // Helper to convert Firestore Timestamp to JavaScript Date
 function toDate(timestamp) {
   if (!timestamp) return null;
@@ -311,7 +350,7 @@ function toDate(timestamp) {
   return null;
 }
 
-async function getTotalRecycled(startDate) {
+async function getTotalRecycled(startDate, locationFilter = null) {
   try {
     // OPTIMIZED: Use cached pickups data
     const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
@@ -355,7 +394,8 @@ async function getTotalRecycled(startDate) {
       return pickup.status === 'Completed' &&
              completedDate &&
              !isNaN(completedDate.getTime()) &&
-             completedDate >= startDate;
+             completedDate >= startDate &&
+             matchesLocationFilter(pickup.pickupLocation, locationFilter);
     });
 
     console.log(`Completed pickups in selected time range: ${completedPickups.length}`);
@@ -391,13 +431,14 @@ async function getTotalRecycled(startDate) {
   }
 }
 
-async function getActiveInitiatives() {
+async function getActiveInitiatives(locationFilter = null) {
   try {
     // OPTIMIZED: Use cached posts data
     const allPosts = await getCachedData('allPosts', () => Post.findAll());
     const activeInitiatives = allPosts.filter(post =>
       post.postType === 'Initiative' &&
-      (post.status === 'Active' || post.status === 'Open')
+      (post.status === 'Active' || post.status === 'Open') &&
+      matchesLocationFilter(post.location, locationFilter)
     );
 
     return { count: activeInitiatives.length };
@@ -428,10 +469,11 @@ async function getActiveUsers() {
 }
 
 // Get completed supports for initiatives
-async function getCompletedSupports(startDate) {
+async function getCompletedSupports(startDate, locationFilter = null) {
   try {
     // OPTIMIZED: Use cached supports data
     const allSupports = await getCachedData('allSupports', () => Support.findAll());
+    const allPosts = await getCachedData('allPosts', () => Post.findAll());
 
     console.log(`\n=== COMPLETED SUPPORTS DEBUG ===`);
     console.log(`Total supports in database: ${allSupports.length}`);
@@ -441,6 +483,14 @@ async function getCompletedSupports(startDate) {
       const completedDate = toDate(support.completedAt);
       const isCompleted = support.status === 'Completed';
       const inTimeRange = completedDate && !isNaN(completedDate.getTime()) && completedDate >= startDate;
+
+      // If location filter is applied, check the initiative's location
+      if (locationFilter && (locationFilter.region || locationFilter.province || locationFilter.city || locationFilter.barangay)) {
+        const relatedPost = allPosts.find(p => p.postID === support.initiativeID);
+        if (!relatedPost || !matchesLocationFilter(relatedPost.location, locationFilter)) {
+          return false;
+        }
+      }
 
       return isCompleted && inTimeRange;
     });
@@ -454,7 +504,7 @@ async function getCompletedSupports(startDate) {
   }
 }
 
-async function getTotalPickups(startDate) {
+async function getTotalPickups(startDate, locationFilter = null) {
   try {
     // OPTIMIZED: Use cached pickups data
     const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
@@ -475,7 +525,7 @@ async function getTotalPickups(startDate) {
         relevantDate = toDate(pickup.createdAt);
       }
 
-      if (relevantDate && relevantDate >= startDate) {
+      if (relevantDate && relevantDate >= startDate && matchesLocationFilter(pickup.pickupLocation, locationFilter)) {
         if (pickup.status === 'Completed') {
           completed++;
         } else if (['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(pickup.status)) {
@@ -501,7 +551,7 @@ async function getTotalPickups(startDate) {
   }
 }
 
-async function getWasteDistribution(startDate) {
+async function getWasteDistribution(startDate, locationFilter = null) {
   try {
     // Get waste distribution from ACTUAL completed pickups, not just posts
     const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
@@ -511,7 +561,8 @@ async function getWasteDistribution(startDate) {
       return pickup.status === 'Completed' &&
              completedDate &&
              !isNaN(completedDate.getTime()) &&
-             completedDate >= startDate;
+             completedDate >= startDate &&
+             matchesLocationFilter(pickup.pickupLocation, locationFilter);
     });
 
     console.log(`Calculating waste distribution from ${completedPickups.length} completed pickups`);
@@ -552,7 +603,7 @@ async function getWasteDistribution(startDate) {
   }
 }
 
-async function getTopCollectors(startDate) {
+async function getTopCollectors(startDate, locationFilter = null) {
   try {
     // OPTIMIZED: Use cached users data
     const allUsers = await getCachedData('allUsers', () => User.findAll());
@@ -565,7 +616,7 @@ async function getTopCollectors(startDate) {
         try {
           // FIXED: Use correct method - findByUser with 'collector' role
           const pickups = await Pickup.findByUser(collector.userID, 'collector');
-          
+
           let totalCollected = 0;
           pickups.forEach(pickup => {
             const completedDate = toDate(pickup.completedAt);
@@ -573,7 +624,8 @@ async function getTopCollectors(startDate) {
                 completedDate &&
                 !isNaN(completedDate.getTime()) &&
                 completedDate >= startDate &&
-                pickup.finalAmount) {
+                pickup.finalAmount &&
+                matchesLocationFilter(pickup.pickupLocation, locationFilter)) {
               // finalAmount is at root level, not inside actualWaste
               totalCollected += parseFloat(pickup.finalAmount);
             }
@@ -801,13 +853,13 @@ async function getUserRecentActivity(userID, startDate) {
 }
 
 // FIXED: Generate actual quarterly recycling trends for the current year
-async function getRecyclingTrends(timeRange, startDate) {
+async function getRecyclingTrends(timeRange, startDate, locationFilter = null) {
   try {
     const now = new Date();
     const currentYear = now.getFullYear();
     // OPTIMIZED: Use cached pickups data
     const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
-    
+
     if (timeRange === 'year' || timeRange === 'all') {
       // Return quarterly data for current year
       const quarters = [
@@ -816,7 +868,7 @@ async function getRecyclingTrends(timeRange, startDate) {
         { quarter: 'Q3', month: 'Jul-Sep', start: new Date(currentYear, 6, 1), end: new Date(currentYear, 8, 30) },
         { quarter: 'Q4', month: 'Oct-Dec', start: new Date(currentYear, 9, 1), end: new Date(currentYear, 11, 31) }
       ];
-      
+
       const trends = quarters.map((q, index) => {
         let quarterAmount = 0;
         allPickups.forEach(pickup => {
@@ -826,7 +878,8 @@ async function getRecyclingTrends(timeRange, startDate) {
               !isNaN(completedDate.getTime()) &&
               completedDate >= q.start &&
               completedDate <= q.end &&
-              pickup.finalAmount) {
+              pickup.finalAmount &&
+              matchesLocationFilter(pickup.pickupLocation, locationFilter)) {
             // finalAmount is at root level, not inside actualWaste
             quarterAmount += parseFloat(pickup.finalAmount);
           }
@@ -864,7 +917,8 @@ async function getRecyclingTrends(timeRange, startDate) {
               !isNaN(completedDate.getTime()) &&
               completedDate >= weekStart &&
               completedDate <= weekEnd &&
-              pickup.finalAmount) {
+              pickup.finalAmount &&
+              matchesLocationFilter(pickup.pickupLocation, locationFilter)) {
             // finalAmount is at root level, not inside actualWaste
             weekAmount += parseFloat(pickup.finalAmount);
           }
@@ -902,7 +956,8 @@ async function getRecyclingTrends(timeRange, startDate) {
               !isNaN(completedDate.getTime()) &&
               completedDate >= dayStart &&
               completedDate <= dayEnd &&
-              pickup.finalAmount) {
+              pickup.finalAmount &&
+              matchesLocationFilter(pickup.pickupLocation, locationFilter)) {
             // finalAmount is at root level, not inside actualWaste
             dayAmount += parseFloat(pickup.finalAmount);
           }
@@ -1269,7 +1324,7 @@ function calculateEnvironmentalImpact(totalKg) {
  * - Year: Compare to previous year
  * - All: Compare to previous year
  */
-async function calculatePercentageChanges(timeRange, startDate, currentMetrics) {
+async function calculatePercentageChanges(timeRange, startDate, currentMetrics, locationFilter = null) {
   try {
     // Calculate the previous period date range
     let previousStartDate = new Date(startDate);
@@ -1292,10 +1347,10 @@ async function calculatePercentageChanges(timeRange, startDate, currentMetrics) 
         break;
     }
 
-    // Fetch metrics for previous period
+    // Fetch metrics for previous period with same location filter
     const [prevRecycled, prevPickups] = await Promise.all([
-      getTotalRecycled(previousStartDate),
-      getTotalPickups(previousStartDate)
+      getTotalRecycled(previousStartDate, locationFilter),
+      getTotalPickups(previousStartDate, locationFilter)
     ]);
 
     // Calculate percentage change

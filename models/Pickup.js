@@ -20,7 +20,32 @@ class Pickup {
     // Schedule details
     this.pickupDate = data.pickupDate || '';
     this.pickupTime = data.pickupTime || '';
-    this.pickupLocation = data.pickupLocation || '';
+    // FIXED: pickupLocation is an object with full PSGC location details, not a string
+    this.pickupLocation = data.pickupLocation ? (
+      typeof data.pickupLocation === 'string' ? data.pickupLocation : {
+        region: {
+          code: data.pickupLocation.region?.code || '',
+          name: data.pickupLocation.region?.name || ''
+        },
+        province: data.pickupLocation.province ? {
+          code: data.pickupLocation.province.code || '',
+          name: data.pickupLocation.province.name || ''
+        } : null,
+        city: {
+          code: data.pickupLocation.city?.code || '',
+          name: data.pickupLocation.city?.name || ''
+        },
+        barangay: {
+          code: data.pickupLocation.barangay?.code || '',
+          name: data.pickupLocation.barangay?.name || ''
+        },
+        addressLine: data.pickupLocation.addressLine || '',
+        coordinates: {
+          lat: data.pickupLocation.coordinates?.lat || null,
+          lng: data.pickupLocation.coordinates?.lng || null
+        }
+      }
+    ) : null;
     this.contactPerson = data.contactPerson || '';
     this.contactNumber = data.contactNumber || '';
     this.alternateContact = data.alternateContact || '';

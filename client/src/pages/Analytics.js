@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Analytics.module.css';
 import GeographicHeatmap from '../components/analytics/GeographicHeatmap';
 import DisposalHubMap from '../components/analytics/DisposalHubMap';
 import AddDisposalHubForm from '../components/analytics/AddDisposalHubForm';
+import LocationFilter from '../components/analytics/LocationFilter';
 import {
   MapPin,
   Recycle,
@@ -27,11 +28,24 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   const [analyticsData, setAnalyticsData] = useState(null);
   const [heatMapData, setHeatMapData] = useState([]);
   const [disposalSites, setDisposalSites] = useState([]);
   const [showAddHubForm, setShowAddHubForm] = useState(false);
+
+  // Location filter state
+  const [locationFilter, setLocationFilter] = useState({
+    region: null,
+    province: null,
+    city: null,
+    barangay: null
+  });
+
+  // Memoized callback to prevent infinite loops
+  const handleLocationFilterChange = useCallback((newFilter) => {
+    setLocationFilter(newFilter);
+  }, []);
 
   const navigate = useNavigate();
 
@@ -49,7 +63,8 @@ const Analytics = () => {
     if (user) {
       fetchAnalyticsData();
     }
-  }, [user, selectedTimeRange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, selectedTimeRange, locationFilter.region, locationFilter.province, locationFilter.city, locationFilter.barangay]);
 
   useEffect(() => {
     if (activeTab === 'activity' && user) {
@@ -68,15 +83,22 @@ const Analytics = () => {
       setDataLoading(true);
       setError(null);
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      
+
       if (!token) {
         setError('Authentication token not found');
         navigate('/login');
         return;
       }
-      
+
+      // Build query parameters including location filter
+      const params = new URLSearchParams({ timeRange: selectedTimeRange });
+      if (locationFilter.region) params.append('region', locationFilter.region);
+      if (locationFilter.province) params.append('province', locationFilter.province);
+      if (locationFilter.city) params.append('city', locationFilter.city);
+      if (locationFilter.barangay) params.append('barangay', locationFilter.barangay);
+
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
+        `http://localhost:3001/api/analytics/dashboard?${params.toString()}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -297,10 +319,17 @@ const Analytics = () => {
               Community Impact Dashboard
             </h2>
           </div>
+
+          {/* Location Filter - Show even when no data */}
+          <LocationFilter
+            onFilterChange={handleLocationFilterChange}
+            currentFilter={locationFilter}
+          />
+
           <div className={styles.emptyState}>
             <Recycle size={64} style={{ opacity: 0.3, marginBottom: '20px' }} />
-            <h3>No Community Data Yet</h3>
-            <p>The Community Impact Dashboard will show statistics once there are:</p>
+            <h3>No Data for Selected Location</h3>
+            <p>Try selecting a different location above, or check back once there are:</p>
             <ul style={{ textAlign: 'left', marginTop: '20px', marginBottom: '30px' }}>
               <li>Completed waste pickups</li>
               <li>Active initiative posts</li>
@@ -366,7 +395,7 @@ const Analytics = () => {
         
         <div className={styles.dashboardHeader}>
           <h2>
-            <TrendingUp className={styles.headerIcon} /> 
+            <TrendingUp className={styles.headerIcon} />
             Community Impact Dashboard
           </h2>
           <div className={styles.timeRangeSelector}>
@@ -382,6 +411,12 @@ const Analytics = () => {
             ))}
           </div>
         </div>
+
+        {/* Location Filter */}
+        <LocationFilter
+          onFilterChange={handleLocationFilterChange}
+          currentFilter={locationFilter}
+        />
 
         <div className={styles.metricsGrid}>
           <div className={styles.metricCard}>
