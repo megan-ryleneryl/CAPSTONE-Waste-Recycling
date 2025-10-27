@@ -11,7 +11,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins } from 'lucide-react';
 
 
-const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID }) => {
+const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID, locationFilter = null }) => {
 
   const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
@@ -27,7 +27,8 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
     return () => {
       setPosts([]);
     };
-  }, [postType, userID]); // Add userID as dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postType, userID, locationFilter?.region, locationFilter?.province, locationFilter?.city, locationFilter?.barangay]); // Add location filter dependencies
 
   // REMOVED: This was causing double fetching - we now calculate counts from existing posts
   // The counts are calculated once in fetchPosts() instead of re-fetching all posts
@@ -46,9 +47,20 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
         return;
       }
 
+      // Build query parameters including location filter
+      const params = new URLSearchParams();
+      if (locationFilter?.region) params.append('region', locationFilter.region);
+      if (locationFilter?.province) params.append('province', locationFilter.province);
+      if (locationFilter?.city) params.append('city', locationFilter.city);
+      if (locationFilter?.barangay) params.append('barangay', locationFilter.barangay);
+
       // OPTIMIZED: Fetch interactions, but backend only loads them for Forum posts
       // This keeps Forum posts responsive while avoiding reads for Waste/Initiative posts
-      const response = await axios.get('http://localhost:3001/api/posts', {
+      const url = params.toString()
+        ? `http://localhost:3001/api/posts?${params.toString()}`
+        : 'http://localhost:3001/api/posts';
+
+      const response = await axios.get(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

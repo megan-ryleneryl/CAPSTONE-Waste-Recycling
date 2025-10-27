@@ -36,15 +36,53 @@ function invalidatePostsCache() {
   console.log('🗑️ Posts cache invalidated');
 }
 
+// Helper to check if a location matches the filter
+function matchesLocationFilter(itemLocation, filter) {
+  if (!filter || (!filter.region && !filter.province && !filter.city && !filter.barangay)) {
+    return true; // No filter applied, match all
+  }
+
+  if (!itemLocation) {
+    return false; // Item has no location, doesn't match filter
+  }
+
+  // Match at the most specific level provided
+  if (filter.barangay) {
+    return itemLocation.barangay?.code === filter.barangay;
+  }
+  if (filter.city) {
+    return itemLocation.city?.code === filter.city;
+  }
+  if (filter.province) {
+    return itemLocation.province?.code === filter.province;
+  }
+  if (filter.region) {
+    return itemLocation.region?.code === filter.region;
+  }
+
+  return true;
+}
+
 // Get all posts (with filters) - OPTIMIZED
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const { type, status, location, userID, skipInteractions } = req.query;
+    const { type, status, location, userID, skipInteractions, region, province, city, barangay } = req.query;
     const User = require('../models/Users');
+
+    // Location filter object (for PSGC hierarchical filtering)
+    const locationFilter = {
+      region: region || null,
+      province: province || null,
+      city: city || null,
+      barangay: barangay || null
+    };
+
+    // Check if any location filter is applied
+    const hasLocationFilter = region || province || city || barangay;
 
     // Check cache first (only for non-filtered requests)
     const now = Date.now();
-    const useCache = !type && !status && !location && !userID;
+    const useCache = !type && !status && !location && !userID && !hasLocationFilter;
 
     if (useCache && postsCache.data && (now - postsCache.timestamp) < postsCache.ttl) {
       console.log('📦 Using cached posts data');
@@ -63,6 +101,7 @@ router.get('/', verifyToken, async (req, res) => {
     } else if (status) {
       posts = await Post.findByStatus(status);
     } else if (location) {
+      // Legacy location string support
       posts = await Post.findByLocation(location);
     } else {
       posts = await Post.findAll();
@@ -70,6 +109,12 @@ router.get('/', verifyToken, async (req, res) => {
 
     // Filter out inactive posts (posts from deleted users)
     posts = posts.filter(post => post.status !== 'Inactive');
+
+    // Apply PSGC location filter if specified
+    if (hasLocationFilter) {
+      posts = posts.filter(post => matchesLocationFilter(post.location, locationFilter));
+      console.log(`📍 Filtered posts by location: ${posts.length} posts match`);
+    }
 
     // Create a map of user IDs to fetch
     const userIds = [...new Set(posts.map(post => post.userID))];

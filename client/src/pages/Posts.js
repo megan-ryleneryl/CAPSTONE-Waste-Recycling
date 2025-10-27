@@ -1,9 +1,23 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import PostCard from '../components/posts/PostCard/PostCard';
+import LocationFilter from '../components/analytics/LocationFilter';
 import { useAuth } from '../context/AuthContext';
 
 const Posts = ({ activeFilter = 'all', onPostCountsUpdate }) => {
   const { currentUser } = useAuth();
+
+  // Location filter state
+  const [locationFilter, setLocationFilter] = useState({
+    region: null,
+    province: null,
+    city: null,
+    barangay: null
+  });
+
+  // Memoized callback to prevent infinite loops
+  const handleLocationFilterChange = useCallback((newFilter) => {
+    setLocationFilter(newFilter);
+  }, []);
 
   // Memoize the counts update handler to prevent infinite loops
   const handleCountsUpdate = useCallback((counts) => {
@@ -35,13 +49,20 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate }) => {
 
   return (
     <div>
-      {/* Pass the appropriate postType and userID to PostCard */}
+      {/* Location Filter */}
+      <LocationFilter
+        onFilterChange={handleLocationFilterChange}
+        currentFilter={locationFilter}
+      />
+
+      {/* Pass the appropriate postType, userID, and locationFilter to PostCard */}
       <PostCard
         postType={postType}
         userID={userID}
         maxPosts={20}
         onCountsUpdate={handleCountsUpdate}
         currentUserID={currentUser?.userID}
+        locationFilter={locationFilter}
       />
     </div>
   );
