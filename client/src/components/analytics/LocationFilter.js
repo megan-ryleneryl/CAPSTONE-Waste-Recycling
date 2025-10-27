@@ -16,15 +16,79 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   // Fetch regions on component mount
   useEffect(() => {
     fetchRegions();
   }, []);
 
-  // Fetch provinces when region changes
+  // Update internal state when currentFilter prop changes (from navigation)
   useEffect(() => {
-    if (selectedRegion) {
+    if (currentFilter && (
+      currentFilter.region ||
+      currentFilter.province ||
+      currentFilter.city ||
+      currentFilter.barangay
+    )) {
+      // Don't update if values are already set (avoid resetting)
+      if (currentFilter.region && !selectedRegion) {
+        setIsInitializing(true);
+        setSelectedRegion(currentFilter.region);
+
+        // If province is also provided, fetch provinces first
+        if (currentFilter.province) {
+          fetchProvinces(currentFilter.region).then(() => {
+            setSelectedProvince(currentFilter.province);
+
+            // If city is also provided, fetch cities
+            if (currentFilter.city) {
+              const fetchCitiesPromise = currentFilter.region === '130000000'
+                ? fetchCitiesFromRegion(currentFilter.region)
+                : fetchCitiesFromProvince(currentFilter.province);
+
+              fetchCitiesPromise.then(() => {
+                setSelectedCity(currentFilter.city);
+
+                // If barangay is also provided, fetch barangays
+                if (currentFilter.barangay) {
+                  fetchBarangays(currentFilter.city).then(() => {
+                    setSelectedBarangay(currentFilter.barangay);
+                    setIsInitializing(false);
+                  });
+                } else {
+                  setIsInitializing(false);
+                }
+              });
+            } else {
+              setIsInitializing(false);
+            }
+          });
+        } else if (currentFilter.city) {
+          // NCR case - no province, direct to city
+          fetchCitiesFromRegion(currentFilter.region).then(() => {
+            setSelectedCity(currentFilter.city);
+
+            if (currentFilter.barangay) {
+              fetchBarangays(currentFilter.city).then(() => {
+                setSelectedBarangay(currentFilter.barangay);
+                setIsInitializing(false);
+              });
+            } else {
+              setIsInitializing(false);
+            }
+          });
+        } else {
+          setIsInitializing(false);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFilter]);
+
+  // Fetch provinces when region changes (but not during initialization)
+  useEffect(() => {
+    if (selectedRegion && !isInitializing) {
       fetchProvinces(selectedRegion);
       // Reset downstream selections
       setSelectedProvince('');
@@ -32,37 +96,42 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
       setSelectedBarangay('');
       setCities([]);
       setBarangays([]);
-    } else {
+    } else if (!selectedRegion) {
       setProvinces([]);
       setCities([]);
       setBarangays([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRegion]);
 
   // Fetch cities when province changes (or directly from region for NCR)
   useEffect(() => {
-    if (selectedRegion === '130000000') {
-      // NCR - fetch cities directly from region
-      fetchCitiesFromRegion(selectedRegion);
-    } else if (selectedProvince) {
-      // Other regions - fetch cities from province
-      fetchCitiesFromProvince(selectedProvince);
-    }
+    if (!isInitializing) {
+      if (selectedRegion === '130000000') {
+        // NCR - fetch cities directly from region
+        fetchCitiesFromRegion(selectedRegion);
+      } else if (selectedProvince) {
+        // Other regions - fetch cities from province
+        fetchCitiesFromProvince(selectedProvince);
+      }
 
-    // Reset downstream selections
-    setSelectedCity('');
-    setSelectedBarangay('');
-    setBarangays([]);
+      // Reset downstream selections
+      setSelectedCity('');
+      setSelectedBarangay('');
+      setBarangays([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProvince, selectedRegion]);
 
   // Fetch barangays when city changes
   useEffect(() => {
-    if (selectedCity) {
+    if (selectedCity && !isInitializing) {
       fetchBarangays(selectedCity);
       setSelectedBarangay('');
-    } else {
+    } else if (!selectedCity) {
       setBarangays([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCity]);
 
   // Notify parent component of filter changes

@@ -198,6 +198,34 @@
   font-weight: 600;
 }
 
+.viewPostsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  margin-top: 0.75rem;
+  background: #3B6535;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewPostsButton:hover {
+  background: #2d4d28;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 101, 53, 0.3);
+}
+
+.viewPostsButton:active {
+  transform: translateY(0);
+}
+
 .legend {
   margin-top: 1.5rem;
   padding: 1.5rem;

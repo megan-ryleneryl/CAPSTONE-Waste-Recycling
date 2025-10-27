@@ -1,10 +1,12 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import PostCard from '../components/posts/PostCard/PostCard';
 import LocationFilter from '../components/analytics/LocationFilter';
 import { useAuth } from '../context/AuthContext';
 
 const Posts = ({ activeFilter = 'all', onPostCountsUpdate }) => {
   const { currentUser } = useAuth();
+  const location = useLocation();
 
   // Location filter state
   const [locationFilter, setLocationFilter] = useState({
@@ -13,6 +15,15 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate }) => {
     city: null,
     barangay: null
   });
+
+  // Check if we received location state from navigation (from heatmap)
+  useEffect(() => {
+    if (location.state?.locationFilter) {
+      setLocationFilter(location.state.locationFilter);
+      // Clear the state after using it
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   // Memoized callback to prevent infinite loops
   const handleLocationFilterChange = useCallback((newFilter) => {

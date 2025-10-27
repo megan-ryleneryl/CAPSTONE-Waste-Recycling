@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, useMap, Circle, Popup, Marker } from 'react-leaflet';
+import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
 import styles from './GeographicHeatmap.module.css';
-import { MapPin, ZoomIn, ZoomOut, Maximize2, Activity, TrendingUp, Package, MessageSquare, Target, CheckCircle, HandshakeIcon, BarChart3 } from 'lucide-react';
+import { MapPin, ZoomIn, ZoomOut, Maximize2, Activity, TrendingUp, Package, MessageSquare, Target, CheckCircle, HandshakeIcon, BarChart3, ExternalLink } from 'lucide-react';
 
 // Fix for default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -84,7 +85,7 @@ const MapControls = ({ onZoomToPhilippines, onZoomToNCR }) => {
 };
 
 // Area markers component
-const AreaMarkers = ({ areas }) => {
+const AreaMarkers = ({ areas, onViewPosts }) => {
   if (!areas || areas.length === 0) return null;
 
   return (
@@ -147,6 +148,17 @@ const AreaMarkers = ({ areas }) => {
               <p className={styles.popupLevel}>
                 Activity Level: <strong>{area.activityLevel || 'Low'}</strong>
               </p>
+
+              {/* View Posts Button */}
+              {area.location && (
+                <button
+                  className={styles.viewPostsButton}
+                  onClick={() => onViewPosts(area.location)}
+                >
+                  <ExternalLink size={16} />
+                  <span>View Posts in This Area</span>
+                </button>
+              )}
             </div>
           </Popup>
         </Circle>
@@ -158,6 +170,7 @@ const AreaMarkers = ({ areas }) => {
 const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }) => {
   const [mapView, setMapView] = useState('philippines');
   const mapRef = useRef(null);
+  const navigate = useNavigate();
 
   // Philippines coordinates
   const philippinesCenter = [12.8797, 121.7740];
@@ -179,6 +192,22 @@ const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }
       mapRef.current.setView(ncrCenter, ncrZoom);
       setMapView('ncr');
     }
+  };
+
+  // Handler to navigate to posts feed with location filter
+  const handleViewPosts = (location) => {
+    if (!location) return;
+
+    // Build location filter object from the area location data
+    const locationFilter = {
+      region: location.region?.code || null,
+      province: location.province?.code || null,
+      city: location.city?.code || null,
+      barangay: location.barangay?.code || null
+    };
+
+    // Navigate to posts feed with location state
+    navigate('/posts', { state: { locationFilter } });
   };
 
   // Calculate statistics
@@ -241,7 +270,7 @@ const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }
           {heatmapData.length > 0 && <HeatmapLayer points={heatmapData} />}
 
           {/* Area circles with popups */}
-          <AreaMarkers areas={areaData} />
+          <AreaMarkers areas={areaData} onViewPosts={handleViewPosts} />
         </MapContainer>
 
         <MapControls
