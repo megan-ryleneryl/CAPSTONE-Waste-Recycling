@@ -45,12 +45,8 @@ class Pickup {
     // Status flow: Proposed → Confirmed → In-Transit → ArrivedAtPickup → Completed (or Cancelled at any point)
     
     // Completion details
-    this.actualWaste = {
-      types: data.actualWaste?.types || [],
-      finalAmount: data.actualWaste?.finalAmount || 0,
-      unit: data.actualWaste?.unit || 'kg',
-      notes: data.actualWaste?.notes || ''
-    };
+    this.actualWaste = data.actualWaste || [];  // Array of material objects
+    this.finalAmount = data.finalAmount || 0;  // Total weight at root level
     this.paymentReceived = data.paymentReceived || 0;
     this.paymentMethod = data.paymentMethod || '';
     this.completionNotes = data.completionNotes || '';
@@ -133,6 +129,7 @@ class Pickup {
       expectedWaste: this.expectedWaste,
       status: this.status,
       actualWaste: this.actualWaste,
+      finalAmount: this.finalAmount,
       paymentReceived: this.paymentReceived,
       paymentMethod: this.paymentMethod,
       completionNotes: this.completionNotes,

@@ -85,17 +85,22 @@ const Analytics = () => {
         }
       );
 
+      console.log('Full API response:', response.data);
+
       if (response.data.success && response.data.data) {
         setAnalyticsData(response.data.data);
-        console.log('Analytics data loaded:', response.data.data);
+        console.log('Analytics data loaded successfully:', response.data.data);
       } else {
-        setError('Failed to load analytics data');
-        console.error('API response:', response.data);
+        const errorMsg = 'Failed to load analytics data';
+        setError(errorMsg);
+        console.error('API response error:', response.data);
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      setError(error.response?.data?.message || 'Failed to fetch analytics');
-      
+      console.error('Error details:', error.response?.data);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch analytics';
+      setError(errorMessage);
+
       // Set default data on error
       setAnalyticsData({
         totalRecycled: 0,
@@ -278,6 +283,49 @@ const Analytics = () => {
       );
     }
 
+    // Check if there's any meaningful data
+    const hasData = analyticsData.totalRecycled > 0 ||
+                    analyticsData.totalInitiatives > 0 ||
+                    analyticsData.totalPickups > 0;
+
+    if (!hasData && !dataLoading) {
+      return (
+        <div className={styles.impactDashboard}>
+          <div className={styles.dashboardHeader}>
+            <h2>
+              <TrendingUp className={styles.headerIcon} />
+              Community Impact Dashboard
+            </h2>
+          </div>
+          <div className={styles.emptyState}>
+            <Recycle size={64} style={{ opacity: 0.3, marginBottom: '20px' }} />
+            <h3>No Community Data Yet</h3>
+            <p>The Community Impact Dashboard will show statistics once there are:</p>
+            <ul style={{ textAlign: 'left', marginTop: '20px', marginBottom: '30px' }}>
+              <li>Completed waste pickups</li>
+              <li>Active initiative posts</li>
+              <li>Active users in the community</li>
+            </ul>
+            <p>Start by creating a waste post or supporting an initiative!</p>
+            <div className={styles.ctaButtons} style={{ marginTop: '30px' }}>
+              <button
+                className={styles.ctaPrimary}
+                onClick={() => navigate('/create-post', { state: { postType: 'Waste' } })}
+              >
+                <Plus size={18} /> Post Recyclables
+              </button>
+              <button
+                className={styles.ctaSecondary}
+                onClick={() => navigate('/create-post', { state: { postType: 'Initiative' } })}
+              >
+                <Heart size={18} /> Create Initiative
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     const stats = analyticsData.userStats || {
       totalPosts: 0,
       activePickups: 0,
@@ -384,6 +432,19 @@ const Analytics = () => {
               <p>Successful Pickups</p>
               <span className={`${styles.trend} ${getTrendClass(changes.pickups)}`}>
                 {changes.pickups || '+0%'} completion
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.metricCard}>
+            <div className={styles.metricIcon}>
+              <Heart />
+            </div>
+            <div className={styles.metricContent}>
+              <h3>{analyticsData.completedSupports || 0}</h3>
+              <p>Completed Supports</p>
+              <span className={`${styles.trend} ${getTrendClass('+0%')}`}>
+                for initiatives
               </span>
             </div>
           </div>
@@ -567,29 +628,29 @@ const Analytics = () => {
       <div className={styles.welcomeSection}>
         <div className={styles.welcomeHeader}>
           <div>
-            <h1 className={styles.welcomeTitle}>Welcome back, {user.firstName}!</h1>
+            <h1 className={styles.welcomeTitle}>Community Stats</h1>
             <p className={styles.welcomeSubtitle}>
-              Here's what's happening with your recycling activities
+              This is what's happening within our community's recycling activities.
             </p>
           </div>
           <div className={styles.userQuickStats}>
             <div className={styles.quickStat}>
               <span className={styles.quickStatValue}>
-                {analyticsData?.userStats?.totalPosts || 0}
+                {analyticsData?.activeUsers || 0}
               </span>
-              <span className={styles.quickStatLabel}>Your Posts</span>
+              <span className={styles.quickStatLabel}>Active Users</span>
             </div>
             <div className={styles.quickStat}>
               <span className={styles.quickStatValue}>
-                {analyticsData?.userStats?.activePickups || 0}
+                {analyticsData?.totalInitiatives || 0}
               </span>
-              <span className={styles.quickStatLabel}>Active Pickups</span>
+              <span className={styles.quickStatLabel}>Initiatives</span>
             </div>
             <div className={styles.quickStat}>
               <span className={styles.quickStatValue}>
-                {analyticsData?.userStats?.totalPoints || 0}
+                {analyticsData?.totalRecycled || 0} kg
               </span>
-              <span className={styles.quickStatLabel}>Points</span>
+              <span className={styles.quickStatLabel}>Recycled</span>
             </div>
           </div>
         </div>

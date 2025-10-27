@@ -486,6 +486,19 @@ class Support {
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => new Support(doc.data()));
   }
+
+  // Get all supports (for analytics)
+  static async findAll() {
+    const db = getFirestore();
+    const supportsRef = collection(db, 'supports');
+    const snapshot = await getDocs(supportsRef);
+
+    if (snapshot.empty) {
+      return [];
+    }
+
+    return snapshot.docs.map(doc => new Support({ id: doc.id, ...doc.data() }));
+  }
 }
 
 module.exports = Support;
