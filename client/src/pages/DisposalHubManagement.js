@@ -190,7 +190,8 @@ const DisposalHubManagement = () => {
       address.street,
       address.barangay,
       address.city,
-      address.province
+      address.province,
+      address.region
     ].filter(Boolean);
     return parts.join(', ') || 'No address provided';
   };
@@ -300,7 +301,7 @@ const DisposalHubManagement = () => {
                   <strong>Coordinates:</strong>
                   <span>
                     {hub.coordinates?.lat && hub.coordinates?.lng
-                      ? `${hub.coordinates.lat.toFixed(6)}, ${hub.coordinates.lng.toFixed(6)}`
+                      ? `${parseFloat(hub.coordinates.lat).toFixed(6)}, ${parseFloat(hub.coordinates.lng).toFixed(6)}`
                       : 'Not provided'}
                   </span>
                 </div>
@@ -409,7 +410,7 @@ const DisposalHubManagement = () => {
                     <strong>Coordinates:</strong>
                     <span>
                       {selectedHub.coordinates?.lat && selectedHub.coordinates?.lng
-                        ? `${selectedHub.coordinates.lat}, ${selectedHub.coordinates.lng}`
+                        ? `${parseFloat(selectedHub.coordinates.lat).toFixed(6)}, ${parseFloat(selectedHub.coordinates.lng).toFixed(6)}`
                         : 'N/A'}
                     </span>
                   </div>

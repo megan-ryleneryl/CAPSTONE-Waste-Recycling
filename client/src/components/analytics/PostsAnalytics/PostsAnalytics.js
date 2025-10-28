@@ -9,7 +9,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-const PostsAnalytics = ({ user }) => {
+const PostsAnalytics = ({ user, onLocationFilterChange }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -163,19 +163,24 @@ const PostsAnalytics = ({ user }) => {
 
           const count = area.activityCount || area.posts || 0;
 
+          // Store the full location object with the first occurrence
           if (cityAggregation[cityName]) {
-            cityAggregation[cityName] += count;
+            cityAggregation[cityName].count += count;
           } else {
-            cityAggregation[cityName] = count;
+            cityAggregation[cityName] = {
+              count: count,
+              location: area.location // Store full location hierarchy with codes
+            };
           }
         });
 
         // Convert to array, sort by count, and get top 5 cities
         const sortedCities = Object.entries(cityAggregation)
-          .map(([city, count]) => ({
+          .map(([city, data]) => ({
             name: city,
-            count: count,
-            area: city
+            count: data.count,
+            area: city,
+            location: data.location // Include location hierarchy
           }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
@@ -293,7 +298,23 @@ const PostsAnalytics = ({ user }) => {
               const percentage = (currentCount / maxCount) * 100;
 
               return (
-                <div key={index} className={styles.locationItem}>
+                <div
+                  key={index}
+                  className={styles.locationItem}
+                  onClick={() => {
+                    if (onLocationFilterChange && location.location) {
+                      // Set filter to this city's location
+                      const filter = {
+                        region: location.location.region?.code || null,
+                        province: location.location.province?.code || null,
+                        city: location.location.city?.code || null,
+                        barangay: null // Don't filter by barangay, just city
+                      };
+                      onLocationFilterChange(filter);
+                    }
+                  }}
+                  title={`Filter posts by ${location.name}`}
+                >
                   <div className={styles.locationRank}>#{index + 1}</div>
                   <div className={styles.locationInfo}>
                     <span className={styles.locationName}>{location.name}</span>

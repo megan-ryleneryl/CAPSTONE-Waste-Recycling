@@ -227,14 +227,14 @@ const Analytics = () => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
-      // Use searchLocation if set, otherwise use user's location, or default to Manila
-      const lat = searchLocation?.lat || user?.location?.lat || 14.6549;
-      const lng = searchLocation?.lng || user?.location?.lng || 121.0645;
-
-      // Initialize search location if not set (on first load)
-      if (!searchLocation && user?.location) {
-        setSearchLocation({ lat: user.location.lat, lng: user.location.lng });
+      // Only fetch if searchLocation is explicitly set
+      if (!searchLocation) {
+        // Don't fetch on initial load - wait for user to set location
+        return;
       }
+
+      const lat = searchLocation.lat;
+      const lng = searchLocation.lng;
 
       const response = await axios.get(
         `http://localhost:3001/api/analytics/disposal-sites?lat=${lat}&lng=${lng}&radius=${searchRadius}`,

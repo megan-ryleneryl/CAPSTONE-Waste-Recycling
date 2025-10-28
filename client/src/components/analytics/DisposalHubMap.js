@@ -5,17 +5,11 @@ import 'leaflet/dist/leaflet.css';
 import styles from './DisposalHubMap.module.css';
 import { MapPin, Navigation, Phone, Mail, Globe, Clock, Star, Filter, Plus, Crosshair, Target } from 'lucide-react';
 
-// Fix default marker icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
-});
+// Custom marker icons removed - using custom divIcon instead
 
 // Custom icons for different hub types
 const createCustomIcon = (type, verified) => {
-  const color = type === 'MRF' ? '#3B6535' : '#2196F3';
+  const color = type === 'MRF' ? '#3B6535' : '#F0924C';
   const badge = verified ? '✓' : '';
 
   return L.divIcon({
@@ -78,9 +72,9 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
   const [filterMaterial, setFilterMaterial] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [mapCenter, setMapCenter] = useState(
-    currentSearchLocation || userLocation || { lat: 14.5995, lng: 121.0000 } // Default to Manila
+    { lat: 14.5995, lng: 121.0000 } // Default to Metro Manila
   );
-  const [mapZoom, setMapZoom] = useState(13);
+  const [mapZoom, setMapZoom] = useState(11); // Zoom out to show more of Metro Manila
   const [clickToSetLocation, setClickToSetLocation] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
 
@@ -190,6 +184,7 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
           <button
             className={styles.filterButton}
             onClick={() => setShowFilters(!showFilters)}
+            title="Show or hide filters for hub type and materials"
           >
             <Filter size={18} />
             Filters
@@ -198,6 +193,7 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
             <button
               className={styles.suggestButton}
               onClick={onSuggestHub}
+              title="Suggest a new disposal hub location"
             >
               <Plus size={18} />
               Suggest Location
@@ -209,53 +205,6 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
       {/* Filter Panel */}
       {showFilters && (
         <div className={styles.filterPanel}>
-          {/* Location Controls */}
-          <div className={styles.locationControls}>
-            <h3 className={styles.controlsTitle}>Search Location</h3>
-            <div className={styles.locationButtons}>
-              <button
-                className={styles.locationButton}
-                onClick={useMyLocation}
-                disabled={isGettingLocation}
-                title="Use your current GPS location"
-              >
-                <Crosshair size={18} />
-                {isGettingLocation ? 'Getting Location...' : 'Use My Location'}
-              </button>
-              <button
-                className={`${styles.locationButton} ${clickToSetLocation ? styles.active : ''}`}
-                onClick={toggleClickMode}
-                title="Click on the map to set a custom location"
-              >
-                <Target size={18} />
-                {clickToSetLocation ? 'Click on Map' : 'Pin Location'}
-              </button>
-            </div>
-            {clickToSetLocation && (
-              <p className={styles.clickModeHint}>
-                Click anywhere on the map to set your search location
-              </p>
-            )}
-          </div>
-
-          {/* Radius Control */}
-          <div className={styles.filterGroup}>
-            <label>Search Radius: {searchRadius} km</label>
-            <input
-              type="range"
-              min="1"
-              max="100"
-              step="1"
-              value={searchRadius}
-              onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
-              className={styles.radiusSlider}
-            />
-            <div className={styles.radiusLabels}>
-              <span>1 km</span>
-              <span>100 km</span>
-            </div>
-          </div>
-
           {/* Hub Type Filter */}
           <div className={styles.filterGroup}>
             <label>Hub Type:</label>
@@ -291,6 +240,7 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
               setFilterType('all');
               setFilterMaterial('all');
             }}
+            title="Reset all filters to show all hub types and materials"
           >
             Clear Filters
           </button>
@@ -358,17 +308,6 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
               </Marker>
             )}
 
-            {/* User location marker */}
-            {userLocation && (
-              <Marker position={[userLocation.lat, userLocation.lng]}>
-                <Popup>
-                  <div className={styles.userPopup}>
-                    <strong>Your Location</strong>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
-
             {/* Disposal hub markers */}
             {filteredSites.map((hub) => (
               hub.coordinates && hub.coordinates.lat && hub.coordinates.lng && (
@@ -391,8 +330,12 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
                           {hub.type}
                         </div>
                         <div>
-                         {hub.verified && <span className={styles.verifiedBadge}>✓ Verified</span>}
-                         </div>
+                          {hub.verified ? (
+                            <span className={styles.verifiedBadge}>✓ Verified</span>
+                          ) : (
+                            <span className={styles.unverifiedBadge}>Pending Verification</span>
+                          )}
+                        </div>
                       </div>
 
                       <div className={styles.popupInfo}>
@@ -433,6 +376,7 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
                       <button
                         className={styles.directionsButton}
                         onClick={() => getDirections(hub)}
+                        title="Open directions to this hub in Google Maps"
                       >
                         <Navigation size={16} />
                         Get Directions
@@ -446,16 +390,61 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
 
           {/* Map Controls */}
           <div className={styles.mapControls}>
+            {/* Location Controls */}
+            <div className={styles.locationControlsMap}>
+              <button
+                className={styles.mapControlButton}
+                onClick={useMyLocation}
+                disabled={isGettingLocation}
+                title="Use your current GPS location"
+              >
+                <Crosshair size={20} /> Use current location
+                
+              </button>
+              <button
+                className={`${styles.mapControlButton} ${clickToSetLocation ? styles.active : ''}`}
+                onClick={toggleClickMode}
+                title="Click on the map to set a custom location"
+              >
+                <Target size={20} />
+                 Set a custom location
+              </button>
+            </div>
+
+            {/* Radius Control */}
+            <div className={styles.radiusControlMap}>
+              <label className={styles.radiusLabel}>{searchRadius} km</label>
+              <input
+                type="range"
+                min="1"
+                max="100"
+                step="1"
+                value={searchRadius}
+                onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
+                className={styles.radiusSliderMap}
+                title={`Search radius: ${searchRadius} km`}
+              />
+            </div>
+
+            {/* Reset to user location (if available) */}
             {userLocation && (
               <button
-                className={styles.controlButton}
+                className={styles.mapControlButton}
                 onClick={resetToUserLocation}
                 title="Center on your location"
               >
-                <Navigation size={18} />
+                <Navigation size={20} />
               </button>
             )}
           </div>
+
+          {/* Click Mode Hint */}
+          {clickToSetLocation && (
+            <div className={styles.clickModeHintMap}>
+              <Target size={16} />
+              Click anywhere on the map to set your search location
+            </div>
+          )}
         </div>
 
         {/* Sidebar with list */}
@@ -489,7 +478,11 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
                     <span className={hub.type === 'MRF' ? styles.typeBadgeMRF : styles.typeBadgeJunk}>
                       {hub.type}
                     </span>
-                      {hub.verified && <span className={styles.verifiedBadge}>✓</span>}
+                    {hub.verified ? (
+                      <span className={styles.verifiedBadge}>✓</span>
+                    ) : (
+                      <span className={styles.unverifiedBadge}>Pending</span>
+                    )}
                   </div>
 
                   {hub.distance && (
@@ -527,6 +520,7 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
                         e.stopPropagation();
                         centerOnHub(hub);
                       }}
+                      title="Center map on this disposal hub"
                     >
                       View on Map
                     </button>
@@ -536,6 +530,7 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
                         e.stopPropagation();
                         getDirections(hub);
                       }}
+                      title="Get directions to this hub"
                     >
                       <Navigation size={16} />
                     </button>
@@ -554,7 +549,7 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
           <span>MRF (Material Recovery Facility)</span>
         </div>
         <div className={styles.legendItem}>
-          <div className={styles.legendMarker} style={{ backgroundColor: '#2196F3' }}></div>
+          <div className={styles.legendMarker} style={{ backgroundColor: '#F0924C' }}></div>
           <span>Junk Shop</span>
         </div>
         <div className={styles.legendItem}>

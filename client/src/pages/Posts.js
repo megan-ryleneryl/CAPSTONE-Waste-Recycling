@@ -4,7 +4,7 @@ import PostCard from '../components/posts/PostCard/PostCard';
 import LocationFilter from '../components/analytics/LocationFilter';
 import { useAuth } from '../context/AuthContext';
 
-const Posts = ({ activeFilter = 'all', onPostCountsUpdate }) => {
+const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
   const { currentUser } = useAuth();
   const location = useLocation();
 
@@ -29,6 +29,15 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate }) => {
   const handleLocationFilterChange = useCallback((newFilter) => {
     setLocationFilter(newFilter);
   }, []);
+
+  // Pass the location filter handler to RightSection via onDataUpdate
+  useEffect(() => {
+    if (onDataUpdate) {
+      onDataUpdate({
+        onLocationFilterChange: handleLocationFilterChange
+      });
+    }
+  }, [onDataUpdate, handleLocationFilterChange]);
 
   // Memoize the counts update handler to prevent infinite loops
   const handleCountsUpdate = useCallback((counts) => {

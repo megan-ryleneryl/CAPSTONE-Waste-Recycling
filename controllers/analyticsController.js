@@ -1217,7 +1217,8 @@ async function getDisposalSites(lat, lng, radiusKm = 10) {
     }
 
     // Find hubs within specified radius (default 10km)
-    const nearbyHubs = await DisposalHub.findNearby(latitude, longitude, radiusKm);
+    // Include unverified hubs so users can see suggested locations
+    const nearbyHubs = await DisposalHub.findNearby(latitude, longitude, radiusKm, { verified: false });
 
     // Transform to match the format expected by frontend
     const sites = nearbyHubs.map(hub => ({
@@ -1260,6 +1261,7 @@ function formatAddress(address) {
   if (address.barangay) parts.push(address.barangay);
   if (address.city) parts.push(address.city);
   if (address.province) parts.push(address.province);
+  if (address.region) parts.push(address.region);
 
   return parts.length > 0 ? parts.join(', ') : 'Address not available';
 }

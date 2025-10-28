@@ -143,9 +143,28 @@ const disposalHubController = {
         });
       }
 
+      // Prepare address object from location data if provided
+      const addressData = hubData.location ? {
+        street: hubData.location.street || '',
+        barangay: hubData.location.barangay?.name || '',
+        city: hubData.location.city?.name || '',
+        province: hubData.location.province?.name || '',
+        region: hubData.location.region?.name || '',
+        postalCode: ''
+      } : (typeof hubData.address === 'string' ? {
+        street: hubData.address,
+        barangay: '',
+        city: '',
+        province: '',
+        region: '',
+        postalCode: ''
+      } : hubData.address);
+
       // Create hub (unverified by default unless user is admin)
       const hub = await DisposalHub.create({
         ...hubData,
+        address: addressData,
+        location: hubData.location, // Preserve location data for reference
         addedBy: userID,
         verified: req.user.isAdmin || false // Auto-verify if added by admin
       });
