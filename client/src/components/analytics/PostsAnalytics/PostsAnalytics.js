@@ -253,7 +253,7 @@ const PostsAnalytics = ({ user }) => {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
             {/* <Recycle size={20} /> */}
-            Waste Distribution by Type
+            What's Getting Recycled?
           </h3>
 
           <div className={styles.materialBars}>
@@ -283,7 +283,7 @@ const PostsAnalytics = ({ user }) => {
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>
             <TrendingUp size={20} />
-            Top Cities Actively Collecting
+            Top Cities Actively Recycling
           </h3>
 
           <div className={styles.locationList}>
