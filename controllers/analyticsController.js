@@ -266,9 +266,10 @@ const analyticsController = {
 
   async getNearbyDisposalSites(req, res) {
     try {
-      const { lat, lng } = req.query;
-      const sites = await getDisposalSites(lat, lng);
-      
+      const { lat, lng, radius } = req.query;
+      const radiusKm = radius ? parseFloat(radius) : 10; // Default to 10km if not provided
+      const sites = await getDisposalSites(lat, lng, radiusKm);
+
       res.json({
         success: true,
         data: sites
@@ -1202,7 +1203,7 @@ async function getAreaActivity() {
   }
 }
 
-async function getDisposalSites(lat, lng) {
+async function getDisposalSites(lat, lng, radiusKm = 10) {
   try {
     const DisposalHub = require('../models/DisposalHub');
 
@@ -1215,8 +1216,8 @@ async function getDisposalSites(lat, lng) {
       return [];
     }
 
-    // Find hubs within 10km radius
-    const nearbyHubs = await DisposalHub.findNearby(latitude, longitude, 10);
+    // Find hubs within specified radius (default 10km)
+    const nearbyHubs = await DisposalHub.findNearby(latitude, longitude, radiusKm);
 
     // Transform to match the format expected by frontend
     const sites = nearbyHubs.map(hub => ({

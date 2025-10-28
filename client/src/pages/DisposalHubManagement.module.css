@@ -1,0 +1,507 @@
+.container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: var(--font-family-primary);
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.title {
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 1rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.error {
+  padding: 1rem;
+  background: #fee;
+  border: 1px solid #fcc;
+  border-radius: var(--border-radius-md);
+  color: #c33;
+  margin-bottom: 1rem;
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 150px;
+}
+
+.filterGroup label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filterSelect {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background: white;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.filterSelect:hover {
+  border-color: var(--primary-color);
+}
+
+.filterSelect:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+}
+
+.filterStats {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 0.6rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Hubs List */
+.hubsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.noHubs {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: var(--border-radius-lg);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+/* Hub Card */
+.hubCard {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
+  transition: box-shadow 0.2s;
+}
+
+.hubCard:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.hubHeader {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hubTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hubTitle h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge.MRF {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge.JunkShop {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge.verified {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge.unverified {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge.statusActive {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge.statusTemporarilyClosed {
+  background: #fed7aa;
+  color: #9a3412;
+}
+
+.badge.statusPermanentlyClosed {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* Hub Info */
+.hubInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.infoRow {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.infoRow strong {
+  color: var(--text-secondary);
+  min-width: 150px;
+  font-weight: 600;
+}
+
+.infoRow span {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+/* Hub Actions */
+.hubActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.btnView,
+.btnVerify,
+.btnDelete,
+.btnClose {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btnView {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.btnView:hover {
+  background: #d1d5db;
+}
+
+.btnVerify {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btnVerify:hover {
+  background: #15803d;
+}
+
+.btnVerify:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btnDelete {
+  background: #dc2626;
+  color: white;
+}
+
+.btnDelete:hover {
+  background: #b91c1c;
+}
+
+.btnDelete:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btnClose {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.btnClose:hover {
+  background: #d1d5db;
+}
+
+.statusSelect {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background: white;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.statusSelect:hover {
+  border-color: var(--primary-color);
+}
+
+.statusSelect:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.statusSelect:disabled {
+  background: #f3f4f6;
+  cursor: not-allowed;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modalContent {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.closeButton:hover {
+  background: var(--bg-secondary);
+}
+
+.modalBody {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.detailSection h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 0.5rem;
+}
+
+.detailRow {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.95rem;
+}
+
+.detailRow strong {
+  color: var(--text-secondary);
+  min-width: 150px;
+  font-weight: 600;
+}
+
+.detailRow span {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.materialsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.materialTag {
+  padding: 0.4rem 0.8rem;
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.modalFooter {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  position: sticky;
+  bottom: 0;
+  background: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterGroup {
+    min-width: 100%;
+  }
+
+  .filterStats {
+    margin-left: 0;
+  }
+
+  .hubTitle {
+    flex-direction: column;
+  }
+
+  .hubActions {
+    flex-direction: column;
+  }
+
+  .hubActions > * {
+    width: 100%;
+  }
+
+  .infoRow {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .infoRow strong {
+    min-width: auto;
+  }
+
+  .detailRow {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .detailRow strong {
+    min-width: auto;
+  }
+
+  .modalFooter {
+    flex-direction: column;
+  }
+
+  .modalFooter > * {
+    width: 100%;
+  }
+}

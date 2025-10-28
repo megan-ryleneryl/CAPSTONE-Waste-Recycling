@@ -16,7 +16,8 @@ import {
   Layers,
   MessagesSquare,
   FileText,
-  ClipboardPenLine }
+  ClipboardPenLine,
+  MapPin }
   from 'lucide-react';
 
 const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = { all: 0, waste: 0, initiative: 0, forum: 0 }, postCounts = { all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 } }) => {
@@ -52,20 +53,25 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
 
   // Add Approvals menu for Admin users
   if (user?.isAdmin) {
-    adminNavItems.push({ 
-      path: '/admin/approvals', 
-      label: 'Approvals', 
-      icon: <CheckSquare size={20} /> 
+    adminNavItems.push({
+      path: '/admin/approvals',
+      label: 'Approvals',
+      icon: <CheckSquare size={20} />
     });
-    adminNavItems.push({ 
-      path: '/admin/users', 
-      label: 'All Users', 
-      icon: <Users size={20} /> 
+    adminNavItems.push({
+      path: '/admin/users',
+      label: 'All Users',
+      icon: <Users size={20} />
     });
     adminNavItems.push({
       path: '/admin/edit-materials',
       label: 'Edit Materials',
       icon: <ClipboardPenLine size={20} />
+    });
+    adminNavItems.push({
+      path: '/admin/disposal-hubs',
+      label: 'Disposal Hubs',
+      icon: <MapPin size={20} />
     });
   }
 

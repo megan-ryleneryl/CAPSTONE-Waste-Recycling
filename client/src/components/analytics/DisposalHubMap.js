@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styles from './DisposalHubMap.module.css';
-import { MapPin, Navigation, Phone, Mail, Globe, Clock, Star, Filter, Plus } from 'lucide-react';
+import { MapPin, Navigation, Phone, Mail, Globe, Clock, Star, Filter, Plus, Crosshair, Target } from 'lucide-react';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -60,15 +60,29 @@ const MapViewController = ({ center, zoom }) => {
   return null;
 };
 
-const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub }) => {
+// Component to handle map clicks for setting custom location
+const MapClickHandler = ({ onLocationSet, enabled }) => {
+  useMapEvents({
+    click: (e) => {
+      if (enabled) {
+        onLocationSet({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
+    },
+  });
+  return null;
+};
+
+const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLocationChange, onRadiusChange, currentSearchLocation, searchRadius = 10 }) => {
   const [selectedHub, setSelectedHub] = useState(null);
   const [filterType, setFilterType] = useState('all'); // 'all', 'MRF', 'Junk Shop'
   const [filterMaterial, setFilterMaterial] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
   const [mapCenter, setMapCenter] = useState(
-    userLocation || { lat: 14.5995, lng: 121.0000 } // Default to Manila
+    currentSearchLocation || userLocation || { lat: 14.5995, lng: 121.0000 } // Default to Manila
   );
   const [mapZoom, setMapZoom] = useState(13);
+  const [clickToSetLocation, setClickToSetLocation] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
 
   // Get unique materials for filter
   const allMaterials = [...new Set(
@@ -110,6 +124,57 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub }) => {
     }
   };
 
+  // Get user's current GPS location
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setMapCenter(newLocation);
+        setMapZoom(13);
+        if (onLocationChange) {
+          onLocationChange(newLocation);
+        }
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        alert('Unable to retrieve your location. Please try clicking on the map instead.');
+        setIsGettingLocation(false);
+      }
+    );
+  };
+
+  // Toggle click-to-set-location mode
+  const toggleClickMode = () => {
+    setClickToSetLocation(!clickToSetLocation);
+  };
+
+  // Handle map click to set custom location
+  const handleMapClick = (location) => {
+    setMapCenter(location);
+    setMapZoom(13);
+    if (onLocationChange) {
+      onLocationChange(location);
+    }
+    setClickToSetLocation(false); // Disable click mode after setting location
+  };
+
+  // Handle radius change
+  const handleRadiusChange = (newRadius) => {
+    if (onRadiusChange) {
+      onRadiusChange(newRadius);
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* Header with filters */}
@@ -144,6 +209,54 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub }) => {
       {/* Filter Panel */}
       {showFilters && (
         <div className={styles.filterPanel}>
+          {/* Location Controls */}
+          <div className={styles.locationControls}>
+            <h3 className={styles.controlsTitle}>Search Location</h3>
+            <div className={styles.locationButtons}>
+              <button
+                className={styles.locationButton}
+                onClick={useMyLocation}
+                disabled={isGettingLocation}
+                title="Use your current GPS location"
+              >
+                <Crosshair size={18} />
+                {isGettingLocation ? 'Getting Location...' : 'Use My Location'}
+              </button>
+              <button
+                className={`${styles.locationButton} ${clickToSetLocation ? styles.active : ''}`}
+                onClick={toggleClickMode}
+                title="Click on the map to set a custom location"
+              >
+                <Target size={18} />
+                {clickToSetLocation ? 'Click on Map' : 'Pin Location'}
+              </button>
+            </div>
+            {clickToSetLocation && (
+              <p className={styles.clickModeHint}>
+                Click anywhere on the map to set your search location
+              </p>
+            )}
+          </div>
+
+          {/* Radius Control */}
+          <div className={styles.filterGroup}>
+            <label>Search Radius: {searchRadius} km</label>
+            <input
+              type="range"
+              min="1"
+              max="100"
+              step="1"
+              value={searchRadius}
+              onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
+              className={styles.radiusSlider}
+            />
+            <div className={styles.radiusLabels}>
+              <span>1 km</span>
+              <span>100 km</span>
+            </div>
+          </div>
+
+          {/* Hub Type Filter */}
           <div className={styles.filterGroup}>
             <label>Hub Type:</label>
             <select
@@ -157,6 +270,7 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub }) => {
             </select>
           </div>
 
+          {/* Material Filter */}
           <div className={styles.filterGroup}>
             <label>Material Accepted:</label>
             <select
@@ -198,6 +312,51 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub }) => {
             />
 
             <MapViewController center={[mapCenter.lat, mapCenter.lng]} zoom={mapZoom} />
+            <MapClickHandler onLocationSet={handleMapClick} enabled={clickToSetLocation} />
+
+            {/* Search radius circle */}
+            {currentSearchLocation && (
+              <Circle
+                center={[currentSearchLocation.lat, currentSearchLocation.lng]}
+                radius={searchRadius * 1000} // Convert km to meters
+                pathOptions={{
+                  color: '#3B6535',
+                  fillColor: '#3B6535',
+                  fillOpacity: 0.1,
+                  weight: 2,
+                  dashArray: '5, 10'
+                }}
+              />
+            )}
+
+            {/* Search location marker (different from user location) */}
+            {currentSearchLocation && (
+              <Marker
+                position={[currentSearchLocation.lat, currentSearchLocation.lng]}
+                icon={L.divIcon({
+                  className: 'search-location-marker',
+                  html: `
+                    <div style="
+                      background-color: #dc2626;
+                      width: 24px;
+                      height: 24px;
+                      border-radius: 50%;
+                      border: 3px solid white;
+                      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                    "></div>
+                  `,
+                  iconSize: [24, 24],
+                  iconAnchor: [12, 12],
+                })}
+              >
+                <Popup>
+                  <div className={styles.userPopup}>
+                    <strong>Search Center</strong>
+                    <p>Showing hubs within {searchRadius} km</p>
+                  </div>
+                </Popup>
+              </Marker>
+            )}
 
             {/* User location marker */}
             {userLocation && (

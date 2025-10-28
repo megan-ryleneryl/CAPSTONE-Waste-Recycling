@@ -42,6 +42,10 @@ const Analytics = () => {
     barangay: null
   });
 
+  // Disposal hub search state
+  const [searchLocation, setSearchLocation] = useState(null);
+  const [searchRadius, setSearchRadius] = useState(10); // Default 10km
+
   // Memoized callback to prevent infinite loops
   const handleLocationFilterChange = useCallback((newFilter) => {
     setLocationFilter(newFilter);
@@ -76,7 +80,7 @@ const Analytics = () => {
     if (activeTab === 'nearby' && user) {
       fetchDisposalSites();
     }
-  }, [activeTab, user]);
+  }, [activeTab, user, searchLocation, searchRadius]);
 
   const fetchAnalyticsData = async () => {
     try {
@@ -222,11 +226,18 @@ const Analytics = () => {
   const fetchDisposalSites = async () => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const lat = user?.location?.lat || 14.6549;
-      const lng = user?.location?.lng || 121.0645;
-      
+
+      // Use searchLocation if set, otherwise use user's location, or default to Manila
+      const lat = searchLocation?.lat || user?.location?.lat || 14.6549;
+      const lng = searchLocation?.lng || user?.location?.lng || 121.0645;
+
+      // Initialize search location if not set (on first load)
+      if (!searchLocation && user?.location) {
+        setSearchLocation({ lat: user.location.lat, lng: user.location.lng });
+      }
+
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/disposal-sites?lat=${lat}&lng=${lng}`,
+        `http://localhost:3001/api/analytics/disposal-sites?lat=${lat}&lng=${lng}&radius=${searchRadius}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -239,12 +250,18 @@ const Analytics = () => {
       }
     } catch (error) {
       console.error('Error fetching disposal sites:', error);
-      setDisposalSites([
-        { id: 1, name: 'Green Earth MRF', distance: '1.2 km', types: ['Plastic', 'Paper'], active: true },
-        { id: 2, name: 'City Recycling Center', distance: '2.5 km', types: ['All types'], active: true },
-        { id: 3, name: 'E-Waste Hub', distance: '3.8 km', types: ['Electronics'], active: true }
-      ]);
+      setDisposalSites([]);
     }
+  };
+
+  // Handle location change from map
+  const handleSearchLocationChange = (newLocation) => {
+    setSearchLocation(newLocation);
+  };
+
+  // Handle radius change from map
+  const handleSearchRadiusChange = (newRadius) => {
+    setSearchRadius(newRadius);
   };
 
   const renderTabContent = () => {
@@ -256,6 +273,10 @@ const Analytics = () => {
               <DisposalHubMap
                 disposalSites={disposalSites}
                 userLocation={user?.location?.coordinates || { lat: 14.5995, lng: 121.0000 }}
+                currentSearchLocation={searchLocation}
+                searchRadius={searchRadius}
+                onLocationChange={handleSearchLocationChange}
+                onRadiusChange={handleSearchRadiusChange}
                 onSuggestHub={() => setShowAddHubForm(true)}
               />
             ) : (
@@ -485,33 +506,6 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* FIXED: Environmental Impact Section - Now displays all 4 values */}
-        <div className={styles.impactSection}>
-          <h3>Environmental Impact</h3>
-          <div className={styles.impactGrid}>
-            <div className={styles.impactCard}>
-              <Leaf className={styles.impactIcon} />
-              <h4>{(impact.co2Saved || 0).toLocaleString()} kg</h4>
-              <p>CO₂ Emissions Saved</p>
-            </div>
-            <div className={styles.impactCard}>
-              <Trees className={styles.impactIcon} />
-              <h4>{(impact.treesEquivalent || 0).toLocaleString()}</h4>
-              <p>Trees Equivalent</p>
-            </div>
-            <div className={styles.impactCard}>
-              <Droplets className={styles.impactIcon} />
-              <h4>{(impact.waterSaved || 0).toLocaleString()} L</h4>
-              <p>Water Saved</p>
-            </div>
-            <div className={styles.impactCard}>
-              <Zap className={styles.impactIcon} />
-              <h4>{(impact.energySaved || 0).toLocaleString()} kWh</h4>
-              <p>Energy Saved</p>
-            </div>
-          </div>
-        </div>
-
         <div className={styles.chartsContainer}>
           <div className={styles.chartCard}>
             <h3>Waste Distribution by Type</h3>
@@ -606,6 +600,33 @@ const Analytics = () => {
           </div>
         </div>
 
+        {/* FIXED: Environmental Impact Section - Now displays all 4 values */}
+        <div className={styles.impactSection}>
+          <h3>Environmental Impact</h3>
+          <div className={styles.impactGrid}>
+            <div className={styles.impactCard}>
+              <Leaf className={styles.impactIcon} />
+              <h4>{(impact.co2Saved || 0).toLocaleString()} kg</h4>
+              <p>CO₂ Emissions Saved</p>
+            </div>
+            <div className={styles.impactCard}>
+              <Trees className={styles.impactIcon} />
+              <h4>{(impact.treesEquivalent || 0).toLocaleString()}</h4>
+              <p>Trees Equivalent</p>
+            </div>
+            <div className={styles.impactCard}>
+              <Droplets className={styles.impactIcon} />
+              <h4>{(impact.waterSaved || 0).toLocaleString()} L</h4>
+              <p>Water Saved</p>
+            </div>
+            <div className={styles.impactCard}>
+              <Zap className={styles.impactIcon} />
+              <h4>{(impact.energySaved || 0).toLocaleString()} kWh</h4>
+              <p>Energy Saved</p>
+            </div>
+          </div>
+        </div>
+
         <div className={styles.ctaSection}>
           <h3>Join the Movement!</h3>
           <p>Be part of the solution. Start recycling today.</p>
@@ -694,6 +715,12 @@ const Analytics = () => {
       <div className={styles.analyticsSection}>
         <div className={styles.navTabs}>
           <button
+            className={`${styles.navTab} ${activeTab === 'impact' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('impact')}
+          >
+            <TrendingUp size={18} /> Impact & Stats
+          </button>
+          <button
             className={`${styles.navTab} ${activeTab === 'nearby' ? styles.activeTab : ''}`}
             onClick={() => setActiveTab('nearby')}
           >
@@ -705,12 +732,7 @@ const Analytics = () => {
           >
             <Recycle size={18} /> Community Activity
           </button>
-          <button
-            className={`${styles.navTab} ${activeTab === 'impact' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('impact')}
-          >
-            <TrendingUp size={18} /> Impact & Stats
-          </button>
+          
         </div>
 
         <div className={styles.tabContent}>

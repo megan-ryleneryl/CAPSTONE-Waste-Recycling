@@ -17,6 +17,7 @@ import AppLayout from './components/layout/AppLayout/AppLayout';
 import PickupManagement from './pages/PickupManagement';
 import PickupTracking from './pages/PickupTracking';
 import EditMaterials from './pages/EditMaterials';
+import DisposalHubManagement from './pages/DisposalHubManagement';
 import './App.css';
 
 // Protected Route Component
@@ -174,22 +175,31 @@ function App() {
               } 
             />
 
-            <Route 
-              path="/admin/edit-materials" 
+            <Route
+              path="/admin/edit-materials"
               element={
                 <ProtectedRoute>
                   <EditMaterials />
                 </ProtectedRoute>
-              } 
+              }
             />
 
-            <Route 
-              path="/tracking/:pickupId" 
+            <Route
+              path="/admin/disposal-hubs"
+              element={
+                <ProtectedRoute>
+                  <DisposalHubManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tracking/:pickupId"
               element={
                 <ProtectedRoute>
                   <PickupTracking />
                 </ProtectedRoute>
-              } 
+              }
             />
 
 
