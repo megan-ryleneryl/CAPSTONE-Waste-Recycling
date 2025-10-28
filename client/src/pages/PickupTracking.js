@@ -6,6 +6,7 @@ import { db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 import { CheckCircle, Truck, Package, Check, Trash2, Scale, MapPin, Calendar, Phone, User, Clock, DollarSign, FileText } from 'lucide-react';
 import PickupCompletionModal from '../components/pickup/PickupCompletionModal';
+import axios from 'axios';
 import styles from './PickupTracking.module.css';
 
 const PickupTracking = () => {
@@ -18,6 +19,22 @@ const PickupTracking = () => {
   const [loading, setLoading] = useState(true);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [availableMaterials, setAvailableMaterials] = useState([]);
+
+  // Fetch available materials with prices
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/api/materials');
+        if (response.data.success) {
+          setAvailableMaterials(response.data.materials);
+        }
+      } catch (error) {
+        console.error('Error fetching materials:', error);
+      }
+    };
+    fetchMaterials();
+  }, []);
 
   useEffect(() => {
     if (!pickupId) {
@@ -148,6 +165,60 @@ const PickupTracking = () => {
     }
 
     return 'Not specified';
+  };
+
+  const calculateEstimatedPrice = () => {
+    if (!availableMaterials.length) return null;
+
+    // For Initiative support pickups
+    if (pickup?.postType === 'Initiative' && supportData?.offeredMaterials) {
+      const acceptedMaterials = supportData.offeredMaterials.filter(m => m.status === 'Accepted');
+      let totalPrice = 0;
+
+      acceptedMaterials.forEach(material => {
+        const foundMaterial = availableMaterials.find(m =>
+          (m.displayName || m.type).toLowerCase() === material.materialName.toLowerCase()
+        );
+
+        if (foundMaterial && material.quantity) {
+          totalPrice += parseFloat(material.quantity) * (foundMaterial.averagePricePerKg || 0);
+        }
+      });
+
+      return totalPrice > 0 ? totalPrice : null;
+    }
+
+    // For Waste posts
+    if (postData?.materials && postData?.quantity) {
+      const postMaterials = Array.isArray(postData.materials) ? postData.materials : [];
+
+      if (postMaterials.length === 0) return null;
+
+      let totalPrice = 0;
+      const quantityPerMaterial = parseFloat(postData.quantity) / postMaterials.length;
+
+      postMaterials.forEach(material => {
+        let materialName = '';
+
+        if (typeof material === 'object') {
+          materialName = material.materialName || material.type || '';
+        } else {
+          materialName = material;
+        }
+
+        const foundMaterial = availableMaterials.find(m =>
+          (m.displayName || m.type).toLowerCase() === materialName.toLowerCase()
+        );
+
+        if (foundMaterial) {
+          totalPrice += quantityPerMaterial * (foundMaterial.averagePricePerKg || 0);
+        }
+      });
+
+      return totalPrice > 0 ? totalPrice : null;
+    }
+
+    return null;
   };
 
   const getTimelineSteps = () => {
@@ -568,15 +639,43 @@ const PickupTracking = () => {
                     </div>
                     {supportData.offeredMaterials
                       .filter(m => m.status === 'Accepted')
-                      .map((material, index) => (
-                        <div key={index} className={styles.detailRow} style={{ paddingLeft: '1rem' }}>
-                          <span className={styles.detailLabel}>{material.materialName}:</span>
-                          <span className={styles.detailValue}>
-                            {material.quantity} {material.unit || 'kg'}
-                          </span>
-                        </div>
-                      ))
+                      .map((material, index) => {
+                        const foundMaterial = availableMaterials.find(m =>
+                          (m.displayName || m.type).toLowerCase() === material.materialName.toLowerCase()
+                        );
+                        const estimatedPrice = foundMaterial && material.quantity
+                          ? parseFloat(material.quantity) * (foundMaterial.averagePricePerKg || 0)
+                          : null;
+
+                        return (
+                          <div key={index} className={styles.detailRow} style={{ paddingLeft: '1rem' }}>
+                            <span className={styles.detailLabel}>{material.materialName}:</span>
+                            <span className={styles.detailValue}>
+                              {material.quantity} {material.unit || 'kg'}
+                              {estimatedPrice !== null && estimatedPrice > 0 && (
+                                <span style={{ fontSize: '0.875rem', color: '#059669', marginLeft: '0.5rem' }}>
+                                  (≈ ₱{estimatedPrice.toFixed(2)})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })
                     }
+                    {(() => {
+                      const totalEstimatedPrice = calculateEstimatedPrice();
+                      if (totalEstimatedPrice !== null && totalEstimatedPrice > 0) {
+                        return (
+                          <div className={styles.detailRow} style={{ marginTop: '0.5rem', borderTop: '1px solid #e5e7eb', paddingTop: '0.5rem' }}>
+                            <span className={styles.detailLabel}>Estimated Total Price:</span>
+                            <span className={styles.detailValue} style={{ color: '#059669', fontWeight: '600' }}>
+                              ₱{totalEstimatedPrice.toFixed(2)}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     {supportData.notes && (
                       <div className={styles.estimateDescription}>
                         <span className={styles.detailLabel}>Notes:</span>
@@ -616,12 +715,27 @@ const PickupTracking = () => {
                         </span>
                       </div>
                     )}
-                    {postData?.price !== undefined && postData?.price !== null && (
-                      <div className={styles.detailRow}>
-                        <span className={styles.detailLabel}>Estimated Price:</span>
-                        <span className={styles.detailValue}>₱{postData.price}</span>
-                      </div>
-                    )}
+                    {(() => {
+                      const calculatedPrice = calculateEstimatedPrice();
+                      const displayPrice = calculatedPrice !== null ? calculatedPrice : postData?.price;
+
+                      if (displayPrice !== undefined && displayPrice !== null) {
+                        return (
+                          <div className={styles.detailRow}>
+                            <span className={styles.detailLabel}>Estimated Price:</span>
+                            <span className={styles.detailValue}>
+                              ₱{typeof displayPrice === 'number' ? displayPrice.toFixed(2) : displayPrice}
+                              {calculatedPrice !== null && (
+                                <span style={{ fontSize: '0.75rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+                                  (calculated)
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     {postData?.condition && (
                       <div className={styles.detailRow}>
                         <span className={styles.detailLabel}>Condition:</span>
