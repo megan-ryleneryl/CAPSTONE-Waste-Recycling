@@ -64,6 +64,9 @@ class Pickup {
       unit: data.expectedWaste?.unit || 'kg',
       description: data.expectedWaste?.description || ''
     };
+
+    // Price (from post)
+    this.price = data.price || 0;
     
     // Status management
     this.status = data.status || 'Proposed';
@@ -152,6 +155,7 @@ class Pickup {
       alternateContact: this.alternateContact,
       giverPreferences: this.giverPreferences,
       expectedWaste: this.expectedWaste,
+      price: this.price,
       status: this.status,
       actualWaste: this.actualWaste,
       finalAmount: this.finalAmount,

@@ -1,7 +1,7 @@
 // client/src/components/chat/PickupCard.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, Save, Edit, CheckCircle, X, MapPinned, ChevronDown, ChevronUp } from 'lucide-react';
+import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, Save, Edit, CheckCircle, X, MapPinned, ChevronDown, ChevronUp, Coins } from 'lucide-react';
 import PSGCService from '../../services/psgcService';
 import styles from './PickupCard.module.css';
 
@@ -43,7 +43,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
     addressLine: pickup.pickupLocation?.addressLine || '',
     contactPerson: pickup.contactPerson || '',
     contactNumber: pickup.contactNumber || '',
-    specialInstructions: pickup.specialInstructions || ''
+    specialInstructions: pickup.specialInstructions || '',
+    price: pickup.price || 0
   });
 
   // Load regions when editing starts
@@ -289,7 +290,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
         pickupLocation: locationData,
         contactPerson: editForm.contactPerson,
         contactNumber: editForm.contactNumber,
-        specialInstructions: editForm.specialInstructions
+        specialInstructions: editForm.specialInstructions,
+        price: parseFloat(editForm.price) || 0
       };
 
       await onEditPickup(pickup.id, updatedData);
@@ -313,7 +315,8 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
       addressLine: pickup.pickupLocation?.addressLine || '',
       contactPerson: pickup.contactPerson || '',
       contactNumber: pickup.contactNumber || '',
-      specialInstructions: pickup.specialInstructions || ''
+      specialInstructions: pickup.specialInstructions || '',
+      price: pickup.price || 0
     });
     // Reset location dropdowns
     setProvinces([]);
@@ -499,6 +502,19 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
           </div>
 
           <div className={styles.formField}>
+            <label>Price (₱)</label>
+            <input
+              type="number"
+              name="price"
+              value={editForm.price}
+              onChange={handleEditChange}
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className={styles.formField}>
             <label>Special Instructions</label>
             <textarea
               name="specialInstructions"
@@ -564,6 +580,12 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
               <Phone className={styles.icon} size={18} />
               <span>{pickup.contactNumber || 'Number not set'}</span>
             </div>
+            {pickup.price > 0 && (
+              <div className={styles.detailItem}>
+                <Coins className={styles.icon} size={18} />
+                <span>₱{pickup.price}</span>
+              </div>
+            )}
             {pickup.specialInstructions && (
               <div className={styles.detailItem}>
                 <FileText className={styles.icon} size={18} />

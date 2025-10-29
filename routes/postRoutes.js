@@ -413,44 +413,58 @@ router.post('/create', verifyToken, (req, res, next) => {
           basePostData.materials = postData.materials;
         }
 
-        // Enrich materials with materialName for efficient display
+        // Enrich materials with materialName for efficient display AND calculate total price
         if (Array.isArray(basePostData.materials)) {
           const Material = require('../models/Material');
           const enrichedMaterials = [];
+          let totalEstimatedPrice = 0;
 
           for (const mat of basePostData.materials) {
-            // If materialName is already provided, use it
-            if (mat.materialName) {
-              enrichedMaterials.push(mat);
-            } else if (mat.materialID) {
-              // Otherwise, look it up from the database
+            let enrichedMaterial;
+
+            // Always fetch material data to get the price, even if materialName is provided
+            if (mat.materialID) {
               try {
                 const material = await Material.findById(mat.materialID);
-                enrichedMaterials.push({
+
+                enrichedMaterial = {
                   materialID: mat.materialID,
                   quantity: mat.quantity,
-                  materialName: material ? (material.displayName || material.type) : mat.materialID
-                });
+                  materialName: mat.materialName || (material ? (material.displayName || material.type) : mat.materialID)
+                };
+
+                // Calculate price contribution if material data is available
+                if (material && material.averagePricePerKg) {
+                  totalEstimatedPrice += parseFloat(mat.quantity || 0) * material.averagePricePerKg;
+                  console.log(`💰 Price calc: ${mat.quantity} kg × ₱${material.averagePricePerKg}/kg = ₱${parseFloat(mat.quantity || 0) * material.averagePricePerKg}`);
+                }
               } catch (err) {
                 console.error('Error fetching material:', err);
                 // Fallback to materialID if lookup fails
-                enrichedMaterials.push({
+                enrichedMaterial = {
                   materialID: mat.materialID,
                   quantity: mat.quantity,
-                  materialName: mat.materialID
-                });
+                  materialName: mat.materialName || mat.materialID
+                };
               }
+            }
+
+            if (enrichedMaterial) {
+              enrichedMaterials.push(enrichedMaterial);
             }
           }
 
           basePostData.materials = enrichedMaterials;
+          basePostData.price = totalEstimatedPrice; // Set calculated price
+          console.log(`💵 Total estimated price: ₱${totalEstimatedPrice}`);
+        } else {
+          basePostData.price = 0;
         }
-
-        basePostData.price = parseFloat(postData.price) || 0;
         basePostData.pickupDate = postData.pickupDate || null;
         basePostData.pickupTime = postData.pickupTime || null;
         basePostData.status = 'Active';
 
+        console.log('📦 Creating Waste Post with price:', basePostData.price);
         post = await WastePost.create(basePostData);
         
         try {

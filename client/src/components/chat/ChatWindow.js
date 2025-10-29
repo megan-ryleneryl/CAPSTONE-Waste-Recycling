@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Calendar, Package, Edit3, XCircle } from 'lucide-react';
 import PickupScheduleForm from './PickupScheduleForm';
 import PickupCard from './PickupCard';
@@ -307,6 +307,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         contactNumber: formData.contactNumber,
         alternateContact: formData.alternateContact || '',
         specialInstructions: formData.specialInstructions || '',
+        price: post?.price || 0,
         status: 'Proposed',
         // Link supportID if this is for an Initiative post with active support
         supportID: (post?.postType === 'Initiative' && activeSupport) ? activeSupport.supportID : null,
@@ -731,7 +732,17 @@ return (
             <h3 className={styles.userName}>
               {otherUserData?.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim() || 'Unknown User'}
             </h3>
-            <p className={styles.postTitle}>{post?.title || 'Loading...'}</p>
+            {post?.postID ? (
+              <Link
+                to={`/posts/${post.postID}`}
+                className={styles.postTitleLink}
+                title="View post details"
+              >
+                {post?.title || 'Loading...'}
+              </Link>
+            ) : (
+              <p className={styles.postTitle}>{post?.title || 'Loading...'}</p>
+            )}
           </div>
         </div>
       </div>

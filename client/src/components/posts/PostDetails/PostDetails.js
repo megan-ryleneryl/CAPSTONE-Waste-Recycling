@@ -708,6 +708,8 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
                   <p><strong>Materials:</strong> {formatMaterials(post.materials)}</p>
                   <p><strong>Quantity:</strong> {post.quantity} {post.unit || 'kg'}</p>
                   <p><strong>Location:</strong> {formatLocation(post.location)}</p>
+                  {/* show price */}
+                  {post.price > 0 && (<p><strong>Price:</strong> ₱{post.price}</p>)}
                 </div>
               </div>
               <div className={styles.modalActions}>

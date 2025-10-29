@@ -6,15 +6,13 @@ import styles from './PickupScheduleForm.module.css';
 import PSGCService from '../../services/psgcService';
 
 const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
+  // Initialize form with post data
   const [formData, setFormData] = useState({
-    pickupDate: '',
-    pickupTime: '',
-    // PSGC Location fields
-    region: '',
-    province: '',
-    city: '',
-    barangay: '',
-    addressLine: '',
+    // Auto-fill from post data
+    pickupDate: post?.pickupDate || '',
+    pickupTime: post?.pickupTime || '',
+    // Use post location directly
+    pickupLocation: post?.location || null,
     contactPerson: '',
     contactNumber: '',
     alternateContact: '',
@@ -24,139 +22,19 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // PSGC Location states
-  const [regions, setRegions] = useState([]);
-  const [provinces, setProvinces] = useState([]);
-  const [cities, setCities] = useState([]);
-  const [barangays, setBarangays] = useState([]);
-  const [loadingLocations, setLoadingLocations] = useState(false);
+  // Helper to format location for display
+  const formatLocation = (location) => {
+    if (!location) return 'Location not specified';
+    if (typeof location === 'string') return location;
 
-  // Load regions on mount
-  useEffect(() => {
-    loadRegions();
-  }, []);
+    const parts = [];
+    if (location.addressLine) parts.push(location.addressLine);
+    if (location.barangay?.name) parts.push(location.barangay.name);
+    if (location.city?.name) parts.push(location.city.name);
+    if (location.province?.name && location.province.name !== 'NCR') parts.push(location.province.name);
+    if (location.region?.name) parts.push(location.region.name);
 
-  const loadRegions = async () => {
-    setLoadingLocations(true);
-    try {
-      const data = await PSGCService.getRegions();
-      setRegions(data);
-    } catch (error) {
-      console.error('Error loading regions:', error);
-    } finally {
-      setLoadingLocations(false);
-    }
-  };
-
-  const handleRegionChange = async (e) => {
-    const regionCode = e.target.value;
-    const selectedRegion = regions.find(r => r.code === regionCode);
-
-    const isNCR = selectedRegion && (
-      selectedRegion.name.includes('NCR') ||
-      selectedRegion.name.includes('National Capital Region') ||
-      regionCode === '130000000'
-    );
-
-    setFormData({
-      ...formData,
-      region: regionCode,
-      province: isNCR ? 'NCR' : '',
-      city: '',
-      barangay: ''
-    });
-
-    setProvinces([]);
-    setCities([]);
-    setBarangays([]);
-
-    if (errors.region) {
-      setErrors(prev => ({ ...prev, region: '' }));
-    }
-
-    if (regionCode) {
-      setLoadingLocations(true);
-      try {
-        if (isNCR) {
-          const data = await PSGCService.getCitiesFromRegion(regionCode);
-          setCities(data);
-        } else {
-          const data = await PSGCService.getProvinces(regionCode);
-          setProvinces(data);
-        }
-      } catch (error) {
-        console.error('Error loading location data:', error);
-      } finally {
-        setLoadingLocations(false);
-      }
-    }
-  };
-
-  const handleProvinceChange = async (e) => {
-    const provinceCode = e.target.value;
-    setFormData({
-      ...formData,
-      province: provinceCode,
-      city: '',
-      barangay: ''
-    });
-
-    setCities([]);
-    setBarangays([]);
-
-    if (errors.province) {
-      setErrors(prev => ({ ...prev, province: '' }));
-    }
-
-    if (provinceCode) {
-      setLoadingLocations(true);
-      try {
-        const data = await PSGCService.getCitiesMunicipalities(provinceCode);
-        setCities(data);
-      } catch (error) {
-        console.error('Error loading cities/municipalities:', error);
-      } finally {
-        setLoadingLocations(false);
-      }
-    }
-  };
-
-  const handleCityChange = async (e) => {
-    const cityCode = e.target.value;
-    setFormData({
-      ...formData,
-      city: cityCode,
-      barangay: ''
-    });
-
-    setBarangays([]);
-
-    if (errors.city) {
-      setErrors(prev => ({ ...prev, city: '' }));
-    }
-
-    if (cityCode) {
-      setLoadingLocations(true);
-      try {
-        const data = await PSGCService.getBarangays(cityCode);
-        setBarangays(data);
-      } catch (error) {
-        console.error('Error loading barangays:', error);
-      } finally {
-        setLoadingLocations(false);
-      }
-    }
-  };
-
-  const handleBarangayChange = (e) => {
-    setFormData({
-      ...formData,
-      barangay: e.target.value
-    });
-
-    if (errors.barangay) {
-      setErrors(prev => ({ ...prev, barangay: '' }));
-    }
+    return parts.length > 0 ? parts.join(', ') : 'Location not specified';
   };
 
   const handleChange = (e) => {
@@ -177,42 +55,6 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.pickupDate) {
-      newErrors.pickupDate = 'Pickup date is required';
-    }
-
-    if (!formData.pickupTime) {
-      newErrors.pickupTime = 'Pickup time is required';
-    }
-
-    // Location validation
-    if (!formData.region) {
-      newErrors.region = 'Region is required';
-    }
-
-    const selectedRegion = regions.find(r => r.code === formData.region);
-    const isNCR = selectedRegion && (
-      selectedRegion.name.includes('NCR') ||
-      selectedRegion.name.includes('National Capital Region') ||
-      formData.region === '130000000'
-    );
-
-    if (!isNCR && !formData.province) {
-      newErrors.province = 'Province is required';
-    }
-
-    if (!formData.city) {
-      newErrors.city = 'City/Municipality is required';
-    }
-
-    if (!formData.barangay) {
-      newErrors.barangay = 'Barangay is required';
-    }
-
-    if (!formData.addressLine.trim()) {
-      newErrors.addressLine = 'Specific address is required';
-    }
 
     if (!formData.contactPerson.trim()) {
       newErrors.contactPerson = 'Contact person name is required';
@@ -238,37 +80,11 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
     setLoading(true);
 
     try {
-      // Build structured location object
-      const selectedRegion = regions.find(r => r.code === formData.region);
-      const selectedProvince = provinces.find(p => p.code === formData.province);
-      const selectedCity = cities.find(c => c.code === formData.city);
-      const selectedBarangay = barangays.find(b => b.code === formData.barangay);
-
-      const locationData = {
-        region: {
-          code: formData.region,
-          name: selectedRegion?.name || ''
-        },
-        province: selectedProvince ? {
-          code: formData.province,
-          name: selectedProvince.name
-        } : null,
-        city: {
-          code: formData.city,
-          name: selectedCity?.name || ''
-        },
-        barangay: {
-          code: formData.barangay,
-          name: selectedBarangay?.name || ''
-        },
-        addressLine: formData.addressLine
-      };
-
-      // Prepare data to submit (replace individual location fields with structured location)
+      // Use post data for date, time, and location
       const dataToSubmit = {
         pickupDate: formData.pickupDate,
         pickupTime: formData.pickupTime,
-        pickupLocation: locationData, // Send as structured object
+        pickupLocation: formData.pickupLocation, // Use location from post
         contactPerson: formData.contactPerson,
         contactNumber: formData.contactNumber,
         alternateContact: formData.alternateContact,
@@ -284,21 +100,15 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
     }
   };
 
-  const getMinDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const getMaxDate = () => {
-    const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + 30);
-    const year = maxDate.getFullYear();
-    const month = String(maxDate.getMonth() + 1).padStart(2, '0');
-    const day = String(maxDate.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not specified';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   // Render the modal using a portal
@@ -324,6 +134,7 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
               {post.wasteType || (Array.isArray(post.materials)
                 ? post.materials.map(m => m.materialName || m).join(', ')
                 : post.materials)} • {post.quantity || post.amount} kg
+              {post.price > 0 && ` • ₱${post.price}`}
             </p>
           </div>
         )}
@@ -344,238 +155,80 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
         )}
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.row}>
-            <div className={styles.field}>
-              <label htmlFor="pickupDate">
-                Pickup Date <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="date"
-                id="pickupDate"
-                name="pickupDate"
-                value={formData.pickupDate}
-                onChange={handleChange}
-                min={getMinDate()}
-                max={getMaxDate()}
-                className={errors.pickupDate ? styles.errorInput : ''}
-              />
-              {errors.pickupDate && (
-                <span className={styles.errorMsg}>{errors.pickupDate}</span>
-              )}
+          {/* Display post data as read-only */}
+          <div className={styles.infoSection}>
+            <h4 className={styles.sectionTitle}>Pickup Schedule Details</h4>
+
+            <div className={styles.infoItem}>
+              <label>Pickup Date</label>
+              <p className={styles.infoValue}>{formatDate(formData.pickupDate)}</p>
             </div>
 
-            <div className={styles.field}>
-              <label htmlFor="pickupTime">
-                Time <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="time"
-                id="pickupTime"
-                name="pickupTime"
-                value={formData.pickupTime}
-                onChange={handleChange}
-                className={errors.pickupTime ? styles.errorInput : ''}
-              />
-              {errors.pickupTime && (
-                <span className={styles.errorMsg}>{errors.pickupTime}</span>
-              )}
+            <div className={styles.infoItem}>
+              <label>Pickup Time</label>
+              <p className={styles.infoValue}>{formData.pickupTime || 'Not specified'}</p>
+            </div>
+
+            <div className={styles.infoItem}>
+              <label>Pickup Location</label>
+              <p className={styles.infoValue}>{formatLocation(formData.pickupLocation)}</p>
             </div>
           </div>
 
-          {/* PSGC Location Fields */}
-          <div className={styles.field}>
-            <label htmlFor="region">
-              Region <span className={styles.required}>*</span>
-            </label>
-            <select
-              id="region"
-              name="region"
-              value={formData.region}
-              onChange={handleRegionChange}
-              className={errors.region ? styles.errorInput : ''}
-              disabled={loadingLocations}
-            >
-              <option value="">
-                {loadingLocations ? 'Loading...' : 'Select Region'}
-              </option>
-              {regions.map((region) => (
-                <option key={region.code} value={region.code}>
-                  {region.name}
-                </option>
-              ))}
-            </select>
-            {errors.region && (
-              <span className={styles.errorMsg}>{errors.region}</span>
-            )}
-          </div>
+          {/* Contact Information Fields - Editable */}
+          <div className={styles.contactSection}>
+            <h4 className={styles.sectionTitle}>Contact Information <span className={styles.required}>*</span></h4>
 
-          {/* Province dropdown - hidden for NCR */}
-          {formData.region && (() => {
-            const selectedRegion = regions.find(r => r.code === formData.region);
-            const isNCR = selectedRegion && (
-              selectedRegion.name.includes('NCR') ||
-              selectedRegion.name.includes('National Capital Region') ||
-              formData.region === '130000000'
-            );
+            <div className={styles.field}>
+              <label htmlFor="contactPerson">
+                Contact Person <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="text"
+                id="contactPerson"
+                name="contactPerson"
+                placeholder="Name of person doing the pickup"
+                value={formData.contactPerson}
+                onChange={handleChange}
+                className={errors.contactPerson ? styles.errorInput : ''}
+              />
+              {errors.contactPerson && (
+                <span className={styles.errorMsg}>{errors.contactPerson}</span>
+              )}
+            </div>
 
-            return !isNCR && (
+            <div className={styles.row}>
               <div className={styles.field}>
-                <label htmlFor="province">
-                  Province <span className={styles.required}>*</span>
+                <label htmlFor="contactNumber">
+                  Contact Number <span className={styles.required}>*</span>
                 </label>
-                <select
-                  id="province"
-                  name="province"
-                  value={formData.province}
-                  onChange={handleProvinceChange}
-                  className={errors.province ? styles.errorInput : ''}
-                  disabled={!formData.region || loadingLocations}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select Province'}
-                  </option>
-                  {provinces.map((province) => (
-                    <option key={province.code} value={province.code}>
-                      {province.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.province && (
-                  <span className={styles.errorMsg}>{errors.province}</span>
+                <input
+                  type="tel"
+                  id="contactNumber"
+                  name="contactNumber"
+                  placeholder="09XX XXX XXXX"
+                  value={formData.contactNumber}
+                  onChange={handleChange}
+                  className={errors.contactNumber ? styles.errorInput : ''}
+                />
+                {errors.contactNumber && (
+                  <span className={styles.errorMsg}>{errors.contactNumber}</span>
                 )}
               </div>
-            );
-          })()}
 
-          <div className={styles.row}>
-            <div className={styles.field}>
-              <label htmlFor="city">
-                City/Municipality <span className={styles.required}>*</span>
-              </label>
-              <select
-                id="city"
-                name="city"
-                value={formData.city}
-                onChange={handleCityChange}
-                className={errors.city ? styles.errorInput : ''}
-                disabled={(() => {
-                  const selectedRegion = regions.find(r => r.code === formData.region);
-                  const isNCR = selectedRegion && (
-                    selectedRegion.name.includes('NCR') ||
-                    selectedRegion.name.includes('National Capital Region') ||
-                    formData.region === '130000000'
-                  );
-                  return (!formData.region || (!isNCR && !formData.province) || loadingLocations);
-                })()}
-              >
-                <option value="">
-                  {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
-                </option>
-                {cities.map((city) => (
-                  <option key={city.code} value={city.code}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
-              {errors.city && (
-                <span className={styles.errorMsg}>{errors.city}</span>
-              )}
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="barangay">
-                Barangay <span className={styles.required}>*</span>
-              </label>
-              <select
-                id="barangay"
-                name="barangay"
-                value={formData.barangay}
-                onChange={handleBarangayChange}
-                className={errors.barangay ? styles.errorInput : ''}
-                disabled={!formData.city || loadingLocations}
-              >
-                <option value="">
-                  {loadingLocations ? 'Loading...' : 'Select Barangay'}
-                </option>
-                {barangays.map((barangay) => (
-                  <option key={barangay.code} value={barangay.code}>
-                    {barangay.name}
-                  </option>
-                ))}
-              </select>
-              {errors.barangay && (
-                <span className={styles.errorMsg}>{errors.barangay}</span>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="addressLine">
-              Specific Address / Landmark <span className={styles.required}>*</span>
-            </label>
-            <input
-              type="text"
-              id="addressLine"
-              name="addressLine"
-              placeholder="e.g., Unit 5B, Greenview Bldg., near 7-Eleven"
-              value={formData.addressLine}
-              onChange={handleChange}
-              className={errors.addressLine ? styles.errorInput : ''}
-            />
-            {errors.addressLine && (
-              <span className={styles.errorMsg}>{errors.addressLine}</span>
-            )}
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="contactPerson">
-              Contact Person <span className={styles.required}>*</span>
-            </label>
-            <input
-              type="text"
-              id="contactPerson"
-              name="contactPerson"
-              placeholder="Name of person doing the pickup"
-              value={formData.contactPerson}
-              onChange={handleChange}
-              className={errors.contactPerson ? styles.errorInput : ''}
-            />
-            {errors.contactPerson && (
-              <span className={styles.errorMsg}>{errors.contactPerson}</span>
-            )}
-          </div>
-
-          <div className={styles.row}>
-            <div className={styles.field}>
-              <label htmlFor="contactNumber">
-                Contact Number <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="tel"
-                id="contactNumber"
-                name="contactNumber"
-                placeholder="09XX XXX XXXX"
-                value={formData.contactNumber}
-                onChange={handleChange}
-                className={errors.contactNumber ? styles.errorInput : ''}
-              />
-              {errors.contactNumber && (
-                <span className={styles.errorMsg}>{errors.contactNumber}</span>
-              )}
-            </div>
-
-            <div className={styles.field}>
-              <label htmlFor="alternateContact">
-                Alternate Contact (Optional)
-              </label>
-              <input
-                type="tel"
-                id="alternateContact"
-                name="alternateContact"
-                placeholder="Backup contact number"
-                value={formData.alternateContact}
-                onChange={handleChange}
-              />
+              <div className={styles.field}>
+                <label htmlFor="alternateContact">
+                  Alternate Contact (Optional)
+                </label>
+                <input
+                  type="tel"
+                  id="alternateContact"
+                  name="alternateContact"
+                  placeholder="Backup contact number"
+                  value={formData.alternateContact}
+                  onChange={handleChange}
+                />
+              </div>
             </div>
           </div>
 
