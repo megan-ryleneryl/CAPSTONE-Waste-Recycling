@@ -19,9 +19,6 @@ router.post('/pickup-request', messageController.sendPickupRequest);
 // Utility routes
 router.get('/unread-count', messageController.getUnreadCount);
 
-// Your existing message routes can stay the same if you have them
-// router.get('/', messageController.getAllMessages);
-// router.get('/:messageID', messageController.getMessageById);
-// router.delete('/:messageID', messageController.deleteMessage);
+
 
 module.exports = router;

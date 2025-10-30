@@ -356,8 +356,7 @@ recycling-platform-backend/
 ├── controllers/                     # Route handlers
 │   ├── authController.js
 │   ├── postController.js
-│   ├── userController.js
-│   └── pickupController.js
+│   └── userController.js
 │
 ├── middleware/                      # Express middleware
 │   ├── authentication.js
