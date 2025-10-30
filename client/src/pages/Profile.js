@@ -1330,7 +1330,7 @@ const Profile = ({ user: propsUser }) => {
             <div className={styles.ctaSection}>
               {user.status === 'Pending' && (
                 <div className={styles.ctaCard}>
-                  <p>Submit your proof of identity and unlock the posting, commenting, and chat features!</p>
+                  <p>Submit your proof of identity and unlock the rank and league features!</p>
                   <button 
                     className={styles.ctaButton}
                     onClick={() => setActiveModal('verification')}
