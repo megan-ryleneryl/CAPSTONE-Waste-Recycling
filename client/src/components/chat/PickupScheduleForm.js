@@ -400,10 +400,11 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
         addressLine: formData.addressLine
       };
 
-      // Format proposedPrice as array of { materialID, materialName, proposedPricePerKilo }
+      // Format proposedPrice as array of { materialID, materialName, quantity, proposedPricePerKilo }
       const proposedPrice = materialPrices.map(material => ({
         materialID: material.materialID,
         materialName: material.materialName,
+        quantity: material.quantity,
         proposedPricePerKilo: material.pricePerKilo
       }));
 
@@ -415,7 +416,7 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
         contactNumber: formData.contactNumber,
         alternateContact: formData.alternateContact,
         specialInstructions: formData.specialInstructions,
-        proposedPrice: proposedPrice, // Array of { materialID, materialName, proposedPricePerKilo }
+        proposedPrice: proposedPrice, // Array of { materialID, materialName, quantity, proposedPricePerKilo }
         totalPrice: calculateTotalPrice() // Include calculated total
       };
 

@@ -311,6 +311,8 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         contactNumber: formData.contactNumber,
         alternateContact: formData.alternateContact || '',
         specialInstructions: formData.specialInstructions || '',
+        proposedPrice: formData.proposedPrice || [], // Array of { materialID, materialName, quantity, proposedPricePerKilo }
+        totalPrice: formData.totalPrice || 0, // Calculated total price
         price: post?.price || 0,
         status: 'Proposed',
         // Link supportID if this is for an Initiative post with active support

@@ -184,6 +184,79 @@
   line-height: 1.5;
 }
 
+/* Pricing Breakdown */
+.pricingBreakdown {
+  margin-top: 12px;
+  padding: 12px;
+  background: #f0fdf4;
+  border-radius: 6px;
+  border-left: 3px solid #3B6535;
+}
+
+.pricingHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #3B6535;
+}
+
+.pricingHeader svg {
+  color: #3B6535;
+  flex-shrink: 0;
+}
+
+.pricingHeader strong {
+  font-size: 0.938rem;
+}
+
+.materialPrice {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-bottom: 1px solid #d1fae5;
+  gap: 12px;
+}
+
+.materialPrice:last-of-type {
+  border-bottom: none;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.materialName {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.materialDetails {
+  text-align: right;
+  color: #6b7280;
+  font-size: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.materialSubtotal {
+  color: #3B6535;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.totalPrice {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 2px solid #3B6535;
+  color: #3B6535;
+  font-size: 1rem;
+}
+
 .pickupActions {
   display: flex;
   gap: 8px;

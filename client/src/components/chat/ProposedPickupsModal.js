@@ -46,15 +46,9 @@ const ProposedPickupsModal = ({ proposedPickups, onConfirm, onReject, onGoToChat
     return `${location.barangay?.name || ''}, ${location.city?.name || ''}`;
   };
 
-  const calculateProposedPrice = (proposedPrice) => {
-    if (!proposedPrice || proposedPrice.length === 0) return 'Not specified';
-
-    // Calculate average or total
-    const total = proposedPrice.reduce((sum, item) => {
-      return sum + (parseFloat(item.proposedPricePerKilo) || 0);
-    }, 0);
-
-    return `₱${total.toFixed(2)}/kg`;
+  const formatTotalPrice = (totalPrice) => {
+    if (!totalPrice || totalPrice === 0) return null;
+    return `₱${parseFloat(totalPrice).toFixed(2)}`;
   };
 
   if (proposedPickups.length === 0) {
@@ -112,10 +106,32 @@ const ProposedPickupsModal = ({ proposedPickups, onConfirm, onReject, onGoToChat
                     <span>{formatLocation(pickup.pickupLocation)}</span>
                   </div>
 
+                  {/* Material Pricing Breakdown */}
                   {pickup.proposedPrice && pickup.proposedPrice.length > 0 && (
-                    <div className={styles.detailRow}>
-                      <DollarSign size={16} />
-                      <span>Offered: {calculateProposedPrice(pickup.proposedPrice)}</span>
+                    <div className={styles.pricingBreakdown}>
+                      <div className={styles.pricingHeader}>
+                        <DollarSign size={16} />
+                        <strong>Offered Price:</strong>
+                      </div>
+                      {pickup.proposedPrice.map((material, index) => (
+                        <div key={index} className={styles.materialPrice}>
+                          <span className={styles.materialName}>{material.materialName}</span>
+                          <span className={styles.materialDetails}>
+                            {material.quantity} kg × ₱{parseFloat(material.proposedPricePerKilo || 0).toFixed(2)}/kg
+                            {material.quantity > 0 && material.proposedPricePerKilo > 0 && (
+                              <span className={styles.materialSubtotal}>
+                                {' '}= ₱{(material.quantity * material.proposedPricePerKilo).toFixed(2)}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                      {pickup.totalPrice > 0 && (
+                        <div className={styles.totalPrice}>
+                          <strong>Total:</strong>
+                          <strong>{formatTotalPrice(pickup.totalPrice)}</strong>
+                        </div>
+                      )}
                     </div>
                   )}
 
