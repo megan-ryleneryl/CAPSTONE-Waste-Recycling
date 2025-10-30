@@ -607,13 +607,26 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
         )}
 
         {canEdit && (
-          <button
-            className={styles.editButton}
-            onClick={() => setIsEditing(true)}
-          >
-            <Edit size={18} />
-            <span>Edit</span>
-          </button>
+          <>
+            <button
+              className={styles.editButton}
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit size={18} />
+              <span>Edit</span>
+            </button>
+            <button
+              className={styles.cancelButton}
+              onClick={() => {
+                if (window.confirm('Are you sure you want to cancel this proposed pickup schedule?')) {
+                  onUpdateStatus('Cancelled');
+                }
+              }}
+            >
+              <X size={18} />
+              <span>Cancel</span>
+            </button>
+          </>
         )}
 
         {canConfirm && (
@@ -648,9 +661,14 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
         {canCancel && !canConfirm && !canEdit && (
           <button
             className={styles.cancelButton}
-            onClick={() => onUpdateStatus('Cancelled')}
+            onClick={() => {
+              if (window.confirm('Are you sure you want to cancel this pickup?')) {
+                onUpdateStatus('Cancelled');
+              }
+            }}
           >
-            Cancel Pickup
+            <X size={18} />
+            <span>Cancel Pickup</span>
           </button>
         )}
           </div>

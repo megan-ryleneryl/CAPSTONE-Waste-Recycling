@@ -50,23 +50,6 @@ class Pickup {
     this.contactNumber = data.contactNumber || '';
     this.alternateContact = data.alternateContact || '';
     
-    // Giver preferences (from profile or post)
-    this.giverPreferences = {
-      preferredDays: data.giverPreferences?.preferredDays || [],
-      preferredTimeSlots: data.giverPreferences?.preferredTimeSlots || [],
-      locationNotes: data.giverPreferences?.locationNotes || ''
-    };
-    
-    // Expected waste details (from post)
-    this.expectedWaste = {
-      types: data.expectedWaste?.types || [],
-      estimatedAmount: data.expectedWaste?.estimatedAmount || 0,
-      unit: data.expectedWaste?.unit || 'kg',
-      description: data.expectedWaste?.description || ''
-    };
-
-    // Price (from post)
-    this.price = data.price || 0;
     
     // Status management
     this.status = data.status || 'Proposed';
@@ -83,6 +66,10 @@ class Pickup {
     this.identityVerified = data.identityVerified || false;
     this.verificationMethod = data.verificationMethod || ''; // 'ID shown', 'App verification', etc.
     
+    // Pricing details - proposed by collector
+    // Array of { materialID, materialName, proposedPricePerKilo }
+    this.proposedPrice = data.proposedPrice || [];
+
     // Additional details
     this.specialInstructions = data.specialInstructions || '';
     this.cancellationReason = data.cancellationReason || '';
@@ -164,6 +151,7 @@ class Pickup {
       completionNotes: this.completionNotes,
       identityVerified: this.identityVerified,
       verificationMethod: this.verificationMethod,
+      proposedPrice: this.proposedPrice,
       specialInstructions: this.specialInstructions,
       cancellationReason: this.cancellationReason,
       cancellationBy: this.cancellationBy,
