@@ -1,111 +1,47 @@
 // client/src/components/chat/PickupCard.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, Save, Edit, CheckCircle, X, MapPinned, ChevronDown, ChevronUp, Coins } from 'lucide-react';
-import PSGCService from '../../services/psgcService';
+import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, CheckCircle, X, MapPinned, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
 import styles from './PickupCard.module.css';
 
-const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
+const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [averagePrices, setAveragePrices] = useState({});
 
-  // Helper to convert location object to string for editing
-  const getLocationString = (location) => {
-    if (!location) return '';
-    if (typeof location === 'string') return location;
-
-    // If it's an object, format it as a string
-    const parts = [];
-    if (location.addressLine) parts.push(location.addressLine);
-    if (location.barangay?.name) parts.push(location.barangay.name);
-    if (location.city?.name) parts.push(location.city.name);
-    if (location.province?.name) parts.push(location.province.name);
-    if (location.region?.name) parts.push(location.region.name);
-    return parts.join(', ');
-  };
-
-  // PSGC Location states for edit form
-  const [regions, setRegions] = useState([]);
-  const [provinces, setProvinces] = useState([]);
-  const [cities, setCities] = useState([]);
-  const [barangays, setBarangays] = useState([]);
-  const [loadingLocations, setLoadingLocations] = useState(false);
-
-  const [editForm, setEditForm] = useState({
-    pickupDate: pickup.pickupDate || '',
-    pickupTime: pickup.pickupTime || '',
-    // PSGC Location fields
-    region: pickup.pickupLocation?.region?.code || '',
-    province: pickup.pickupLocation?.province?.code || '',
-    city: pickup.pickupLocation?.city?.code || '',
-    barangay: pickup.pickupLocation?.barangay?.code || '',
-    addressLine: pickup.pickupLocation?.addressLine || '',
-    contactPerson: pickup.contactPerson || '',
-    contactNumber: pickup.contactNumber || '',
-    specialInstructions: pickup.specialInstructions || '',
-    price: pickup.price || 0
-  });
-
-  // Load regions when editing starts
+  // Fetch average prices for materials when component mounts
   useEffect(() => {
-    if (isEditing) {
-      loadRegions();
-      // If we have existing location data, load the cascading selectors
-      if (pickup.pickupLocation?.region?.code) {
-        loadInitialLocation();
-      }
-    }
-  }, [isEditing]);
+    const fetchAveragePrices = async () => {
+      if (!pickup.proposedPrice || pickup.proposedPrice.length === 0) return;
 
-  const loadRegions = async () => {
-    setLoadingLocations(true);
-    try {
-      const data = await PSGCService.getRegions();
-      setRegions(data);
-    } catch (error) {
-      console.error('Error loading regions:', error);
-    } finally {
-      setLoadingLocations(false);
-    }
-  };
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/materials`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-  const loadInitialLocation = async () => {
-    const loc = pickup.pickupLocation;
-    if (!loc) return;
+        if (response.ok) {
+          const data = await response.json();
+          const materialsData = data.materials || data;
 
-    try {
-      // Load provinces if not NCR
-      if (loc.region?.code) {
-        const selectedRegion = await PSGCService.getRegions().then(regions =>
-          regions.find(r => r.code === loc.region.code)
-        );
-        const isNCR = selectedRegion && (
-          selectedRegion.name.includes('NCR') ||
-          selectedRegion.name.includes('National Capital Region') ||
-          loc.region.code === '130000000'
-        );
-
-        if (isNCR) {
-          const citiesData = await PSGCService.getCitiesFromRegion(loc.region.code);
-          setCities(citiesData);
-        } else if (loc.province?.code) {
-          const provincesData = await PSGCService.getProvinces(loc.region.code);
-          setProvinces(provincesData);
-          const citiesData = await PSGCService.getCitiesMunicipalities(loc.province.code);
-          setCities(citiesData);
+          // Build a map of materialID -> average price
+          const priceMap = {};
+          materialsData.forEach(material => {
+            priceMap[material.materialID] = material.averagePricePerKg || 0;
+          });
+          setAveragePrices(priceMap);
         }
+      } catch (error) {
+        console.error('Error fetching average prices:', error);
       }
+    };
 
-      // Load barangays if city exists
-      if (loc.city?.code) {
-        const barangaysData = await PSGCService.getBarangays(loc.city.code);
-        setBarangays(barangaysData);
-      }
-    } catch (error) {
-      console.error('Error loading initial location:', error);
-    }
-  };
+    fetchAveragePrices();
+  }, [pickup.proposedPrice]);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -153,391 +89,22 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
     return 'Location not set';
   };
 
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleCancelPickup = () => {
+    setShowCancelDialog(true);
   };
 
-  const handleRegionChange = async (e) => {
-    const regionCode = e.target.value;
-    const selectedRegion = regions.find(r => r.code === regionCode);
-
-    const isNCR = selectedRegion && (
-      selectedRegion.name.includes('NCR') ||
-      selectedRegion.name.includes('National Capital Region') ||
-      regionCode === '130000000'
-    );
-
-    setEditForm({
-      ...editForm,
-      region: regionCode,
-      province: isNCR ? 'NCR' : '',
-      city: '',
-      barangay: ''
-    });
-
-    setProvinces([]);
-    setCities([]);
-    setBarangays([]);
-
-    if (regionCode) {
-      setLoadingLocations(true);
-      try {
-        if (isNCR) {
-          const data = await PSGCService.getCitiesFromRegion(regionCode);
-          setCities(data);
-        } else {
-          const data = await PSGCService.getProvinces(regionCode);
-          setProvinces(data);
-        }
-      } catch (error) {
-        console.error('Error loading location data:', error);
-      } finally {
-        setLoadingLocations(false);
-      }
-    }
-  };
-
-  const handleProvinceChange = async (e) => {
-    const provinceCode = e.target.value;
-    setEditForm({
-      ...editForm,
-      province: provinceCode,
-      city: '',
-      barangay: ''
-    });
-
-    setCities([]);
-    setBarangays([]);
-
-    if (provinceCode) {
-      setLoadingLocations(true);
-      try {
-        const data = await PSGCService.getCitiesMunicipalities(provinceCode);
-        setCities(data);
-      } catch (error) {
-        console.error('Error loading cities/municipalities:', error);
-      } finally {
-        setLoadingLocations(false);
-      }
-    }
-  };
-
-  const handleCityChange = async (e) => {
-    const cityCode = e.target.value;
-    setEditForm({
-      ...editForm,
-      city: cityCode,
-      barangay: ''
-    });
-
-    setBarangays([]);
-
-    if (cityCode) {
-      setLoadingLocations(true);
-      try {
-        const data = await PSGCService.getBarangays(cityCode);
-        setBarangays(data);
-      } catch (error) {
-        console.error('Error loading barangays:', error);
-      } finally {
-        setLoadingLocations(false);
-      }
-    }
-  };
-
-  const handleBarangayChange = (e) => {
-    setEditForm({
-      ...editForm,
-      barangay: e.target.value
-    });
-  };
-
-  const handleEditSubmit = async () => {
-    try {
-      // Build structured location object
-      const selectedRegion = regions.find(r => r.code === editForm.region);
-      const selectedProvince = provinces.find(p => p.code === editForm.province);
-      const selectedCity = cities.find(c => c.code === editForm.city);
-      const selectedBarangay = barangays.find(b => b.code === editForm.barangay);
-
-      const locationData = {
-        region: {
-          code: editForm.region,
-          name: selectedRegion?.name || ''
-        },
-        province: selectedProvince ? {
-          code: editForm.province,
-          name: selectedProvince.name
-        } : null,
-        city: {
-          code: editForm.city,
-          name: selectedCity?.name || ''
-        },
-        barangay: {
-          code: editForm.barangay,
-          name: selectedBarangay?.name || ''
-        },
-        addressLine: editForm.addressLine
-      };
-
-      const updatedData = {
-        pickupDate: editForm.pickupDate,
-        pickupTime: editForm.pickupTime,
-        pickupLocation: locationData,
-        contactPerson: editForm.contactPerson,
-        contactNumber: editForm.contactNumber,
-        specialInstructions: editForm.specialInstructions,
-        price: parseFloat(editForm.price) || 0
-      };
-
-      await onEditPickup(pickup.id, updatedData);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating pickup:', error);
-      alert('Failed to update pickup schedule');
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    // Reset form to original values
-    setEditForm({
-      pickupDate: pickup.pickupDate || '',
-      pickupTime: pickup.pickupTime || '',
-      region: pickup.pickupLocation?.region?.code || '',
-      province: pickup.pickupLocation?.province?.code || '',
-      city: pickup.pickupLocation?.city?.code || '',
-      barangay: pickup.pickupLocation?.barangay?.code || '',
-      addressLine: pickup.pickupLocation?.addressLine || '',
-      contactPerson: pickup.contactPerson || '',
-      contactNumber: pickup.contactNumber || '',
-      specialInstructions: pickup.specialInstructions || '',
-      price: pickup.price || 0
-    });
-    // Reset location dropdowns
-    setProvinces([]);
-    setCities([]);
-    setBarangays([]);
+  const confirmCancelPickup = () => {
+    onUpdateStatus('Cancelled', cancelReason || undefined);
+    setShowCancelDialog(false);
+    setCancelReason('');
   };
 
   const isGiver = currentUser?.userID === pickup.giverID;
   const isCollector = currentUser?.userID === pickup.collectorID;
-  const canEdit = pickup.status === 'Proposed' && isCollector && pickup.proposedBy === currentUser?.userID;
   const canConfirm = pickup.status === 'Proposed' && isGiver;
   const canCancel = pickup.status !== 'Completed' && pickup.status !== 'Cancelled';
-  // Removed canComplete - completion should only happen through the modal
+  const canCancelProposal = pickup.status === 'Proposed' && isCollector && pickup.proposedBy === currentUser?.userID;
   const canStartPickup = pickup.status === 'Confirmed' && isCollector;
-
-  if (isEditing) {
-    return (
-      <div className={styles.pickupCard} style={{ borderLeftColor: getStatusColor(pickup.status) }}>
-        <div className={styles.header}>
-          <h4 className={styles.title}>
-            <Edit size={18} />
-            <span>Edit Pickup Schedule</span>
-          </h4>
-          <span className={styles.statusBadge} style={{ backgroundColor: `${getStatusColor(pickup.status)}20`, color: getStatusColor(pickup.status) }}>
-            {pickup.status}
-          </span>
-        </div>
-
-        <div className={styles.editForm}>
-          <div className={styles.formRow}>
-            <div className={styles.formField}>
-              <label>Date</label>
-              <input
-                type="date"
-                name="pickupDate"
-                value={editForm.pickupDate}
-                onChange={handleEditChange}
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-            <div className={styles.formField}>
-              <label>Time</label>
-              <input
-                type="time"
-                name="pickupTime"
-                value={editForm.pickupTime}
-                onChange={handleEditChange}
-              />
-            </div>
-          </div>
-
-          {/* PSGC Location Fields */}
-          <div className={styles.formField}>
-            <label>Region *</label>
-            <select
-              name="region"
-              value={editForm.region}
-              onChange={handleRegionChange}
-              disabled={loadingLocations}
-            >
-              <option value="">
-                {loadingLocations ? 'Loading...' : 'Select Region'}
-              </option>
-              {regions.map((region) => (
-                <option key={region.code} value={region.code}>
-                  {region.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Province dropdown - hidden for NCR */}
-          {editForm.region && (() => {
-            const selectedRegion = regions.find(r => r.code === editForm.region);
-            const isNCR = selectedRegion && (
-              selectedRegion.name.includes('NCR') ||
-              selectedRegion.name.includes('National Capital Region') ||
-              editForm.region === '130000000'
-            );
-
-            return !isNCR && (
-              <div className={styles.formField}>
-                <label>Province *</label>
-                <select
-                  name="province"
-                  value={editForm.province}
-                  onChange={handleProvinceChange}
-                  disabled={!editForm.region || loadingLocations}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select Province'}
-                  </option>
-                  {provinces.map((province) => (
-                    <option key={province.code} value={province.code}>
-                      {province.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            );
-          })()}
-
-          <div className={styles.formRow}>
-            <div className={styles.formField}>
-              <label>City/Municipality *</label>
-              <select
-                name="city"
-                value={editForm.city}
-                onChange={handleCityChange}
-                disabled={(() => {
-                  const selectedRegion = regions.find(r => r.code === editForm.region);
-                  const isNCR = selectedRegion && (
-                    selectedRegion.name.includes('NCR') ||
-                    selectedRegion.name.includes('National Capital Region') ||
-                    editForm.region === '130000000'
-                  );
-                  return (!editForm.region || (!isNCR && !editForm.province) || loadingLocations);
-                })()}
-              >
-                <option value="">
-                  {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
-                </option>
-                {cities.map((city) => (
-                  <option key={city.code} value={city.code}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.formField}>
-              <label>Barangay *</label>
-              <select
-                name="barangay"
-                value={editForm.barangay}
-                onChange={handleBarangayChange}
-                disabled={!editForm.city || loadingLocations}
-              >
-                <option value="">
-                  {loadingLocations ? 'Loading...' : 'Select Barangay'}
-                </option>
-                {barangays.map((barangay) => (
-                  <option key={barangay.code} value={barangay.code}>
-                    {barangay.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className={styles.formField}>
-            <label>Specific Address / Landmark *</label>
-            <input
-              type="text"
-              name="addressLine"
-              placeholder="e.g., Unit 5B, Greenview Bldg., near 7-Eleven"
-              value={editForm.addressLine}
-              onChange={handleEditChange}
-            />
-          </div>
-
-          <div className={styles.formRow}>
-            <div className={styles.formField}>
-              <label>Contact Person</label>
-              <input
-                type="text"
-                name="contactPerson"
-                value={editForm.contactPerson}
-                onChange={handleEditChange}
-                placeholder="Name of contact person"
-              />
-            </div>
-            <div className={styles.formField}>
-              <label>Contact Number</label>
-              <input
-                type="tel"
-                name="contactNumber"
-                value={editForm.contactNumber}
-                onChange={handleEditChange}
-                placeholder="Contact number"
-              />
-            </div>
-          </div>
-
-          <div className={styles.formField}>
-            <label>Price (₱)</label>
-            <input
-              type="number"
-              name="price"
-              value={editForm.price}
-              onChange={handleEditChange}
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-            />
-          </div>
-
-          <div className={styles.formField}>
-            <label>Special Instructions</label>
-            <textarea
-              name="specialInstructions"
-              value={editForm.specialInstructions}
-              onChange={handleEditChange}
-              rows="3"
-              placeholder="Any special instructions..."
-            />
-          </div>
-
-          <div className={styles.editActions}>
-            <button className={styles.saveButton} onClick={handleEditSubmit}>
-              <Save size={18} />
-              <span>Save Changes</span>
-            </button>
-            <button className={styles.cancelEditButton} onClick={handleCancelEdit}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.pickupCard} style={{ borderLeftColor: getStatusColor(pickup.status) }}>
@@ -580,16 +147,66 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
               <Phone className={styles.icon} size={18} />
               <span>{pickup.contactNumber || 'Number not set'}</span>
             </div>
-            {pickup.price > 0 && (
-              <div className={styles.detailItem}>
-                <Coins className={styles.icon} size={18} />
-                <span>₱{pickup.price}</span>
-              </div>
-            )}
             {pickup.specialInstructions && (
               <div className={styles.detailItem}>
                 <FileText className={styles.icon} size={18} />
                 <span>{pickup.specialInstructions}</span>
+              </div>
+            )}
+
+            {/* Price Breakdown */}
+            {pickup.proposedPrice && pickup.proposedPrice.length > 0 && (
+              <div className={styles.priceBreakdown}>
+                <div className={styles.priceHeader}>
+                  <DollarSign size={18} />
+                  <strong>Price Breakdown</strong>
+                </div>
+                {pickup.proposedPrice.map((material, index) => {
+                  const avgPrice = averagePrices[material.materialID] || 0;
+                  const proposedPrice = parseFloat(material.proposedPricePerKilo) || 0;
+                  const priceDiff = proposedPrice - avgPrice;
+                  const isHigher = priceDiff > 0;
+
+                  return (
+                    <div key={index} className={styles.materialPriceRow}>
+                      <div className={styles.materialNameQty}>
+                        <span className={styles.materialName}>{material.materialName}</span>
+                        <span className={styles.materialQuantity}>({material.quantity} kg)</span>
+                      </div>
+                      <div className={styles.priceComparison}>
+                        <div className={styles.priceRow}>
+                          <span className={styles.priceLabel}>Proposed:</span>
+                          <span className={styles.proposedPrice}>₱{proposedPrice.toFixed(2)}/kg</span>
+                        </div>
+                        {avgPrice > 0 && (
+                          <>
+                            <div className={styles.priceRow}>
+                              <span className={styles.priceLabel}>Average:</span>
+                              <span className={styles.avgPrice}>₱{avgPrice.toFixed(2)}/kg</span>
+                            </div>
+                            <div className={styles.priceDiffRow}>
+                              <span className={`${styles.priceDiff} ${isHigher ? styles.higher : styles.lower}`}>
+                                {isHigher ? '+' : ''}{priceDiff.toFixed(2)} ({isHigher ? 'above' : 'below'} avg)
+                              </span>
+                            </div>
+                          </>
+                        )}
+                        {material.quantity > 0 && proposedPrice > 0 && (
+                          <div className={styles.subtotalRow}>
+                            <span className={styles.subtotalLabel}>Subtotal:</span>
+                            <span className={styles.subtotal}>₱{(material.quantity * proposedPrice).toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {pickup.totalPrice > 0 && (
+                  <div className={styles.totalPriceRow}>
+                    <strong>Total Offered:</strong>
+                    <strong className={styles.totalAmount}>₱{parseFloat(pickup.totalPrice).toFixed(2)}</strong>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -606,27 +223,14 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
           </button>
         )}
 
-        {canEdit && (
-          <>
-            <button
-              className={styles.editButton}
-              onClick={() => setIsEditing(true)}
-            >
-              <Edit size={18} />
-              <span>Edit</span>
-            </button>
-            <button
-              className={styles.cancelButton}
-              onClick={() => {
-                if (window.confirm('Are you sure you want to cancel this proposed pickup schedule?')) {
-                  onUpdateStatus('Cancelled');
-                }
-              }}
-            >
-              <X size={18} />
-              <span>Cancel</span>
-            </button>
-          </>
+        {canCancelProposal && (
+          <button
+            className={styles.cancelButton}
+            onClick={handleCancelPickup}
+          >
+            <X size={18} />
+            <span>Cancel Proposal</span>
+          </button>
         )}
 
         {canConfirm && (
@@ -658,14 +262,10 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
           </button>
         )}
 
-        {canCancel && !canConfirm && !canEdit && (
+        {canCancel && !canConfirm && !canCancelProposal && (
           <button
             className={styles.cancelButton}
-            onClick={() => {
-              if (window.confirm('Are you sure you want to cancel this pickup?')) {
-                onUpdateStatus('Cancelled');
-              }
-            }}
+            onClick={handleCancelPickup}
           >
             <X size={18} />
             <span>Cancel Pickup</span>
@@ -673,6 +273,40 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onEditPickup }) => {
         )}
           </div>
         </>
+      )}
+
+      {/* Cancel Dialog */}
+      {showCancelDialog && (
+        <div className={styles.cancelDialogOverlay} onClick={() => setShowCancelDialog(false)}>
+          <div className={styles.cancelDialog} onClick={(e) => e.stopPropagation()}>
+            <h3>Cancel Pickup</h3>
+            <p>Are you sure you want to cancel this pickup? You can provide a reason below (optional).</p>
+            <textarea
+              className={styles.cancelReasonInput}
+              placeholder="Reason for cancellation (optional)"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows="4"
+            />
+            <div className={styles.cancelDialogActions}>
+              <button
+                className={styles.confirmCancelButton}
+                onClick={confirmCancelPickup}
+              >
+                Yes, Cancel
+              </button>
+              <button
+                className={styles.keepButton}
+                onClick={() => {
+                  setShowCancelDialog(false);
+                  setCancelReason('');
+                }}
+              >
+                Keep Pickup
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
