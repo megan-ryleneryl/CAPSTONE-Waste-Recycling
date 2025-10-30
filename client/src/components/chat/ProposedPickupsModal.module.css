@@ -1,0 +1,385 @@
+/* ProposedPickupsModal.module.css - Matching codebase modal pattern */
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modalContent {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlide 0.3s ease;
+}
+
+@keyframes modalSlide {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #3B6535 0%, #2d4e29 100%);
+  flex-shrink: 0;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: 'Raleway', sans-serif;
+}
+
+.closeButton {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.pickupsList {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.pickupCard {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.pickupCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pickupCard:last-child {
+  margin-bottom: 0;
+}
+
+.pickupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.collectorInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #111827;
+}
+
+.collectorInfo h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.statusBadge {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pickupDetails {
+  margin-bottom: 16px;
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: #374151;
+  font-size: 0.938rem;
+}
+
+.detailRow svg {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.instructions {
+  margin-top: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.instructions strong {
+  color: #111827;
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+}
+
+.instructions p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.pickupActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.acceptButton,
+.rejectButton,
+.chatButton {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.938rem;
+}
+
+.acceptButton {
+  background: #10b981;
+  color: white;
+}
+
+.acceptButton:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.rejectButton {
+  background: #ef4444;
+  color: white;
+}
+
+.rejectButton:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+.chatButton {
+  background: #3b82f6;
+  color: white;
+}
+
+.chatButton:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+.acceptButton:disabled,
+.rejectButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.emptyState {
+  padding: 60px 20px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.emptyState p {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Confirmation Dialog */
+.confirmOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+.confirmDialog {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: modalSlide 0.3s ease;
+}
+
+.confirmDialog h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.25rem;
+  color: #111827;
+  font-weight: 600;
+}
+
+.confirmDialog p {
+  margin: 0 0 12px 0;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.warningText {
+  color: #dc2626 !important;
+  font-weight: 500;
+  font-size: 0.938rem;
+  margin-bottom: 24px !important;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.confirmYes,
+.confirmNo {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+}
+
+.confirmYes {
+  background: #10b981;
+  color: white;
+}
+
+.confirmYes:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.confirmNo {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.confirmNo:hover:not(:disabled) {
+  background: #d1d5db;
+}
+
+.confirmYes:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modalContent {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .modalHeader {
+    padding: 16px 20px;
+  }
+
+  .modalHeader h2 {
+    font-size: 1.25rem;
+  }
+
+  .pickupsList {
+    padding: 16px 20px;
+  }
+
+  .pickupCard {
+    padding: 16px;
+  }
+
+  .pickupActions {
+    flex-direction: column;
+  }
+
+  .acceptButton,
+  .rejectButton,
+  .chatButton {
+    width: 100%;
+  }
+}

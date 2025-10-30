@@ -50,6 +50,7 @@ class Post {
     // For Waste posts - claim tracking
     this.claimedBy = data.claimedBy || null;
     this.claimedAt = data.claimedAt || null;
+    this.interestedCollectors = data.interestedCollectors || []; // Array of userIDs who claimed/want to collect
 
     // For Initiative posts - support tracking
     this.supporters = data.supporters || [];
@@ -121,6 +122,7 @@ class Post {
       // Include claim tracking fields
       claimedBy: this.claimedBy,
       claimedAt: this.claimedAt,
+      interestedCollectors: this.interestedCollectors || [],
       // Include support tracking fields
       supporters: this.supporters,
       supportCount: this.supportCount,

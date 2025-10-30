@@ -1077,22 +1077,29 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
       });
     }
     
-    // Check if post is already claimed
+    // Check if post is already claimed (with confirmed collector)
     if (post.status === 'Claimed' || post.status === 'Completed') {
       return res.status(400).json({
         success: false,
         message: `This post has already been ${post.status.toLowerCase()}.`
       });
     }
-    
-    // Update post status to Claimed
-    const updateData = { 
-      status: 'Claimed',
-      claimedBy: collectorID,
-      claimedAt: new Date().toISOString(),
+
+    // Check if collector has already claimed this post
+    const interestedCollectors = post.interestedCollectors || [];
+    if (interestedCollectors.includes(collectorID)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already claimed this post. You can schedule a pickup in the chat.'
+      });
+    }
+
+    // Add collector to interestedCollectors array (post stays Active)
+    const updateData = {
+      interestedCollectors: [...interestedCollectors, collectorID],
       updatedAt: new Date().toISOString()
     };
-        
+
     await Post.update(postId, updateData);
     
     // Get collector's and giver's names for the messages

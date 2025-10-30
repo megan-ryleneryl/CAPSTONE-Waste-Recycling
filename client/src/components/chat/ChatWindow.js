@@ -3,12 +3,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useNavigate, Link } from 'react-router-dom';
-import { Calendar, Package, Edit3, XCircle } from 'lucide-react';
+import { Calendar, Package, Edit3, XCircle, ClipboardList } from 'lucide-react';
 import PickupScheduleForm from './PickupScheduleForm';
 import PickupCard from './PickupCard';
 import SupportCard from './SupportCard';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
+import ProposedPickupsModal from './ProposedPickupsModal';
 import geocodingService from '../../services/geocodingService';
 import styles from './ChatWindow.module.css';
 
@@ -16,6 +17,8 @@ import styles from './ChatWindow.module.css';
 const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData }) => {
   const [messages, setMessages] = useState([]);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [showProposedPickupsModal, setShowProposedPickupsModal] = useState(false);
+  const [proposedPickups, setProposedPickups] = useState([]);
   const [activePickup, setActivePickup] = useState(null);
   const [activeSupport, setActiveSupport] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -115,7 +118,8 @@ const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData 
         if (
           (messageData.senderID === currentUser.userID && messageData.receiverID === otherUser.userID) ||
           (messageData.senderID === otherUser.userID && messageData.receiverID === currentUser.userID) ||
-          messageData.messageType === 'system'
+          // Only show system messages intended for the current user
+          (messageData.messageType === 'system' && messageData.receiverID === currentUser.userID)
         ) {
           messagesData.push({
             id: doc.id,
@@ -392,6 +396,168 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       }
     } else {
       setActivePickup(null);
+    }
+  };
+
+  // Load all proposed pickups for this post (for giver to view)
+  const loadProposedPickups = async () => {
+    if (!postID) return;
+
+    try {
+      const pickupsRef = collection(db, 'pickups');
+      const pickupQuery = query(
+        pickupsRef,
+        where('postID', '==', postID),
+        where('status', '==', 'Proposed')
+      );
+
+      const snapshot = await getDocs(pickupQuery);
+      const pickupsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      setProposedPickups(pickupsData);
+      return pickupsData;
+    } catch (error) {
+      console.error('Error loading proposed pickups:', error);
+      return [];
+    }
+  };
+
+  // Confirm a pickup (giver selects a collector)
+  const handleConfirmPickup = async (pickupId) => {
+    if (!pickupId || !postID) return;
+
+    try {
+      // 1. Update selected pickup to "Confirmed"
+      const selectedPickupRef = doc(db, 'pickups', pickupId);
+      await updateDoc(selectedPickupRef, {
+        status: 'Confirmed',
+        confirmedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      // 2. Get the confirmed pickup data
+      const confirmedPickupSnap = await getDoc(selectedPickupRef);
+      const confirmedPickup = confirmedPickupSnap.data();
+
+      // 3. Update post status to "Claimed" and set claimedBy
+      const postRef = doc(db, 'posts', postID);
+      await updateDoc(postRef, {
+        status: 'Claimed',
+        claimedBy: confirmedPickup.collectorID,
+        claimedAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      // 4. Get all OTHER proposed pickups for this post
+      const allPickupsQuery = query(
+        collection(db, 'pickups'),
+        where('postID', '==', postID),
+        where('status', '==', 'Proposed')
+      );
+      const otherPickupsSnap = await getDocs(allPickupsQuery);
+
+      // 5. Cancel all other proposed pickups and notify collectors
+      const cancelPromises = otherPickupsSnap.docs.map(async (pickupDoc) => {
+        const pickupData = pickupDoc.data();
+
+        // Cancel the pickup
+        await updateDoc(doc(db, 'pickups', pickupDoc.id), {
+          status: 'Cancelled',
+          cancelledAt: serverTimestamp(),
+          cancellationReason: 'Giver selected another collector',
+          updatedAt: serverTimestamp()
+        });
+
+        // Send system message to rejected collector
+        await addDoc(collection(db, 'messages'), {
+          messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          senderID: 'system',
+          senderName: 'System',
+          receiverID: pickupData.collectorID,
+          receiverName: pickupData.collectorName,
+          postID: postID,
+          postTitle: post?.title || 'Post',
+          postType: post?.postType || 'Waste',
+          messageType: 'system',
+          message: `[Status] The giver has proceeded with another collector for "${post?.title || 'this post'}". Your pickup schedule has been cancelled.`,
+          isRead: false,
+          isDeleted: false,
+          sentAt: serverTimestamp(),
+          metadata: {
+            action: 'pickup_rejected',
+            pickupID: pickupDoc.id
+          }
+        });
+      });
+
+      await Promise.all(cancelPromises);
+
+      // 6. Refresh UI
+      await refreshPickupData();
+      await loadProposedPickups();
+      setShowProposedPickupsModal(false);
+
+      // Reload post data
+      const updatedPostSnap = await getDoc(postRef);
+      if (updatedPostSnap.exists()) {
+        setPost({ id: updatedPostSnap.id, ...updatedPostSnap.data() });
+      }
+
+      alert('Pickup confirmed! Other proposals have been cancelled.');
+    } catch (error) {
+      console.error('Error confirming pickup:', error);
+      alert('Failed to confirm pickup. Please try again.');
+    }
+  };
+
+  // Reject a single pickup (keeps collector's claim active)
+  const handleRejectPickup = async (pickupId) => {
+    if (!pickupId) return;
+
+    try {
+      const pickupRef = doc(db, 'pickups', pickupId);
+      const pickupSnap = await getDoc(pickupRef);
+      const pickupData = pickupSnap.data();
+
+      // Cancel the pickup
+      await updateDoc(pickupRef, {
+        status: 'Cancelled',
+        cancelledAt: serverTimestamp(),
+        cancellationReason: 'Rejected by giver',
+        updatedAt: serverTimestamp()
+      });
+
+      // Send system message to collector
+      await addDoc(collection(db, 'messages'), {
+        messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        senderID: 'system',
+        senderName: 'System',
+        receiverID: pickupData.collectorID,
+        receiverName: pickupData.collectorName,
+        postID: postID,
+        postTitle: post?.title || 'Post',
+        postType: post?.postType || 'Waste',
+        messageType: 'system',
+        message: `[Status] The giver has rejected your pickup proposal for "${post?.title || 'this post'}". You can propose a new schedule if you'd like.`,
+        isRead: false,
+        isDeleted: false,
+        sentAt: serverTimestamp(),
+        metadata: {
+          action: 'pickup_rejected',
+          pickupID: pickupId
+        }
+      });
+
+      // Refresh proposed pickups list
+      await loadProposedPickups();
+
+      alert('Pickup proposal rejected. The collector can still propose a new schedule.');
+    } catch (error) {
+      console.error('Error rejecting pickup:', error);
+      alert('Failed to reject pickup. Please try again.');
     }
   };
 
@@ -686,12 +852,12 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
   // 1. User is a collector
   // 2. No active pickup exists
   // 3. Post exists and is not a Forum post
-  // 4. Current user is the one who claimed the post (claimedBy matches current user)
-  // 5. Post is not already completed
+  // 4. Current user is in the interestedCollectors array
+  // 5. Post is Active (not Claimed or Completed) - collectors can only schedule if no one is selected yet
   const canSchedulePickup = isCollector && !activePickup && post &&
     post.postType !== 'Forum' &&
-    post.claimedBy === currentUser?.userID &&
-    post.status !== 'Completed';
+    post.interestedCollectors?.includes(currentUser?.userID) &&
+    post.status === 'Active'; // Only allow scheduling when post is Active, not Claimed or Completed
 
   // Show cancel claim button if:
   // 1. User is a collector
@@ -703,6 +869,22 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
     post.status === 'Claimed' &&
     post.claimedBy === currentUser?.userID &&
     !activePickup;
+
+  // Show proposed pickups button if:
+  // 1. User is the giver (post owner)
+  // 2. Post is a Waste post
+  // 3. Post is Active (not yet claimed) and has interested collectors
+  const canViewProposedPickups = post &&
+    post.postType === 'Waste' &&
+    post.userID === currentUser?.userID &&
+    post.status === 'Active' &&
+    post.interestedCollectors?.length > 0;
+
+  // Open proposed pickups modal
+  const handleViewProposedPickups = async () => {
+    await loadProposedPickups();
+    setShowProposedPickupsModal(true);
+  };
 
 return (
   <div className={styles.chatWindow}>
@@ -767,6 +949,18 @@ return (
             <span className={styles.buttonText}>Cancel Claim</span>
           </button>
         )}
+        {canViewProposedPickups && (
+          <button
+            onClick={handleViewProposedPickups}
+            className={styles.proposedPickupsButton}
+            title="View all proposed pickup schedules"
+          >
+            <ClipboardList className={styles.buttonIcon} size={20} />
+            <span className={styles.buttonText}>
+              View Proposals {proposedPickups.length > 0 && `(${proposedPickups.length})`}
+            </span>
+          </button>
+        )}
         {onClose && (
           <button onClick={onClose} className={styles.closeButton} aria-label="Close chat">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -815,6 +1009,19 @@ return (
           giverPreferences={otherUserData?.preferences}
           onSubmit={handleSchedulePickup}
           onCancel={() => setShowScheduleForm(false)}
+        />
+      )}
+
+      {showProposedPickupsModal && (
+        <ProposedPickupsModal
+          proposedPickups={proposedPickups}
+          onConfirm={handleConfirmPickup}
+          onReject={handleRejectPickup}
+          onGoToChat={(collectorID) => {
+            // Navigate to chat with specific collector
+            navigate(`/chat?postId=${postID}&userId=${collectorID}`);
+          }}
+          onClose={() => setShowProposedPickupsModal(false)}
         />
       )}
     </div>

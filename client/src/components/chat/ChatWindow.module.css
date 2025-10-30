@@ -219,6 +219,29 @@
   box-shadow: 0 4px 8px rgba(220, 53, 69, 0.25);
 }
 
+.proposedPickupsButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.15);
+  white-space: nowrap;
+}
+
+.proposedPickupsButton:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.25);
+}
+
 .buttonIcon {
   font-size: 1rem;
   line-height: 1;
@@ -324,7 +347,8 @@
   }
 
   .scheduleButton,
-  .cancelClaimButton {
+  .cancelClaimButton,
+  .proposedPickupsButton {
     padding: 0.5rem 0.625rem;
     font-size: 0.75rem;
   }
