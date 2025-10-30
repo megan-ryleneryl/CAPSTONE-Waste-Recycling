@@ -1,11 +1,10 @@
-// models/Pickup.js - Complete implementation for Module 2
-const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, query, where, getDocs, orderBy, limit } = require('firebase/firestore');
-const { v4: uuidv4 } = require('uuid');
+// models/Pickup.js
+const { getFirestore, collection, doc, updateDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 
 class Pickup {
   constructor(data = {}) {
     // Core identifiers
-    this.pickupID = data.pickupID || uuidv4();
+    this.pickupID = data.pickupID || '';
     this.postID = data.postID || '';
     this.postType = data.postType || ''; // 'Waste' or 'Initiative'
     this.postTitle = data.postTitle || '';
@@ -85,145 +84,6 @@ class Pickup {
     this.updatedAt = data.updatedAt || new Date();
   }
 
-  // Validation
-  validate() {
-    const errors = [];
-    
-    if (!this.postID) errors.push('Post ID is required');
-    if (!this.giverID) errors.push('Giver ID is required');
-    if (!this.collectorID) errors.push('Collector ID is required');
-    if (!this.pickupDate) errors.push('Pickup date is required');
-    if (!this.pickupTime) errors.push('Pickup time is required');
-    if (!this.pickupLocation) errors.push('Pickup location is required');
-    if (!this.contactPerson) errors.push('Contact person is required');
-    if (!this.contactNumber) errors.push('Contact number is required');
-    
-    // Validate phone number format (Philippine format)
-    const phoneRegex = /^(\+63|0)?9\d{9}$/;
-    if (this.contactNumber && !phoneRegex.test(this.contactNumber.replace(/\s+/g, ''))) {
-      errors.push('Invalid contact number format');
-    }
-    
-    // Validate pickup date is in the future
-    const pickupDateTime = new Date(`${this.pickupDate} ${this.pickupTime}`);
-    if (pickupDateTime <= new Date()) {
-      errors.push('Pickup must be scheduled for a future date and time');
-    }
-    
-    // Validate status
-    const validStatuses = ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup', 'Completed', 'Cancelled'];
-    if (!validStatuses.includes(this.status)) {
-      errors.push('Invalid pickup status');
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
-  }
-
-  // Convert to Firestore document
-  toFirestore() {
-    return {
-      pickupID: this.pickupID,
-      postID: this.postID,
-      postType: this.postType,
-      postTitle: this.postTitle,
-      giverID: this.giverID,
-      giverName: this.giverName,
-      collectorID: this.collectorID,
-      collectorName: this.collectorName,
-      proposedBy: this.proposedBy,
-      pickupDate: this.pickupDate,
-      pickupTime: this.pickupTime,
-      pickupLocation: this.pickupLocation,
-      contactPerson: this.contactPerson,
-      contactNumber: this.contactNumber,
-      alternateContact: this.alternateContact,
-      giverPreferences: this.giverPreferences,
-      expectedWaste: this.expectedWaste,
-      price: this.price,
-      status: this.status,
-      actualWaste: this.actualWaste,
-      finalAmount: this.finalAmount,
-      paymentReceived: this.paymentReceived,
-      paymentMethod: this.paymentMethod,
-      completionNotes: this.completionNotes,
-      identityVerified: this.identityVerified,
-      verificationMethod: this.verificationMethod,
-      proposedPrice: this.proposedPrice,
-      specialInstructions: this.specialInstructions,
-      cancellationReason: this.cancellationReason,
-      cancellationBy: this.cancellationBy,
-      createdAt: this.createdAt,
-      confirmedAt: this.confirmedAt,
-      inTransitAt: this.inTransitAt,
-      arrivedAt: this.arrivedAt,
-      completedAt: this.completedAt,
-      cancelledAt: this.cancelledAt,
-      updatedAt: this.updatedAt
-    };
-  }
-
-  // Create new pickup
-  static async create(pickupData) {
-    const db = getFirestore();
-    const pickup = new Pickup(pickupData);
-    
-    const validation = pickup.validate();
-    if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
-    }
-    
-    const pickupRef = doc(db, 'pickups', pickup.pickupID);
-    await setDoc(pickupRef, pickup.toFirestore());
-    
-    // Create a system message in the chat (sent by the collector)
-    const Message = require('./Message');
-    await Message.create({
-      senderID: pickup.collectorID,
-      receiverID: pickup.giverID,
-      postID: pickup.postID,
-      messageType: 'pickup_request',
-      message: `[Pickup] Pickup Scheduled by Collector for ${pickup.pickupDate} at ${pickup.pickupTime}`,
-      metadata: {
-        pickupID: pickup.pickupID,
-        scheduledDate: pickup.pickupDate,
-        scheduledTime: pickup.pickupTime,
-        location: pickup.pickupLocation
-      }
-    });
-    
-    return pickup;
-  }
-
-  // Get pickup by ID
-  static async findById(pickupID) {
-    const db = getFirestore();
-    const pickupRef = doc(db, 'pickups', pickupID);
-    const pickupSnap = await getDoc(pickupRef);
-    
-    if (!pickupSnap.exists()) {
-      throw new Error('Pickup not found');
-    }
-    
-    return new Pickup(pickupSnap.data());
-  }
-
-  // Get pickups by post
-  static async findByPost(postID) {
-    const db = getFirestore();
-    const pickupsRef = collection(db, 'pickups');
-    const q = query(
-      pickupsRef,
-      where('postID', '==', postID),
-      orderBy('createdAt', 'desc')
-    );
-    
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => new Pickup(doc.data()));
-  }
-
   // Get all pickups
   static async findAll() {
     const db = getFirestore();
@@ -236,20 +96,6 @@ class Pickup {
 
     // Map each document to a Pickup instance
     return snapshot.docs.map(doc => new Pickup({ id: doc.id, ...doc.data() }));
-  }
-
-  // Get pickups by post
-  static async findByPost(postID) {
-    const db = getFirestore();
-    const pickupsRef = collection(db, 'pickups');
-    const q = query(
-      pickupsRef,
-      where('postID', '==', postID),
-      orderBy('createdAt', 'desc')
-    );
-    
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => new Pickup(doc.data()));
   }
 
   // Get user's pickups
@@ -312,92 +158,6 @@ class Pickup {
     return this;
   }
 
-  // Confirm pickup (by Giver)
-  async confirm(confirmerID) {
-    if (this.status !== 'Proposed') {
-      throw new Error('Only proposed pickups can be confirmed');
-    }
-    
-    if (confirmerID !== this.giverID) {
-      throw new Error('Only the giver can confirm the pickup');
-    }
-    
-    await this.update({
-      status: 'Confirmed',
-      confirmedAt: new Date()
-    });
-    
-    // Send confirmation message (sent by the giver)
-    const Message = require('./Message');
-    await Message.create({
-      senderID: this.giverID,
-      receiverID: this.collectorID,
-      postID: this.postID,
-      messageType: 'system',
-      message: `[Status] Pickup Confirmed by Giver`,
-      metadata: {
-        pickupID: this.pickupID,
-        action: 'pickup_confirmed',
-        pickupDate: this.pickupDate,
-        pickupTime: this.pickupTime
-      }
-    });
-  }
-
-  // Start transit (when collector is on the way)
-  async startTransit(collectorID) {
-    if (this.status !== 'Confirmed') {
-      throw new Error('Only confirmed pickups can be started');
-    }
-
-    if (collectorID !== this.collectorID) {
-      throw new Error('Only the assigned collector can start transit');
-    }
-
-    await this.update({
-      status: 'In-Transit',
-      inTransitAt: new Date()
-    });
-  }
-
-  // Mark as arrived at pickup location
-  async arriveAtPickup(collectorID) {
-    if (this.status !== 'In-Transit') {
-      throw new Error('Can only arrive after being in transit');
-    }
-
-    if (collectorID !== this.collectorID) {
-      throw new Error('Only the assigned collector can mark arrival');
-    }
-
-    await this.update({
-      status: 'ArrivedAtPickup',
-      arrivedAt: new Date()
-    });
-  }
-
-  // Complete pickup (by Giver)
-  async complete(completionData) {
-    if (!['ArrivedAtPickup', 'In-Transit', 'Confirmed'].includes(this.status)) {
-      throw new Error('Invalid pickup status for completion');
-    }
-    
-    await this.update({
-      status: 'Completed',
-      completedAt: new Date(),
-      actualWaste: completionData.actualWaste || this.actualWaste,
-      paymentReceived: completionData.paymentReceived || 0,
-      paymentMethod: completionData.paymentMethod || '',
-      completionNotes: completionData.completionNotes || '',
-      identityVerified: completionData.identityVerified || false,
-      verificationMethod: completionData.verificationMethod || ''
-    });
-    
-    // Update the related post status
-    const Post = require('./Posts');
-    await Post.updateStatus(this.postID, 'Completed');
-  }
-
   // Cancel pickup
   async cancel(cancellerID, reason = '') {
     if (this.status === 'Completed') {
@@ -453,34 +213,6 @@ class Pickup {
     const hoursUntilPickup = (pickupDateTime - new Date()) / (1000 * 60 * 60);
     
     return hoursUntilPickup >= 5 || this.status === 'Proposed';
-  }
-
-  // Get upcoming pickups
-  static async getUpcoming(userID, role = 'both') {
-    const pickups = await this.findByUser(userID, role);
-    const now = new Date();
-    
-    return pickups.filter(pickup => {
-      const pickupDateTime = new Date(`${pickup.pickupDate} ${pickup.pickupTime}`);
-      return pickup.status === 'Confirmed' && pickupDateTime > now;
-    });
-  }
-
-  // Get active pickup for a post
-  static async getActiveForPost(postID) {
-    const db = getFirestore();
-    const pickupsRef = collection(db, 'pickups');
-    const q = query(
-      pickupsRef,
-      where('postID', '==', postID),
-      where('status', 'in', ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup']),
-      limit(1)
-    );
-
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) return null;
-
-    return new Pickup(snapshot.docs[0].data());
   }
 }
 
