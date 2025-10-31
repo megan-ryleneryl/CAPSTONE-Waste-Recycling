@@ -90,6 +90,7 @@ class WastePost extends Post {
       pickupTime: this.pickupTime,
       claimedBy: this.claimedBy,
       claimedAt: this.claimedAt,
+      interestedCollectors: this.interestedCollectors || [],
       // User flags
       isCollector: this.isCollector,
       isAdmin: this.isAdmin,

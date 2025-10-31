@@ -325,6 +325,29 @@ const PickupTracking = () => {
   const handleComplete = async (completionData) => {
     setUpdating(true);
     try {
+      // Update material pricing history first
+      try {
+        const token = localStorage.getItem('token');
+        const materialPricingData = completionData.wasteDetails.map(item => ({
+          materialID: item.materialID,
+          pricePerKg: item.pricePerKg,
+          quantity: item.quantity
+        }));
+
+        const pricingResponse = await axios.post(
+          'http://localhost:3001/api/protected/materials/update-pricing',
+          { materials: materialPricingData },
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+
+        if (pricingResponse.data.success) {
+          console.log('✅ Material pricing history updated:', pricingResponse.data.updates);
+        }
+      } catch (pricingError) {
+        console.error('Error updating material pricing:', pricingError);
+        // Continue with pickup completion even if pricing update fails
+      }
+
       const pickupRef = doc(db, 'pickups', pickupId);
       await updateDoc(pickupRef, {
         status: 'Completed',

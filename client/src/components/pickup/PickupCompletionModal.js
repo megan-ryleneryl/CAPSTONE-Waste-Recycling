@@ -38,6 +38,12 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
   };
 
   const prefillEstimatedMaterials = () => {
+    // Helper function to get proposed price for a material
+    const getProposedPrice = (materialID) => {
+      const proposedPriceEntry = pickup.proposedPrice?.find(p => p.materialID === materialID);
+      return proposedPriceEntry?.proposedPricePerKilo || null;
+    };
+
     // For Initiative support pickups, get materials from supportData
     if (pickup.supportData?.offeredMaterials) {
       const supportMaterials = pickup.supportData.offeredMaterials.filter(m => m.status === 'Accepted');
@@ -48,12 +54,14 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
           const foundMaterial = availableMaterials.find(m =>
             (m.displayName || m.type).toLowerCase() === material.materialName.toLowerCase()
           );
+          const materialID = foundMaterial?.materialID || material.materialID || '';
+          const proposedPrice = getProposedPrice(materialID);
 
           return {
-            materialID: foundMaterial?.materialID || material.materialID || '',
+            materialID: materialID,
             materialName: material.materialName,
             quantity: material.quantity || '',
-            payment: ''
+            pricePerKg: proposedPrice || foundMaterial?.averagePricePerKg || ''
           };
         });
         setMaterials(prefilled);
@@ -68,34 +76,40 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
       const prefilled = postMaterials.map(material => {
         // Material can be object {materialID, materialName, quantity} or string
         if (typeof material === 'object' && material.materialID) {
+          const foundMaterial = availableMaterials.find(m => m.materialID === material.materialID);
+          const proposedPrice = getProposedPrice(material.materialID);
+
           return {
             materialID: material.materialID,
             materialName: material.materialName || material.materialID,
             quantity: material.quantity || '',
-            payment: ''
+            pricePerKg: proposedPrice || foundMaterial?.averagePricePerKg || ''
           };
         } else {
           // If it's a string, try to find it in availableMaterials
           const foundMaterial = availableMaterials.find(m =>
             (m.displayName || m.type).toLowerCase() === material.toLowerCase()
           );
+          const materialID = foundMaterial?.materialID || '';
+          const proposedPrice = getProposedPrice(materialID);
+
           return {
-            materialID: foundMaterial?.materialID || '',
+            materialID: materialID,
             materialName: foundMaterial?.displayName || material,
             quantity: '',
-            payment: ''
+            pricePerKg: proposedPrice || foundMaterial?.averagePricePerKg || ''
           };
         }
       });
       setMaterials(prefilled);
     } else {
       // No materials in post, start with empty form
-      setMaterials([{ materialID: '', materialName: '', quantity: '', payment: '' }]);
+      setMaterials([{ materialID: '', materialName: '', quantity: '', pricePerKg: '' }]);
     }
   };
 
   const addMaterial = () => {
-    setMaterials([...materials, { materialID: '', materialName: '', quantity: '', payment: '' }]);
+    setMaterials([...materials, { materialID: '', materialName: '', quantity: '', pricePerKg: '' }]);
   };
 
   const removeMaterial = (index) => {
@@ -108,11 +122,12 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
     const updated = [...materials];
     updated[index] = { ...updated[index], [field]: value };
 
-    // If updating materialID, also update materialName
+    // If updating materialID, also update materialName and pricePerKg
     if (field === 'materialID' && value) {
       const material = availableMaterials.find(m => m.materialID === value);
       if (material) {
         updated[index].materialName = material.displayName || material.type;
+        updated[index].pricePerKg = material.averagePricePerKg || '';
       }
     }
 
@@ -127,7 +142,9 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
 
   const calculateTotalPayment = () => {
     return materials.reduce((total, item) => {
-      return total + (parseFloat(item.payment) || 0);
+      const quantity = parseFloat(item.quantity) || 0;
+      const pricePerKg = parseFloat(item.pricePerKg) || 0;
+      return total + (quantity * pricePerKg);
     }, 0);
   };
 
@@ -159,7 +176,8 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
         materialID: item.materialID,
         materialName: item.materialName,
         quantity: parseFloat(item.quantity) || 0,
-        payment: parseFloat(item.payment) || 0
+        pricePerKg: parseFloat(item.pricePerKg) || 0,
+        payment: (parseFloat(item.quantity) || 0) * (parseFloat(item.pricePerKg) || 0)
       })),
       totalAmount: calculateTotalWeight(),
       totalPayment: calculateTotalPayment(),
@@ -186,7 +204,7 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
           <div className={styles.notice}>
             <AlertCircle size={18} />
             <p>
-              The form has been prefilled with estimated quantities from the original post.
+              The form has been prefilled with estimated quantities from the original post and prices from the pickup proposal.
               <strong> Please adjust to the actual materials and quantities collected.</strong>
             </p>
           </div>
@@ -268,13 +286,13 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
                             />
                           </div>
 
-                          {/* Payment */}
+                          {/* Price per kg */}
                           <div className={styles.field}>
-                            <label>Payment (₱)</label>
+                            <label>Price per kg (₱)</label>
                             <input
                               type="number"
-                              value={item.payment}
-                              onChange={(e) => updateMaterial(index, 'payment', e.target.value)}
+                              value={item.pricePerKg}
+                              onChange={(e) => updateMaterial(index, 'pricePerKg', e.target.value)}
                               placeholder="0.00"
                               className={styles.input}
                               min="0"
@@ -285,13 +303,15 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
                         </div>
 
                         {/* Price Info */}
-                        {selectedMaterial && item.quantity && (
+                        {item.quantity && item.pricePerKg && (
                           <div className={styles.priceInfo}>
-                            <span className={styles.priceLabel}>
-                              Avg. Price: ₱{selectedMaterial.averagePricePerKg}/kg
-                            </span>
+                            {selectedMaterial && (
+                              <span className={styles.priceLabel}>
+                                Market Avg: ₱{selectedMaterial.averagePricePerKg.toFixed(2)}/kg
+                              </span>
+                            )}
                             <span className={styles.priceEstimate}>
-                              Est. Total: ₱{(parseFloat(item.quantity || 0) * selectedMaterial.averagePricePerKg).toFixed(2)}
+                              Total Payment: ₱{(parseFloat(item.quantity || 0) * parseFloat(item.pricePerKg || 0)).toFixed(2)}
                             </span>
                           </div>
                         )}

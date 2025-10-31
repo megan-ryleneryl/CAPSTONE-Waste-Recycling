@@ -9,7 +9,10 @@
       "Bash(npm install react-calendar-heatmap)",
       "Bash(npm start)",
       "Bash(npm install leaflet.heat)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(taskkill:*)",
+      "Bash(nul)",
+      "Bash(npx kill-port 3001)"
     ],
     "deny": [],
     "ask": []

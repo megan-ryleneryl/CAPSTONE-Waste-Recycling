@@ -88,6 +88,7 @@ class InitiativePost extends Post {
       // CRITICAL: Include support tracking fields
       supporters: this.supporters,
       supportCount: this.supportCount,
+      interestedCollectors: this.interestedCollectors || [],
       // User flags
       isCollector: this.isCollector,
       isAdmin: this.isAdmin,

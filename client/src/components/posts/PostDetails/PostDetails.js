@@ -17,6 +17,8 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
   const [claimDetails, setClaimDetails] = useState(null);
   const [existingSupport, setExistingSupport] = useState(null);
   const [checkingSupport, setCheckingSupport] = useState(false);
+  const [interestedCollectors, setInterestedCollectors] = useState([]);
+  const [loadingCollectors, setLoadingCollectors] = useState(false);
 
   // Support form data for Initiative posts - NEW: Multiple materials
   const [supportData, setSupportData] = useState({
@@ -30,6 +32,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
   useEffect(() => {
     if (post && post.postType === 'Waste') {
       checkClaimStatus();
+      fetchInterestedCollectors();
     }
     if (post && post.postType === 'Initiative' && currentUser) {
       checkExistingSupport();
@@ -92,6 +95,45 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
       setExistingSupport(null);
     } finally {
       setCheckingSupport(false);
+    }
+  };
+
+  const fetchInterestedCollectors = async () => {
+    if (!post || !post.interestedCollectors || post.interestedCollectors.length === 0) {
+      setInterestedCollectors([]);
+      return;
+    }
+
+    setLoadingCollectors(true);
+    try {
+      const token = localStorage.getItem('token');
+      // Fetch user details for each interested collector
+      const collectorPromises = post.interestedCollectors.map(async (collectorID) => {
+        try {
+          const response = await axios.get(
+            `http://localhost:3001/api/users/${collectorID}`,
+            {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }
+          );
+          if (response.data.success) {
+            return response.data.user;
+          }
+          return null;
+        } catch (error) {
+          console.error(`Error fetching collector ${collectorID}:`, error);
+          return null;
+        }
+      });
+
+      const collectors = await Promise.all(collectorPromises);
+      const validCollectors = collectors.filter(c => c !== null);
+      setInterestedCollectors(validCollectors);
+    } catch (error) {
+      console.error('Error fetching interested collectors:', error);
+      setInterestedCollectors([]);
+    } finally {
+      setLoadingCollectors(false);
     }
   };
 
@@ -244,12 +286,15 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
   // Check user permissions
   const isCollector = currentUser?.isCollector === true || currentUser?.isAdmin === true;
   const isOwner = currentUser?.userID === post.userID;
+  const isAlreadyInterested = post.interestedCollectors &&
+                              post.interestedCollectors.includes(currentUser?.userID);
 
   // Show button conditions for different post types
   const showRequestButton = post.postType === 'Waste' &&
                            isCollector &&
                            !isOwner &&
                            !postClaimed &&
+                           !isAlreadyInterested &&
                            post.status !== 'Claimed';
 
   const showSupportButton = post.postType === 'Initiative' &&
@@ -368,6 +413,51 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
               </div>
             )}
 
+            {/* Interested Collectors List */}
+            {post.status === 'Active' && post.interestedCollectors && post.interestedCollectors.length > 0 && (
+              <div className={styles.interestedCollectorsSection}>
+                <div className={styles.interestedHeader}>
+                  <Users size={20} />
+                  <h3>Interested Collectors ({post.interestedCollectors.length})</h3>
+                </div>
+                <p className={styles.reminderText}>
+                  <strong>Note:</strong> Multiple collectors have shown interest in this waste.
+                  Only one will be selected once you review their proposals.
+                </p>
+
+                {loadingCollectors ? (
+                  <div className={styles.loadingState}>Loading collector information...</div>
+                ) : interestedCollectors.length > 0 ? (
+                  <div className={styles.collectorsList}>
+                    {interestedCollectors.map((collector) => (
+                      <div key={collector.userID} className={styles.collectorCard}>
+                        <div className={styles.collectorInfo}>
+                          <div className={styles.collectorAvatar}>
+                            {collector.firstName?.[0]}{collector.lastName?.[0]}
+                          </div>
+                          <div className={styles.collectorDetails}>
+                            <span className={styles.collectorName}>
+                              {collector.firstName} {collector.lastName}
+                            </span>
+                            <span className={styles.collectorEmail}>{collector.email}</span>
+                          </div>
+                        </div>
+                        <button
+                          className={styles.viewProposalButton}
+                          onClick={() => navigate(`/chat?postId=${post.postID}&userId=${collector.userID}`)}
+                        >
+                          <MessageCircle size={16} />
+                          Chat
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={styles.loadingState}>No collector details available yet.</div>
+                )}
+              </div>
+            )}
+
             {/* Action Button */}
             {showRequestButton && (
               <div className={styles.actionButtons}>
@@ -406,6 +496,25 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
                       {post.status === 'Claimed' && postClaimed && claimDetails && `Claimed by ${claimDetails.collectorName}. Check your messages for pickup details.`}
                       {post.status === 'Completed' && 'This waste has been successfully collected!'}
                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show note when collector has already shown interest (but not yet selected) */}
+            {post.postType === 'Waste' && !isOwner && isAlreadyInterested && post.status === 'Active' && (
+              <div className={styles.infoNote} style={{ borderLeftColor: '#F59E0B', background: '#FFFBEB' }}>
+                <div className={styles.noteContent} style={{ color: '#92400E' }}>
+                  <Package size={18} />
+                  <div>
+                    <strong>You've shown interest in this post</strong>
+                    <p>You can schedule a pickup proposal through the chat. The giver will review all proposals before selecting one.</p>
+                    <button
+                      className={styles.linkButton}
+                      onClick={() => navigate(`/chat?postId=${post.postID}&userId=${post.userID}`)}
+                    >
+                      Go to Chat
+                    </button>
                   </div>
                 </div>
               </div>

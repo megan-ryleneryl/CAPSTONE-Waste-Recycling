@@ -10,6 +10,7 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [averagePrices, setAveragePrices] = useState({});
+  const [isPriceExpanded, setIsPriceExpanded] = useState(false);
 
   // Fetch average prices for materials when component mounts
   useEffect(() => {
@@ -154,58 +155,79 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
               </div>
             )}
 
-            {/* Price Breakdown */}
+            {/* Price Breakdown - Expandable */}
             {pickup.proposedPrice && pickup.proposedPrice.length > 0 && (
               <div className={styles.priceBreakdown}>
-                <div className={styles.priceHeader}>
-                  <DollarSign size={18} />
-                  <strong>Price Breakdown</strong>
-                </div>
-                {pickup.proposedPrice.map((material, index) => {
-                  const avgPrice = averagePrices[material.materialID] || 0;
-                  const proposedPrice = parseFloat(material.proposedPricePerKilo) || 0;
-                  const priceDiff = proposedPrice - avgPrice;
-                  const isHigher = priceDiff > 0;
-
-                  return (
-                    <div key={index} className={styles.materialPriceRow}>
-                      <div className={styles.materialNameQty}>
-                        <span className={styles.materialName}>{material.materialName}</span>
-                        <span className={styles.materialQuantity}>({material.quantity} kg)</span>
-                      </div>
-                      <div className={styles.priceComparison}>
-                        <div className={styles.priceRow}>
-                          <span className={styles.priceLabel}>Proposed:</span>
-                          <span className={styles.proposedPrice}>₱{proposedPrice.toFixed(2)}/kg</span>
-                        </div>
-                        {avgPrice > 0 && (
-                          <>
-                            <div className={styles.priceRow}>
-                              <span className={styles.priceLabel}>Average:</span>
-                              <span className={styles.avgPrice}>₱{avgPrice.toFixed(2)}/kg</span>
-                            </div>
-                            <div className={styles.priceDiffRow}>
-                              <span className={`${styles.priceDiff} ${isHigher ? styles.higher : styles.lower}`}>
-                                {isHigher ? '+' : ''}{priceDiff.toFixed(2)} ({isHigher ? 'above' : 'below'} avg)
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        {material.quantity > 0 && proposedPrice > 0 && (
-                          <div className={styles.subtotalRow}>
-                            <span className={styles.subtotalLabel}>Subtotal:</span>
-                            <span className={styles.subtotal}>₱{(material.quantity * proposedPrice).toFixed(2)}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                {pickup.totalPrice > 0 && (
-                  <div className={styles.totalPriceRow}>
-                    <strong>Total Offered:</strong>
-                    <strong className={styles.totalAmount}>₱{parseFloat(pickup.totalPrice).toFixed(2)}</strong>
+                <div
+                  className={styles.priceHeader}
+                  onClick={() => setIsPriceExpanded(!isPriceExpanded)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <DollarSign size={18} />
+                    <strong>{isPriceExpanded ? 'Price Breakdown' : 'Price Offered'}</strong>
                   </div>
+                  {isPriceExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+
+                {/* Show total when collapsed */}
+                {!isPriceExpanded && pickup.totalPrice > 0 && (
+                  <div className={styles.collapsedTotal}>
+                    ₱{parseFloat(pickup.totalPrice).toFixed(2)}
+                  </div>
+                )}
+
+                {/* Show full breakdown when expanded */}
+                {isPriceExpanded && (
+                  <>
+                    {pickup.proposedPrice.map((material, index) => {
+                      const avgPrice = averagePrices[material.materialID] || 0;
+                      const proposedPrice = parseFloat(material.proposedPricePerKilo) || 0;
+                      const priceDiff = proposedPrice - avgPrice;
+                      const isHigher = priceDiff > 0;
+                      const isEqual = avgPrice > 0 && Math.abs(priceDiff) < 0.01;
+
+                      return (
+                        <div key={index} className={styles.materialPriceRow}>
+                          <div className={styles.materialNameQty}>
+                            <span className={styles.materialName}>{material.materialName}</span>
+                            <span className={styles.materialQuantity}>({material.quantity} kg)</span>
+                          </div>
+                          <div className={styles.priceComparison}>
+                            <div className={styles.priceRow}>
+                              <span className={styles.priceLabel}>Proposed:</span>
+                              <span className={styles.proposedPrice}>₱{proposedPrice.toFixed(2)}/kg</span>
+                            </div>
+                            {avgPrice > 0 && (
+                              <>
+                                <div className={styles.priceRow}>
+                                  <span className={styles.priceLabel}>Average:</span>
+                                  <span className={styles.avgPrice}>₱{avgPrice.toFixed(2)}/kg</span>
+                                </div>
+                                <div className={styles.priceDiffRow}>
+                                  <span className={`${styles.priceDiff} ${isEqual ? styles.equal : (isHigher ? styles.higher : styles.lower)}`}>
+                                    {isEqual ? '= Market average' : `${isHigher ? '+' : ''}${priceDiff.toFixed(2)} (${isHigher ? 'above' : 'below'} avg)`}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                            {material.quantity > 0 && proposedPrice > 0 && (
+                              <div className={styles.subtotalRow}>
+                                <span className={styles.subtotalLabel}>Subtotal:</span>
+                                <span className={styles.subtotal}>₱{(material.quantity * proposedPrice).toFixed(2)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {pickup.totalPrice > 0 && (
+                      <div className={styles.totalPriceRow}>
+                        <strong>Total Offered:</strong>
+                        <strong className={styles.totalAmount}>₱{parseFloat(pickup.totalPrice).toFixed(2)}</strong>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

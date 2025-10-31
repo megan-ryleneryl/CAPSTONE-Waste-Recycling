@@ -421,6 +421,41 @@
     font-size: 0.8rem;
   }
 
+  /* Interested Collectors - Mobile */
+  .interestedCollectorsSection {
+    padding: 1rem;
+  }
+
+  .interestedHeader h3 {
+    font-size: 1rem;
+  }
+
+  .reminderText {
+    font-size: 0.813rem;
+    padding: 0.625rem;
+  }
+
+  .collectorCard {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .collectorInfo {
+    flex: none;
+  }
+
+  .collectorAvatar {
+    width: 40px;
+    height: 40px;
+    font-size: 0.875rem;
+  }
+
+  .viewProposalButton {
+    width: 100%;
+    justify-content: center;
+  }
+
   .linkButton,
   .viewSupportsButton {
     padding: 0.5rem 0.875rem;
@@ -768,6 +803,139 @@
   color: #92400E;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+/* Interested Collectors Section */
+.interestedCollectorsSection {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: #f0fdf4;
+  border-radius: 12px;
+  border-left: 4px solid #3B6535;
+  width: 100%;
+}
+
+.interestedHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  color: #3B6535;
+}
+
+.interestedHeader h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.reminderText {
+  margin: 0 0 1rem 0;
+  padding: 0.75rem;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+.reminderText strong {
+  color: #92400e;
+}
+
+.collectorsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.collectorCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #d1fae5;
+  transition: all 0.2s;
+}
+
+.collectorCard:hover {
+  border-color: #3B6535;
+  box-shadow: 0 2px 8px rgba(59, 101, 53, 0.1);
+}
+
+.collectorInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.collectorAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3B6535 0%, #2d4e29 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.collectorDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.collectorName {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 0.938rem;
+}
+
+.collectorEmail {
+  font-size: 0.813rem;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.viewProposalButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #3B6535;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.viewProposalButton:hover {
+  background: #2d4e29;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 101, 53, 0.2);
+}
+
+.loadingState {
+  padding: 1rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
 }
 
 /* Materials Progress Section - for Initiative Posts with material breakdown */

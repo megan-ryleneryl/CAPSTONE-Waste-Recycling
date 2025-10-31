@@ -563,7 +563,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
     }
   };
 
-  const updatePickupStatus = async (status) => {
+  const updatePickupStatus = async (status, reason) => {
     if (!activePickup?.id) return;
 
     try {
@@ -583,6 +583,11 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         status,
         updatedAt: serverTimestamp()
       };
+
+      // Add cancellation reason if provided
+      if (status === 'Cancelled' && reason) {
+        updateData.cancellationReason = reason;
+      }
 
       // Add timestamp field if applicable
       if (timestampFieldMap[status]) {
@@ -611,6 +616,9 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         statusMessage = `[Status] ${actorName} [${actorRole}] has arrived at the pickup location. Waiting for ${otherUserName} [${otherRole}] to complete the pickup.`;
       } else if (status === 'Cancelled') {
         statusMessage = `[Status] ${actorName} [${actorRole}] cancelled the pickup. This pickup has been terminated.`;
+        if (reason) {
+          statusMessage += ` Reason: ${reason}`;
+        }
       } else {
         statusMessage = `[Status] Pickup status updated to: ${status}`;
       }
@@ -621,61 +629,6 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       alert('Failed to update pickup status.');
     }
   };
-
-  const editPickup = async (pickupId, updatedData) => {
-  if (!pickupId) return;
-
-  try {
-    // Geocode the pickup location if it's being updated
-    let dataToUpdate = { ...updatedData };
-
-    if (updatedData.pickupLocation && !updatedData.pickupLocation.coordinates?.lat) {
-      console.log('🗺️ Geocoding updated pickup location...');
-      try {
-        const coords = await geocodingService.getCoordinates(updatedData.pickupLocation);
-
-        if (coords) {
-          dataToUpdate.pickupLocation = {
-            ...updatedData.pickupLocation,
-            coordinates: {
-              lat: coords.lat,
-              lng: coords.lng
-            }
-          };
-          console.log('✅ Updated pickup location coordinates added:', coords);
-        } else {
-          console.log('⚠️ Geocoding failed for updated location, proceeding without coordinates');
-        }
-      } catch (error) {
-        console.error('Error geocoding updated location:', error);
-        console.log('⚠️ Geocoding error, proceeding without coordinates');
-      }
-    }
-
-    const pickupRef = doc(db, 'pickups', pickupId);
-    await updateDoc(pickupRef, {
-      ...dataToUpdate,
-      status: 'Proposed', // Reset to proposed when edited
-      updatedAt: serverTimestamp()
-    });
-
-    // Refresh pickup data after edit
-    await refreshPickupData();
-    
-    // Send system message about the edit with actor and guidance
-    const collectorName = `${currentUser.firstName} ${currentUser.lastName}`;
-    const giverName = otherUserData?.name || `${otherUserData?.firstName || ''} ${otherUserData?.lastName || ''}`.trim();
-    await sendMessage(
-      `[Edit] ${collectorName} [Collector] edited the pickup schedule. Status has been reset to Proposed. Waiting for ${giverName} [Giver] to confirm the new schedule.`,
-      'system'
-    );
-    
-    alert('Pickup schedule updated successfully. The giver needs to confirm the new details.');
-  } catch (error) {
-    console.error('Error editing pickup:', error);
-    throw error;
-  }
-};
 
   // Handle accepting support request (or specific material)
   const handleAcceptSupport = async (supportID, materialID = null) => {
@@ -979,7 +932,6 @@ return (
         pickup={activePickup}
         currentUser={currentUser}
         onUpdateStatus={updatePickupStatus}
-        onEditPickup={editPickup}
       />
     )}
 
