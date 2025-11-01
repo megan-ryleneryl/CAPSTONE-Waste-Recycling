@@ -378,12 +378,12 @@ router.post('/create', verifyToken, (req, res, next) => {
           lng: coords.lng
         };
         if (coords.isFallback) {
-          console.log(`✅ Fallback coordinates added (city center):`, coords);
+          console.log(`✅ Coordinates added using ${coords.fallbackLevel} level fallback:`, coords);
         } else {
-          console.log('✅ Coordinates added:', coords);
+          console.log('✅ Coordinates added at barangay level:', coords);
         }
       } else {
-        console.log('⚠️ Geocoding failed and no fallback available, proceeding without coordinates');
+        console.log('⚠️ Geocoding failed at all levels, proceeding without coordinates');
         console.log('⚠️ This post will not appear on the geographic heatmap');
       }
     }

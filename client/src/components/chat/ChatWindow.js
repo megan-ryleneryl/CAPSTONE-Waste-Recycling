@@ -285,13 +285,18 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
                 lng: coords.lng
               }
             };
-            console.log('✅ Pickup location coordinates added:', coords);
+            if (coords.isFallback) {
+              console.log(`✅ Pickup coordinates added using ${coords.fallbackLevel} level fallback:`, coords);
+            } else {
+              console.log('✅ Pickup coordinates added at barangay level:', coords);
+            }
           } else {
-            console.log('⚠️ Geocoding failed, proceeding without coordinates');
+            console.warn('⚠️ Geocoding failed at all levels, proceeding without coordinates');
+            console.warn('⚠️ This pickup will not appear on the geographic heatmap');
           }
         } catch (error) {
           console.error('Error geocoding location:', error);
-          console.log('⚠️ Geocoding error, proceeding without coordinates');
+          console.warn('⚠️ Geocoding error, proceeding without coordinates');
         }
       }
 

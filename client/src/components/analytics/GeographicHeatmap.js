@@ -94,7 +94,7 @@ const AreaMarkers = ({ areas, onViewPosts }) => {
         <Circle
           key={index}
           center={[area.lat, area.lng]}
-          radius={area.radius || 2000}
+          radius={area.radius || 500}
           pathOptions={{
             fillColor: area.color || '#3B6535',
             fillOpacity: 0.3,

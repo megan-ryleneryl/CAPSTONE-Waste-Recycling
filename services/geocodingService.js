@@ -7,118 +7,77 @@ const geocoder = NodeGeocoder({
   formatter: null
 });
 
-// Fallback coordinates for major Philippine cities
-// These are approximate city center coordinates
-const CITY_FALLBACK_COORDS = {
-  // NCR Cities
-  '137404000': { lat: 14.6760, lng: 121.0437, name: 'Quezon City' },
-  '133900000': { lat: 14.5547, lng: 121.0244, name: 'Makati' },
-  '137500000': { lat: 14.5764, lng: 121.0851, name: 'Pasig' },
-  '137600000': { lat: 14.5176, lng: 121.0509, name: 'Taguig' },
-  '133300000': { lat: 14.5995, lng: 120.9842, name: 'Manila' },
-  '137800000': { lat: 14.5378, lng: 121.0014, name: 'Pasay' },
-  '137700000': { lat: 14.4793, lng: 121.0198, name: 'Parañaque' },
-  '134000000': { lat: 14.4453, lng: 120.9820, name: 'Las Piñas' },
-  '137602000': { lat: 14.4081, lng: 121.0414, name: 'Muntinlupa' },
-  '134500000': { lat: 14.6507, lng: 121.1029, name: 'Marikina' },
-  '133700000': { lat: 14.5794, lng: 121.0359, name: 'Mandaluyong' },
-  '134800000': { lat: 14.6019, lng: 121.0355, name: 'San Juan' },
-  '137401000': { lat: 14.6488, lng: 120.9830, name: 'Caloocan' },
-  '133800000': { lat: 14.6625, lng: 120.9559, name: 'Malabon' },
-  '138100000': { lat: 14.6681, lng: 120.9402, name: 'Navotas' },
-  '137403000': { lat: 14.7008, lng: 120.9830, name: 'Valenzuela' },
-
-  // Other major cities (add as needed)
-  '012800000': { lat: 14.1630, lng: 121.2425, name: 'Batangas City' },
-  '041000000': { lat: 10.3157, lng: 123.8854, name: 'Cebu City' },
-  '082100000': { lat: 7.0731, lng: 125.6128, name: 'Davao City' },
-  '014200000': { lat: 14.0860, lng: 122.1545, name: 'Lipa' }
-};
-
 class GeocodingService {
   /**
-   * Get coordinates from location object with fallback support
+   * Get coordinates from location object with progressive fallback
+   * Tries: barangay → city → province → region
    * @param {Object} locationObj - Location with region, province, city, barangay, addressLine
-   * @returns {Object|null} - {lat, lng, formattedAddress, isFallback} or null
+   * @returns {Object|null} - {lat, lng, formattedAddress, fallbackLevel} or null
    */
   static async getCoordinates(locationObj) {
     try {
       const { region, province, city, barangay } = locationObj;
 
-      // Build address string - EXCLUDE addressLine for more reliable geocoding
-      // Geocode to barangay level only (smallest unit for general location mapping)
-      // addressLine is kept in location object for pickup details
-      const parts = [
-        barangay?.name,
-        city?.name,
-        province?.name,
-        region?.name,
-        'Philippines'
-      ].filter(Boolean);
+      // Progressive fallback levels - try from most specific to least specific
+      const fallbackLevels = [
+        {
+          level: 'barangay',
+          parts: [barangay?.name, city?.name, province?.name, region?.name, 'Philippines']
+        },
+        {
+          level: 'city',
+          parts: [city?.name, province?.name, region?.name, 'Philippines']
+        },
+        {
+          level: 'province',
+          parts: [province?.name, region?.name, 'Philippines']
+        },
+        {
+          level: 'region',
+          parts: [region?.name, 'Philippines']
+        }
+      ];
 
-      const address = parts.join(', ');
-      console.log('🗺️ Geocoding address (barangay level):', address);
+      // Try each fallback level
+      for (const { level, parts } of fallbackLevels) {
+        const filteredParts = parts.filter(Boolean);
 
-      const results = await geocoder.geocode(address);
+        // Skip if no parts available at this level
+        if (filteredParts.length === 0) continue;
 
-      if (results && results.length > 0) {
-        console.log('✅ Geocoding successful:', {
-          lat: results[0].latitude,
-          lng: results[0].longitude
-        });
+        const address = filteredParts.join(', ');
+        console.log(`🗺️ Trying geocoding at ${level} level:`, address);
 
-        return {
-          lat: results[0].latitude,
-          lng: results[0].longitude,
-          formattedAddress: results[0].formattedAddress,
-          isFallback: false
-        };
-      }
+        try {
+          const results = await geocoder.geocode(address);
 
-      // FALLBACK: Try city-level fallback coordinates
-      console.log('⚠️ Geocoding failed, attempting fallback to city center...');
+          if (results && results.length > 0) {
+            const isFallback = level !== 'barangay';
 
-      if (city?.code) {
-        const fallback = CITY_FALLBACK_COORDS[city.code];
-        if (fallback) {
-          console.log(`✅ Using fallback coordinates for ${fallback.name}:`, {
-            lat: fallback.lat,
-            lng: fallback.lng
-          });
+            console.log(`✅ Geocoding successful at ${level} level:`, {
+              lat: results[0].latitude,
+              lng: results[0].longitude,
+              fallback: isFallback
+            });
 
-          return {
-            lat: fallback.lat,
-            lng: fallback.lng,
-            formattedAddress: `${fallback.name} (approximate city center)`,
-            isFallback: true
-          };
+            return {
+              lat: results[0].latitude,
+              lng: results[0].longitude,
+              formattedAddress: results[0].formattedAddress,
+              fallbackLevel: level,
+              isFallback
+            };
+          }
+        } catch (levelError) {
+          console.log(`⚠️ Geocoding failed at ${level} level, trying next...`);
+          continue;
         }
       }
 
-      console.log('❌ No geocoding results found and no fallback available');
+      console.log('❌ No geocoding results found at any level');
       return null;
     } catch (error) {
       console.error('❌ Geocoding error:', error.message);
-
-      // FALLBACK: Try city-level fallback on error
-      const { city } = locationObj;
-      if (city?.code) {
-        const fallback = CITY_FALLBACK_COORDS[city.code];
-        if (fallback) {
-          console.log(`✅ Using fallback coordinates for ${fallback.name} (after error):`, {
-            lat: fallback.lat,
-            lng: fallback.lng
-          });
-
-          return {
-            lat: fallback.lat,
-            lng: fallback.lng,
-            formattedAddress: `${fallback.name} (approximate city center)`,
-            isFallback: true
-          };
-        }
-      }
-
       return null;
     }
   }

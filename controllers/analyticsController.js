@@ -1583,7 +1583,7 @@ async function getGeographicHeatmapData() {
         completedPickups: data.completedPickups,
         completedSupports: data.completedSupports,
         color,
-        radius: 1000 + (data.totalActivity * 100) // Scale radius based on activity
+        radius: 1000 // FIXED: 1km radius for barangay-level zones
       });
 
       // Aggregate breakdown totals
