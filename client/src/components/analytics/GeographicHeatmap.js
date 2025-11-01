@@ -94,7 +94,7 @@ const AreaMarkers = ({ areas, onViewPosts }) => {
         <Circle
           key={index}
           center={[area.lat, area.lng]}
-          radius={area.radius || 500}
+          radius={area.radius || 1000}
           pathOptions={{
             fillColor: area.color || '#3B6535',
             fillOpacity: 0.3,
@@ -150,15 +150,13 @@ const AreaMarkers = ({ areas, onViewPosts }) => {
               </p>
 
               {/* View Posts Button */}
-              {area.location && (
-                <button
-                  className={styles.viewPostsButton}
-                  onClick={() => onViewPosts(area.location)}
-                >
-                  <ExternalLink size={16} />
-                  <span>View Posts in This Area</span>
-                </button>
-              )}
+              <button
+                className={styles.viewPostsButton}
+                onClick={() => onViewPosts(area)}
+              >
+                <ExternalLink size={16} />
+                <span>View Posts in This Area</span>
+              </button>
             </div>
           </Popup>
         </Circle>
@@ -195,16 +193,19 @@ const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }
   };
 
   // Handler to navigate to posts feed with location filter
-  const handleViewPosts = (location) => {
-    if (!location) return;
+  const handleViewPosts = (area) => {
+    if (!area) return;
 
-    // Build location filter object from the area location data
+    // Build location filter based on barangay count
+    // If multiple barangays in cluster, filter by city only
     const locationFilter = {
-      region: location.region?.code || null,
-      province: location.province?.code || null,
-      city: location.city?.code || null,
-      barangay: location.barangay?.code || null
+      region: area.region?.code || null,
+      province: area.province?.code || null,
+      city: area.city?.code || null,
+      barangay: null // Always use city filter for clustered zones
     };
+
+    console.log(`Filtering posts by city: ${area.city?.name} (${area.barangays?.length || 0} barangays in zone)`);
 
     // Navigate to posts feed with location state
     navigate('/posts', { state: { locationFilter } });

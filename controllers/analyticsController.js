@@ -1417,7 +1417,31 @@ async function getGeographicHeatmapData() {
     const completedSupports = allSupports.filter(s => s.status === 'Completed');
 
     // Create map for aggregating activity by location
-    const locationMap = new Map();
+    // Helper function to calculate distance between two coordinates (Haversine formula)
+    const calculateDistance = (lat1, lng1, lat2, lng2) => {
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c; // Distance in km
+    };
+
+    // Helper function to find or create a cluster within 2km range
+    const clusters = [];
+    const CLUSTER_RADIUS_KM = 2; // 2km clustering radius
+
+    const findNearbyCluster = (lat, lng) => {
+      for (const cluster of clusters) {
+        const distance = calculateDistance(lat, lng, cluster.centerLat, cluster.centerLng);
+        if (distance <= CLUSTER_RADIUS_KM) {
+          return cluster;
+        }
+      }
+      return null;
+    };
 
     // Helper function to build location label from location object
     const getLocationLabel = (location) => {
@@ -1432,7 +1456,7 @@ async function getGeographicHeatmapData() {
       return parts.length > 0 ? parts.join(', ') : 'Unknown';
     };
 
-    // Process posts - extract coordinates and aggregate
+    // Process posts - cluster by proximity
     allPosts.forEach(post => {
       // Check if post has valid coordinates
       if (post.location &&
@@ -1442,42 +1466,57 @@ async function getGeographicHeatmapData() {
 
         const lat = post.location.coordinates.lat;
         const lng = post.location.coordinates.lng;
-        const locationLabel = getLocationLabel(post.location);
 
-        // Create a location key (rounded to ~111 meters precision)
-        const locationKey = `${lat.toFixed(3)},${lng.toFixed(3)}`;
+        // Find nearby cluster or create new one
+        let cluster = findNearbyCluster(lat, lng);
 
-        if (!locationMap.has(locationKey)) {
-          locationMap.set(locationKey, {
-            lat,
-            lng,
-            locationLabel,
-            location: post.location, // Store full location hierarchy
+        if (!cluster) {
+          // Create new cluster
+          cluster = {
+            centerLat: lat,
+            centerLng: lng,
+            points: [],
+            barangays: new Set(), // Track unique barangays
+            city: post.location.city,
+            province: post.location.province,
+            region: post.location.region,
             wastePosts: 0,
             forumPosts: 0,
             initiativePosts: 0,
             completedPickups: 0,
             completedSupports: 0,
             totalActivity: 0
-          });
+          };
+          clusters.push(cluster);
         }
 
-        const location = locationMap.get(locationKey);
+        // Add point to cluster
+        cluster.points.push({ lat, lng });
+
+        // Add barangay to set (if exists)
+        if (post.location.barangay?.name) {
+          cluster.barangays.add(post.location.barangay.name);
+        }
+
+        // Update cluster center (weighted average)
+        const totalPoints = cluster.points.length;
+        cluster.centerLat = cluster.points.reduce((sum, p) => sum + p.lat, 0) / totalPoints;
+        cluster.centerLng = cluster.points.reduce((sum, p) => sum + p.lng, 0) / totalPoints;
 
         // Count by post type
         if (post.postType === 'Waste') {
-          location.wastePosts++;
+          cluster.wastePosts++;
         } else if (post.postType === 'Forum') {
-          location.forumPosts++;
+          cluster.forumPosts++;
         } else if (post.postType === 'Initiative') {
-          location.initiativePosts++;
+          cluster.initiativePosts++;
         }
 
-        location.totalActivity++;
+        cluster.totalActivity++;
       }
     });
 
-    // Add completed pickup data
+    // Add completed pickup data to clusters
     completedPickups.forEach(pickup => {
       // Find the related post to get coordinates
       const relatedPost = allPosts.find(p => p.postID === pickup.postID);
@@ -1489,17 +1528,17 @@ async function getGeographicHeatmapData() {
 
         const lat = relatedPost.location.coordinates.lat;
         const lng = relatedPost.location.coordinates.lng;
-        const locationKey = `${lat.toFixed(3)},${lng.toFixed(3)}`;
 
-        if (locationMap.has(locationKey)) {
-          const location = locationMap.get(locationKey);
-          location.completedPickups++;
-          location.totalActivity++;
+        // Find nearby cluster
+        const cluster = findNearbyCluster(lat, lng);
+        if (cluster) {
+          cluster.completedPickups++;
+          cluster.totalActivity++;
         }
       }
     });
 
-    // Add completed support data
+    // Add completed support data to clusters
     completedSupports.forEach(support => {
       // Find the related initiative post to get coordinates
       const relatedPost = allPosts.find(p => p.postID === support.initiativeID);
@@ -1511,18 +1550,18 @@ async function getGeographicHeatmapData() {
 
         const lat = relatedPost.location.coordinates.lat;
         const lng = relatedPost.location.coordinates.lng;
-        const locationKey = `${lat.toFixed(3)},${lng.toFixed(3)}`;
 
-        if (locationMap.has(locationKey)) {
-          const location = locationMap.get(locationKey);
-          location.completedSupports++;
-          location.totalActivity++;
+        // Find nearby cluster
+        const cluster = findNearbyCluster(lat, lng);
+        if (cluster) {
+          cluster.completedSupports++;
+          cluster.totalActivity++;
         }
       }
     });
 
-    // If no data, return empty arrays (NO PRESET CITIES)
-    if (locationMap.size === 0) {
+    // If no data, return empty arrays
+    if (clusters.length === 0) {
       console.log('No location data found in database');
       return {
         heatmapPoints: [],
@@ -1538,7 +1577,7 @@ async function getGeographicHeatmapData() {
       };
     }
 
-    // Convert map to arrays for heatmap
+    // Convert clusters to heatmap format
     const heatmapPoints = [];
     const areas = [];
     const breakdown = {
@@ -1550,49 +1589,70 @@ async function getGeographicHeatmapData() {
       totalActivity: 0
     };
 
-    locationMap.forEach((data) => {
+    clusters.forEach((cluster) => {
+      // Build location name with barangay list
+      let locationName = '';
+      const barangayList = Array.from(cluster.barangays).sort();
+
+      if (barangayList.length > 0) {
+        // Format: "City, Region: Barangay1, Barangay2"
+        const cityName = cluster.city?.name || 'Unknown City';
+        const regionName = cluster.region?.name || 'Unknown Region';
+        locationName = `${cityName}, ${regionName}: ${barangayList.join(', ')}`;
+      } else {
+        // Fallback: "City, Province, Region"
+        const parts = [];
+        if (cluster.city?.name) parts.push(cluster.city.name);
+        if (cluster.province?.name) parts.push(cluster.province.name);
+        if (cluster.region?.name) parts.push(cluster.region.name);
+        locationName = parts.join(', ') || 'Unknown';
+      }
+
       // Add to heatmap points with intensity
       heatmapPoints.push({
-        lat: data.lat,
-        lng: data.lng,
-        intensity: Math.min(data.totalActivity / 50, 1.0) // Normalize to 0-1, max at 50 activities
+        lat: cluster.centerLat,
+        lng: cluster.centerLng,
+        intensity: Math.min(cluster.totalActivity / 50, 1.0) // Normalize to 0-1, max at 50 activities
       });
 
       // Determine activity level
       let activityLevel = 'Low';
       let color = '#d4f1d4';
-      if (data.totalActivity >= 20) {
+      if (cluster.totalActivity >= 20) {
         activityLevel = 'High';
         color = '#2d7a2d';
-      } else if (data.totalActivity >= 10) {
+      } else if (cluster.totalActivity >= 10) {
         activityLevel = 'Medium';
         color = '#64db64';
       }
 
       // Add to areas for circle overlays
       areas.push({
-        name: data.locationLabel,
-        lat: data.lat,
-        lng: data.lng,
-        location: data.location, // Include full location hierarchy
-        activityCount: data.totalActivity,
+        name: locationName,
+        lat: cluster.centerLat,
+        lng: cluster.centerLng,
+        barangays: barangayList,
+        city: cluster.city,
+        province: cluster.province,
+        region: cluster.region,
+        activityCount: cluster.totalActivity,
         activityLevel,
-        wastePosts: data.wastePosts,
-        forumPosts: data.forumPosts,
-        initiativePosts: data.initiativePosts,
-        completedPickups: data.completedPickups,
-        completedSupports: data.completedSupports,
+        wastePosts: cluster.wastePosts,
+        forumPosts: cluster.forumPosts,
+        initiativePosts: cluster.initiativePosts,
+        completedPickups: cluster.completedPickups,
+        completedSupports: cluster.completedSupports,
         color,
-        radius: 1000 // FIXED: 1km radius for barangay-level zones
+        radius: 1000 // 1km radius for visualization
       });
 
       // Aggregate breakdown totals
-      breakdown.wastePosts += data.wastePosts;
-      breakdown.forumPosts += data.forumPosts;
-      breakdown.initiativePosts += data.initiativePosts;
-      breakdown.completedPickups += data.completedPickups;
-      breakdown.completedSupports += data.completedSupports;
-      breakdown.totalActivity += data.totalActivity;
+      breakdown.wastePosts += cluster.wastePosts;
+      breakdown.forumPosts += cluster.forumPosts;
+      breakdown.initiativePosts += cluster.initiativePosts;
+      breakdown.completedPickups += cluster.completedPickups;
+      breakdown.completedSupports += cluster.completedSupports;
+      breakdown.totalActivity += cluster.totalActivity;
     });
 
     console.log(`Generated geographic heatmap with ${heatmapPoints.length} locations, ${breakdown.totalActivity} total activities`);
