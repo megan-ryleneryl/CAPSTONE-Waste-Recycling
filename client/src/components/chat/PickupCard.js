@@ -2,9 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, CheckCircle, X, MapPinned, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
+import ModalPortal from '../modal/ModalPortal';
 import styles from './PickupCard.module.css';
 
-const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
+const PickupCard = ({ pickup, currentUser, onUpdateStatus, onConfirmPickup, onRejectPickup }) => {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -259,14 +260,14 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
           <>
             <button
               className={styles.confirmButton}
-              onClick={() => onUpdateStatus('Confirmed')}
+              onClick={() => onConfirmPickup && onConfirmPickup(pickup.pickupID || pickup.id)}
             >
               <CheckCircle size={18} />
               <span>Confirm</span>
             </button>
             <button
               className={styles.declineButton}
-              onClick={() => onUpdateStatus('Cancelled')}
+              onClick={() => onRejectPickup && onRejectPickup(pickup.pickupID || pickup.id)}
             >
               <X size={18} />
               <span>Decline</span>
@@ -299,36 +300,38 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus }) => {
 
       {/* Cancel Dialog */}
       {showCancelDialog && (
-        <div className={styles.cancelDialogOverlay} onClick={() => setShowCancelDialog(false)}>
-          <div className={styles.cancelDialog} onClick={(e) => e.stopPropagation()}>
-            <h3>Cancel Pickup</h3>
-            <p>Are you sure you want to cancel this pickup? You can provide a reason below (optional).</p>
-            <textarea
-              className={styles.cancelReasonInput}
-              placeholder="Reason for cancellation (optional)"
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              rows="4"
-            />
-            <div className={styles.cancelDialogActions}>
-              <button
-                className={styles.confirmCancelButton}
-                onClick={confirmCancelPickup}
-              >
-                Yes, Cancel
-              </button>
-              <button
-                className={styles.keepButton}
-                onClick={() => {
-                  setShowCancelDialog(false);
-                  setCancelReason('');
-                }}
-              >
-                Keep Pickup
-              </button>
+        <ModalPortal>
+          <div className={styles.cancelDialogOverlay} onClick={() => setShowCancelDialog(false)}>
+            <div className={styles.cancelDialog} onClick={(e) => e.stopPropagation()}>
+              <h3>Cancel Pickup</h3>
+              <p>Are you sure you want to cancel this pickup? You can provide a reason below (optional).</p>
+              <textarea
+                className={styles.cancelReasonInput}
+                placeholder="Reason for cancellation (optional)"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows="4"
+              />
+              <div className={styles.cancelDialogActions}>
+                <button
+                  className={styles.confirmCancelButton}
+                  onClick={confirmCancelPickup}
+                >
+                  Yes, Cancel
+                </button>
+                <button
+                  className={styles.keepButton}
+                  onClick={() => {
+                    setShowCancelDialog(false);
+                    setCancelReason('');
+                  }}
+                >
+                  Keep Pickup
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

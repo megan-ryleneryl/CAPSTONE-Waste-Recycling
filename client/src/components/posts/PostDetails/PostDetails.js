@@ -111,7 +111,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
       const collectorPromises = post.interestedCollectors.map(async (collectorID) => {
         try {
           const response = await axios.get(
-            `http://localhost:3001/api/users/${collectorID}`,
+            `http://localhost:3001/api/protected/users/${collectorID}`,
             {
               headers: { 'Authorization': `Bearer ${token}` }
             }
@@ -419,6 +419,16 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
                 <div className={styles.interestedHeader}>
                   <Users size={20} />
                   <h3>Interested Collectors ({post.interestedCollectors.length})</h3>
+                  {isOwner && (
+                    <button
+                      className={styles.chatAllButton}
+                      onClick={() => navigate('/chat', { state: { postID: post.postID } })}
+                      title="View all conversations about this post"
+                    >
+                      <MessageCircle size={16} />
+                      View Messages
+                    </button>
+                  )}
                 </div>
                 <p className={styles.reminderText}>
                   <strong>Note:</strong> Multiple collectors have shown interest in this waste.
@@ -428,27 +438,20 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
                 {loadingCollectors ? (
                   <div className={styles.loadingState}>Loading collector information...</div>
                 ) : interestedCollectors.length > 0 ? (
-                  <div className={styles.collectorsList}>
+                  <div className={styles.collectorsCompactList}>
                     {interestedCollectors.map((collector) => (
-                      <div key={collector.userID} className={styles.collectorCard}>
-                        <div className={styles.collectorInfo}>
-                          <div className={styles.collectorAvatar}>
-                            {collector.firstName?.[0]}{collector.lastName?.[0]}
-                          </div>
-                          <div className={styles.collectorDetails}>
-                            <span className={styles.collectorName}>
-                              {collector.firstName} {collector.lastName}
-                            </span>
-                            <span className={styles.collectorEmail}>{collector.email}</span>
-                          </div>
+                      <div key={collector.userID} className={styles.collectorCompactCard}>
+                        <div className={styles.collectorAvatar}>
+                          {collector.firstName?.[0]}{collector.lastName?.[0]}
                         </div>
-                        <button
-                          className={styles.viewProposalButton}
-                          onClick={() => navigate(`/chat?postId=${post.postID}&userId=${collector.userID}`)}
-                        >
-                          <MessageCircle size={16} />
-                          Chat
-                        </button>
+                        <div className={styles.collectorCompactDetails}>
+                          <span className={styles.collectorName}>
+                            {collector.firstName} {collector.lastName}
+                          </span>
+                          {collector.organizationName && (
+                            <span className={styles.collectorOrg}>{collector.organizationName}</span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

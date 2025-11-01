@@ -424,7 +424,7 @@
   font-size: 1.125rem;
 }
 
-/* Cancel Dialog Styles */
+/* Cancel Dialog Styles - Matching ProposedPickupsModal */
 .cancelDialogOverlay {
   position: fixed;
   top: 0;
@@ -433,13 +433,13 @@
   bottom: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(3px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10000;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
@@ -453,15 +453,15 @@
 
 .cancelDialog {
   background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 16px;
+  padding: 28px;
   max-width: 450px;
   width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: slideUp 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: modalSlide 0.3s ease;
 }
 
-@keyframes slideUp {
+@keyframes modalSlide {
   from {
     transform: translateY(30px);
     opacity: 0;
@@ -473,16 +473,16 @@
 }
 
 .cancelDialog h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 16px 0;
   font-size: 1.25rem;
-  color: #1f2937;
+  color: #111827;
   font-weight: 600;
 }
 
 .cancelDialog p {
-  margin: 0 0 1rem 0;
-  color: #6b7280;
-  line-height: 1.5;
+  margin: 0 0 12px 0;
+  color: #4b5563;
+  line-height: 1.6;
   font-size: 0.938rem;
 }
 
@@ -494,7 +494,7 @@
   font-size: 0.875rem;
   resize: vertical;
   font-family: inherit;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .cancelReasonInput:focus {
@@ -509,19 +509,20 @@
 
 .cancelDialogActions {
   display: flex;
-  gap: 0.75rem;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .confirmCancelButton,
 .keepButton {
   flex: 1;
-  padding: 0.75rem 1rem;
+  padding: 12px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 0.938rem;
+  font-size: 1rem;
 }
 
 .confirmCancelButton {

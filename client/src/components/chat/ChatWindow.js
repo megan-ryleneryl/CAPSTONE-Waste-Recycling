@@ -6,6 +6,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Calendar, Package, Edit3, XCircle, ClipboardList } from 'lucide-react';
 import PickupScheduleForm from './PickupScheduleForm';
 import PickupCard from './PickupCard';
+import axios from 'axios';
 import SupportCard from './SupportCard';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
@@ -118,8 +119,13 @@ const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData 
         if (
           (messageData.senderID === currentUser.userID && messageData.receiverID === otherUser.userID) ||
           (messageData.senderID === otherUser.userID && messageData.receiverID === currentUser.userID) ||
-          // Only show system messages intended for the current user
-          (messageData.messageType === 'system' && messageData.receiverID === currentUser.userID)
+          // Only show system messages that are part of this specific conversation
+          // (either sent by or intended for the otherUser in this chat)
+          (messageData.messageType === 'system' && (
+            (messageData.receiverID === currentUser.userID && messageData.senderID === otherUser.userID) ||
+            (messageData.receiverID === otherUser.userID && messageData.senderID === currentUser.userID) ||
+            (messageData.senderID === 'system' && messageData.receiverID === otherUser.userID)
+          ))
         ) {
           messagesData.push({
             id: doc.id,
@@ -932,6 +938,8 @@ return (
         pickup={activePickup}
         currentUser={currentUser}
         onUpdateStatus={updatePickupStatus}
+        onConfirmPickup={handleConfirmPickup}
+        onRejectPickup={handleRejectPickup}
       />
     )}
 
@@ -971,9 +979,46 @@ return (
           proposedPickups={proposedPickups}
           onConfirm={handleConfirmPickup}
           onReject={handleRejectPickup}
-          onGoToChat={(collectorID) => {
-            // Navigate to chat with specific collector
-            navigate(`/chat?postId=${postID}&userId=${collectorID}`);
+          onGoToChat={async (collectorID) => {
+            // Find collector info from proposedPickups
+            const pickup = proposedPickups.find(p => p.collectorID === collectorID);
+            if (!pickup) return;
+
+            // Close the modal first
+            setShowProposedPickupsModal(false);
+
+            // Fetch full user data for the collector
+            try {
+              const token = localStorage.getItem('token');
+              const response = await axios.get(
+                `http://localhost:3001/api/protected/users/${collectorID}`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+              );
+
+              if (response.data.success) {
+                const collectorUser = response.data.user;
+                // Navigate to chat with proper state
+                navigate('/chat', {
+                  state: {
+                    postID: postID,
+                    otherUser: {
+                      userID: collectorUser.userID,
+                      firstName: collectorUser.firstName,
+                      lastName: collectorUser.lastName,
+                      profilePictureUrl: collectorUser.profilePictureUrl,
+                      isCollector: collectorUser.isCollector,
+                      isAdmin: collectorUser.isAdmin,
+                      isOrganization: collectorUser.isOrganization,
+                      organizationName: collectorUser.organizationName
+                    },
+                    postData: post
+                  }
+                });
+              }
+            } catch (error) {
+              console.error('Error fetching collector data:', error);
+              alert('Failed to open chat. Please try again.');
+            }
           }}
           onClose={() => setShowProposedPickupsModal(false)}
         />

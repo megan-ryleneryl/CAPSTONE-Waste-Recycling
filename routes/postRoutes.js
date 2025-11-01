@@ -371,15 +371,20 @@ router.post('/create', verifyToken, (req, res, next) => {
     if (postData.location && !postData.location.coordinates?.lat) {
       console.log('🗺️ Geocoding location...');
       const coords = await GeocodingService.getCoordinates(postData.location);
-      
+
       if (coords) {
         postData.location.coordinates = {
           lat: coords.lat,
           lng: coords.lng
         };
-        console.log('✅ Coordinates added:', coords);
+        if (coords.isFallback) {
+          console.log(`✅ Fallback coordinates added (city center):`, coords);
+        } else {
+          console.log('✅ Coordinates added:', coords);
+        }
       } else {
-        console.log('⚠️ Geocoding failed, proceeding without coordinates');
+        console.log('⚠️ Geocoding failed and no fallback available, proceeding without coordinates');
+        console.log('⚠️ This post will not appear on the geographic heatmap');
       }
     }
     

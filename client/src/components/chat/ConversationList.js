@@ -138,6 +138,12 @@ const loadConversations = async () => {
     // Process received messages
     for (const doc of receivedSnapshot.docs) {
       const msg = { id: doc.id, ...doc.data() };
+
+      // Skip system messages not intended for current user
+      if (msg.messageType === 'system' && msg.receiverID !== currentUser.userID) {
+        continue;
+      }
+
       const key = `${msg.postID}-${msg.senderID}`;
 
       // Get cached user and post data
@@ -170,6 +176,12 @@ const loadConversations = async () => {
     // Process sent messages
     for (const doc of sentSnapshot.docs) {
       const msg = { id: doc.id, ...doc.data() };
+
+      // Skip system messages not sent by current user (shouldn't happen, but be safe)
+      if (msg.messageType === 'system' && msg.senderID !== currentUser.userID) {
+        continue;
+      }
+
       const key = `${msg.postID}-${msg.receiverID}`;
 
       // Get cached user and post data

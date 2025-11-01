@@ -426,13 +426,28 @@
     padding: 1rem;
   }
 
+  .interestedHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
   .interestedHeader h3 {
     font-size: 1rem;
+  }
+
+  .chatAllButton {
+    width: 100%;
+    justify-content: center;
   }
 
   .reminderText {
     font-size: 0.813rem;
     padding: 0.625rem;
+  }
+
+  .collectorsCompactList {
+    grid-template-columns: 1fr;
   }
 
   .collectorCard {
@@ -821,12 +836,39 @@
   gap: 0.75rem;
   margin-bottom: 0.75rem;
   color: #3B6535;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .interestedHeader h3 {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chatAllButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #3B6535;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.chatAllButton:hover {
+  background: #2d4e29;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 101, 53, 0.2);
 }
 
 .reminderText {
@@ -926,8 +968,60 @@
 
 .viewProposalButton:hover {
   background: #2d4e29;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(59, 101, 53, 0.2);
+}
+
+/* Compact Collectors List */
+.collectorsCompactList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.collectorCompactCard {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #d1fae5;
+  transition: all 0.2s;
+}
+
+.collectorCompactCard:hover {
+  border-color: #3B6535;
+  box-shadow: 0 1px 4px rgba(59, 101, 53, 0.1);
+}
+
+.collectorCompactCard .collectorAvatar {
+  width: 36px;
+  height: 36px;
+  font-size: 0.875rem;
+}
+
+.collectorCompactDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.collectorCompactDetails .collectorName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collectorOrg {
+  font-size: 0.75rem;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .loadingState {
