@@ -1429,12 +1429,15 @@ async function getGeographicHeatmapData() {
       return R * c; // Distance in km
     };
 
-    // Helper function to find or create a cluster within 2km range
+    // Helper function to find or create a cluster within 2km range (same city only)
     const clusters = [];
     const CLUSTER_RADIUS_KM = 2; // 2km clustering radius
 
-    const findNearbyCluster = (lat, lng) => {
+    const findNearbyCluster = (lat, lng, cityCode) => {
       for (const cluster of clusters) {
+        // Only cluster within same city
+        if (cluster.city?.code !== cityCode) continue;
+
         const distance = calculateDistance(lat, lng, cluster.centerLat, cluster.centerLng);
         if (distance <= CLUSTER_RADIUS_KM) {
           return cluster;
@@ -1466,9 +1469,10 @@ async function getGeographicHeatmapData() {
 
         const lat = post.location.coordinates.lat;
         const lng = post.location.coordinates.lng;
+        const cityCode = post.location.city?.code;
 
-        // Find nearby cluster or create new one
-        let cluster = findNearbyCluster(lat, lng);
+        // Find nearby cluster or create new one (same city only)
+        let cluster = findNearbyCluster(lat, lng, cityCode);
 
         if (!cluster) {
           // Create new cluster
@@ -1528,9 +1532,10 @@ async function getGeographicHeatmapData() {
 
         const lat = relatedPost.location.coordinates.lat;
         const lng = relatedPost.location.coordinates.lng;
+        const cityCode = relatedPost.location.city?.code;
 
-        // Find nearby cluster
-        const cluster = findNearbyCluster(lat, lng);
+        // Find nearby cluster (same city only)
+        const cluster = findNearbyCluster(lat, lng, cityCode);
         if (cluster) {
           cluster.completedPickups++;
           cluster.totalActivity++;
@@ -1550,9 +1555,10 @@ async function getGeographicHeatmapData() {
 
         const lat = relatedPost.location.coordinates.lat;
         const lng = relatedPost.location.coordinates.lng;
+        const cityCode = relatedPost.location.city?.code;
 
-        // Find nearby cluster
-        const cluster = findNearbyCluster(lat, lng);
+        // Find nearby cluster (same city only)
+        const cluster = findNearbyCluster(lat, lng, cityCode);
         if (cluster) {
           cluster.completedSupports++;
           cluster.totalActivity++;
@@ -1608,6 +1614,28 @@ async function getGeographicHeatmapData() {
         locationName = parts.join(', ') || 'Unknown';
       }
 
+      // Calculate dynamic radius based on point spread
+      let radius = 500; // Minimum radius in meters
+      if (cluster.points.length > 1) {
+        // Find maximum distance from center to any point
+        let maxDistance = 0;
+        cluster.points.forEach(point => {
+          const distance = calculateDistance(
+            cluster.centerLat,
+            cluster.centerLng,
+            point.lat,
+            point.lng
+          );
+          maxDistance = Math.max(maxDistance, distance);
+        });
+
+        // Convert to meters and add buffer (50% extra)
+        radius = Math.max(500, maxDistance * 1000 * 1.5);
+
+        // Cap at 2km to prevent huge zones
+        radius = Math.min(radius, 2000);
+      }
+
       // Add to heatmap points with intensity
       heatmapPoints.push({
         lat: cluster.centerLat,
@@ -1643,7 +1671,7 @@ async function getGeographicHeatmapData() {
         completedPickups: cluster.completedPickups,
         completedSupports: cluster.completedSupports,
         color,
-        radius: 1000 // 1km radius for visualization
+        radius // Dynamic radius based on point spread
       });
 
       // Aggregate breakdown totals
