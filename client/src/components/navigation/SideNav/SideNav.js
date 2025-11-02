@@ -77,7 +77,7 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
 
   const filterOptions = [
     { id: 'all', label: 'All Posts', icon: <Layers size={20} /> },
-    { id: 'Waste', label: 'Waste', icon: <Recycle size={20} /> },
+    { id: 'Waste', label: 'Recycle', icon: <Recycle size={20} /> },
     { id: 'Initiatives', label: 'Initiatives', icon: <Sprout size={20} /> },
     { id: 'Forum', label: 'Forum', icon: <MessagesSquare size={20} /> },
     { id: 'myPosts', label: 'My Posts', icon: <FileText size={20} /> }

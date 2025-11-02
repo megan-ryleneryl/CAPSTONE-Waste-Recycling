@@ -579,7 +579,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin: 2rem 0;
 }
 
 .metricCard {
@@ -653,7 +653,7 @@
 
 /* Trends Section */
 .trendsSection {
-  margin-top: 2rem;
+  /* margin-top: 2rem; */
   padding: 1.5rem;
   background: var(--bg-secondary, #fbfbfb);
   border-radius: var(--border-radius-lg, 12px);

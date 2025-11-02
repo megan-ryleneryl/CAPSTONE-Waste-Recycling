@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ModalPortal from '../../modal/ModalPortal';
 import CommentsSection from '../CommentsSection/CommentsSection';
 import styles from './PostDetails.module.css';
-import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
+import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Info } from 'lucide-react';
 
 
 const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLiked, onLikeToggle, likingPost }) => {
@@ -19,6 +19,20 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
   const [checkingSupport, setCheckingSupport] = useState(false);
   const [interestedCollectors, setInterestedCollectors] = useState([]);
   const [loadingCollectors, setLoadingCollectors] = useState(false);
+  const [showCollectorNote, setShowCollectorNote] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const infoIconRef = useRef(null);
+
+  // Update tooltip position when it's shown
+  useEffect(() => {
+    if (showCollectorNote && infoIconRef.current) {
+      const rect = infoIconRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        top: rect.bottom + 8,
+        left: rect.left + rect.width / 2
+      });
+    }
+  }, [showCollectorNote]);
 
   // Support form data for Initiative posts - NEW: Multiple materials
   const [supportData, setSupportData] = useState({
@@ -417,8 +431,36 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
             {post.status === 'Active' && post.interestedCollectors && post.interestedCollectors.length > 0 && (
               <div className={styles.interestedCollectorsSection}>
                 <div className={styles.interestedHeader}>
-                  <Users size={20} />
-                  <h3>Interested Collectors ({post.interestedCollectors.length})</h3>
+                  <h3>
+                    Interested Collectors ({post.interestedCollectors.length})
+                    <div className={styles.infoIconWrapper} ref={infoIconRef}>
+                      <Info
+                        size={18}
+                        className={styles.infoIcon}
+                        onMouseEnter={() => setShowCollectorNote(true)}
+                        onMouseLeave={() => setShowCollectorNote(false)}
+                        onClick={() => setShowCollectorNote(!showCollectorNote)}
+                      />
+                    </div>
+                  </h3>
+                  {showCollectorNote && (
+                    <ModalPortal>
+                      <div
+                        className={styles.tooltipPortal}
+                        style={{
+                          position: 'fixed',
+                          top: `${tooltipPosition.top}px`,
+                          left: `${tooltipPosition.left}px`,
+                          transform: 'translateX(-50%)'
+                        }}
+                        onMouseEnter={() => setShowCollectorNote(true)}
+                        onMouseLeave={() => setShowCollectorNote(false)}
+                      >
+                        <strong>Note:</strong> Multiple collectors have shown interest in this waste.
+                        Only one will be selected once you review their proposals.
+                      </div>
+                    </ModalPortal>
+                  )}
                   {isOwner && (
                     <button
                       className={styles.chatAllButton}
@@ -430,10 +472,6 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
                     </button>
                   )}
                 </div>
-                <p className={styles.reminderText}>
-                  <strong>Note:</strong> Multiple collectors have shown interest in this waste.
-                  Only one will be selected once you review their proposals.
-                </p>
 
                 {loadingCollectors ? (
                   <div className={styles.loadingState}>Loading collector information...</div>

@@ -1,10 +1,11 @@
 /* client/src/components/chat/PickupCard.module.css */
 .pickupCard {
   background: white;
-  border-radius: 8px;
+  /* border-radius: 8px; */
   border-left: 4px solid;
-  margin: 1rem 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* margin: 1rem 0; */
+  /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
+  border-bottom: 1px solid #e0e0e0;
   overflow: visible;
 }
 
@@ -13,8 +14,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .title {
@@ -58,6 +59,7 @@
   background: #f9fafb;
   border-top: 1px solid #e5e7eb;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 /* Button Styles */
@@ -283,6 +285,12 @@
   background: #f0fdf4;
   border-radius: 8px;
   border-left: 3px solid #3B6535;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.priceBreakdown:not(.expanded):hover {
+  background: #dcfce7;
+  transform: translateY(-1px);
 }
 
 .priceHeader {
@@ -290,10 +298,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 1rem;
   color: #3B6535;
   font-size: 0.938rem;
   transition: opacity 0.2s;
+  cursor: pointer;
+}
+
+.priceHeader.expanded {
+  margin-bottom: 1rem;
 }
 
 .priceHeader:hover {
@@ -495,6 +507,7 @@
   resize: vertical;
   font-family: inherit;
   margin-bottom: 1.5rem;
+  box-sizing: border-box;
 }
 
 .cancelReasonInput:focus {

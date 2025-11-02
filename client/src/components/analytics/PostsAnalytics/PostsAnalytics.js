@@ -62,75 +62,6 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
     }
   };
 
-  const extractCityName = (locationData) => {
-    // Handle both string and object inputs
-    let locationString = '';
-    let cityFromData = null;
-
-    if (typeof locationData === 'string') {
-      locationString = locationData;
-    } else if (locationData && typeof locationData === 'object') {
-      // Try to extract city from location object structure
-      cityFromData = locationData.city || locationData.municipality;
-      locationString = locationData.name || locationData.area || '';
-    }
-
-    // If we have city from object structure, use it
-    if (cityFromData) {
-      return cityFromData.trim();
-    }
-
-    if (!locationString) return null;
-
-    let cityName = locationString.trim();
-
-    // Skip if it's a region (NCR, Region IV-A, etc.)
-    if (cityName.match(/^(NCR|Region|REGION|Metropolitan Manila)/i)) {
-      return null;
-    }
-
-    // Skip barangay entries
-    if (cityName.toLowerCase().includes('barangay') ||
-        cityName.toLowerCase().includes('brgy.') ||
-        cityName.toLowerCase().includes('brgy ')) {
-      return null;
-    }
-
-    // Handle comma-separated format: "Barangay, City, Province"
-    // For NCR: "Barangay, City" (no province)
-    if (cityName.includes(',')) {
-      const parts = cityName.split(',').map(p => p.trim());
-
-      // If there are 3 parts: barangay, city, province - take the middle one (city)
-      if (parts.length === 3) {
-        cityName = parts[1];
-      }
-      // If there are 2 parts: barangay, city - take the last one (city)
-      else if (parts.length === 2) {
-        // Check if first part looks like barangay
-        if (parts[0].toLowerCase().includes('barangay') ||
-            parts[0].toLowerCase().includes('brgy')) {
-          cityName = parts[1];
-        } else {
-          // Otherwise take the last part
-          cityName = parts[parts.length - 1];
-        }
-      }
-    }
-
-    // Clean up common patterns
-    cityName = cityName
-      .replace(/^City of /i, '')
-      .replace(/^Municipality of /i, '')
-      .replace(/^Lungsod ng /i, '') // Filipino for "City of"
-      .trim();
-
-    // Keep "City" suffix for proper names (e.g., "Quezon City")
-    // This is already in the correct format
-
-    return cityName || null;
-  };
-
   const fetchTopLocations = async () => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -152,11 +83,10 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
         const cityAggregation = {};
 
         response.data.data.areas.forEach(area => {
-          // Extract city name from the location string
-          const rawName = area.name || area.area || '';
-          const cityName = extractCityName(rawName);
+          // Get city name directly from the city object
+          const cityName = area.city?.name || null;
 
-          // Skip if null (barangay) or unknown
+          // Skip if no city name available
           if (!cityName || cityName === 'Unknown') {
             return;
           }
@@ -169,8 +99,23 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
           } else {
             cityAggregation[cityName] = {
               count: count,
-              location: area.location // Store full location hierarchy with codes
+              // Build location object from separate properties returned by API
+              location: {
+                region: area.region || null,
+                province: area.province || null,
+                city: area.city || null,
+                barangay: null
+              }
             };
+            // Debug: Log the location structure for each city
+            console.log(`📍 Stored location for ${cityName}:`, {
+              cityCode: area.city?.code,
+              cityName: area.city?.name,
+              provinceCode: area.province?.code,
+              provinceName: area.province?.name,
+              regionCode: area.region?.code,
+              regionName: area.region?.name
+            });
           }
         });
 
@@ -303,13 +248,14 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
                   className={styles.locationItem}
                   onClick={() => {
                     if (onLocationFilterChange && location.location) {
-                      // Set filter to this city's location
+                      // Set filter to this city's location codes
                       const filter = {
                         region: location.location.region?.code || null,
                         province: location.location.province?.code || null,
                         city: location.location.city?.code || null,
                         barangay: null // Don't filter by barangay, just city
                       };
+                      console.log('Setting location filter:', filter);
                       onLocationFilterChange(filter);
                     }
                   }}

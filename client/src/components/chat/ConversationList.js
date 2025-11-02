@@ -345,8 +345,8 @@ const loadConversations = async () => {
       <div className={styles.conversationItems}>
         {allConversations.length > 0 ? (
           <>
-            {/* Show sections for Waste and Initiative filters */}
-            {(activeFilter === 'waste' || activeFilter === 'initiative') ? (
+            {/* Show sections for All, Waste and Initiative filters */}
+            {(activeFilter === 'all' || activeFilter === 'waste' || activeFilter === 'initiative') ? (
               <>
                 {/* My Posts Section */}
                 {myConversations.length > 0 && (
@@ -354,7 +354,7 @@ const loadConversations = async () => {
                     <div className={styles.sectionHeader}>
                       <h3 className={styles.sectionTitle}>
                         <User size={16} className={styles.sectionIcon} />
-                        {activeFilter === 'waste' ? 'My Waste' : 'My Initiatives'}
+                        {'My Posts'}
                       </h3>
                       <span className={styles.sectionCount}>{myConversations.length}</span>
                     </div>
@@ -376,7 +376,7 @@ const loadConversations = async () => {
                     <div className={styles.sectionHeader}>
                       <h3 className={styles.sectionTitle}>
                         <Users size={16} className={styles.sectionIcon} />
-                        {activeFilter === 'waste' ? 'Others Waste' : 'Other Initiatives'}
+                        {'Others Posts'}
                       </h3>
                       <span className={styles.sectionCount}>{othersConversations.length}</span>
                     </div>
@@ -393,7 +393,7 @@ const loadConversations = async () => {
                 )}
               </>
             ) : (
-              /* For 'all' and 'forum' filters, show all conversations without sections */
+              /* For 'forum' filter, show all conversations without sections */
               allConversations.map((conversation) => (
                 <ConversationListItem
                   key={conversation.id}

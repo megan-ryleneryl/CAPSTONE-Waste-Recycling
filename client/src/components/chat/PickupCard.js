@@ -158,25 +158,32 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onConfirmPickup, onRe
 
             {/* Price Breakdown - Expandable */}
             {pickup.proposedPrice && pickup.proposedPrice.length > 0 && (
-              <div className={styles.priceBreakdown}>
+              <div className={`${styles.priceBreakdown} ${isPriceExpanded ? styles.expanded : ''}`}>
                 <div
-                  className={styles.priceHeader}
+                  className={`${styles.priceHeader} ${isPriceExpanded ? styles.expanded : ''}`}
                   onClick={() => setIsPriceExpanded(!isPriceExpanded)}
                   style={{ cursor: 'pointer' }}
+
                 >
+                  
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <DollarSign size={18} />
                     <strong>{isPriceExpanded ? 'Price Breakdown' : 'Price Offered'}</strong>
                   </div>
-                  {isPriceExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {/* Show total when collapsed */}
+                    {!isPriceExpanded && pickup.totalPrice > 0 && (
+                      <div className={styles.collapsedTotal}>
+                        ₱{parseFloat(pickup.totalPrice).toFixed(2)}
+                      </div>
+                    )}
+
+                    {isPriceExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  </div>
                 </div>
 
-                {/* Show total when collapsed */}
-                {!isPriceExpanded && pickup.totalPrice > 0 && (
-                  <div className={styles.collapsedTotal}>
-                    ₱{parseFloat(pickup.totalPrice).toFixed(2)}
-                  </div>
-                )}
+
 
                 {/* Show full breakdown when expanded */}
                 {isPriceExpanded && (

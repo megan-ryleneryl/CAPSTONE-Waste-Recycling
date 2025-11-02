@@ -3,13 +3,17 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 0.25rem;
+  font-weight: 500;
+  letter-spacing: -0.03rem;  
 }
 
 .messageItem.own {
+  text-align: right;
   align-items: flex-end;
 }
 
 .messageItem.other {
+  text-align: left;
   align-items: flex-start;
 }
 
@@ -27,12 +31,6 @@
   margin-bottom: 0.25rem;
   padding: 0 0.75rem;
   font-weight: 500;
-}
-
-.senderType {
-  color: #999;
-  font-weight: 400;
-  margin-left: 0.25rem;
 }
 
 .messageContent {
@@ -56,7 +54,7 @@
 }
 
 .messageItem.other .messageText {
-  background: #f0f0f0;
+  background: #e5e5e5;
   color: #333;
 }
 
@@ -130,14 +128,17 @@
 }
 
 .systemText {
-  background: rgba(59, 101, 53, 0.1);
-  color: #3B6535;
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
+
+  font-style: italic;
+  background: rgba(218, 218, 218, 0.1);
+  color: #8f8f8f;
+  padding: 0.5rem 0.8rem;
+  /* border-radius: 12px; */
   font-size: 0.9rem;
-  text-align: center;
-  border: 1px solid rgba(59, 101, 53, 0.2);
-  max-width: 80%;
+  text-align: left;
+  /* border: 1px solid rgba(59, 101, 53, 0.2); */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .systemTime {
