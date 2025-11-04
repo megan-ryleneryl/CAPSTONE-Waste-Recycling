@@ -18,8 +18,10 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
   const [error, setError] = useState(null);
   const [isInitializing, setIsInitializing] = useState(false);
 
-  // Track the last processed region to prevent multiple resets
+  // Track the last processed values to prevent multiple resets
   const lastProcessedRegion = useRef(null);
+  const lastProcessedCity = useRef(null);
+  const citiesFetched = useRef(false); // Track if cities have been fetched for NCR
 
   // Fetch regions on component mount
   useEffect(() => {
@@ -46,9 +48,19 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
 
             // If city is also provided, fetch cities
             if (currentFilter.city) {
-              const fetchCitiesPromise = currentFilter.region === '130000000'
-                ? fetchCitiesFromRegion(currentFilter.region)
-                : fetchCitiesFromProvince(currentFilter.province);
+              let fetchCitiesPromise;
+              if (currentFilter.region === '130000000') {
+                // NCR - check if cities already fetched
+                fetchCitiesPromise = citiesFetched.current
+                  ? Promise.resolve()
+                  : fetchCitiesFromRegion(currentFilter.region);
+
+                if (!citiesFetched.current) {
+                  citiesFetched.current = true;
+                }
+              } else {
+                fetchCitiesPromise = fetchCitiesFromProvince(currentFilter.province);
+              }
 
               fetchCitiesPromise.then(() => {
                 setSelectedCity(currentFilter.city);
@@ -69,7 +81,15 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
           });
         } else if (currentFilter.city) {
           // NCR case - no province, direct to city
-          fetchCitiesFromRegion(currentFilter.region).then(() => {
+          const fetchPromise = citiesFetched.current
+            ? Promise.resolve()
+            : fetchCitiesFromRegion(currentFilter.region);
+
+          if (!citiesFetched.current) {
+            citiesFetched.current = true;
+          }
+
+          fetchPromise.then(() => {
             setSelectedCity(currentFilter.city);
 
             if (currentFilter.barangay) {
@@ -96,10 +116,14 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
 
       // For NCR, fetch cities directly (NCR has no provinces)
       if (selectedRegion === '130000000') {
-        fetchCitiesFromRegion(selectedRegion);
+        if (!citiesFetched.current) {
+          fetchCitiesFromRegion(selectedRegion);
+          citiesFetched.current = true;
+        }
       } else {
         fetchProvinces(selectedRegion);
         setCities([]);
+        citiesFetched.current = false;
       }
       // Reset downstream selections
       setSelectedProvince('');
@@ -108,6 +132,7 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
       setBarangays([]);
     } else if (!selectedRegion) {
       lastProcessedRegion.current = null;
+      citiesFetched.current = false;
       setProvinces([]);
       setCities([]);
       setBarangays([]);
@@ -115,30 +140,27 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRegion]);
 
-  // Fetch cities when province changes (or directly from region for NCR)
+  // Fetch cities when province changes
   useEffect(() => {
-    if (!isInitializing) {
-      if (selectedRegion === '130000000' && cities.length === 0) {
-        // NCR - fetch cities directly from region (only if not already loaded)
-        fetchCitiesFromRegion(selectedRegion);
-      } else if (selectedProvince) {
-        // Other regions - fetch cities from province
-        fetchCitiesFromProvince(selectedProvince);
-        // Reset downstream selections only when province changes
-        setSelectedCity('');
-        setSelectedBarangay('');
-        setBarangays([]);
-      }
+    if (!isInitializing && selectedProvince) {
+      // Other regions - fetch cities from province
+      fetchCitiesFromProvince(selectedProvince);
+      // Reset downstream selections only when province changes
+      setSelectedCity('');
+      setSelectedBarangay('');
+      setBarangays([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProvince]);
 
   // Fetch barangays when city changes
   useEffect(() => {
-    if (selectedCity && !isInitializing) {
+    if (selectedCity && !isInitializing && lastProcessedCity.current !== selectedCity) {
+      lastProcessedCity.current = selectedCity;
       fetchBarangays(selectedCity);
       setSelectedBarangay('');
     } else if (!selectedCity) {
+      lastProcessedCity.current = null;
       setBarangays([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
