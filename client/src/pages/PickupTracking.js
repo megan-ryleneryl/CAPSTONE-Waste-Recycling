@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle, Truck, Package, Check, Trash2, Scale, MapPin, Calendar, Phone, User, Clock, DollarSign, FileText } from 'lucide-react';
+import { CheckCircle, Truck, Package, Check, Trash2, Scale, MapPin, Calendar, Phone, User, Clock, DollarSign, FileText, MessageCircle } from 'lucide-react';
 import PickupCompletionModal from '../components/pickup/PickupCompletionModal';
 import axios from 'axios';
 import styles from './PickupTracking.module.css';
@@ -490,9 +490,37 @@ const PickupTracking = () => {
         <button onClick={() => navigate(-1)} className={styles.backButton}>
           ← Back
         </button>
-        <h1 className={styles.title}>Pickup Tracking</h1>
-        <div className={styles.statusBadge} style={{ backgroundColor: getStatusColor(pickup.status) }}>
-          {pickup.status === 'In-Transit' ? 'In Transit' : pickup.status}
+        <h1 className={styles.title}>Pickup Status Tracking</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {pickup.status !== 'Cancelled' && (
+            <button
+              onClick={() => {
+                const otherUserID = isGiver ? pickup.collectorID : pickup.giverID;
+                const otherUserName = isGiver ? pickup.collectorName : pickup.giverName;
+
+                // Navigate to chat with state to open the appropriate conversation
+                navigate('/chat', {
+                  state: {
+                    postID: pickup.postID,
+                    otherUser: {
+                      userID: otherUserID,
+                      firstName: otherUserName?.split(' ')[0] || 'Unknown',
+                      lastName: otherUserName?.split(' ')[1] || 'User'
+                    },
+                    postData: postData
+                  }
+                });
+              }}
+              className={styles.chatButton}
+              title="Open Chat"
+            >
+              <MessageCircle size={20} />
+              <span>Chat</span>
+            </button>
+          )}
+          <div className={styles.statusBadge} style={{ backgroundColor: getStatusColor(pickup.status) }}>
+            {pickup.status === 'In-Transit' ? 'In Transit' : pickup.status}
+          </div>
         </div>
       </div>
 
@@ -759,6 +787,14 @@ const PickupTracking = () => {
                       }
                       return null;
                     })()}
+                    {pickup?.proposedPrice && pickup.proposedPrice > 0 && (
+                      <div className={styles.detailRow}>
+                        <span className={styles.detailLabel}>Proposed Price:</span>
+                        <span className={styles.detailValue} style={{ color: '#3b82f6', fontWeight: '600' }}>
+                          ₱{typeof pickup.proposedPrice === 'number' ? pickup.proposedPrice.toFixed(2) : pickup.proposedPrice}
+                        </span>
+                      </div>
+                    )}
                     {postData?.condition && (
                       <div className={styles.detailRow}>
                         <span className={styles.detailLabel}>Condition:</span>
@@ -842,12 +878,14 @@ const PickupTracking = () => {
                     {pickup.actualWaste.map((item, index) => (
                       <div key={index} className={styles.wasteItem}>
                         <div className={styles.wasteItemHeader}>
-                          <span className={styles.wasteType}>{item.type}</span>
+                          <span className={styles.wasteType}>{item.materialName || item.type}</span>
                         </div>
                         <div className={styles.wasteItemDetails}>
-                          <span className={styles.wasteAmount}>{item.amount} kg</span>
-                          {item.payment > 0 && (
-                            <span className={styles.wastePayment}>₱{item.payment.toFixed(2)}</span>
+                          <span className={styles.wasteAmount}>{item.quantity || item.amount} kg</span>
+                          {(item.pricePerKg || item.payment) && (
+                            <span className={styles.wastePayment}>
+                              ₱{item.pricePerKg ? (item.quantity * item.pricePerKg).toFixed(2) : item.payment.toFixed(2)}
+                            </span>
                           )}
                         </div>
                       </div>
