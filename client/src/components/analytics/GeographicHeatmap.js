@@ -211,8 +211,6 @@ const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }
       barangay: null // Always use city filter for clustered zones
     };
 
-    console.log(`Filtering posts by city: ${area.city?.name} (${area.barangays?.length || 0} barangays in zone)`);
-
     // Navigate to posts feed with location state
     navigate('/posts', { state: { locationFilter } });
   };

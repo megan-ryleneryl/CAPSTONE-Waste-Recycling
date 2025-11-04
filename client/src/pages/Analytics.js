@@ -118,7 +118,40 @@ const Analytics = () => {
                            data.activeUsers > 0;
 
         if (!hasActivity && hasLocationFilter()) {
-          setError('No recycling activity found in this location yet. Try a broader area or check back later!');
+          // Check if there's data at a broader level
+          let errorMsg = 'No recycling activity found in this location yet.';
+
+          if (locationFilter.city || locationFilter.barangay) {
+            // Check if there's data at region level
+            const regionalParams = new URLSearchParams({ timeRange: selectedTimeRange });
+            if (locationFilter.region) regionalParams.append('region', locationFilter.region);
+
+            try {
+              const regionalResponse = await axios.get(
+                `http://localhost:3001/api/analytics/dashboard?${regionalParams.toString()}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+
+              const regionalData = regionalResponse.data.data;
+              const hasRegionalActivity = regionalData.totalRecycled > 0 ||
+                                         regionalData.totalInitiatives > 0 ||
+                                         regionalData.totalPickups > 0 ||
+                                         regionalData.activeUsers > 0;
+
+              if (hasRegionalActivity) {
+                errorMsg = 'No data found for this specific location, but there is activity in the broader region. Try selecting a different city or broaden your filter to see regional data.';
+              }
+            } catch (regionalError) {
+              // If regional check fails, use default message
+            }
+          }
+
+          setError(errorMsg);
         } else {
           // Clear error if there is activity or no filter
           setError(null);
@@ -679,7 +712,6 @@ const Analytics = () => {
         <AddDisposalHubForm
           onClose={() => setShowAddHubForm(false)}
           onSuccess={(newHub) => {
-            console.log('New hub suggested:', newHub);
             // Refresh disposal sites
             if (activeTab === 'nearby' && user) {
               fetchDisposalSites();

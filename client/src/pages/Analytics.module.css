@@ -475,18 +475,21 @@
 
 /* Error Banner */
 .errorBanner {
-  background: #f8d7da;
-  color: #721c24;
-  padding: 1rem;
+  background: #fff3cd;
+  color: #856404;
+  padding: 1.25rem;
   border-radius: var(--border-radius-md, 8px);
   margin-bottom: 1rem;
-  border: 1px solid #f5c6cb;
+  border: 1px solid #ffc107;
   text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .errorBanner p {
   margin: 0;
   font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 /* Loading Overlay */

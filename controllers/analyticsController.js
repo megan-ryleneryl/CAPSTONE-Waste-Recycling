@@ -356,41 +356,8 @@ async function getTotalRecycled(startDate, locationFilter = null) {
     // OPTIMIZED: Use cached pickups data
     const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
 
-    console.log(`\n=== TOTAL RECYCLED DEBUG ===`);
-    console.log(`Total pickups in database: ${allPickups.length}`);
-    console.log(`Selected time range start date: ${startDate.toISOString()}`);
-
-    // Debug: Show a sample pickup if available
-    if (allPickups.length > 0) {
-      console.log(`Sample pickup status: ${allPickups[0].status}`);
-      console.log(`Sample pickup completedAt: ${allPickups[0].completedAt}`);
-      console.log(`Sample pickup finalAmount: ${allPickups[0].finalAmount}`);
-      console.log(`Sample pickup createdAt: ${allPickups[0].createdAt}`);
-    }
-
-    // For debugging, let's see all completed pickups
-    const allCompleted = allPickups.filter(pickup => pickup.status === 'Completed');
-    console.log(`Total completed pickups (all time): ${allCompleted.length}`);
-
-    if (allCompleted.length > 0) {
-      console.log(`First completed pickup completedAt: ${allCompleted[0].completedAt}`);
-      console.log(`First completed pickup finalAmount: ${allCompleted[0].finalAmount}`);
-    }
-
     const completedPickups = allPickups.filter(pickup => {
       const completedDate = toDate(pickup.completedAt);
-
-      // Debug date parsing
-      if (pickup.status === 'Completed') {
-        console.log(`\nChecking pickup ${pickup.pickupID}:`);
-        console.log(`  - completedAt raw:`, pickup.completedAt);
-        console.log(`  - completedAt type: ${typeof pickup.completedAt}`);
-        console.log(`  - completedDate parsed: ${completedDate}`);
-        console.log(`  - completedDate valid: ${completedDate && !isNaN(completedDate.getTime())}`);
-        console.log(`  - startDate: ${startDate}`);
-        console.log(`  - completedDate >= startDate: ${completedDate >= startDate}`);
-        console.log(`  - finalAmount: ${pickup.finalAmount}`);
-      }
 
       return pickup.status === 'Completed' &&
              completedDate &&
@@ -399,30 +366,15 @@ async function getTotalRecycled(startDate, locationFilter = null) {
              matchesLocationFilter(pickup.pickupLocation, locationFilter);
     });
 
-    console.log(`Completed pickups in selected time range: ${completedPickups.length}`);
-
     let totalKg = 0;
-    let pickupsWithAmount = 0;
-    let pickupsWithoutAmount = 0;
 
     completedPickups.forEach(pickup => {
       // finalAmount is at the root level, not inside actualWaste
       if (pickup.finalAmount) {
         const amount = parseFloat(pickup.finalAmount);
-        console.log(`✓ Pickup ${pickup.pickupID}: ${amount} kg`);
         totalKg += amount;
-        pickupsWithAmount++;
-      } else {
-        console.log(`✗ Pickup ${pickup.pickupID}: NO finalAmount (value: ${pickup.finalAmount})`);
-        pickupsWithoutAmount++;
       }
     });
-
-    console.log(`\n=== TOTAL RECYCLED SUMMARY ===`);
-    console.log(`Pickups with finalAmount: ${pickupsWithAmount}`);
-    console.log(`Pickups without finalAmount: ${pickupsWithoutAmount}`);
-    console.log(`Total recycled: ${totalKg} kg`);
-    console.log(`Rounded total: ${Math.round(totalKg)} kg`);
 
     return Math.round(totalKg);
   } catch (error) {
@@ -483,10 +435,6 @@ async function getActiveUsers(locationFilter = null) {
           user.userLocation?.region?.code === locationFilter.region
         );
       }
-
-      console.log(`Active users count (with location filter): ${activeUsers.length} (from ${usersWithLocation.length} users with location)`);
-    } else {
-      console.log(`Active users count: ${activeUsers.length} (from ${allUsers.length} total users)`);
     }
 
     return { count: activeUsers.length };
@@ -502,9 +450,6 @@ async function getCompletedSupports(startDate, locationFilter = null) {
     // OPTIMIZED: Use cached supports data
     const allSupports = await getCachedData('allSupports', () => Support.findAll());
     const allPosts = await getCachedData('allPosts', () => Post.findAll());
-
-    console.log(`\n=== COMPLETED SUPPORTS DEBUG ===`);
-    console.log(`Total supports in database: ${allSupports.length}`);
 
     // Filter for completed supports within the time range
     const completedSupports = allSupports.filter(support => {
@@ -523,8 +468,6 @@ async function getCompletedSupports(startDate, locationFilter = null) {
       return isCompleted && inTimeRange;
     });
 
-    console.log(`Completed supports in time range: ${completedSupports.length}`);
-
     return { count: completedSupports.length };
   } catch (error) {
     console.error('Error getting completed supports:', error);
@@ -536,9 +479,6 @@ async function getTotalPickups(startDate, locationFilter = null) {
   try {
     // OPTIMIZED: Use cached pickups data
     const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
-
-    console.log(`\n=== TOTAL PICKUPS DEBUG ===`);
-    console.log(`Total pickups: ${allPickups.length}`);
 
     let completed = 0;
     let active = 0;
@@ -563,9 +503,6 @@ async function getTotalPickups(startDate, locationFilter = null) {
         }
       }
     });
-
-    console.log(`Pickup counts - Completed: ${completed}, Active: ${active}, Cancelled: ${cancelled}`);
-    console.log(`Successful Pickups (Completed only): ${completed}`);
 
     return {
       completed,
@@ -593,8 +530,6 @@ async function getWasteDistribution(startDate, locationFilter = null) {
              matchesLocationFilter(pickup.pickupLocation, locationFilter);
     });
 
-    console.log(`Calculating waste distribution from ${completedPickups.length} completed pickups`);
-
     const distribution = {};
     let totalWeight = 0;
 
@@ -614,15 +549,10 @@ async function getWasteDistribution(startDate, locationFilter = null) {
       }
     });
 
-    console.log(`Waste distribution by weight:`, distribution);
-
     const percentages = {};
     for (const [key, value] of Object.entries(distribution)) {
       percentages[key] = totalWeight > 0 ? Math.round((value / totalWeight) * 100) : 0;
     }
-
-    // Only show categories that have data
-    console.log(`Waste distribution percentages:`, percentages);
 
     return percentages;
   } catch (error) {
@@ -636,8 +566,6 @@ async function getTopCollectors(startDate, locationFilter = null) {
     // OPTIMIZED: Use cached users data
     const allUsers = await getCachedData('allUsers', () => User.findAll());
     const collectors = allUsers.filter(user => user.isCollector === true);
-
-    console.log(`Found ${collectors.length} collectors`);
 
     const collectorStats = await Promise.all(
       collectors.map(async (collector) => {
@@ -1391,11 +1319,6 @@ async function calculatePercentageChanges(timeRange, startDate, currentMetrics, 
       const percentChange = Math.round(((current - previous) / previous) * 100);
       return percentChange >= 0 ? `+${percentChange}%` : `${percentChange}%`;
     };
-
-    console.log('\n=== PERCENTAGE CHANGES ===');
-    console.log(`Comparing to previous period starting: ${previousStartDate.toISOString()}`);
-    console.log(`Recycled - Current: ${currentMetrics.totalRecycled} kg, Previous: ${prevRecycled} kg`);
-    console.log(`Pickups - Current: ${currentMetrics.pickups?.completed || 0}, Previous: ${prevPickups.completed}`);
 
     return {
       recycled: calculateChange(currentMetrics.totalRecycled, prevRecycled),
