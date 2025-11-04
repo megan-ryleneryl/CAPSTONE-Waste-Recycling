@@ -117,7 +117,8 @@ router.get('/', async (req, res) => {
         authProvider: req.user.authProvider || 'email',
         createdAt: req.user.createdAt,
         preferredTimes: req.user.preferredTimes || [],
-        preferredLocations: req.user.preferredLocations || []
+        preferredLocations: req.user.preferredLocations || [],
+        userLocation: req.user.userLocation || null
       }
     };
     
@@ -137,12 +138,13 @@ router.get('/', async (req, res) => {
 router.put('/', async (req, res) => {
   try {    
     const allowedUpdates = [
-      'firstName', 
-      'lastName', 
-      'phone', 
+      'firstName',
+      'lastName',
+      'phone',
       'address',
-      'preferredTimes', 
-      'preferredLocations'
+      'preferredTimes',
+      'preferredLocations',
+      'userLocation'
     ];
     
     const updates = {};

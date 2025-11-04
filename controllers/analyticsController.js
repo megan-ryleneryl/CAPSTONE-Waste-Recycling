@@ -135,7 +135,7 @@ const analyticsController = {
       ] = await Promise.all([
         getTotalRecycled(startDate, locationFilter),
         getActiveInitiatives(locationFilter),
-        getActiveUsers(),
+        getActiveUsers(locationFilter),
         getTotalPickups(startDate, locationFilter),
         getCompletedSupports(startDate, locationFilter),
         getWasteDistribution(startDate, locationFilter),
@@ -450,18 +450,45 @@ async function getActiveInitiatives(locationFilter = null) {
 }
 
 // Get active users - count all non-suspended, non-deleted users
-async function getActiveUsers() {
+// Optionally filter by location if user has set their userLocation
+async function getActiveUsers(locationFilter = null) {
   try {
     // OPTIMIZED: Use cached users data
     const allUsers = await getCachedData('allUsers', () => User.findAll());
 
     // Count all active users (not suspended or deleted)
-    const activeUsers = allUsers.filter(user => {
+    let activeUsers = allUsers.filter(user => {
       const isActiveStatus = user.status !== 'Suspended' && user.status !== 'Deleted';
       return isActiveStatus;
     });
 
-    console.log(`Active users count: ${activeUsers.length} (from ${allUsers.length} total users)`);
+    // If location filter is provided, filter users by their userLocation
+    if (locationFilter) {
+      const usersWithLocation = activeUsers.filter(user => user.userLocation);
+
+      if (locationFilter.barangay) {
+        activeUsers = usersWithLocation.filter(user =>
+          user.userLocation?.barangay?.code === locationFilter.barangay
+        );
+      } else if (locationFilter.city) {
+        activeUsers = usersWithLocation.filter(user =>
+          user.userLocation?.city?.code === locationFilter.city
+        );
+      } else if (locationFilter.province) {
+        activeUsers = usersWithLocation.filter(user =>
+          user.userLocation?.province?.code === locationFilter.province
+        );
+      } else if (locationFilter.region) {
+        activeUsers = usersWithLocation.filter(user =>
+          user.userLocation?.region?.code === locationFilter.region
+        );
+      }
+
+      console.log(`Active users count (with location filter): ${activeUsers.length} (from ${usersWithLocation.length} users with location)`);
+    } else {
+      console.log(`Active users count: ${activeUsers.length} (from ${allUsers.length} total users)`);
+    }
+
     return { count: activeUsers.length };
   } catch (error) {
     console.error('Error getting active users:', error);

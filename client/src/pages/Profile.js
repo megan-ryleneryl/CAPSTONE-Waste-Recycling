@@ -9,6 +9,7 @@ import DeleteAccountModal from '../components/profile/DeleteAccountModal/DeleteA
 import ApplicationStatusTracker from '../components/profile/ApplicationStatusTracker/ApplicationStatusTracker';
 import PreferredTimesModal from '../components/profile/PreferredTimesModal';
 import PreferredLocationsModal from '../components/profile/PreferredLocationsModal';
+import UserLocationModal from '../components/profile/UserLocationModal';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
@@ -596,7 +597,8 @@ const Profile = ({ user: propsUser }) => {
           setUser({
             ...profileData,
             preferredTimes: profileData.preferredTimes || [],
-            preferredLocations: profileData.preferredLocations || []
+            preferredLocations: profileData.preferredLocations || [],
+            userLocation: profileData.userLocation || null
           });
           localStorage.setItem('user', JSON.stringify(profileData));
         }
@@ -1008,11 +1010,11 @@ const Profile = ({ user: propsUser }) => {
   const handlePreferredLocationsSubmit = async (formData) => {
     try {
       const token = localStorage.getItem('token');
-      
+
       // Extract the preferredLocations from FormData
       const locationsJSON = formData.get('preferredLocations');
       const locations = JSON.parse(locationsJSON);
-      
+
       // Send to backend
       const response = await axios.put(
         'http://localhost:3001/api/protected/profile',
@@ -1028,13 +1030,13 @@ const Profile = ({ user: propsUser }) => {
       if (response.data.success) {
         // If backend returns updated user, use it
         const updatedUser = response.data.user || { ...user, preferredLocations: locations };
-        
+
         // Update local state with backend response
         setUser(updatedUser);
-        
+
         // Update localStorage
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
+
         // Close modal
         setActiveModal(null);
       }
@@ -1042,6 +1044,44 @@ const Profile = ({ user: propsUser }) => {
       console.error('Error updating preferred locations:', error);
       setError('Failed to update preferred locations');
       alert('Failed to save locations. Please try again.');
+    }
+  };
+
+  const handleUserLocationSubmit = async (locationData) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      // Send to backend
+      const response = await axios.put(
+        'http://localhost:3001/api/protected/profile',
+        { userLocation: locationData },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // If backend returns updated user, use it
+        const updatedUser = response.data.user || { ...user, userLocation: locationData };
+
+        // Update local state with backend response
+        setUser(updatedUser);
+
+        // Update localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+
+        // Close modal
+        setActiveModal(null);
+
+        alert('Your recycling community has been set successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating user location:', error);
+      setError('Failed to update location');
+      alert('Failed to save your location. Please try again.');
     }
   };
 
@@ -1235,6 +1275,58 @@ const Profile = ({ user: propsUser }) => {
               </div>
               <div className={styles.statItem}>
                 <strong>{user.totalDonations || '0'}</strong> kg Donations
+              </div>
+            </div>
+
+            {/* User Location Section */}
+            <div className={styles.userLocationSection}>
+              <div className={styles.sectionHeader}>
+                <h3 className={styles.sectionTitle}>Your Recycling Community</h3>
+                <button
+                  onClick={() => setActiveModal('userLocation')}
+                  className={styles.editPreferenceButton}
+                >
+                  {user?.userLocation ? 'Change' : 'Set Community'}
+                </button>
+              </div>
+
+              <div className={styles.locationContent}>
+                {user?.userLocation ? (
+                  <div className={styles.currentLocation}>
+                    <div className={styles.locationIcon}>📍</div>
+                    <div className={styles.locationDetails}>
+                      <div className={styles.locationPrimary}>
+                        {user.userLocation.barangay?.name}, {user.userLocation.city?.name}
+                      </div>
+                      <div className={styles.locationSecondary}>
+                        {user.userLocation.province?.name && user.userLocation.province.name !== 'NCR' && (
+                          <>{user.userLocation.province.name}, </>
+                        )}
+                        {user.userLocation.region?.name}
+                      </div>
+                      {user.userLocation.coordinates && (
+                        <div className={styles.locationCoords}>
+                          📌 {user.userLocation.coordinates.lat.toFixed(4)}, {user.userLocation.coordinates.lng.toFixed(4)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.noLocation}>
+                    <p className={styles.inviteText}>
+                      🌱 <strong>Set your current recycling community!</strong>
+                    </p>
+                    <p className={styles.benefitText}>
+                      Join your local barangay community to see relevant posts and help us track active recyclers in your area.
+                    </p>
+                    <button
+                      onClick={() => setActiveModal('userLocation')}
+                      className={styles.setCommunityButton}
+                    >
+                      Choose Your Barangay
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1442,6 +1534,14 @@ const Profile = ({ user: propsUser }) => {
                     onClose={() => setActiveModal(null)}
                     onSubmit={handlePreferredLocationsSubmit}
                     currentLocations={user?.preferredLocations || []}
+                  />
+                )}
+
+                {activeModal === 'userLocation' && (
+                  <UserLocationModal
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={handleUserLocationSubmit}
+                    currentLocation={user?.userLocation || null}
                   />
                 )}
               </div>

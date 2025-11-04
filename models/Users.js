@@ -20,6 +20,11 @@ class User {
     // Each location: { name, region: {code, name}, province: {code, name} | null,
     //                  city: {code, name}, barangay: {code, name}, addressLine }
     this.preferredLocations = data.preferredLocations || [];
+    // User's current recycling community location (single barangay)
+    // Format: { region: {code, name}, province: {code, name} | null,
+    //           city: {code, name}, barangay: {code, name},
+    //           coordinates: {lat, lng}, fallbackLevel }
+    this.userLocation = data.userLocation || null;
     this.points = data.points || 0;
     this.badges = data.badges || []; // Array of {badgeId, earnedAt}
     this.profilePictureUrl = data.profilePictureUrl || '';
@@ -68,6 +73,7 @@ class User {
       organizationName: this.organizationName,
       preferredTimes: this.preferredTimes,
       preferredLocations: this.preferredLocations,
+      userLocation: this.userLocation,
       points: this.points,
       badges: this.badges,
       createdAt: this.createdAt,

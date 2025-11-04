@@ -887,3 +887,98 @@
     font-size: 1.4rem;
   }
 }
+
+/* User Location Section */
+.userLocationSection {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+}
+
+.userLocationSection .sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #3B6535;
+}
+
+.locationContent {
+  margin-top: 1rem;
+}
+
+.currentLocation {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fdf6;
+  border-radius: 8px;
+  border: 1px solid #d4edda;
+}
+
+.locationIcon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.locationDetails {
+  flex: 1;
+}
+
+.locationPrimary {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+}
+
+.locationSecondary {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+}
+
+.locationCoords {
+  font-size: 0.85rem;
+  color: #868e96;
+  font-family: 'Courier New', monospace;
+}
+
+.noLocation {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.inviteText {
+  font-size: 1.1rem;
+  color: #2c3e50;
+  margin-bottom: 0.75rem;
+}
+
+.benefitText {
+  font-size: 0.95rem;
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.setCommunityButton {
+  background: linear-gradient(135deg, #3B6535 0%, #4A7E3F 100%);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.setCommunityButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
+}

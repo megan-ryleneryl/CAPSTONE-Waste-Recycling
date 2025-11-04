@@ -16,6 +16,19 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
     barangay: null
   });
 
+  // Initialize filter with user's userLocation if available
+  useEffect(() => {
+    if (currentUser?.userLocation) {
+      const userLoc = currentUser.userLocation;
+      setLocationFilter({
+        region: userLoc.region?.code || null,
+        province: userLoc.province?.code || null,
+        city: userLoc.city?.code || null,
+        barangay: userLoc.barangay?.code || null
+      });
+    }
+  }, [currentUser]);
+
   // Check if we received location state from navigation (from heatmap)
   useEffect(() => {
     if (location.state?.locationFilter) {
