@@ -144,6 +144,12 @@ const AreaMarkers = ({ areas, onViewPosts }) => {
                     <span>{area.completedSupports} Completed Supports</span>
                   </div>
                 )}
+                {area.activeUsers > 0 && (
+                  <div className={styles.popupBreakdownItem}>
+                    <MapPin size={16} className={styles.popupIcon} />
+                    <span>{area.activeUsers} Active {area.activeUsers === 1 ? 'User' : 'Users'} (Joined Community)</span>
+                  </div>
+                )}
               </div>
               <p className={styles.popupLevel}>
                 Activity Level: <strong>{area.activityLevel || 'Low'}</strong>
@@ -338,6 +344,13 @@ const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }
                 <span className={styles.breakdownLabel}>Completed Supports</span>
               </div>
             </div>
+            <div className={styles.breakdownCard}>
+              <MapPin size={32} className={styles.breakdownIcon} />
+              <div className={styles.breakdownContent}>
+                <span className={styles.breakdownValue}>{breakdown.activeUsers || 0}</span>
+                <span className={styles.breakdownLabel}>Active Users (Joined Community)</span>
+              </div>
+            </div>
             <div className={`${styles.breakdownCard} ${styles.total}`}>
               <BarChart3 size={32} className={styles.breakdownIcon} />
               <div className={styles.breakdownContent}>
@@ -355,7 +368,7 @@ const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }
           <h3>Tip</h3>
         </div>
         <p className={styles.infoText}>
-          Click on the zones to see detailed area statistics
+          Click on the zones to see detailed area statistics. Set your recycling community in your profile to contribute to your area's activity count!
         </p>
       </div>
     </div>

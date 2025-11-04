@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import styles from './LocationFilter.module.css';
 import { MapPin, X } from 'lucide-react';
@@ -17,6 +17,9 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isInitializing, setIsInitializing] = useState(false);
+
+  // Track the last processed region to prevent multiple resets
+  const lastProcessedRegion = useRef(null);
 
   // Fetch regions on component mount
   useEffect(() => {
@@ -88,15 +91,23 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
 
   // Fetch provinces when region changes (but not during initialization)
   useEffect(() => {
-    if (selectedRegion && !isInitializing) {
-      fetchProvinces(selectedRegion);
+    if (selectedRegion && !isInitializing && lastProcessedRegion.current !== selectedRegion) {
+      lastProcessedRegion.current = selectedRegion;
+
+      // For NCR, fetch cities directly (NCR has no provinces)
+      if (selectedRegion === '130000000') {
+        fetchCitiesFromRegion(selectedRegion);
+      } else {
+        fetchProvinces(selectedRegion);
+        setCities([]);
+      }
       // Reset downstream selections
       setSelectedProvince('');
       setSelectedCity('');
       setSelectedBarangay('');
-      setCities([]);
       setBarangays([]);
     } else if (!selectedRegion) {
+      lastProcessedRegion.current = null;
       setProvinces([]);
       setCities([]);
       setBarangays([]);
@@ -107,21 +118,20 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
   // Fetch cities when province changes (or directly from region for NCR)
   useEffect(() => {
     if (!isInitializing) {
-      if (selectedRegion === '130000000') {
-        // NCR - fetch cities directly from region
+      if (selectedRegion === '130000000' && cities.length === 0) {
+        // NCR - fetch cities directly from region (only if not already loaded)
         fetchCitiesFromRegion(selectedRegion);
       } else if (selectedProvince) {
         // Other regions - fetch cities from province
         fetchCitiesFromProvince(selectedProvince);
+        // Reset downstream selections only when province changes
+        setSelectedCity('');
+        setSelectedBarangay('');
+        setBarangays([]);
       }
-
-      // Reset downstream selections
-      setSelectedCity('');
-      setSelectedBarangay('');
-      setBarangays([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProvince, selectedRegion]);
+  }, [selectedProvince]);
 
   // Fetch barangays when city changes
   useEffect(() => {

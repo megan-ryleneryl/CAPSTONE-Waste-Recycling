@@ -1438,10 +1438,21 @@ async function getGeographicHeatmapData() {
     const allPosts = await Post.findAll();
     const allPickups = await Pickup.findAll();
     const allSupports = await Support.findByUser ? await getAllSupports() : [];
+    const allUsers = await User.findAll();
 
     // Filter completed pickups and supports
     const completedPickups = allPickups.filter(p => p.status === 'Completed');
     const completedSupports = allSupports.filter(s => s.status === 'Completed');
+
+    // Filter active users who have set their userLocation
+    const usersWithLocation = allUsers.filter(user =>
+      user.userLocation &&
+      user.userLocation.coordinates &&
+      user.userLocation.coordinates.lat &&
+      user.userLocation.coordinates.lng &&
+      user.status !== 'Suspended' &&
+      user.status !== 'Deleted'
+    );
 
     // Create map for aggregating activity by location
     // Helper function to calculate distance between two coordinates (Haversine formula)
@@ -1516,6 +1527,7 @@ async function getGeographicHeatmapData() {
             initiativePosts: 0,
             completedPickups: 0,
             completedSupports: 0,
+            activeUsers: 0,
             totalActivity: 0
           };
           clusters.push(cluster);
@@ -1593,6 +1605,59 @@ async function getGeographicHeatmapData() {
       }
     });
 
+    // Add users with set userLocation to clusters
+    usersWithLocation.forEach(user => {
+      const lat = user.userLocation.coordinates.lat;
+      const lng = user.userLocation.coordinates.lng;
+      const cityCode = user.userLocation.city?.code;
+
+      // Find nearby cluster or create new one (same city only)
+      let cluster = findNearbyCluster(lat, lng, cityCode);
+
+      if (!cluster) {
+        // Create new cluster for users in areas without posts
+        cluster = {
+          centerLat: lat,
+          centerLng: lng,
+          points: [],
+          barangays: new Set(),
+          city: user.userLocation.city,
+          province: user.userLocation.province,
+          region: user.userLocation.region,
+          wastePosts: 0,
+          forumPosts: 0,
+          initiativePosts: 0,
+          completedPickups: 0,
+          completedSupports: 0,
+          activeUsers: 0,
+          totalActivity: 0
+        };
+        clusters.push(cluster);
+      }
+
+      // Initialize activeUsers counter if not exists (for backward compatibility)
+      if (!cluster.activeUsers) {
+        cluster.activeUsers = 0;
+      }
+
+      // Add point to cluster
+      cluster.points.push({ lat, lng });
+
+      // Add barangay to set
+      if (user.userLocation.barangay?.name) {
+        cluster.barangays.add(user.userLocation.barangay.name);
+      }
+
+      // Update cluster center (weighted average)
+      const totalPoints = cluster.points.length;
+      cluster.centerLat = cluster.points.reduce((sum, p) => sum + p.lat, 0) / totalPoints;
+      cluster.centerLng = cluster.points.reduce((sum, p) => sum + p.lng, 0) / totalPoints;
+
+      // Increment active users count
+      cluster.activeUsers++;
+      cluster.totalActivity++;
+    });
+
     // If no data, return empty arrays
     if (clusters.length === 0) {
       console.log('No location data found in database');
@@ -1605,6 +1670,7 @@ async function getGeographicHeatmapData() {
           initiativePosts: 0,
           completedPickups: 0,
           completedSupports: 0,
+          activeUsers: 0,
           totalActivity: 0
         }
       };
@@ -1619,6 +1685,7 @@ async function getGeographicHeatmapData() {
       initiativePosts: 0,
       completedPickups: 0,
       completedSupports: 0,
+      activeUsers: 0,
       totalActivity: 0
     };
 
@@ -1697,6 +1764,7 @@ async function getGeographicHeatmapData() {
         initiativePosts: cluster.initiativePosts,
         completedPickups: cluster.completedPickups,
         completedSupports: cluster.completedSupports,
+        activeUsers: cluster.activeUsers || 0,
         color,
         radius // Dynamic radius based on point spread
       });
@@ -1707,10 +1775,11 @@ async function getGeographicHeatmapData() {
       breakdown.initiativePosts += cluster.initiativePosts;
       breakdown.completedPickups += cluster.completedPickups;
       breakdown.completedSupports += cluster.completedSupports;
+      breakdown.activeUsers += cluster.activeUsers || 0;
       breakdown.totalActivity += cluster.totalActivity;
     });
 
-    console.log(`Generated geographic heatmap with ${heatmapPoints.length} locations, ${breakdown.totalActivity} total activities`);
+    console.log(`Generated geographic heatmap with ${heatmapPoints.length} locations, ${breakdown.totalActivity} total activities (including ${breakdown.activeUsers} active users with set locations)`);
 
     return {
       heatmapPoints,
@@ -1730,6 +1799,7 @@ async function getGeographicHeatmapData() {
         initiativePosts: 0,
         completedPickups: 0,
         completedSupports: 0,
+        activeUsers: 0,
         totalActivity: 0
       }
     };

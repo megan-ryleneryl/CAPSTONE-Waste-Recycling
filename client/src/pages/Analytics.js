@@ -51,6 +51,19 @@ const Analytics = () => {
     setLocationFilter(newFilter);
   }, []);
 
+  // Helper function to check if location filter is applied
+  const hasLocationFilter = () => {
+    return locationFilter.region || locationFilter.province ||
+           locationFilter.city || locationFilter.barangay;
+  };
+
+  // Get appropriate label for active users based on filter
+  const getActiveUsersLabel = () => {
+    return hasLocationFilter()
+      ? 'Active Users (Joined This Community)'
+      : 'Active Users';
+  };
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,26 +76,10 @@ const Analytics = () => {
     setLoading(false);
   }, [navigate]);
 
-  useEffect(() => {
-    if (user) {
-      fetchAnalyticsData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, selectedTimeRange, locationFilter.region, locationFilter.province, locationFilter.city, locationFilter.barangay]);
+  // Use useCallback to memoize fetchAnalyticsData with dependencies
+  const fetchAnalyticsData = useCallback(async () => {
+    if (!user) return;
 
-  useEffect(() => {
-    if (activeTab === 'activity' && user) {
-      fetchHeatMapData();
-    }
-  }, [activeTab, user]);
-
-  useEffect(() => {
-    if (activeTab === 'nearby' && user) {
-      fetchDisposalSites();
-    }
-  }, [activeTab, user, searchLocation, searchRadius]);
-
-  const fetchAnalyticsData = async () => {
     try {
       setDataLoading(true);
       setError(null);
@@ -111,11 +108,23 @@ const Analytics = () => {
         }
       );
 
-      console.log('Full API response:', response.data);
-
       if (response.data.success && response.data.data) {
-        setAnalyticsData(response.data.data);
-        console.log('Analytics data loaded successfully:', response.data.data);
+        const data = response.data.data;
+
+        // Check if location has no activity
+        const hasActivity = data.totalRecycled > 0 ||
+                           data.totalInitiatives > 0 ||
+                           data.totalPickups > 0 ||
+                           data.activeUsers > 0;
+
+        if (!hasActivity && hasLocationFilter()) {
+          setError('No recycling activity found in this location yet. Try a broader area or check back later!');
+        } else {
+          // Clear error if there is activity or no filter
+          setError(null);
+        }
+
+        setAnalyticsData(data);
       } else {
         const errorMsg = 'Failed to load analytics data';
         setError(errorMsg);
@@ -133,34 +142,33 @@ const Analytics = () => {
         totalInitiatives: 0,
         activeUsers: 0,
         totalPickups: 0,
-        userStats: {
-          totalPosts: 0,
-          activePickups: 0,
-          completedPickups: 0,
-          totalPoints: 0,
-          totalKgRecycled: 0
-        },
+        completedSupports: 0,
+        wasteDistribution: [],
+        trends: [],
         topCollectors: [],
-        wasteByType: {},
-        recyclingTrends: [],
-        communityImpact: {
-          co2Saved: 0,
-          treesEquivalent: 0,
-          waterSaved: 0,
-          energySaved: 0
-        },
         recentActivity: [],
-        percentageChanges: {
-          recycled: '+0%',
-          initiatives: '+0%',
-          users: '+0%',
-          pickups: '+0%'
-        }
+        percentageChanges: {}
       });
     } finally {
       setDataLoading(false);
     }
-  };
+  }, [user, selectedTimeRange, locationFilter.region, locationFilter.province, locationFilter.city, locationFilter.barangay, navigate]);
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [fetchAnalyticsData]);
+
+  useEffect(() => {
+    if (activeTab === 'activity' && user) {
+      fetchHeatMapData();
+    }
+  }, [activeTab, user]);
+
+  useEffect(() => {
+    if (activeTab === 'nearby' && user) {
+      fetchDisposalSites();
+    }
+  }, [activeTab, user, searchLocation, searchRadius]);
 
   const getTrendClass = (trend) => {
     if (!trend) return '';
@@ -472,7 +480,7 @@ const Analytics = () => {
             </div>
             <div className={styles.metricContent}>
               <h3>{(analyticsData.activeUsers || 0).toLocaleString()}</h3>
-              <p>Active Users</p>
+              <p>{getActiveUsersLabel()}</p>
               <span className={`${styles.trend} ${getTrendClass(changes.users)}`}>
                 {changes.users || '+0%'} growth
               </span>
@@ -694,7 +702,7 @@ const Analytics = () => {
               <span className={styles.quickStatValue}>
                 {analyticsData?.activeUsers || 0}
               </span>
-              <span className={styles.quickStatLabel}>Active Users</span>
+              <span className={styles.quickStatLabel}>{getActiveUsersLabel()}</span>
             </div>
             <div className={styles.quickStat}>
               <span className={styles.quickStatValue}>

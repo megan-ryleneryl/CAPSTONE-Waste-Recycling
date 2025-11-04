@@ -89,7 +89,7 @@ const Dashboard = () => {
         <>
           <div className={styles.quickStat}>
             <span className={styles.quickStatValue}>{analyticsData.activeUsers}</span>
-            <span className={styles.quickStatLabel}>Active Users</span>
+            <span className={styles.quickStatLabel}>Active Users (All Platform)</span>
           </div>
           <div className={styles.quickStat}>
             <span className={styles.quickStatValue}>{analyticsData.pendingApplications || 0}</span>
@@ -720,7 +720,7 @@ const Dashboard = () => {
           </div>
           <div className={styles.metricContent}>
             <h3>{analyticsData.activeUsers.toLocaleString()}</h3>
-            <p>Active Users</p>
+            <p>Active Users (All Platform)</p>
             <span className={`${styles.trend} ${getTrendClass(analyticsData.percentageChanges?.users)}`}>
               {analyticsData.percentageChanges?.users || '+0%'} growth
             </span>
