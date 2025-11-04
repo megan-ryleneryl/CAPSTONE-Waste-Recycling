@@ -767,6 +767,29 @@ const PickupTracking = () => {
                       </div>
                     )}
                     {(() => {
+                      // Prioritize proposedPrice from pickup if available
+                      if (pickup?.proposedPrice && Array.isArray(pickup.proposedPrice) && pickup.proposedPrice.length > 0) {
+                        // Calculate total from proposedPrice array
+                        const totalProposedPrice = pickup.proposedPrice.reduce((total, material) => {
+                          return total + (material.quantity * (material.proposedPricePerKilo || 0));
+                        }, 0);
+
+                        if (totalProposedPrice > 0) {
+                          return (
+                            <div className={styles.detailRow}>
+                              <span className={styles.detailLabel}>Estimated Price:</span>
+                              <span className={styles.detailValue} style={{ color: '#059669', fontWeight: '600' }}>
+                                ₱{totalProposedPrice.toFixed(2)}
+                                <span style={{ fontSize: '0.75rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+                                  (proposed)
+                                </span>
+                              </span>
+                            </div>
+                          );
+                        }
+                      }
+
+                      // Fall back to calculated or post price
                       const calculatedPrice = calculateEstimatedPrice();
                       const displayPrice = calculatedPrice !== null ? calculatedPrice : postData?.price;
 
@@ -787,14 +810,6 @@ const PickupTracking = () => {
                       }
                       return null;
                     })()}
-                    {pickup?.proposedPrice && pickup.proposedPrice > 0 && (
-                      <div className={styles.detailRow}>
-                        <span className={styles.detailLabel}>Proposed Price:</span>
-                        <span className={styles.detailValue} style={{ color: '#3b82f6', fontWeight: '600' }}>
-                          ₱{typeof pickup.proposedPrice === 'number' ? pickup.proposedPrice.toFixed(2) : pickup.proposedPrice}
-                        </span>
-                      </div>
-                    )}
                     {postData?.condition && (
                       <div className={styles.detailRow}>
                         <span className={styles.detailLabel}>Condition:</span>

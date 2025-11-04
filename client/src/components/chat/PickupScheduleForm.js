@@ -671,7 +671,7 @@ const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
           {/* Material Pricing Section */}
           {materialPrices.length > 0 && (
             <div className={styles.pricingSection}>
-              <h4 className={styles.sectionTitle}>Material Pricing</h4>
+              <h4 className={styles.sectionTitle}>Material Pricing (Optional)</h4>
               <p className={styles.sectionDescription}>
                 Specify how much you're willing to pay per kilogram for each material:
               </p>
