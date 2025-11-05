@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import PostCard from '../components/posts/PostCard/PostCard';
 import LocationFilter from '../components/analytics/LocationFilter';
@@ -15,19 +15,6 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
     city: null,
     barangay: null
   });
-
-  // Initialize filter with user's userLocation if available
-  useEffect(() => {
-    if (currentUser?.userLocation) {
-      const userLoc = currentUser.userLocation;
-      setLocationFilter({
-        region: userLoc.region?.code || null,
-        province: userLoc.province?.code || null,
-        city: userLoc.city?.code || null,
-        barangay: userLoc.barangay?.code || null
-      });
-    }
-  }, [currentUser]);
 
   // Check if we received location state from navigation (from heatmap)
   useEffect(() => {
@@ -86,6 +73,7 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
       <LocationFilter
         onFilterChange={handleLocationFilterChange}
         currentFilter={locationFilter}
+        userLocation={currentUser?.userLocation}
       />
 
       {/* Pass the appropriate postType, userID, and locationFilter to PostCard */}

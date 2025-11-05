@@ -3,7 +3,7 @@ import axios from 'axios';
 import styles from './LocationFilter.module.css';
 import { MapPin, X } from 'lucide-react';
 
-const LocationFilter = ({ onFilterChange, currentFilter }) => {
+const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
   const [regions, setRegions] = useState([]);
   const [provinces, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
@@ -30,94 +30,100 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
 
   // Update internal state when currentFilter prop changes (from navigation or external sources)
   useEffect(() => {
+    // Normalize values for comparison (treat empty string and null as equivalent)
+    const normalizeValue = (val) => val || null;
+
     // Check if external filter is different from current internal state
     const isFilterDifferent =
-      currentFilter?.region !== selectedRegion ||
-      currentFilter?.province !== selectedProvince ||
-      currentFilter?.city !== selectedCity ||
-      currentFilter?.barangay !== selectedBarangay;
+      normalizeValue(currentFilter?.region) !== normalizeValue(selectedRegion) ||
+      normalizeValue(currentFilter?.province) !== normalizeValue(selectedProvince) ||
+      normalizeValue(currentFilter?.city) !== normalizeValue(selectedCity) ||
+      normalizeValue(currentFilter?.barangay) !== normalizeValue(selectedBarangay);
 
-    if (currentFilter && isFilterDifferent) {
-      // Always sync with external filter changes
-      setIsInitializing(true);
+    if (!isFilterDifferent) {
+      // Filter is already in sync, no need to update
+      return;
+    }
 
-      if (currentFilter.region) {
-        setSelectedRegion(currentFilter.region);
+    // Always sync with external filter changes
+    setIsInitializing(true);
 
-        // If province is also provided, fetch provinces first
-        if (currentFilter.province) {
-          fetchProvinces(currentFilter.region).then(() => {
-            setSelectedProvince(currentFilter.province);
+    if (currentFilter && currentFilter.region) {
+      setSelectedRegion(currentFilter.region);
 
-            // If city is also provided, fetch cities
-            if (currentFilter.city) {
-              let fetchCitiesPromise;
-              if (currentFilter.region === '130000000') {
-                // NCR - check if cities already fetched
-                fetchCitiesPromise = citiesFetched.current
-                  ? Promise.resolve()
-                  : fetchCitiesFromRegion(currentFilter.region);
+      // If province is also provided, fetch provinces first
+      if (currentFilter.province) {
+        fetchProvinces(currentFilter.region).then(() => {
+          setSelectedProvince(currentFilter.province);
 
-                if (!citiesFetched.current) {
-                  citiesFetched.current = true;
-                }
-              } else {
-                fetchCitiesPromise = fetchCitiesFromProvince(currentFilter.province);
+          // If city is also provided, fetch cities
+          if (currentFilter.city) {
+            let fetchCitiesPromise;
+            if (currentFilter.region === '130000000') {
+              // NCR - check if cities already fetched
+              fetchCitiesPromise = citiesFetched.current
+                ? Promise.resolve()
+                : fetchCitiesFromRegion(currentFilter.region);
+
+              if (!citiesFetched.current) {
+                citiesFetched.current = true;
               }
+            } else {
+              fetchCitiesPromise = fetchCitiesFromProvince(currentFilter.province);
+            }
 
-              fetchCitiesPromise.then(() => {
-                setSelectedCity(currentFilter.city);
+            fetchCitiesPromise.then(() => {
+              setSelectedCity(currentFilter.city);
 
-                // If barangay is also provided, fetch barangays
-                if (currentFilter.barangay) {
-                  fetchBarangays(currentFilter.city).then(() => {
-                    setSelectedBarangay(currentFilter.barangay);
-                    setIsInitializing(false);
-                  });
-                } else {
+              // If barangay is also provided, fetch barangays
+              if (currentFilter.barangay) {
+                fetchBarangays(currentFilter.city).then(() => {
+                  setSelectedBarangay(currentFilter.barangay);
                   setIsInitializing(false);
-                }
-              });
-            } else {
-              setIsInitializing(false);
-            }
-          });
-        } else if (currentFilter.city) {
-          // NCR case - no province, direct to city
-          const fetchPromise = citiesFetched.current
-            ? Promise.resolve()
-            : fetchCitiesFromRegion(currentFilter.region);
-
-          if (!citiesFetched.current) {
-            citiesFetched.current = true;
-          }
-
-          fetchPromise.then(() => {
-            setSelectedCity(currentFilter.city);
-
-            if (currentFilter.barangay) {
-              fetchBarangays(currentFilter.city).then(() => {
-                setSelectedBarangay(currentFilter.barangay);
+                });
+              } else {
                 setIsInitializing(false);
-              });
-            } else {
-              setIsInitializing(false);
-            }
-          });
-        } else {
-          setIsInitializing(false);
+              }
+            });
+          } else {
+            setIsInitializing(false);
+          }
+        });
+      } else if (currentFilter.city) {
+        // NCR case - no province, direct to city
+        const fetchPromise = citiesFetched.current
+          ? Promise.resolve()
+          : fetchCitiesFromRegion(currentFilter.region);
+
+        if (!citiesFetched.current) {
+          citiesFetched.current = true;
         }
+
+        fetchPromise.then(() => {
+          setSelectedCity(currentFilter.city);
+
+          if (currentFilter.barangay) {
+            fetchBarangays(currentFilter.city).then(() => {
+              setSelectedBarangay(currentFilter.barangay);
+              setIsInitializing(false);
+            });
+          } else {
+            setIsInitializing(false);
+          }
+        });
       } else {
-        // If no region in currentFilter, clear all selections
-        setSelectedRegion('');
-        setSelectedProvince('');
-        setSelectedCity('');
-        setSelectedBarangay('');
-        setProvinces([]);
-        setCities([]);
-        setBarangays([]);
         setIsInitializing(false);
       }
+    } else if (!currentFilter || (!currentFilter.region && !currentFilter.province && !currentFilter.city && !currentFilter.barangay)) {
+      // If no region in currentFilter or completely empty filter, clear all selections
+      setSelectedRegion('');
+      setSelectedProvince('');
+      setSelectedCity('');
+      setSelectedBarangay('');
+      setProvinces([]);
+      setCities([]);
+      setBarangays([]);
+      setIsInitializing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentFilter]);
@@ -179,8 +185,13 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCity]);
 
-  // Notify parent component of filter changes
+  // Notify parent component of filter changes (but not during initialization from external sources)
   useEffect(() => {
+    // Skip notifying parent if we're still initializing from external filter
+    if (isInitializing) {
+      return;
+    }
+
     const filter = {
       region: selectedRegion || null,
       province: selectedProvince || null,
@@ -188,7 +199,7 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
       barangay: selectedBarangay || null
     };
     onFilterChange(filter);
-  }, [selectedRegion, selectedProvince, selectedCity, selectedBarangay, onFilterChange]);
+  }, [selectedRegion, selectedProvince, selectedCity, selectedBarangay, onFilterChange, isInitializing]);
 
   const fetchRegions = async () => {
     try {
@@ -302,6 +313,38 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
     return parts.length > 0 ? parts.join(', ') : 'All Philippines';
   };
 
+  const getUserLocationLabel = () => {
+    if (!userLocation) return null;
+    const parts = [];
+    if (userLocation.city?.name) parts.push(userLocation.city.name);
+    if (userLocation.province?.name) parts.push(userLocation.province.name);
+    if (userLocation.region?.name) parts.push(userLocation.region.name);
+    return parts.length > 0 ? parts.join(', ') : null;
+  };
+
+  const handleApplyUserLocation = () => {
+    if (!userLocation) return;
+
+    const userLocationFilter = {
+      region: userLocation.region?.code || null,
+      province: userLocation.province?.code || null,
+      city: userLocation.city?.code || null,
+      barangay: userLocation.barangay?.code || null
+    };
+
+    onFilterChange(userLocationFilter);
+  };
+
+  const isUserLocationActive = () => {
+    if (!userLocation) return false;
+    return (
+      selectedRegion === (userLocation.region?.code || null) &&
+      selectedProvince === (userLocation.province?.code || null) &&
+      selectedCity === (userLocation.city?.code || null) &&
+      selectedBarangay === (userLocation.barangay?.code || null)
+    );
+  };
+
   return (
     <div className={styles.locationFilter}>
       <div className={styles.filterHeader}>
@@ -310,6 +353,21 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
+
+      {/* User Location Suggestion */}
+      {userLocation && !isUserLocationActive() && getUserLocationLabel() && (
+        <div className={styles.userLocationSuggestion}>
+          <span className={styles.suggestionText}>
+            Want to see posts from your community?
+          </span>
+          <button
+            onClick={handleApplyUserLocation}
+            className={styles.suggestionButton}
+          >
+            View {getUserLocationLabel()}
+          </button>
+        </div>
+      )}
 
       <div className={styles.filterControls}>
         <div className={styles.dropdownRow}>
