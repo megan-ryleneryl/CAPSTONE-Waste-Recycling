@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Analytics.module.css';
@@ -76,20 +76,11 @@ const Analytics = () => {
     setLoading(false);
   }, [navigate]);
 
-  // Track if a fetch is already in progress to prevent duplicate requests
-  const fetchingRef = useRef(false);
-
   // Use useCallback to memoize fetchAnalyticsData with dependencies
   const fetchAnalyticsData = useCallback(async () => {
     if (!user) return;
 
-    // Prevent duplicate concurrent requests
-    if (fetchingRef.current) {
-      return;
-    }
-
     try {
-      fetchingRef.current = true;
       setDataLoading(true);
       setError(null);
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -193,7 +184,6 @@ const Analytics = () => {
       });
     } finally {
       setDataLoading(false);
-      fetchingRef.current = false;
     }
   }, [user, selectedTimeRange, locationFilter.region, locationFilter.province, locationFilter.city, locationFilter.barangay, navigate]);
 
@@ -201,13 +191,9 @@ const Analytics = () => {
     fetchAnalyticsData();
   }, [fetchAnalyticsData]);
 
-  // Track if heatmap has been fetched to prevent refetching
-  const heatmapFetchedRef = useRef(false);
-
   useEffect(() => {
-    if (activeTab === 'activity' && user && !heatmapFetchedRef.current) {
+    if (activeTab === 'activity' && user) {
       fetchHeatMapData();
-      heatmapFetchedRef.current = true;
     }
   }, [activeTab, user]);
 
