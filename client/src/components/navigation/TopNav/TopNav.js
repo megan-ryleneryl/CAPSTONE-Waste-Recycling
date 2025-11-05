@@ -22,28 +22,43 @@ const TopNav = ({ user: propUser }) => {
       try {
         const token = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
-        
+
         if (token && storedUser) {
-          // First set user from localStorage for immediate display
+          // Use cached user data from localStorage - no need to fetch on every mount
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
-          
-          // Then fetch fresh data from backend
-          const response = await axios.get('http://localhost:3001/api/protected/profile', {
-            headers: {
-              'Authorization': `Bearer ${token}`
+
+          // Only fetch fresh data if user data seems stale (hasn't been updated in last 5 minutes)
+          // This reduces unnecessary API calls while keeping data reasonably fresh
+          const lastUpdate = localStorage.getItem('userLastUpdate');
+          const now = Date.now();
+          const fiveMinutes = 5 * 60 * 1000;
+
+          if (!lastUpdate || (now - parseInt(lastUpdate)) > fiveMinutes) {
+            try {
+              const response = await axios.get('http://localhost:3001/api/protected/profile', {
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+
+              if (response.data.success) {
+                const userData = {
+                  ...response.data.user,
+                  // Ensure profilePicture field exists for backward compatibility
+                  profilePicture: response.data.user.profilePictureUrl || response.data.user.profilePicture
+                };
+                setUser(userData);
+                // Update localStorage with both fields
+                localStorage.setItem('user', JSON.stringify(userData));
+                localStorage.setItem('userLastUpdate', now.toString());
+              }
+            } catch (error) {
+              // Silent fail for background refresh - user already has cached data
+              if (error.response?.status === 401) {
+                handleLogout();
+              }
             }
-          });
-          
-          if (response.data.success) {
-            const userData = {
-              ...response.data.user,
-              // Ensure profilePicture field exists for backward compatibility
-              profilePicture: response.data.user.profilePictureUrl || response.data.user.profilePicture
-            };
-            setUser(userData);
-            // Update localStorage with both fields
-            localStorage.setItem('user', JSON.stringify(userData));
           }
         } else if (propUser) {
           setUser(propUser);
@@ -58,7 +73,7 @@ const TopNav = ({ user: propUser }) => {
         }
       }
     };
-    
+
     fetchUserData();
   }, [propUser]);
 
@@ -123,15 +138,13 @@ const TopNav = ({ user: propUser }) => {
       } else {
         // Resume polling when tab is visible
         setIsPolling(true);
-        // Fetch immediately when returning to tab
-        if (user) {
-          fetchNotifications();
-        }
+        // Don't fetch immediately - let the polling interval handle it
+        // This prevents rapid successive calls when switching tabs
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
