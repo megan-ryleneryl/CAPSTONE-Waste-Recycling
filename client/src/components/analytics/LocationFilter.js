@@ -28,17 +28,20 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
     fetchRegions();
   }, []);
 
-  // Update internal state when currentFilter prop changes (from navigation)
+  // Update internal state when currentFilter prop changes (from navigation or external sources)
   useEffect(() => {
-    if (currentFilter && (
-      currentFilter.region ||
-      currentFilter.province ||
-      currentFilter.city ||
-      currentFilter.barangay
-    )) {
-      // Don't update if values are already set (avoid resetting)
-      if (currentFilter.region && !selectedRegion) {
-        setIsInitializing(true);
+    // Check if external filter is different from current internal state
+    const isFilterDifferent =
+      currentFilter?.region !== selectedRegion ||
+      currentFilter?.province !== selectedProvince ||
+      currentFilter?.city !== selectedCity ||
+      currentFilter?.barangay !== selectedBarangay;
+
+    if (currentFilter && isFilterDifferent) {
+      // Always sync with external filter changes
+      setIsInitializing(true);
+
+      if (currentFilter.region) {
         setSelectedRegion(currentFilter.region);
 
         // If province is also provided, fetch provinces first
@@ -104,6 +107,16 @@ const LocationFilter = ({ onFilterChange, currentFilter }) => {
         } else {
           setIsInitializing(false);
         }
+      } else {
+        // If no region in currentFilter, clear all selections
+        setSelectedRegion('');
+        setSelectedProvince('');
+        setSelectedCity('');
+        setSelectedBarangay('');
+        setProvinces([]);
+        setCities([]);
+        setBarangays([]);
+        setIsInitializing(false);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
