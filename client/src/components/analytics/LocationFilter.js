@@ -316,9 +316,23 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
   const getUserLocationLabel = () => {
     if (!userLocation) return null;
     const parts = [];
-    if (userLocation.city?.name) parts.push(userLocation.city.name);
-    if (userLocation.province?.name) parts.push(userLocation.province.name);
-    if (userLocation.region?.name) parts.push(userLocation.region.name);
+
+    // Add locations from most specific to least specific
+    if (userLocation.barangay?.name) {
+      parts.push(userLocation.barangay.name);
+    }
+    if (userLocation.city?.name) {
+      parts.push(userLocation.city.name);
+    }
+    // Only add province if it exists and is not NCR (NCR cities don't need province)
+    if (userLocation.province?.name && userLocation.region?.code !== '130000000') {
+      parts.push(userLocation.province.name);
+    }
+    // Only add region if user has no more specific location
+    if (parts.length === 0 && userLocation.region?.name) {
+      parts.push(userLocation.region.name);
+    }
+
     return parts.length > 0 ? parts.join(', ') : null;
   };
 
