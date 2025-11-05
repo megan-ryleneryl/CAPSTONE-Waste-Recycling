@@ -570,3 +570,74 @@
 .verifyLink {
   font-size: 1rem;
 }
+
+/* Suggestions Section Styles */
+.suggestionsSection {
+  margin: 1rem 0 1.5rem 0;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+}
+
+.timeSuggestionsSection {
+  margin: 0.75rem 0 0 0;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.suggestionsLabel {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #3B6535;
+  margin-bottom: 0.75rem;
+  text-align: left;
+}
+
+.suggestionsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.suggestionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 2px solid #3B6535;
+  border-radius: 20px;
+  color: #3B6535;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Raleway', sans-serif;
+}
+
+.suggestionButton:hover {
+  background: #3B6535;
+  color: #B3F2AC;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 101, 53, 0.2);
+}
+
+.suggestionButton:active {
+  transform: translateY(0);
+}
+
+.timeSuggestionsSection .suggestionButton {
+  border-color: #4a7c59;
+  color: #4a7c59;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.9rem;
+}
+
+.timeSuggestionsSection .suggestionButton:hover {
+  background: #4a7c59;
+  color: white;
+}

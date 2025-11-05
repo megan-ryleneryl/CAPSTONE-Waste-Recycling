@@ -86,8 +86,8 @@ router.get('/', async (req, res) => {
       });
             
       totalDonations = completedPickups.reduce((sum, pickup) => {
-        console.log(`Adding ${pickup.paymentReceived} kg to total`);
-        return sum + pickup.paymentReceived;
+        console.log(`Adding ${pickup.finalAmount} kg to total`);
+        return sum + pickup.finalAmount;
       }, 0);
     } catch (pickupError) {
       console.error('Error calculating total donations:', pickupError);
