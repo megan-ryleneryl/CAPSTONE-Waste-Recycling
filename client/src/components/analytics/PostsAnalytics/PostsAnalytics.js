@@ -264,7 +264,7 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
                   <div className={styles.locationRank}>#{index + 1}</div>
                   <div className={styles.locationInfo}>
                     <span className={styles.locationName}>{location.name}</span>
-                    <span className={styles.locationCount}>{currentCount} active posts</span>
+                    <span className={styles.locationCount}>{currentCount} total activities</span>
                     <div className={styles.locationBar}>
                       <div
                         className={styles.locationBarFill}
