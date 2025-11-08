@@ -267,12 +267,12 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
       </div>
 
       {/* User Stats (Bottom) - Fixed position */}
-      {!isCollapsed && (
+      {/* {!isCollapsed && (
         <div className={styles.userStats}>
             <span className={styles.statLabel}>Points</span>
             <span className={styles.statValue}>{user?.points || 0}</span>
         </div>
-      )}
+      )} */}
     </aside>
   );
 };

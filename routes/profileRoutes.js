@@ -202,7 +202,7 @@ router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
       });
     }
     
-    if (!user.isCollector || !user.isAdmin) {
+    if (user.isCollector || !user.isAdmin) {
       return res.status(400).json({ 
         success: false, 
         message: 'Only Givers and Organizations can apply to be Collectors' 
