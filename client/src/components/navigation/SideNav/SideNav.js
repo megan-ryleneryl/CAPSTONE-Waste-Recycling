@@ -138,41 +138,6 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
           )}
         </div>
 
-        {/* Admin Actions Section */}
-        {user?.isAdmin && (
-          <div className={styles.section}>
-            <button 
-              className={styles.sectionHeader}
-              onClick={() => toggleSection('admin')}
-            >
-              {!isCollapsed && (
-                <>
-                  <span>Admin Actions</span>
-                  <span className={`${styles.chevron} ${expandedSections.admin ? styles.expanded : ''}`}>
-                    ▼
-                  </span>
-                </>
-              )}
-            </button>
-
-            {expandedSections.admin && (
-              <div className={styles.adminList}>
-                {adminNavItems.map(action => (
-                  <Link
-                    key={action.path}
-                    to={action.path}
-                    className={`${styles.navItem} ${location.pathname === action.path ? styles.active : ''}`}
-                    title={isCollapsed ? action.label : ''}
-                  >
-                    <span className={styles.icon}>{action.icon}</span>
-                    {!isCollapsed && <span className={styles.label}>{action.label}</span>}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Filters Section - Only show on Posts page */}
         {location.pathname === '/posts' && (
           <div className={styles.section}>
@@ -208,9 +173,6 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
                           {count > 0 && <span className={styles.badge}>{count}</span>}
                         </>
                       )}
-                      {/* {!isCollapsed && activeFilter === filter.id && (
-                        <span className={styles.indicator}></span>
-                      )} */}
                     </button>
                   );
                 })}
@@ -254,9 +216,6 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
                           {count > 0 && <span className={styles.badge}>{count}</span>}
                         </>
                       )}
-                      {/* {!isCollapsed && activeFilter === filter.id && (
-                        <span className={styles.indicator}></span>
-                      )} */}
                     </button>
                   );
                 })}
@@ -264,15 +223,50 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
             )}
           </div>
         )}
-      </div>
 
-      {/* User Stats (Bottom) - Fixed position */}
-      {/* {!isCollapsed && (
-        <div className={styles.userStats}>
-            <span className={styles.statLabel}>Points</span>
-            <span className={styles.statValue}>{user?.points || 0}</span>
-        </div>
-      )} */}
+        {/* Admin Actions Section */}
+        {user?.isAdmin && (
+          <div className={styles.section}>
+            <button 
+              className={styles.sectionHeader}
+              onClick={() => toggleSection('admin')}
+            >
+              {!isCollapsed && (
+                <>
+                  <span>Admin Actions</span>
+                  <span className={`${styles.chevron} ${expandedSections.admin ? styles.expanded : ''}`}>
+                    ▼
+                  </span>
+                </>
+              )}
+            </button>
+
+            {expandedSections.admin && (
+              <div className={styles.adminList}>
+                {adminNavItems.map(action => (
+                  <Link
+                    key={action.path}
+                    to={action.path}
+                    className={`${styles.navItem} ${location.pathname === action.path ? styles.active : ''}`}
+                    title={isCollapsed ? action.label : ''}
+                  >
+                    <span className={styles.icon}>{action.icon}</span>
+                    {!isCollapsed && <span className={styles.label}>{action.label}</span>}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* User Stats (Bottom) - Fixed position */}
+        {!isCollapsed && (
+          <div className={styles.userStats}>
+              <span className={styles.statLabel}>Points</span>
+              <span className={styles.statValue}>{user?.points}</span>
+          </div>
+        )}
+      </div>
     </aside>
   );
 };
