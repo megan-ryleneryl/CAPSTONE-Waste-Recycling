@@ -456,58 +456,64 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       const confirmedPickupSnap = await getDoc(selectedPickupRef);
       const confirmedPickup = confirmedPickupSnap.data();
 
-      // 3. Update post status to "Claimed" and set claimedBy
+      // 3. Update post status to "Claimed" and set claimedBy (ONLY for Waste posts)
+      // Initiative posts should stay "Active" to allow multiple supporters
       const postRef = doc(db, 'posts', postID);
-      await updateDoc(postRef, {
-        status: 'Claimed',
-        claimedBy: confirmedPickup.collectorID,
-        claimedAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-      // 4. Get all OTHER proposed pickups for this post
-      const allPickupsQuery = query(
-        collection(db, 'pickups'),
-        where('postID', '==', postID),
-        where('status', '==', 'Proposed')
-      );
-      const otherPickupsSnap = await getDocs(allPickupsQuery);
-
-      // 5. Cancel all other proposed pickups and notify collectors
-      const cancelPromises = otherPickupsSnap.docs.map(async (pickupDoc) => {
-        const pickupData = pickupDoc.data();
-
-        // Cancel the pickup
-        await updateDoc(doc(db, 'pickups', pickupDoc.id), {
-          status: 'Cancelled',
-          cancelledAt: serverTimestamp(),
-          cancellationReason: 'Giver selected another collector',
+      if (post?.postType !== 'Initiative') {
+        await updateDoc(postRef, {
+          status: 'Claimed',
+          claimedBy: confirmedPickup.collectorID,
+          claimedAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
+      }
 
-        // Send system message to rejected collector
-        await addDoc(collection(db, 'messages'), {
-          messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          senderID: 'system',
-          senderName: 'System',
-          receiverID: pickupData.collectorID,
-          receiverName: pickupData.collectorName,
-          postID: postID,
-          postTitle: post?.title || 'Post',
-          postType: post?.postType || 'Waste',
-          messageType: 'system',
-          message: `[Status] The giver has proceeded with another collector for "${post?.title || 'this post'}". Your pickup schedule has been cancelled.`,
-          isRead: false,
-          isDeleted: false,
-          sentAt: serverTimestamp(),
-          metadata: {
-            action: 'pickup_rejected',
-            pickupID: pickupDoc.id
-          }
+      // 4. Cancel all other proposed pickups (ONLY for Waste posts)
+      // For Initiative posts, multiple pickups can be confirmed for different supporters
+      if (post?.postType !== 'Initiative') {
+        const allPickupsQuery = query(
+          collection(db, 'pickups'),
+          where('postID', '==', postID),
+          where('status', '==', 'Proposed')
+        );
+        const otherPickupsSnap = await getDocs(allPickupsQuery);
+
+        // Cancel all other proposed pickups and notify collectors
+        const cancelPromises = otherPickupsSnap.docs.map(async (pickupDoc) => {
+          const pickupData = pickupDoc.data();
+
+          // Cancel the pickup
+          await updateDoc(doc(db, 'pickups', pickupDoc.id), {
+            status: 'Cancelled',
+            cancelledAt: serverTimestamp(),
+            cancellationReason: 'Giver selected another collector',
+            updatedAt: serverTimestamp()
+          });
+
+          // Send system message to rejected collector
+          await addDoc(collection(db, 'messages'), {
+            messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            senderID: 'system',
+            senderName: 'System',
+            receiverID: pickupData.collectorID,
+            receiverName: pickupData.collectorName,
+            postID: postID,
+            postTitle: post?.title || 'Post',
+            postType: post?.postType || 'Waste',
+            messageType: 'system',
+            message: `[Status] The giver has proceeded with another collector for "${post?.title || 'this post'}". Your pickup schedule has been cancelled.`,
+            isRead: false,
+            isDeleted: false,
+            sentAt: serverTimestamp(),
+            metadata: {
+              action: 'pickup_rejected',
+              pickupID: pickupDoc.id
+            }
+          });
         });
-      });
 
-      await Promise.all(cancelPromises);
+        await Promise.all(cancelPromises);
+      }
 
       // 6. Send confirmation message to the accepted collector
       await addDoc(collection(db, 'messages'), {
@@ -629,8 +635,9 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
       await updateDoc(pickupRef, updateData);
 
-      // If cancelling a confirmed pickup, revert post status to Active
-      if (status === 'Cancelled' && activePickup.status === 'Confirmed' && postID) {
+      // If cancelling a confirmed pickup, revert post status to Active (ONLY for Waste posts)
+      // Initiative posts should stay Active (they support multiple pickups)
+      if (status === 'Cancelled' && activePickup.status === 'Confirmed' && postID && post?.postType !== 'Initiative') {
         const postRef = doc(db, 'posts', postID);
         await updateDoc(postRef, {
           status: 'Active',
