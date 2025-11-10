@@ -120,11 +120,12 @@ const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData 
           (messageData.senderID === currentUser.userID && messageData.receiverID === otherUser.userID) ||
           (messageData.senderID === otherUser.userID && messageData.receiverID === currentUser.userID) ||
           // Only show system messages that are part of this specific conversation
-          // (either sent by or intended for the otherUser in this chat)
+          // Show system messages if they're addressed to either the current user or the other user in this chat
           (messageData.messageType === 'system' && (
             (messageData.receiverID === currentUser.userID && messageData.senderID === otherUser.userID) ||
             (messageData.receiverID === otherUser.userID && messageData.senderID === currentUser.userID) ||
-            (messageData.senderID === 'system' && messageData.receiverID === otherUser.userID)
+            (messageData.senderID === 'system' && messageData.receiverID === otherUser.userID) ||
+            (messageData.senderID === 'system' && messageData.receiverID === currentUser.userID)
           ))
         ) {
           messagesData.push({
@@ -508,7 +509,28 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
 
       await Promise.all(cancelPromises);
 
-      // 6. Refresh UI
+      // 6. Send confirmation message to the accepted collector
+      await addDoc(collection(db, 'messages'), {
+        messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        senderID: 'system',
+        senderName: 'System',
+        receiverID: confirmedPickup.collectorID,
+        receiverName: confirmedPickup.collectorName,
+        postID: postID,
+        postTitle: post?.title || 'Post',
+        postType: post?.postType || 'Waste',
+        messageType: 'system',
+        message: `[Status] ${confirmedPickup.giverName} [Giver] has confirmed the pickup schedule with ${confirmedPickup.collectorName} [Collector] for "${post?.title || 'this post'}". Pickup date: ${new Date(confirmedPickup.pickupDate).toLocaleDateString()} at ${confirmedPickup.pickupTime}.`,
+        isRead: false,
+        isDeleted: false,
+        sentAt: serverTimestamp(),
+        metadata: {
+          action: 'pickup_confirmed',
+          pickupID: pickupId
+        }
+      });
+
+      // 7. Refresh UI
       await refreshPickupData();
       await loadProposedPickups();
       setShowProposedPickupsModal(false);
@@ -606,6 +628,23 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       }
 
       await updateDoc(pickupRef, updateData);
+
+      // If cancelling a confirmed pickup, revert post status to Active
+      if (status === 'Cancelled' && activePickup.status === 'Confirmed' && postID) {
+        const postRef = doc(db, 'posts', postID);
+        await updateDoc(postRef, {
+          status: 'Active',
+          claimedBy: null,
+          claimedAt: null,
+          updatedAt: serverTimestamp()
+        });
+
+        // Reload post data to reflect changes
+        const updatedPostSnap = await getDoc(postRef);
+        if (updatedPostSnap.exists()) {
+          setPost({ id: updatedPostSnap.id, ...updatedPostSnap.data() });
+        }
+      }
 
       // Refresh pickup data after update
       await refreshPickupData();
