@@ -151,7 +151,7 @@ const Landing = () => {
             <div className={styles.step}>
               <div className={styles.stepNumber}>4</div>
               <h3>Earn Points</h3>
-              <p>Complete transactions and earn rewards for your contribution</p>
+              <p>Complete transactions and earn Rewards!</p>
             </div>
           </div>
         </div>
