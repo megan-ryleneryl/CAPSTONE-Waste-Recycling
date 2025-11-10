@@ -33,7 +33,7 @@ setInterval(() => {
   }
 
   if (cleaned > 0) {
-    console.log(`🧹 Cleaned ${cleaned} expired analytics cache entries. Current size: ${analyticsCache.size}`);
+    console.log(`Cleaned ${cleaned} expired analytics cache entries. Current size: ${analyticsCache.size}`);
   }
 }, ANALYTICS_CACHE_TTL); // Run cleanup every 2 minutes
 

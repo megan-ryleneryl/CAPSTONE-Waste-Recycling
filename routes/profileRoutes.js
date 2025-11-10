@@ -192,20 +192,20 @@ router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
       });
     }
     
-    // Check if user is a Giver
+    // Check if user is already a collector
     const user = await User.findById(req.user.userID);
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
-    
-    if (user.isCollector || !user.isAdmin) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Only Givers and Organizations can apply to be Collectors' 
+
+    if (user.isCollector) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are already a Collector'
       });
     }
     

@@ -5,21 +5,22 @@ import ModalPortal from '../../modal/ModalPortal';
 const ApplicationStatusTracker = ({ application, onClose }) => {
   const getStatusSteps = (applicationType) => {
     const baseSteps = [
+      { status: 'Pending', label: 'Application Pending' },
       { status: 'Submitted', label: 'Application Submitted' },
       { status: 'Under Review', label: 'Under Review' },
-      { status: 'Approved', label: 'Approved' },
-      { status: 'Rejected', label: 'Rejected' }
+      { status: 'Approved', label: 'Approved' }
     ];
 
     if (applicationType === 'Account_Verification') {
-      baseSteps[0].label = 'Verification Documents Submitted';
-      baseSteps[2].label = 'Account Verified';
+      baseSteps[0].label = 'Verification Pending';
+      baseSteps[1].label = 'Verification Documents Submitted';
+      baseSteps[3].label = 'Account Verified';
     } else if (applicationType === 'Org_Verification') {
-      baseSteps[0].label = 'Organization Application Submitted';
-      baseSteps[2].label = 'Organization Approved';
+      baseSteps[1].label = 'Organization Application Submitted';
+      baseSteps[3].label = 'Organization Approved';
     } else if (applicationType === 'Collector_Privilege') {
-      baseSteps[0].label = 'Collector Application Submitted';
-      baseSteps[2].label = 'Collector Status Granted';
+      baseSteps[1].label = 'Collector Application Submitted';
+      baseSteps[3].label = 'Collector Status Granted';
     }
 
     return baseSteps;
@@ -27,15 +28,17 @@ const ApplicationStatusTracker = ({ application, onClose }) => {
 
   const getCurrentStepIndex = (status) => {
     switch (status) {
-      case 'Submitted':
       case 'Pending':
         return 0;
-      case 'Under Review':
+      case 'Submitted':
         return 1;
-      case 'Approved':
+      case 'Under Review':
         return 2;
-      case 'Rejected':
+      case 'Approved':
+      case 'Verified':
         return 3;
+      case 'Rejected':
+        return 4; // Rejected shown separately
       default:
         return 0;
     }
@@ -122,17 +125,15 @@ const ApplicationStatusTracker = ({ application, onClose }) => {
                 {steps.map((step, index) => {
                   const isActive = index === currentStepIndex;
                   const isCompleted = index < currentStepIndex && !isRejected;
-                  const isRejectedStep = isRejected && index === 3;
-                  
+
                   return (
                     <div key={index} className={styles.timelineItem}>
                       <div className={`${styles.timelineNode} ${
-                        isCompleted ? styles.completed : 
-                        isActive ? styles.active : 
-                        isRejectedStep ? styles.rejected : ''
+                        isCompleted ? styles.completed :
+                        isActive ? styles.active : ''
                       }`}>
                         <div className={styles.nodeIcon}>
-                          {isCompleted ? '✓' : isRejectedStep ? '×' : step.icon}
+                          {isCompleted || isActive ? '✓' : ''}
                         </div>
                         {index < steps.length - 1 && (
                           <div className={`${styles.timelineLine} ${
@@ -145,21 +146,39 @@ const ApplicationStatusTracker = ({ application, onClose }) => {
                         {isActive && (
                           <p className={styles.stepDate}>
                             {formatDate(
-                              index === 0 ? application.submittedAt : 
-                              index === currentStepIndex ? application.reviewedAt || new Date() : 
+                              index === 0 ? application.createdAt :
+                              index === 1 ? application.submittedAt :
+                              index === currentStepIndex ? application.reviewedAt || new Date() :
                               null
                             )}
                           </p>
                         )}
-                        {isCompleted && index === 0 && (
+                        {isCompleted && (
                           <p className={styles.stepDate}>
-                            {formatDate(application.submittedAt)}
+                            {formatDate(
+                              index === 0 ? application.createdAt :
+                              index === 1 ? application.submittedAt :
+                              null
+                            )}
                           </p>
                         )}
                       </div>
                     </div>
                   );
                 })}
+                {isRejected && (
+                  <div className={styles.timelineItem}>
+                    <div className={`${styles.timelineNode} ${styles.rejected}`}>
+                      <div className={styles.nodeIcon}>×</div>
+                    </div>
+                    <div className={styles.timelineContent}>
+                      <h4 className={styles.stepTitle}>Rejected</h4>
+                      <p className={styles.stepDate}>
+                        {formatDate(application.reviewedAt)}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {application.justification && (

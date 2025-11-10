@@ -85,7 +85,7 @@ router.get('/', verifyToken, async (req, res) => {
     const useCache = !type && !status && !location && !userID && !hasLocationFilter;
 
     if (useCache && postsCache.data && (now - postsCache.timestamp) < postsCache.ttl) {
-      console.log('📦 Using cached posts data');
+      console.log('Using cached posts data');
       return res.json({
         success: true,
         posts: postsCache.data,
