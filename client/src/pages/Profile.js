@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, MapPin, Sprout } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
@@ -1293,7 +1293,9 @@ const Profile = ({ user: propsUser }) => {
               <div className={styles.locationContent}>
                 {user?.userLocation ? (
                   <div className={styles.currentLocation}>
-                    <div className={styles.locationIcon}>📍</div>
+                    <div className={styles.locationIcon}>
+                      <MapPin size={24} />
+                    </div>
                     <div className={styles.locationDetails}>
                       <div className={styles.locationPrimary}>
                         {user.userLocation.barangay?.name}, {user.userLocation.city?.name}
@@ -1306,7 +1308,7 @@ const Profile = ({ user: propsUser }) => {
                       </div>
                       {user.userLocation.coordinates && (
                         <div className={styles.locationCoords}>
-                          📌 {user.userLocation.coordinates.lat.toFixed(4)}, {user.userLocation.coordinates.lng.toFixed(4)}
+                          <MapPin size={14} /> {user.userLocation.coordinates.lat.toFixed(4)}, {user.userLocation.coordinates.lng.toFixed(4)}
                         </div>
                       )}
                     </div>
@@ -1314,7 +1316,8 @@ const Profile = ({ user: propsUser }) => {
                 ) : (
                   <div className={styles.noLocation}>
                     <p className={styles.inviteText}>
-                      🌱 <strong>Set your current recycling community!</strong>
+                      <Sprout size={20} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
+                      <strong>Set your current recycling community!</strong>
                     </p>
                     <p className={styles.benefitText}>
                       Join your local barangay community to see relevant posts and help us track active recyclers in your area.
