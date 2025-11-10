@@ -5,9 +5,26 @@ import { Calendar } from 'lucide-react';
 import styles from './PickupScheduleForm.module.css';
 import PSGCService from '../../services/psgcService';
 
-const PickupScheduleForm = ({ post, giverPreferences, onSubmit, onCancel }) => {
+const PickupScheduleForm = ({ post, support, giverPreferences, onSubmit, onCancel }) => {
   // Initialize material prices - collector specifies how much they'll pay per kilo for each material
   const initializeMaterialPrices = () => {
+    // For Initiative posts with support, use the offered materials (only accepted ones)
+    if (post?.postType === 'Initiative' && support?.offeredMaterials) {
+      // Filter to only accepted materials
+      const acceptedMaterials = support.offeredMaterials.filter(
+        material => material.status === 'Accepted'
+      );
+
+      return acceptedMaterials.map(material => ({
+        materialID: material.materialID,
+        materialName: material.materialName || material.name || 'Unknown Material',
+        quantity: material.quantity || 0, // Use the offered quantity from support
+        pricePerKilo: 0, // Collector will fill this in
+        averagePrice: 0 // Will be fetched from materials collection
+      }));
+    }
+
+    // For Waste posts or Initiative posts without support, use post materials
     if (!post?.materials || !Array.isArray(post.materials)) return [];
 
     return post.materials.map(material => ({

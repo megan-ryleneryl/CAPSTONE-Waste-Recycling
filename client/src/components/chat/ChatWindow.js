@@ -541,7 +541,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         setPost({ id: updatedPostSnap.id, ...updatedPostSnap.data() });
       }
 
-      alert('Pickup confirmed! Other proposals have been cancelled.');
+      alert('Pickup confirmed!');
     } catch (error) {
       console.error('Error confirming pickup:', error);
       alert('Failed to confirm pickup. Please try again.');
@@ -1012,6 +1012,7 @@ return (
       {showScheduleForm && (
         <PickupScheduleForm
           post={post}
+          support={activeSupport}
           giverPreferences={otherUserData?.preferences}
           onSubmit={handleSchedulePickup}
           onCancel={() => setShowScheduleForm(false)}
