@@ -972,6 +972,8 @@ const handleRemoveImage = (index) => {
                     className={styles.input}
                   />
 
+                </div>
+              </div>
                   {/* Preferred Times Suggestions */}
                   {preferredTimes && preferredTimes.length > 0 && (
                     <div className={styles.timeSuggestionsSection}>
@@ -1020,8 +1022,6 @@ const handleRemoveImage = (index) => {
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
             </div>
           )}
 
