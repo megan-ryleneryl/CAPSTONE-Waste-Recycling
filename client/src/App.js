@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Posts from './pages/Posts';
 import SinglePost from './pages/SinglePost';
-import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 import Chat from './pages/Chat';
@@ -102,31 +101,22 @@ function App() {
               } 
             />
             
-            <Route 
-              path="/create-post" 
+            <Route
+              path="/create-post"
               element={
                 <ProtectedRoute>
                   <CreatePost />
                 </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
+              }
             />
 
-            <Route 
-              path="/analytics" 
+            <Route
+              path="/analytics"
               element={
                 <ProtectedRoute>
                   <Analytics />
                 </ProtectedRoute>
-              } 
+              }
             />
             
             <Route 

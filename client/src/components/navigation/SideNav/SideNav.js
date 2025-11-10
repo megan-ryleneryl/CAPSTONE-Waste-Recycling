@@ -6,7 +6,6 @@ import {
   Recycle, Sprout,
   Plus,
   Home,
-  LayoutDashboard,
   Map,
   MessageCircle,
   Package,
@@ -41,7 +40,6 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
 
   const mainNavItems = [
     { path: '/posts', label: 'Browse Posts', icon: <Home size={20} /> },
-    { path: '/dashboard', label: 'My Stats', icon: <LayoutDashboard size={20} /> },
     { path: '/analytics', label: 'Community Stats', icon: <Map size={20} /> },
     { path: '/chat', label: 'Messages', icon: <MessageCircle size={20} /> },
     { path: '/pickups', label: 'My Pickups', icon: <Package size={20} /> },

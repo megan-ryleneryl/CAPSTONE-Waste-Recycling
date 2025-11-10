@@ -982,3 +982,213 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
 }
+
+/* Detailed Stats Section */
+.detailedStatsSection {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+}
+
+.timeRangeSelector {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.timeButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid #E5E7EB;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6B7280;
+  transition: all 0.2s ease;
+}
+
+.timeButton:hover {
+  background: #F9FAFB;
+  border-color: #3B6535;
+}
+
+.activeTimeButton {
+  background: #3B6535;
+  color: white;
+  border-color: #3B6535;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.statCard {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.statCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.statCardHeader h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.statIcon {
+  color: #3B6535;
+}
+
+.statCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.statRow:last-child {
+  border-bottom: none;
+}
+
+.statLabel {
+  font-size: 0.9rem;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+.roleStatsSection {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #E5E7EB;
+}
+
+.roleStatsTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 1rem;
+}
+
+.contributorRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.contributorRow:last-child {
+  border-bottom: none;
+}
+
+.contributorRank {
+  font-weight: 700;
+  color: #F0924C;
+  font-size: 1rem;
+  min-width: 30px;
+}
+
+.contributorName {
+  flex: 1;
+  font-weight: 500;
+  color: #1F2937;
+}
+
+.contributorAmount {
+  font-weight: 600;
+  color: #3B6535;
+  font-size: 0.9rem;
+}
+
+/* Tab Navigation */
+.tabNavigation {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  margin-bottom: 0;
+  border-bottom: 2px solid #E5E7EB;
+  padding: 0 1.5rem;
+}
+
+.tabButton {
+  padding: 1rem 2rem;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6B7280;
+  transition: all 0.3s ease;
+  position: relative;
+  bottom: -2px;
+}
+
+.tabButton:hover {
+  color: #3B6535;
+  background: rgba(59, 101, 53, 0.05);
+}
+
+.activeTab {
+  color: #3B6535;
+  border-bottom-color: #3B6535;
+  background: rgba(59, 101, 53, 0.05);
+}
+
+/* Tab Content */
+.tabContent {
+  padding: 2rem 1.5rem;
+  background: white;
+  border-radius: 0 0 12px 12px;
+  min-height: 400px;
+}
+
+.preferencesTab,
+.statsTab {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
