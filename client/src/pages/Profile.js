@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, MapPin, Sprout, Recycle, TrendingUp, Heart, Leaf, Trophy, Users, Package, Plus, Trees, Droplets } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
@@ -9,6 +9,7 @@ import DeleteAccountModal from '../components/profile/DeleteAccountModal/DeleteA
 import ApplicationStatusTracker from '../components/profile/ApplicationStatusTracker/ApplicationStatusTracker';
 import PreferredTimesModal from '../components/profile/PreferredTimesModal';
 import PreferredLocationsModal from '../components/profile/PreferredLocationsModal';
+import UserLocationModal from '../components/profile/UserLocationModal';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
@@ -549,6 +550,29 @@ const Profile = ({ user: propsUser }) => {
   const [userApplications, setUserApplications] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showApplicationSelector, setShowApplicationSelector] = useState(false);
+  const [activeTab, setActiveTab] = useState('preferences');
+  const [selectedTimeRange, setSelectedTimeRange] = useState('month');
+  const [analyticsData, setAnalyticsData] = useState({
+    giverStats: {
+      totalKgRecycled: 0,
+      activePickups: 0,
+      successfulPickups: 0,
+      activeForumPosts: 0,
+      totalPoints: 0
+    },
+    collectorStats: {
+      activeWastePosts: 0,
+      claimedPosts: 0,
+      totalCollected: 0,
+      completionRate: 0
+    },
+    organizationStats: {
+      activeInitiatives: 0,
+      totalSupporters: 0,
+      materialsReceived: 0,
+      topContributors: []
+    }
+  });
   const { refreshUser } = useAuth();
   const navigate = useNavigate();
 
@@ -561,7 +585,7 @@ const Profile = ({ user: propsUser }) => {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
-      
+
       if (response.data.success && response.data.applications) {
         setUserApplications(response.data.applications);
         // Don't automatically set submitted application for new users
@@ -569,6 +593,24 @@ const Profile = ({ user: propsUser }) => {
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
+    }
+  };
+
+  const fetchAnalyticsData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `http://localhost:3001/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        setAnalyticsData(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
     }
   };
 
@@ -596,7 +638,8 @@ const Profile = ({ user: propsUser }) => {
           setUser({
             ...profileData,
             preferredTimes: profileData.preferredTimes || [],
-            preferredLocations: profileData.preferredLocations || []
+            preferredLocations: profileData.preferredLocations || [],
+            userLocation: profileData.userLocation || null
           });
           localStorage.setItem('user', JSON.stringify(profileData));
         }
@@ -673,7 +716,15 @@ const Profile = ({ user: propsUser }) => {
   useEffect(() => {
     fetchUserProfile();
     fetchUserApplications();
+    fetchAnalyticsData();
   }, [fetchUserProfile]);
+
+  // Fetch analytics when time range changes
+  useEffect(() => {
+    if (user) {
+      fetchAnalyticsData();
+    }
+  }, [selectedTimeRange]);
 
   // Handle body scroll lock
   useEffect(() => {
@@ -1008,11 +1059,11 @@ const Profile = ({ user: propsUser }) => {
   const handlePreferredLocationsSubmit = async (formData) => {
     try {
       const token = localStorage.getItem('token');
-      
+
       // Extract the preferredLocations from FormData
       const locationsJSON = formData.get('preferredLocations');
       const locations = JSON.parse(locationsJSON);
-      
+
       // Send to backend
       const response = await axios.put(
         'http://localhost:3001/api/protected/profile',
@@ -1028,13 +1079,13 @@ const Profile = ({ user: propsUser }) => {
       if (response.data.success) {
         // If backend returns updated user, use it
         const updatedUser = response.data.user || { ...user, preferredLocations: locations };
-        
+
         // Update local state with backend response
         setUser(updatedUser);
-        
+
         // Update localStorage
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
+
         // Close modal
         setActiveModal(null);
       }
@@ -1042,6 +1093,44 @@ const Profile = ({ user: propsUser }) => {
       console.error('Error updating preferred locations:', error);
       setError('Failed to update preferred locations');
       alert('Failed to save locations. Please try again.');
+    }
+  };
+
+  const handleUserLocationSubmit = async (locationData) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      // Send to backend
+      const response = await axios.put(
+        'http://localhost:3001/api/protected/profile',
+        { userLocation: locationData },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // If backend returns updated user, use it
+        const updatedUser = response.data.user || { ...user, userLocation: locationData };
+
+        // Update local state with backend response
+        setUser(updatedUser);
+
+        // Update localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+
+        // Close modal
+        setActiveModal(null);
+
+        alert('Your recycling community has been set successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating user location:', error);
+      setError('Failed to update location');
+      alert('Failed to save your location. Please try again.');
     }
   };
 
@@ -1228,7 +1317,7 @@ const Profile = ({ user: propsUser }) => {
               </div>
             </div>
 
-            {/* Stats */}
+            {/* Stats - Quick Overview */}
             <div className={styles.stats}>
               <div className={styles.statItem}>
                 <span>Points: {user.points || 0}</span>
@@ -1238,134 +1327,383 @@ const Profile = ({ user: propsUser }) => {
               </div>
             </div>
 
-            {/* Preferences Section */}
-            <div className={styles.preferencesSection}>
-              <h3 className={styles.sectionTitle}>Pickup Preferences</h3>
-              
-              <div className={styles.preferencesContent}>
-                {/* Preferred Times */}
-                <div className={styles.preferenceItem}>
-                  <div className={styles.preferenceHeader}>
-                    <h4>Preferred Pickup Times</h4>
-                    <button 
-                      onClick={() => setActiveModal('preferredTimes')}
-                      className={styles.editPreferenceButton}
-                    >
-                      {user?.preferredTimes?.length > 0 ? 'Edit' : 'Set Times'}
-                    </button>
-                  </div>
-                  <div className={styles.preferenceValue}>
-                    {user?.preferredTimes?.length > 0 ? (
-                      <ul className={styles.preferenceList}>
-                        {user.preferredTimes.map((time, index) => (
-                          <li key={index}>
-                            {time.day}: {time.startTime}
-                            {time.startTime !== 'Flexible' && (
-                              <> - {time.endTime}</>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className={styles.noPreference}>No preferred times set</p>
-                    )}
-                  </div>
-                </div>
+            {/* Tab Navigation */}
+            <div className={styles.tabNavigation}>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'preferences' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('preferences')}
+              >
+                Preferences
+              </button>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'stats' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('stats')}
+              >
+                My Stats
+              </button>
+            </div>
 
-                {/* Preferred Locations */}
-                <div className={styles.preferenceItem}>
-                  <div className={styles.preferenceHeader}>
-                    <h4>Preferred Pickup Locations</h4>
-                    <button 
-                      onClick={() => setActiveModal('preferredLocations')}
-                      className={styles.editPreferenceButton}
-                    >
-                      {user?.preferredLocations?.length > 0 ? 'Edit' : 'Set Locations'}
-                    </button>
-                  </div>
-                  <div className={styles.preferenceValue}>
-                    {user?.preferredLocations?.length > 0 ? (
-                      <ul className={styles.preferenceList}>
-                        {user.preferredLocations.map((location, index) => {
-                          // Handle both old string format and new structured format
-                          if (typeof location === 'string') {
-                            return <li key={index}>{location}</li>;
-                          }
-                          
-                          // New structured format
-                          return (
-                            <li key={index}>
-                              <div>
-                                <strong>{location.name}</strong>
-                                <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
-                                  {location.addressLine}
-                                </div>
-                                <div style={{ fontSize: '0.8em', color: '#999', marginTop: '2px' }}>
-                                  {location.barangay?.name && (
-                                    <>
-                                      {location.barangay.name}, {location.city?.name}
-                                      {location.province?.name && location.province.name !== 'NCR' && (
-                                        <>, {location.province.name}</>
-                                      )}
-                                      {location.region?.name && (
-                                        <>, {location.region.name}</>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
+            {/* Tab Content */}
+            <div className={styles.tabContent}>
+              {/* Preferences Tab */}
+              {activeTab === 'preferences' && (
+                <div className={styles.preferencesTab}>
+                  {/* User Location Section */}
+                  <div className={styles.userLocationSection}>
+                    <div className={styles.sectionHeader}>
+                      <h3 className={styles.sectionTitle}>Your Recycling Community</h3>
+                      <button
+                        onClick={() => setActiveModal('userLocation')}
+                        className={styles.editPreferenceButton}
+                      >
+                        {user?.userLocation ? 'Change' : 'Set Community'}
+                      </button>
+                    </div>
+
+                    <div className={styles.locationContent}>
+                      {user?.userLocation ? (
+                        <div className={styles.currentLocation}>
+                          <div className={styles.locationIcon}>
+                            <MapPin size={24} />
+                          </div>
+                          <div className={styles.locationDetails}>
+                            <div className={styles.locationPrimary}>
+                              {user.userLocation.barangay?.name}, {user.userLocation.city?.name}
+                            </div>
+                            <div className={styles.locationSecondary}>
+                              {user.userLocation.province?.name && user.userLocation.province.name !== 'NCR' && (
+                                <>{user.userLocation.province.name}, </>
+                              )}
+                              {user.userLocation.region?.name}
+                            </div>
+                            {user.userLocation.coordinates && (
+                              <div className={styles.locationCoords}>
+                                <MapPin size={14} /> {user.userLocation.coordinates.lat.toFixed(4)}, {user.userLocation.coordinates.lng.toFixed(4)}
                               </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <p className={styles.noPreference}>No preferred locations set</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={styles.noLocation}>
+                          <p className={styles.inviteText}>
+                            <Sprout size={20} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
+                            <strong>Set your current recycling community!</strong>
+                          </p>
+                          <p className={styles.benefitText}>
+                            Join your local barangay community to see relevant posts and help us track active recyclers in your area.
+                          </p>
+                          <button
+                            onClick={() => setActiveModal('userLocation')}
+                            className={styles.setCommunityButton}
+                          >
+                            Choose Your Barangay
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pickup Preferences Section */}
+                  <div className={styles.preferencesSection}>
+                    <h3 className={styles.sectionTitle}>Pickup Preferences</h3>
+
+                    <div className={styles.preferencesContent}>
+                      {/* Preferred Times */}
+                      <div className={styles.preferenceItem}>
+                        <div className={styles.preferenceHeader}>
+                          <h4>Preferred Pickup Times</h4>
+                          <button
+                            onClick={() => setActiveModal('preferredTimes')}
+                            className={styles.editPreferenceButton}
+                          >
+                            {user?.preferredTimes?.length > 0 ? 'Edit' : 'Set Times'}
+                          </button>
+                        </div>
+                        <div className={styles.preferenceValue}>
+                          {user?.preferredTimes?.length > 0 ? (
+                            <ul className={styles.preferenceList}>
+                              {user.preferredTimes.map((time, index) => (
+                                <li key={index}>
+                                  {time.day}: {time.startTime}
+                                  {time.startTime !== 'Flexible' && (
+                                    <> - {time.endTime}</>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className={styles.noPreference}>Add your preferred times to get started</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Preferred Locations */}
+                      <div className={styles.preferenceItem}>
+                        <div className={styles.preferenceHeader}>
+                          <h4>Preferred Pickup Locations</h4>
+                          <button
+                            onClick={() => setActiveModal('preferredLocations')}
+                            className={styles.editPreferenceButton}
+                          >
+                            {user?.preferredLocations?.length > 0 ? 'Edit' : 'Set Locations'}
+                          </button>
+                        </div>
+                        <div className={styles.preferenceValue}>
+                          {user?.preferredLocations?.length > 0 ? (
+                            <ul className={styles.preferenceList}>
+                              {user.preferredLocations.map((location, index) => {
+                                // Handle both old string format and new structured format
+                                if (typeof location === 'string') {
+                                  return <li key={index}>{location}</li>;
+                                }
+
+                                // New structured format
+                                return (
+                                  <li key={index}>
+                                    <div>
+                                      <strong>{location.name}</strong>
+                                      <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
+                                        {location.addressLine}
+                                      </div>
+                                      <div style={{ fontSize: '0.8em', color: '#999', marginTop: '2px' }}>
+                                        {location.barangay?.name && (
+                                          <>
+                                            {location.barangay.name}, {location.city?.name}
+                                            {location.province?.name && location.province.name !== 'NCR' && (
+                                              <>, {location.province.name}</>
+                                            )}
+                                            {location.region?.name && (
+                                              <>, {location.region.name}</>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          ) : (
+                            <p className={styles.noPreference}>Add your preferred locations to get started</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Call to Action Cards */}
+                  <div className={styles.ctaSection}>
+                    {user.status === 'Pending' && (
+                      <div className={styles.ctaCard}>
+                        <p>Submit your proof of identity and unlock the rank and league features!</p>
+                        <button
+                          className={styles.ctaButton}
+                          onClick={() => setActiveModal('verification')}
+                        >
+                          Verify Your Account
+                        </button>
+                      </div>
+                    )}
+
+                    {!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication() && (
+                      <div className={styles.ctaCard}>
+                        <p>Join EcoTayo as a Collector and help close the loop on recycling in your community. Claim posts, manage pickups, and turn waste into a resource. Apply now and start earning points for every successful collection!</p>
+                        <button
+                          className={styles.ctaButton}
+                          onClick={() => setActiveModal('collector')}
+                        >
+                          Apply to be a Collector
+                        </button>
+                      </div>
+                    )}
+
+                    {!user.isOrganization && !hasPendingOrganizationApplication() && (
+                      <div className={styles.ctaCard}>
+                        <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects and build your reputation by making Initiative Posts.</p>
+                        <button
+                          className={styles.ctaButton}
+                          onClick={() => setActiveModal('organization')}
+                        >
+                          Apply for an Org Account
+                        </button>
+                      </div>
+                    )}
+
+                    {(!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication()) || (!user.isOrganization && !hasPendingOrganizationApplication()) ? (
+                      <p className={styles.ctaNote}>
+                        <strong>Note: If you're applying for verification or applications</strong>, your application requires admin approval before your account status changes. Please give us 3-5 business days to review and process your application.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {/* Stats Tab */}
+              {activeTab === 'stats' && (
+                <div className={styles.statsTab}>
+                  <div className={styles.detailedStatsSection}>
+                    <div className={styles.sectionHeader}>
+                      <h3 className={styles.sectionTitle}>My Activity Stats</h3>
+                      <div className={styles.timeRangeSelector}>
+                        {['week', 'month', 'year', 'all'].map(range => (
+                          <button
+                            key={range}
+                            className={`${styles.timeButton} ${selectedTimeRange === range ? styles.activeTimeButton : ''}`}
+                            onClick={() => setSelectedTimeRange(range)}
+                          >
+                            {range === 'all' ? 'All' : range.charAt(0).toUpperCase() + range.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Giver Stats - Everyone has this */}
+                    <div className={styles.statsGrid}>
+                      <div className={styles.statCard}>
+                        <div className={styles.statCardHeader}>
+                          <Recycle size={24} className={styles.statIcon} />
+                          <h4>Recycling Stats</h4>
+                        </div>
+                        <div className={styles.statCardBody}>
+                          <div className={styles.statRow}>
+                            <span className={styles.statLabel}>Total Recycled</span>
+                            <span className={styles.statValue}>{analyticsData.giverStats.totalKgRecycled || 0} kg</span>
+                          </div>
+                          <div className={styles.statRow}>
+                            <span className={styles.statLabel}>Successful Pickups</span>
+                            <span className={styles.statValue}>{analyticsData.giverStats.successfulPickups || 0}</span>
+                          </div>
+                          <div className={styles.statRow}>
+                            <span className={styles.statLabel}>Active Pickups</span>
+                            <span className={styles.statValue}>{analyticsData.giverStats.activePickups || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={styles.statCard}>
+                        <div className={styles.statCardHeader}>
+                          <Users size={24} className={styles.statIcon} />
+                          <h4>Community Engagement</h4>
+                        </div>
+                        <div className={styles.statCardBody}>
+                          <div className={styles.statRow}>
+                            <span className={styles.statLabel}>Forum Posts</span>
+                            <span className={styles.statValue}>{analyticsData.giverStats.activeForumPosts || 0}</span>
+                          </div>
+                          <div className={styles.statRow}>
+                            <span className={styles.statLabel}>Total Points</span>
+                            <span className={styles.statValue}>{analyticsData.giverStats.totalPoints || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={styles.statCard}>
+                        <div className={styles.statCardHeader}>
+                          <Leaf size={24} className={styles.statIcon} />
+                          <h4>Environmental Impact</h4>
+                        </div>
+                        <div className={styles.statCardBody}>
+                          <div className={styles.statRow}>
+                            <span className={styles.statLabel}>CO₂ Saved</span>
+                            <span className={styles.statValue}>{(analyticsData.giverStats.totalKgRecycled * 2.5).toFixed(1)} kg</span>
+                          </div>
+                          <div className={styles.statRow}>
+                            <span className={styles.statLabel}>Trees Equivalent</span>
+                            <span className={styles.statValue}>{Math.floor(analyticsData.giverStats.totalKgRecycled / 10)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Collector Stats - Only for collectors */}
+                    {user?.isCollector && (
+                      <div className={styles.roleStatsSection}>
+                        <h4 className={styles.roleStatsTitle}>
+                          <Package size={20} /> Collector Performance
+                        </h4>
+                        <div className={styles.statsGrid}>
+                          <div className={styles.statCard}>
+                            <div className={styles.statCardHeader}>
+                              <Package size={24} className={styles.statIcon} />
+                              <h4>Collection Stats</h4>
+                            </div>
+                            <div className={styles.statCardBody}>
+                              <div className={styles.statRow}>
+                                <span className={styles.statLabel}>Available Posts</span>
+                                <span className={styles.statValue}>{analyticsData.collectorStats.activeWastePosts || 0}</span>
+                              </div>
+                              <div className={styles.statRow}>
+                                <span className={styles.statLabel}>Posts Claimed</span>
+                                <span className={styles.statValue}>{analyticsData.collectorStats.claimedPosts || 0}</span>
+                              </div>
+                              <div className={styles.statRow}>
+                                <span className={styles.statLabel}>Total Collected</span>
+                                <span className={styles.statValue}>{analyticsData.collectorStats.totalCollected || 0} kg</span>
+                              </div>
+                              <div className={styles.statRow}>
+                                <span className={styles.statLabel}>Completion Rate</span>
+                                <span className={styles.statValue}>{analyticsData.collectorStats.completionRate || 0}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Organization Stats - Only for organizations */}
+                    {user?.isOrganization && (
+                      <div className={styles.roleStatsSection}>
+                        <h4 className={styles.roleStatsTitle}>
+                          <Heart size={20} /> Organization Impact
+                        </h4>
+                        <div className={styles.statsGrid}>
+                          <div className={styles.statCard}>
+                            <div className={styles.statCardHeader}>
+                              <Heart size={24} className={styles.statIcon} />
+                              <h4>Initiatives</h4>
+                            </div>
+                            <div className={styles.statCardBody}>
+                              <div className={styles.statRow}>
+                                <span className={styles.statLabel}>Active Initiatives</span>
+                                <span className={styles.statValue}>{analyticsData.organizationStats.activeInitiatives || 0}</span>
+                              </div>
+                              <div className={styles.statRow}>
+                                <span className={styles.statLabel}>Total Supporters</span>
+                                <span className={styles.statValue}>{analyticsData.organizationStats.totalSupporters || 0}</span>
+                              </div>
+                              <div className={styles.statRow}>
+                                <span className={styles.statLabel}>Materials Received</span>
+                                <span className={styles.statValue}>{analyticsData.organizationStats.materialsReceived || 0} kg</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {analyticsData.organizationStats.topContributors && analyticsData.organizationStats.topContributors.length > 0 && (
+                            <div className={styles.statCard}>
+                              <div className={styles.statCardHeader}>
+                                <Trophy size={24} className={styles.statIcon} />
+                                <h4>Top Contributors</h4>
+                              </div>
+                              <div className={styles.statCardBody}>
+                                {analyticsData.organizationStats.topContributors.slice(0, 3).map((contributor, index) => (
+                                  <div key={index} className={styles.contributorRow}>
+                                    <span className={styles.contributorRank}>#{index + 1}</span>
+                                    <span className={styles.contributorName}>{contributor.name}</span>
+                                    <span className={styles.contributorAmount}>{contributor.amount} kg</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Call to Action Cards */}
-            <div className={styles.ctaSection}>
-              {user.status === 'Pending' && (
-                <div className={styles.ctaCard}>
-                  <p>Submit your proof of identity and unlock the posting, commenting, and chat features!</p>
-                  <button 
-                    className={styles.ctaButton}
-                    onClick={() => setActiveModal('verification')}
-                  >
-                    Submit your Verification
-                  </button>
-                </div>
-              )}
-              
-              {!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication() && (
-                <div className={styles.ctaCard}>
-                  <p>Join EcoTayo as a Collector and help close the loop on recycling in your community. Claim posts, manage pickups, and turn waste into a resource. Apply now and start earning points for every successful collection!</p>
-                  <button 
-                    className={styles.ctaButton}
-                    onClick={() => setActiveModal('collector')}
-                  >
-                    Apply to be a Collector
-                  </button>
-                </div>
-              )}
-
-              {!user.isOrganization && !hasPendingOrganizationApplication() && (
-                <div className={styles.ctaCard}>
-                  <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects and build your reputation as a leader in sustainable waste management.</p>
-                  <button 
-                    className={styles.ctaButton}
-                    onClick={() => setActiveModal('organization')}
-                  >
-                    Apply for an Org Account
-                  </button>
-                </div>
               )}
             </div>
 
-            {/* Badges Section */}
+            {/* Badges Section (Legacy - Commented Out) */}
             {/* <div className={styles.badgesSection}>
               <h3>Badges:</h3>
                 <div className={styles.badgesList}>
@@ -1436,6 +1774,14 @@ const Profile = ({ user: propsUser }) => {
                     onClose={() => setActiveModal(null)}
                     onSubmit={handlePreferredLocationsSubmit}
                     currentLocations={user?.preferredLocations || []}
+                  />
+                )}
+
+                {activeModal === 'userLocation' && (
+                  <UserLocationModal
+                    onClose={() => setActiveModal(null)}
+                    onSubmit={handleUserLocationSubmit}
+                    currentLocation={user?.userLocation || null}
                   />
                 )}
               </div>

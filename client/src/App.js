@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Posts from './pages/Posts';
 import SinglePost from './pages/SinglePost';
-import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 import Chat from './pages/Chat';
@@ -17,6 +16,7 @@ import AppLayout from './components/layout/AppLayout/AppLayout';
 import PickupManagement from './pages/PickupManagement';
 import PickupTracking from './pages/PickupTracking';
 import EditMaterials from './pages/EditMaterials';
+import DisposalHubManagement from './pages/DisposalHubManagement';
 import './App.css';
 
 // Protected Route Component
@@ -35,8 +35,9 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  // Use userID as key to force complete remount when user changes
-  return <AppLayout key={currentUser.userID}>{children}</AppLayout>;
+  // AppLayout persists across routes - don't use key here
+  // The key on <main> in AppLayout handles route changes
+  return <AppLayout>{children}</AppLayout>;
 };
 
 // Auto-login Route Component
@@ -100,31 +101,22 @@ function App() {
               } 
             />
             
-            <Route 
-              path="/create-post" 
+            <Route
+              path="/create-post"
               element={
                 <ProtectedRoute>
                   <CreatePost />
                 </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
+              }
             />
 
-            <Route 
-              path="/analytics" 
+            <Route
+              path="/analytics"
               element={
                 <ProtectedRoute>
                   <Analytics />
                 </ProtectedRoute>
-              } 
+              }
             />
             
             <Route 
@@ -173,22 +165,31 @@ function App() {
               } 
             />
 
-            <Route 
-              path="/admin/edit-materials" 
+            <Route
+              path="/admin/edit-materials"
               element={
                 <ProtectedRoute>
                   <EditMaterials />
                 </ProtectedRoute>
-              } 
+              }
             />
 
-            <Route 
-              path="/tracking/:pickupId" 
+            <Route
+              path="/admin/disposal-hubs"
+              element={
+                <ProtectedRoute>
+                  <DisposalHubManagement />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/tracking/:pickupId"
               element={
                 <ProtectedRoute>
                   <PickupTracking />
                 </ProtectedRoute>
-              } 
+              }
             />
 
 

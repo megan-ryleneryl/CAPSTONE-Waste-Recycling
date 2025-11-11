@@ -89,9 +89,30 @@ const ConversationListItem = ({
   const lastMessageTime = lastMessage.sentAt;
   const unreadCount = conversation.unreadCount || 0;
   const postTitle = conversation.postTitle || 'Untitled Post';
+  const postStatus = conversation.postStatus || 'Unknown';
 
   // Check if last message is from current user
   const isOwnMessage = lastMessage.senderID === currentUser?.userID;
+
+  // Get status badge styling
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'Active':
+        return styles.statusActive;
+      case 'Claimed':
+        return styles.statusClaimed;
+      case 'Completed':
+        return styles.statusCompleted;
+      case 'Cancelled':
+        return styles.statusCancelled;
+      case 'Locked':
+        return styles.statusLocked;
+      case 'Hidden':
+        return styles.statusHidden;
+      default:
+        return styles.statusDefault;
+    }
+  };
 
   return (
     <div
@@ -121,14 +142,19 @@ const ConversationListItem = ({
             {formatTime(lastMessageTime)}
           </span>
         </div>
-        
-        <div className={styles.postTitle}>{postTitle}</div>
-        
+
+        <div className={styles.postTitleRow}>
+          <div className={styles.postTitle}>{postTitle}</div>
+          <span className={`${styles.statusBadge} ${getStatusBadgeClass(postStatus)}`}>
+            {postStatus}
+          </span>
+        </div>
+
         <div className={styles.lastMessage}>
           <span className={styles.messagePreview}>
             {isOwnMessage ? 'You: ' : ''}
-            {messageText.length > 50 
-              ? `${messageText.substring(0, 50)}...` 
+            {messageText.length > 50
+              ? `${messageText.substring(0, 50)}...`
               : messageText}
           </span>
           {unreadCount > 0 && (

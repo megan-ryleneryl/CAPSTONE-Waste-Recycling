@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ModalPortal from '../../modal/ModalPortal';
+import CommentsSection from '../CommentsSection/CommentsSection';
 import styles from './PostDetails.module.css';
-import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
+import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Info } from 'lucide-react';
 
 
-const PostDetails = ({ post, user: currentUser }) => {
+const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLiked, onLikeToggle, likingPost }) => {
   const navigate = useNavigate();
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -16,6 +17,22 @@ const PostDetails = ({ post, user: currentUser }) => {
   const [claimDetails, setClaimDetails] = useState(null);
   const [existingSupport, setExistingSupport] = useState(null);
   const [checkingSupport, setCheckingSupport] = useState(false);
+  const [interestedCollectors, setInterestedCollectors] = useState([]);
+  const [loadingCollectors, setLoadingCollectors] = useState(false);
+  const [showCollectorNote, setShowCollectorNote] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const infoIconRef = useRef(null);
+
+  // Update tooltip position when it's shown
+  useEffect(() => {
+    if (showCollectorNote && infoIconRef.current) {
+      const rect = infoIconRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        top: rect.bottom + 8,
+        left: rect.left + rect.width / 2
+      });
+    }
+  }, [showCollectorNote]);
 
   // Support form data for Initiative posts - NEW: Multiple materials
   const [supportData, setSupportData] = useState({
@@ -29,6 +46,7 @@ const PostDetails = ({ post, user: currentUser }) => {
   useEffect(() => {
     if (post && post.postType === 'Waste') {
       checkClaimStatus();
+      fetchInterestedCollectors();
     }
     if (post && post.postType === 'Initiative' && currentUser) {
       checkExistingSupport();
@@ -91,6 +109,45 @@ const PostDetails = ({ post, user: currentUser }) => {
       setExistingSupport(null);
     } finally {
       setCheckingSupport(false);
+    }
+  };
+
+  const fetchInterestedCollectors = async () => {
+    if (!post || !post.interestedCollectors || post.interestedCollectors.length === 0) {
+      setInterestedCollectors([]);
+      return;
+    }
+
+    setLoadingCollectors(true);
+    try {
+      const token = localStorage.getItem('token');
+      // Fetch user details for each interested collector
+      const collectorPromises = post.interestedCollectors.map(async (collectorID) => {
+        try {
+          const response = await axios.get(
+            `http://localhost:3001/api/protected/users/${collectorID}`,
+            {
+              headers: { 'Authorization': `Bearer ${token}` }
+            }
+          );
+          if (response.data.success) {
+            return response.data.user;
+          }
+          return null;
+        } catch (error) {
+          console.error(`Error fetching collector ${collectorID}:`, error);
+          return null;
+        }
+      });
+
+      const collectors = await Promise.all(collectorPromises);
+      const validCollectors = collectors.filter(c => c !== null);
+      setInterestedCollectors(validCollectors);
+    } catch (error) {
+      console.error('Error fetching interested collectors:', error);
+      setInterestedCollectors([]);
+    } finally {
+      setLoadingCollectors(false);
     }
   };
 
@@ -243,12 +300,15 @@ const PostDetails = ({ post, user: currentUser }) => {
   // Check user permissions
   const isCollector = currentUser?.isCollector === true || currentUser?.isAdmin === true;
   const isOwner = currentUser?.userID === post.userID;
+  const isAlreadyInterested = post.interestedCollectors &&
+                              post.interestedCollectors.includes(currentUser?.userID);
 
   // Show button conditions for different post types
   const showRequestButton = post.postType === 'Waste' &&
                            isCollector &&
                            !isOwner &&
                            !postClaimed &&
+                           !isAlreadyInterested &&
                            post.status !== 'Claimed';
 
   const showSupportButton = post.postType === 'Initiative' &&
@@ -367,6 +427,78 @@ const PostDetails = ({ post, user: currentUser }) => {
               </div>
             )}
 
+            {/* Interested Collectors List */}
+            {post.status === 'Active' && post.interestedCollectors && post.interestedCollectors.length > 0 && (
+              <div className={styles.interestedCollectorsSection}>
+                <div className={styles.interestedHeader}>
+                  <h3>
+                    Interested Collectors ({post.interestedCollectors.length})
+                    <div className={styles.infoIconWrapper} ref={infoIconRef}>
+                      <Info
+                        size={18}
+                        className={styles.infoIcon}
+                        onMouseEnter={() => setShowCollectorNote(true)}
+                        onMouseLeave={() => setShowCollectorNote(false)}
+                        onClick={() => setShowCollectorNote(!showCollectorNote)}
+                      />
+                    </div>
+                  </h3>
+                  {showCollectorNote && (
+                    <ModalPortal>
+                      <div
+                        className={styles.tooltipPortal}
+                        style={{
+                          position: 'fixed',
+                          top: `${tooltipPosition.top}px`,
+                          left: `${tooltipPosition.left}px`,
+                          transform: 'translateX(-50%)'
+                        }}
+                        onMouseEnter={() => setShowCollectorNote(true)}
+                        onMouseLeave={() => setShowCollectorNote(false)}
+                      >
+                        <strong>Note:</strong> Multiple collectors have shown interest in this waste.
+                        Only one will be selected once you review their proposals.
+                      </div>
+                    </ModalPortal>
+                  )}
+                  {isOwner && (
+                    <button
+                      className={styles.chatAllButton}
+                      onClick={() => navigate('/chat', { state: { postID: post.postID } })}
+                      title="View all conversations about this post"
+                    >
+                      <MessageCircle size={16} />
+                      View Messages
+                    </button>
+                  )}
+                </div>
+
+                {loadingCollectors ? (
+                  <div className={styles.loadingState}>Loading collector information...</div>
+                ) : interestedCollectors.length > 0 ? (
+                  <div className={styles.collectorsCompactList}>
+                    {interestedCollectors.map((collector) => (
+                      <div key={collector.userID} className={styles.collectorCompactCard}>
+                        <div className={styles.collectorAvatar}>
+                          {collector.firstName?.[0]}{collector.lastName?.[0]}
+                        </div>
+                        <div className={styles.collectorCompactDetails}>
+                          <span className={styles.collectorName}>
+                            {collector.firstName} {collector.lastName}
+                          </span>
+                          {collector.organizationName && (
+                            <span className={styles.collectorOrg}>{collector.organizationName}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={styles.loadingState}>No collector details available yet.</div>
+                )}
+              </div>
+            )}
+
             {/* Action Button */}
             {showRequestButton && (
               <div className={styles.actionButtons}>
@@ -410,6 +542,25 @@ const PostDetails = ({ post, user: currentUser }) => {
               </div>
             )}
 
+            {/* Show note when collector has already shown interest (but not yet selected) */}
+            {post.postType === 'Waste' && !isOwner && isAlreadyInterested && post.status === 'Active' && (
+              <div className={styles.infoNote} style={{ borderLeftColor: '#F59E0B', background: '#FFFBEB' }}>
+                <div className={styles.noteContent} style={{ color: '#92400E' }}>
+                  <Package size={18} />
+                  <div>
+                    <strong>You've shown interest in this post</strong>
+                    <p>You can schedule a pickup proposal through the chat. The giver will review all proposals before selecting one.</p>
+                    <button
+                      className={styles.linkButton}
+                      onClick={() => navigate(`/chat?postId=${post.postID}&userId=${post.userID}`)}
+                    >
+                      Go to Chat
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Show note when post is already claimed by current user */}
             {post.postType === 'Waste' && !isOwner && postClaimed && claimDetails?.collectorID === currentUser?.userID && (
               <div className={styles.infoNote} style={{ borderLeftColor: '#10B981', background: '#ECFDF5' }}>
@@ -447,11 +598,6 @@ const PostDetails = ({ post, user: currentUser }) => {
         {/* INITIATIVE POST DETAILS */}
         {post.postType === 'Initiative' && (
           <div className={styles.detailsSection}>
-            <div className={styles.detailItem}>
-              <span className={styles.icon}><Goal size={18} /></span>
-              <span className={styles.value}>{post.goal || 'Environmental initiative'}</span>
-            </div>
-
             <div className={styles.detailItem}>
               <span className={styles.icon}><Tag size={18} /></span>
               <span className={styles.value}>{formatLocation(post.location)}</span>
@@ -574,6 +720,7 @@ const PostDetails = ({ post, user: currentUser }) => {
                       className={styles.linkButton}
                       onClick={() => navigate(`/chat?postId=${post.postID}&userId=${post.userID}`)}
                     >
+
                       View in Chat
                     </button>
                   </div>
@@ -593,6 +740,13 @@ const PostDetails = ({ post, user: currentUser }) => {
                       {post.status === 'Completed' && 'This initiative has been completed. Thank you for your contribution!'}
                       {post.status !== 'Active' && post.status !== 'Completed' && 'Manage your initiative from your dashboard.'}
                     </p>
+                    <button
+                      className={styles.viewSupportsButton}
+                      onClick={onViewSupports}
+                    >
+                      <Users size={16} />
+                      View All Supports
+                    </button>
                   </div>
                 </div>
               </div>
@@ -624,7 +778,7 @@ const PostDetails = ({ post, user: currentUser }) => {
               <span className={styles.icon}><Tag size={18} /></span>
               <span className={styles.value}>{post.category || 'General'}</span>
             </div>
-            
+
             <div className={styles.detailItem}>
               <span className={styles.icon}><MapPin size={18} /></span>
               <span className={styles.value}>{formatLocation(post.location)}</span>
@@ -659,6 +813,27 @@ const PostDetails = ({ post, user: currentUser }) => {
             )}
           </div>
         )}
+
+        {/* LIKES SECTION FOR FORUM POSTS */}
+        {post.postType === 'Forum' && (
+          <div className={styles.likesSection}>
+            <button
+              className={`${styles.likeButton} ${isLiked ? styles.liked : ''}`}
+              onClick={onLikeToggle}
+              disabled={likingPost}
+            >
+              <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
+              <span className={styles.likeText}>
+                {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* COMMENTS SECTION FOR FORUM POSTS */}
+        {post.postType === 'Forum' && (
+          <CommentsSection post={post} currentUser={currentUser} />
+        )}
       </div>
 
       {/* Waste Post - Request Pickup Modal */}
@@ -683,6 +858,8 @@ const PostDetails = ({ post, user: currentUser }) => {
                   <p><strong>Materials:</strong> {formatMaterials(post.materials)}</p>
                   <p><strong>Quantity:</strong> {post.quantity} {post.unit || 'kg'}</p>
                   <p><strong>Location:</strong> {formatLocation(post.location)}</p>
+                  {/* show price */}
+                  {post.price > 0 && (<p><strong>Price:</strong> ₱{post.price}</p>)}
                 </div>
               </div>
               <div className={styles.modalActions}>

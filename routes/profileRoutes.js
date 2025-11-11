@@ -86,8 +86,8 @@ router.get('/', async (req, res) => {
       });
             
       totalDonations = completedPickups.reduce((sum, pickup) => {
-        console.log(`Adding ${pickup.paymentReceived} kg to total`);
-        return sum + pickup.paymentReceived;
+        console.log(`Adding ${pickup.finalAmount} kg to total`);
+        return sum + pickup.finalAmount;
       }, 0);
     } catch (pickupError) {
       console.error('Error calculating total donations:', pickupError);
@@ -117,7 +117,8 @@ router.get('/', async (req, res) => {
         authProvider: req.user.authProvider || 'email',
         createdAt: req.user.createdAt,
         preferredTimes: req.user.preferredTimes || [],
-        preferredLocations: req.user.preferredLocations || []
+        preferredLocations: req.user.preferredLocations || [],
+        userLocation: req.user.userLocation || null
       }
     };
     
@@ -137,12 +138,13 @@ router.get('/', async (req, res) => {
 router.put('/', async (req, res) => {
   try {    
     const allowedUpdates = [
-      'firstName', 
-      'lastName', 
-      'phone', 
+      'firstName',
+      'lastName',
+      'phone',
       'address',
-      'preferredTimes', 
-      'preferredLocations'
+      'preferredTimes',
+      'preferredLocations',
+      'userLocation'
     ];
     
     const updates = {};
@@ -190,20 +192,20 @@ router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
       });
     }
     
-    // Check if user is a Giver
+    // Check if user is already a collector
     const user = await User.findById(req.user.userID);
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
-    
-    if (!user.isCollector || !user.isAdmin) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Only Givers and Organizations can apply to be Collectors' 
+
+    if (user.isCollector) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are already a Collector'
       });
     }
     

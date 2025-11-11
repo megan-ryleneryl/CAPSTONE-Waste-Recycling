@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import styles from './CommentsSection.module.css';
+import { Heart, MessageCircle, Trash2 } from 'lucide-react';
 
 const CommentsSection = ({ post, currentUser }) => {
   const [comments, setComments] = useState([]);
@@ -247,7 +248,7 @@ const CommentsSection = ({ post, currentUser }) => {
                     onClick={() => handleDeleteComment(comment.commentID)}
                     title="Delete comment"
                   >
-                    🗑️
+                    <Trash2 size={16} />
                   </button>
                 )}
               </div>

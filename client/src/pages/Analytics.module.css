@@ -22,6 +22,7 @@
 }
 
 .welcomeTitle {
+  text-align: left;
   color: var(--text-primary, #333);
   font-size: 2rem;
   font-weight: 700;
@@ -29,6 +30,7 @@
 }
 
 .welcomeSubtitle {
+  text-align: left;
   color: var(--text-secondary, #666);
   font-size: 1rem;
 }
@@ -90,16 +92,16 @@
 /* Navigation Tabs */
 .navTabs {
   display: flex;
+  flex-direction: row;
   gap: 1rem;
-  padding: 1rem;
+  padding: 1rem 0;
   border-radius: var(--border-radius-lg, 12px);
-  justify-content: center;
-  flex-wrap: wrap;
 }
 
 .navTab {
   display: flex;
   align-items: center;
+  width: 100%;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   background: transparent;
@@ -428,6 +430,68 @@
   position: relative;
 }
 
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-secondary, #666);
+}
+
+.emptyState h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  margin-bottom: 1rem;
+}
+
+.emptyState p {
+  font-size: 1rem;
+  color: var(--text-secondary, #666);
+  margin-bottom: 0.5rem;
+}
+
+.emptyState ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.emptyState ul li {
+  padding: 0.5rem 0;
+  color: var(--text-secondary, #666);
+}
+
+.emptyState ul li::before {
+  content: "✓ ";
+  color: #3B6535;
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+/* Error Banner */
+.errorBanner {
+  background: #fff3cd;
+  color: #856404;
+  padding: 1.25rem;
+  border-radius: var(--border-radius-md, 8px);
+  margin-bottom: 1rem;
+  border: 1px solid #ffc107;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.errorBanner p {
+  margin: 0;
+  font-weight: 500;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
 /* Loading Overlay */
 .loadingOverlay {
   position: absolute;
@@ -518,7 +582,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 2rem;
+  margin: 2rem 0;
 }
 
 .metricCard {
@@ -592,7 +656,7 @@
 
 /* Trends Section */
 .trendsSection {
-  margin-top: 2rem;
+  /* margin-top: 2rem; */
   padding: 1.5rem;
   background: var(--bg-secondary, #fbfbfb);
   border-radius: var(--border-radius-lg, 12px);
@@ -668,6 +732,18 @@
   margin-top: 0.5rem;
   font-size: 0.85rem;
   color: var(--text-secondary, #666);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  font-weight: 600;
+}
+
+.barSublabel {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #999);
   text-align: center;
   white-space: nowrap;
   overflow: hidden;

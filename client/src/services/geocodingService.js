@@ -3,58 +3,89 @@
 
 class GeocodingService {
   /**
-   * Get coordinates from location object
+   * Get coordinates from location object with progressive fallback
+   * Tries: barangay → city → province → region
    * @param {Object} locationObj - Location with region, province, city, barangay, addressLine
-   * @returns {Object|null} - {lat, lng, formattedAddress} or null
+   * @returns {Object|null} - {lat, lng, formattedAddress, fallbackLevel} or null
    */
   static async getCoordinates(locationObj) {
     try {
       const { region, province, city, barangay } = locationObj;
 
-      // Build address string - EXCLUDE addressLine for more reliable geocoding
-      // Geocode to barangay level only (smallest unit for general location mapping)
-      // addressLine is kept in location object for pickup details
-      const parts = [
-        barangay?.name,
-        city?.name,
-        province?.name,
-        region?.name,
-        'Philippines'
-      ].filter(Boolean);
-
-      const address = parts.join(', ');
-      console.log('🗺️ Geocoding address (barangay level):', address);
-
-      // Use Nominatim OpenStreetMap API
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
-
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'WasteRecyclingApp/1.0' // Nominatim requires a user agent
+      // Progressive fallback levels - try from most specific to least specific
+      const fallbackLevels = [
+        {
+          level: 'barangay',
+          parts: [barangay?.name, city?.name, province?.name, region?.name, 'Philippines']
+        },
+        {
+          level: 'city',
+          parts: [city?.name, province?.name, region?.name, 'Philippines']
+        },
+        {
+          level: 'province',
+          parts: [province?.name, region?.name, 'Philippines']
+        },
+        {
+          level: 'region',
+          parts: [region?.name, 'Philippines']
         }
-      });
+      ];
 
-      if (!response.ok) {
-        throw new Error(`Geocoding API error: ${response.status}`);
+      // Try each fallback level
+      for (const { level, parts } of fallbackLevels) {
+        const filteredParts = parts.filter(Boolean);
+
+        // Skip if no parts available at this level
+        if (filteredParts.length === 0) continue;
+
+        const address = filteredParts.join(', ');
+        console.log(`🗺️ Trying geocoding at ${level} level:`, address);
+
+        try {
+          // Use Nominatim OpenStreetMap API
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': 'WasteRecyclingApp/1.0' // Nominatim requires a user agent
+            }
+          });
+
+          if (!response.ok) {
+            console.log(`⚠️ API error at ${level} level: ${response.status}, trying next...`);
+            continue;
+          }
+
+          const results = await response.json();
+
+          if (results && results.length > 0) {
+            const result = results[0];
+            const isFallback = level !== 'barangay';
+
+            console.log(`✅ Geocoding successful at ${level} level:`, {
+              lat: parseFloat(result.lat),
+              lng: parseFloat(result.lon),
+              fallback: isFallback
+            });
+
+            return {
+              lat: parseFloat(result.lat),
+              lng: parseFloat(result.lon),
+              formattedAddress: result.display_name,
+              fallbackLevel: level,
+              isFallback
+            };
+          }
+
+          console.log(`⚠️ No results at ${level} level, trying next...`);
+        } catch (levelError) {
+          console.log(`⚠️ Error at ${level} level:`, levelError.message, ', trying next...');
+          continue;
+        }
       }
 
-      const results = await response.json();
-
-      if (results && results.length > 0) {
-        const result = results[0];
-        console.log('✅ Geocoding successful:', {
-          lat: parseFloat(result.lat),
-          lng: parseFloat(result.lon)
-        });
-
-        return {
-          lat: parseFloat(result.lat),
-          lng: parseFloat(result.lon),
-          formattedAddress: result.display_name
-        };
-      }
-
-      console.log('⚠️ No geocoding results found');
+      console.log('❌ No geocoding results found at any level');
       return null;
     } catch (error) {
       console.error('❌ Geocoding error:', error.message);

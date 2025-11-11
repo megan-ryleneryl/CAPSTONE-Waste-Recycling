@@ -11,7 +11,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins } from 'lucide-react';
 
 
-const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
+const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID, locationFilter = null }) => {
 
   const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
@@ -27,7 +27,11 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
     return () => {
       setPosts([]);
     };
-  }, [postType, userID]); // Add userID as dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postType, userID, locationFilter?.region, locationFilter?.province, locationFilter?.city, locationFilter?.barangay]); // Add location filter dependencies
+
+  // REMOVED: This was causing double fetching - we now calculate counts from existing posts
+  // The counts are calculated once in fetchPosts() instead of re-fetching all posts
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -43,45 +47,21 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
         return;
       }
 
-      // FIXED: Use the correct protected endpoint
-      let url = 'http://localhost:3001/api/posts';
-
-      // Build query parameters
+      // Build query parameters including location filter
       const params = new URLSearchParams();
+      if (locationFilter?.region) params.append('region', locationFilter.region);
+      if (locationFilter?.province) params.append('province', locationFilter.province);
+      if (locationFilter?.city) params.append('city', locationFilter.city);
+      if (locationFilter?.barangay) params.append('barangay', locationFilter.barangay);
 
-      // Add userID filter if provided (for "My Posts" filter)
-      if (userID) {
-        console.log('PostCard: Filtering by userID:', userID);
-        params.append('userID', userID);
-      }
+      // OPTIMIZED: Fetch interactions, but backend only loads them for Forum posts
+      // This keeps Forum posts responsive while avoiding reads for Waste/Initiative posts
+      const url = params.toString()
+        ? `http://localhost:3001/api/posts?${params.toString()}`
+        : 'http://localhost:3001/api/posts';
 
-      // Add type filter if not 'all' and no userID filter
-      // (userID filter takes precedence - shows all post types by that user)
-      if (postType && postType !== 'all' && !userID) {
-        // Map component prop values to database values
-        const typeMap = {
-          'Waste Post': 'Waste',
-          'Initiative Post': 'Initiative',
-          'Forum Post': 'Forum',
-          'Waste': 'Waste',
-          'Initiative': 'Initiative',
-          'Forum': 'Forum'
-        };
-
-        const mappedType = typeMap[postType] || postType;
-        console.log('PostCard: Filtering by postType:', mappedType);
-        params.append('type', mappedType);
-      }
-
-      // Append params to URL if any exist
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-
-      console.log('PostCard: Fetching posts from URL:', url);
-          
       const response = await axios.get(url, {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
@@ -95,9 +75,35 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
           setPosts([]);
           return;
         }
-        
+
+        // Filter out inactive posts (posts from deleted users)
+        const activePosts = postsData.filter(post => post.status !== 'Inactive');
+
+        // CLIENT-SIDE FILTERING: Apply filters based on props
+        let filteredPosts = activePosts;
+
+        // Filter by userID if provided (for "My Posts")
+        if (userID) {
+          filteredPosts = filteredPosts.filter(post => post.userID === userID);
+        }
+
+        // Filter by post type if not 'all' and no userID filter
+        if (postType && postType !== 'all' && !userID) {
+          // Map component prop values to database values
+          const typeMap = {
+            'Waste Post': 'Waste',
+            'Initiative Post': 'Initiative',
+            'Forum Post': 'Forum',
+            'Waste': 'Waste',
+            'Initiative': 'Initiative',
+            'Forum': 'Forum'
+          };
+          const mappedType = typeMap[postType] || postType;
+          filteredPosts = filteredPosts.filter(post => post.postType === mappedType);
+        }
+
         // Limit posts based on maxPosts prop
-        const limitedPosts = postsData.slice(0, maxPosts);
+        const limitedPosts = filteredPosts.slice(0, maxPosts);
         
         // Log the types of posts received
         const postTypes = limitedPosts.reduce((acc, post) => {
@@ -106,20 +112,21 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
         }, {});
         
         // Check if posts already have user data
-        if (limitedPosts.length > 0 && !limitedPosts[0].user) {          
+        let finalPosts;
+        if (limitedPosts.length > 0 && !limitedPosts[0].user) {
           // Fetch user details for each post if not included
           const postsWithUsers = await Promise.all(
             limitedPosts.map(async (post) => {
               try {
                 const userResponse = await axios.get(
-                  
+
 
                   `http://localhost:3001/api/protected/users/${post.userID}`,
                   {
                     headers: { 'Authorization': `Bearer ${token}` }
                   }
                 );
-                
+
                 return {
                   ...post,
                   user: userResponse.data.user
@@ -138,11 +145,41 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20 }) => {
               }
             })
           );
-          
+
+          finalPosts = postsWithUsers;
           setPosts(postsWithUsers);
         } else {
           // Posts already have user data
+          finalPosts = limitedPosts;
           setPosts(limitedPosts);
+        }
+
+        // OPTIMIZED: Calculate counts from the activePosts we already fetched (not a separate API call)
+        // This uses the unfiltered activePosts to get accurate counts for all categories
+        if (onCountsUpdate && currentUserID) {
+          const counts = {
+            all: activePosts.length,
+            Waste: 0,
+            Initiatives: 0,
+            Forum: 0,
+            myPosts: 0
+          };
+
+          activePosts.forEach(post => {
+            if (post.postType === 'Waste') {
+              counts.Waste++;
+            } else if (post.postType === 'Initiative') {
+              counts.Initiatives++;
+            } else if (post.postType === 'Forum') {
+              counts.Forum++;
+            }
+
+            if (post.userID === currentUserID) {
+              counts.myPosts++;
+            }
+          });
+
+          onCountsUpdate(counts);
         }
       } else {
         console.error('Response not successful:', response.data);
@@ -541,8 +578,8 @@ const handleMessageOwner = async (post, event) => {
 
             {/* Top Section */}
               <div className={styles.topSection}>
-              
-              {/* Post Type Tag */}
+
+              {/* Post Type Tag and Info Text */}
               <div className={styles.tagContainer}>
                 <span className={`${styles.tag} ${
                   post.postType === 'Waste' ? styles.wasteTag :
@@ -558,6 +595,55 @@ const handleMessageOwner = async (post, event) => {
                   </span>
                   {post.postType} Post
                 </span>
+
+                {/* Inline Info Text for non-collectors */}
+                {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && !(currentUser?.isCollector || currentUser?.isAdmin) && (
+                  <span className={styles.inlineInfoText}>
+                    Collector accounts only
+                  </span>
+                )}
+
+                {/* Inline Info Text for claimed posts */}
+                {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy !== currentUser?.userID && (
+                  <span className={styles.inlineInfoText}>
+                    Claimed by another collector
+                  </span>
+                )}
+
+                {/* Inline Info Text for completed posts */}
+                {post.postType === 'Waste' && post.status === 'Completed' && (
+                  <span className={styles.inlineInfoText}>
+                    Completed
+                  </span>
+                )}
+
+                {/* Inline Info Text for own posts */}
+                {post.postType === 'Waste' && post.userID === currentUser?.userID && (
+                  <span className={styles.inlineInfoText}>
+                    Your post
+                  </span>
+                )}
+
+                {/* Inline Info Text for claimed posts */}
+                {post.postType === 'Waste' && post.userID === currentUser?.userID && post.status === 'Claimed' && (
+                  <span className={styles.inlineInfoText}>
+                    Claimed
+                  </span>
+                )}
+
+                {/* Inline Info Text for posts you claimed */}
+                {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy === currentUser?.userID && (
+                  <span className={styles.inlineInfoText}>
+                    You claimed this
+                  </span>
+                )}
+
+                {/* Inline Info Text for your initiative */}
+                {post.postType === 'Initiative' && post.userID === currentUser?.userID && (
+                <span className={styles.inlineInfoText}>
+                  Your initiative
+                </span>
+              )}
               </div>
 
               {/* Post Title and Description */}
@@ -662,10 +748,6 @@ const handleMessageOwner = async (post, event) => {
               {post.postType === 'Initiative' && (
                 <>
                   <div className={styles.detailItem}>
-                    <span className={styles.detailIcon}><Goal size={18} /></span>
-                    <span className={styles.detailText}>{post.goal || 'Environmental initiative'}</span>
-                  </div>
-                  <div className={styles.detailItem}>
                     <span className={styles.detailIcon}><MapPin size={18} /></span>
                     <span className={styles.detailText}>{formatLocation(post.location)}</span>
                   </div>
@@ -761,13 +843,6 @@ const handleMessageOwner = async (post, event) => {
             {/* Action Buttons */}
             <div className={styles.actionContainer}>
               {/* Waste Post Actions */}
-              {post.postType === 'Waste' && post.userID === currentUser?.userID && (
-                <div className={styles.ownPostNote}>
-                  <span>Your post</span>
-                  {post.status === 'Claimed' && <span className={styles.statusDot}>●</span>}
-                  {post.status === 'Claimed' && <span>Claimed</span>}
-                </div>
-              )}
               {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && (currentUser?.isCollector || currentUser?.isAdmin) && (
                 <button
                   className={`${styles.actionButton} ${styles.collectButton}`}
@@ -776,38 +851,8 @@ const handleMessageOwner = async (post, event) => {
                   Collect
                 </button>
               )}
-              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && !(currentUser?.isCollector || currentUser?.isAdmin) && (
-                <div className={styles.infoText}>
-                  <span>Collector accounts only</span>
-                </div>
-              )}
-              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy === currentUser?.userID && (
-                <div className={styles.yourClaimNote}>
-                  <span>You claimed this</span>
-                </div>
-              )}
-              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Claimed' && post.claimedBy !== currentUser?.userID && (
-                <button
-                  className={`${styles.actionButton} ${styles.claimedButton}`}
-                  disabled
-                  style={{ background: '#9CA3AF', cursor: 'not-allowed' }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Claimed
-                </button>
-              )}
-              {post.postType === 'Waste' && post.status === 'Completed' && (
-                <div className={styles.completedNote}>
-                  <span>Completed</span>
-                </div>
-              )}
 
-              {/* Initiative Post Actions */}
-              {post.postType === 'Initiative' && post.userID === currentUser?.userID && (
-                <div className={styles.ownPostNote}>
-                  <span>Your initiative</span>
-                </div>
-              )}
+              
               {post.postType === 'Initiative' && post.userID !== currentUser?.userID && post.status === 'Active' && (
                 <button
                   className={`${styles.actionButton} ${styles.supportButton}`}

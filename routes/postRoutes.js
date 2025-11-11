@@ -22,11 +22,76 @@ router.use(verifyToken);
 
 // ============= READ OPERATIONS =============
 
-// Get all posts (with filters)
+// CACHE for posts (5 minute TTL)
+const postsCache = {
+  data: null,
+  timestamp: 0,
+  ttl: 5 * 60 * 1000 // 5 minutes
+};
+
+// Helper to invalidate cache
+function invalidatePostsCache() {
+  postsCache.data = null;
+  postsCache.timestamp = 0;
+  console.log('🗑️ Posts cache invalidated');
+}
+
+// Helper to check if a location matches the filter
+function matchesLocationFilter(itemLocation, filter) {
+  if (!filter || (!filter.region && !filter.province && !filter.city && !filter.barangay)) {
+    return true; // No filter applied, match all
+  }
+
+  if (!itemLocation) {
+    return false; // Item has no location, doesn't match filter
+  }
+
+  // Match at the most specific level provided
+  if (filter.barangay) {
+    return itemLocation.barangay?.code === filter.barangay;
+  }
+  if (filter.city) {
+    return itemLocation.city?.code === filter.city;
+  }
+  if (filter.province) {
+    return itemLocation.province?.code === filter.province;
+  }
+  if (filter.region) {
+    return itemLocation.region?.code === filter.region;
+  }
+
+  return true;
+}
+
+// Get all posts (with filters) - OPTIMIZED
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const { type, status, location, userID } = req.query;
+    const { type, status, location, userID, skipInteractions, region, province, city, barangay } = req.query;
     const User = require('../models/Users');
+
+    // Location filter object (for PSGC hierarchical filtering)
+    const locationFilter = {
+      region: region || null,
+      province: province || null,
+      city: city || null,
+      barangay: barangay || null
+    };
+
+    // Check if any location filter is applied
+    const hasLocationFilter = region || province || city || barangay;
+
+    // Check cache first (only for non-filtered requests)
+    const now = Date.now();
+    const useCache = !type && !status && !location && !userID && !hasLocationFilter;
+
+    if (useCache && postsCache.data && (now - postsCache.timestamp) < postsCache.ttl) {
+      console.log('Using cached posts data');
+      return res.json({
+        success: true,
+        posts: postsCache.data,
+        cached: true
+      });
+    }
 
     let posts;
     if (userID) {
@@ -36,9 +101,19 @@ router.get('/', verifyToken, async (req, res) => {
     } else if (status) {
       posts = await Post.findByStatus(status);
     } else if (location) {
+      // Legacy location string support
       posts = await Post.findByLocation(location);
     } else {
       posts = await Post.findAll();
+    }
+
+    // Filter out inactive posts (posts from deleted users)
+    posts = posts.filter(post => post.status !== 'Inactive');
+
+    // Apply PSGC location filter if specified
+    if (hasLocationFilter) {
+      posts = posts.filter(post => matchesLocationFilter(post.location, locationFilter));
+      console.log(`📍 Filtered posts by location: ${posts.length} posts match`);
     }
 
     // Create a map of user IDs to fetch
@@ -67,22 +142,29 @@ router.get('/', verifyToken, async (req, res) => {
       }
     }
 
-    // Add user data and interaction data to posts
+    // OPTIMIZED: Only fetch interactions for Forum posts (where likes/comments are shown)
+    // This dramatically reduces reads while keeping Forum posts interactive
+    const shouldFetchInteractions = skipInteractions !== 'true';
+
     const enrichedPosts = await Promise.all(posts.map(async (post) => {
       const postData = post.toFirestore ? post.toFirestore() : post;
 
-      // Get interaction data with error handling
+      // Default values
       let likeCount = 0;
       let isLiked = false;
       let commentCount = 0;
 
-      try {
-        likeCount = await post.getLikeCount();
-        isLiked = await post.isLikedByUser(req.user.userID);
-        const comments = await post.getComments();
-        commentCount = comments.length;
-      } catch (err) {
-        // Silently handle if these methods don't exist
+      // OPTIMIZED: Only fetch interactions for Forum posts (not Waste/Initiative)
+      // Forum posts need likes/comments, but Waste/Initiative posts don't display them
+      if (shouldFetchInteractions && postData.postType === 'Forum') {
+        try {
+          likeCount = await post.getLikeCount();
+          isLiked = await post.isLikedByUser(req.user.userID);
+          const comments = await post.getComments();
+          commentCount = comments.length;
+        } catch (err) {
+          console.error(`Error fetching interactions for post ${postData.postID}:`, err.message);
+        }
       }
 
       return {
@@ -102,7 +184,14 @@ router.get('/', verifyToken, async (req, res) => {
         supportCount: postData.supportCount || 0
       };
     }));
-    
+
+    // Cache the result (only for non-filtered, with interactions)
+    if (useCache && shouldFetchInteractions) {
+      postsCache.data = enrichedPosts;
+      postsCache.timestamp = now;
+      console.log('💾 Cached posts data');
+    }
+
     res.json({
       success: true,
       posts: enrichedPosts
@@ -128,7 +217,15 @@ router.get('/:postId', verifyToken, async (req, res) => {
         message: 'Post not found'
       });
     }
-    
+
+    // Check if post is inactive (from deleted user)
+    if (post.status === 'Inactive') {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
     // Get the post data
     const postData = post.toFirestore ? post.toFirestore() : post;
     
@@ -274,15 +371,20 @@ router.post('/create', verifyToken, (req, res, next) => {
     if (postData.location && !postData.location.coordinates?.lat) {
       console.log('🗺️ Geocoding location...');
       const coords = await GeocodingService.getCoordinates(postData.location);
-      
+
       if (coords) {
         postData.location.coordinates = {
           lat: coords.lat,
           lng: coords.lng
         };
-        console.log('✅ Coordinates added:', coords);
+        if (coords.isFallback) {
+          console.log(`✅ Coordinates added using ${coords.fallbackLevel} level fallback:`, coords);
+        } else {
+          console.log('✅ Coordinates added at barangay level:', coords);
+        }
       } else {
-        console.log('⚠️ Geocoding failed, proceeding without coordinates');
+        console.log('⚠️ Geocoding failed at all levels, proceeding without coordinates');
+        console.log('⚠️ This post will not appear on the geographic heatmap');
       }
     }
     
@@ -316,44 +418,58 @@ router.post('/create', verifyToken, (req, res, next) => {
           basePostData.materials = postData.materials;
         }
 
-        // Enrich materials with materialName for efficient display
+        // Enrich materials with materialName for efficient display AND calculate total price
         if (Array.isArray(basePostData.materials)) {
           const Material = require('../models/Material');
           const enrichedMaterials = [];
+          let totalEstimatedPrice = 0;
 
           for (const mat of basePostData.materials) {
-            // If materialName is already provided, use it
-            if (mat.materialName) {
-              enrichedMaterials.push(mat);
-            } else if (mat.materialID) {
-              // Otherwise, look it up from the database
+            let enrichedMaterial;
+
+            // Always fetch material data to get the price, even if materialName is provided
+            if (mat.materialID) {
               try {
                 const material = await Material.findById(mat.materialID);
-                enrichedMaterials.push({
+
+                enrichedMaterial = {
                   materialID: mat.materialID,
                   quantity: mat.quantity,
-                  materialName: material ? (material.displayName || material.type) : mat.materialID
-                });
+                  materialName: mat.materialName || (material ? (material.displayName || material.type) : mat.materialID)
+                };
+
+                // Calculate price contribution if material data is available
+                if (material && material.averagePricePerKg) {
+                  totalEstimatedPrice += parseFloat(mat.quantity || 0) * material.averagePricePerKg;
+                  console.log(`💰 Price calc: ${mat.quantity} kg × ₱${material.averagePricePerKg}/kg = ₱${parseFloat(mat.quantity || 0) * material.averagePricePerKg}`);
+                }
               } catch (err) {
                 console.error('Error fetching material:', err);
                 // Fallback to materialID if lookup fails
-                enrichedMaterials.push({
+                enrichedMaterial = {
                   materialID: mat.materialID,
                   quantity: mat.quantity,
-                  materialName: mat.materialID
-                });
+                  materialName: mat.materialName || mat.materialID
+                };
               }
+            }
+
+            if (enrichedMaterial) {
+              enrichedMaterials.push(enrichedMaterial);
             }
           }
 
           basePostData.materials = enrichedMaterials;
+          basePostData.price = totalEstimatedPrice; // Set calculated price
+          console.log(`💵 Total estimated price: ₱${totalEstimatedPrice}`);
+        } else {
+          basePostData.price = 0;
         }
-
-        basePostData.price = parseFloat(postData.price) || 0;
         basePostData.pickupDate = postData.pickupDate || null;
         basePostData.pickupTime = postData.pickupTime || null;
         basePostData.status = 'Active';
 
+        console.log('📦 Creating Waste Post with price:', basePostData.price);
         post = await WastePost.create(basePostData);
         
         try {
@@ -375,8 +491,6 @@ router.post('/create', verifyToken, (req, res, next) => {
             message: 'Only Collectors can create Initiative posts'
           });
         }
-
-        basePostData.goal = postData.goal || '';
 
         // DEBUG: Log received materials data
         console.log('📦 Received materials data:', postData.materials);
@@ -461,7 +575,6 @@ router.post('/create', verifyToken, (req, res, next) => {
         basePostData.status = 'Active';
 
         console.log('🔥 Final basePostData before create:', {
-          goal: basePostData.goal,
           materials: basePostData.materials,
           targetAmount: basePostData.targetAmount
         });
@@ -497,6 +610,9 @@ router.post('/create', verifyToken, (req, res, next) => {
         });
     }
         
+    // Invalidate cache when new post is created
+    invalidatePostsCache();
+
     res.status(201).json({
       success: true,
       message: `${postType} post created successfully`,
@@ -547,6 +663,9 @@ router.put('/:postId', verifyToken, async (req, res) => {
     
     const updatedPost = await Post.update(req.params.postId, updateData);
     
+    // Invalidate cache when post is updated
+    invalidatePostsCache();
+
     res.json({
       success: true,
       message: 'Post updated successfully',
@@ -598,6 +717,9 @@ router.patch('/:postId/status', verifyToken, async (req, res) => {
     
     const updatedPost = await Post.update(req.params.postId, { status });
     
+    // Invalidate cache when status is updated
+    invalidatePostsCache();
+
     res.json({
       success: true,
       message: 'Post status updated successfully',
@@ -656,6 +778,9 @@ router.delete('/:postId', verifyToken, async (req, res) => {
     // Delete the post
     await Post.delete(req.params.postId);
     
+    // Invalidate cache when post is deleted
+    invalidatePostsCache();
+
     res.json({
       success: true,
       message: 'Post deleted successfully'
@@ -810,7 +935,7 @@ router.get('/:postId/comments', verifyToken, async (req, res) => {
     // Fetch user data for all comments in one batch
     const userIds = [...new Set(comments.map(c => c.userID))];
     const usersMap = {};
-    
+
     for (const userId of userIds) {
       try {
         const user = await User.findById(userId);
@@ -957,22 +1082,29 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
       });
     }
     
-    // Check if post is already claimed
+    // Check if post is already claimed (with confirmed collector)
     if (post.status === 'Claimed' || post.status === 'Completed') {
       return res.status(400).json({
         success: false,
         message: `This post has already been ${post.status.toLowerCase()}.`
       });
     }
-    
-    // Update post status to Claimed
-    const updateData = { 
-      status: 'Claimed',
-      claimedBy: collectorID,
-      claimedAt: new Date().toISOString(),
+
+    // Check if collector has already claimed this post
+    const interestedCollectors = post.interestedCollectors || [];
+    if (interestedCollectors.includes(collectorID)) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already claimed this post. You can schedule a pickup in the chat.'
+      });
+    }
+
+    // Add collector to interestedCollectors array (post stays Active)
+    const updateData = {
+      interestedCollectors: [...interestedCollectors, collectorID],
       updatedAt: new Date().toISOString()
     };
-        
+
     await Post.update(postId, updateData);
     
     // Get collector's and giver's names for the messages
@@ -1073,17 +1205,17 @@ router.get('/:postId/claim-status', verifyToken, async (req, res) => {
   try {
     const { postId } = req.params;
     const post = await Post.findById(postId);
-    
+
     if (!post) {
       return res.status(404).json({
         success: false,
         message: 'Post not found'
       });
     }
-    
+
     const claimed = post.status === 'Claimed' || post.status === 'Completed';
     let claimDetails = null;
-    
+
     if (claimed && post.claimedBy) {
       const collector = await User.findById(post.claimedBy);
       if (collector) {
@@ -1094,19 +1226,145 @@ router.get('/:postId/claim-status', verifyToken, async (req, res) => {
         };
       }
     }
-    
+
     res.json({
       success: true,
       claimed: claimed,
       claimDetails: claimDetails,
       postStatus: post.status
     });
-    
+
   } catch (error) {
     console.error('Error checking claim status:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to check claim status'
+    });
+  }
+});
+
+// Cancel claim on a Waste Post (Collectors only)
+router.post('/:postId/cancel-claim', verifyToken, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const collectorID = req.user.userID;
+
+    // Import required models
+    const User = require('../models/Users');
+    const Message = require('../models/Message');
+    const Notification = require('../models/Notification');
+
+    // Get the post
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found'
+      });
+    }
+
+    // Check if it's a Waste post
+    if (post.postType !== 'Waste') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only Waste posts can have claims cancelled'
+      });
+    }
+
+    // Check if the post is actually claimed
+    if (post.status !== 'Claimed') {
+      return res.status(400).json({
+        success: false,
+        message: 'This post is not currently claimed'
+      });
+    }
+
+    // Check if the current user is the one who claimed it
+    if (post.claimedBy !== collectorID) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only cancel your own claim'
+      });
+    }
+
+    // Update post status back to Active and remove claim info
+    const updateData = {
+      status: 'Active',
+      claimedBy: null,
+      claimedAt: null,
+      updatedAt: new Date().toISOString()
+    };
+
+    await Post.update(postId, updateData);
+
+    // Get collector's and giver's names for the messages
+    const collector = await User.findById(collectorID);
+    const giver = await User.findById(post.userID);
+
+    if (!collector || !giver) {
+      throw new Error('User data not found');
+    }
+
+    const collectorName = `${collector.firstName} ${collector.lastName}`;
+    const giverName = `${giver.firstName} ${giver.lastName}`;
+
+    // Create system message about the cancellation
+    await Message.create({
+      senderID: collectorID,
+      senderName: collectorName,
+      receiverID: post.userID,
+      receiverName: giverName,
+      postID: postId,
+      postTitle: post.title,
+      postType: post.postType || 'Waste',
+      messageType: 'system',
+      message: `${collectorName} has cancelled their claim on "${post.title}". This post is now available for other collectors to claim.`,
+      isRead: false,
+      isDeleted: false,
+      sentAt: new Date(),
+      metadata: {
+        action: 'claim_cancelled',
+        postTitle: post.title,
+        collectorName: collectorName
+      }
+    });
+
+    // Send notification to post owner
+    await Notification.create({
+      userID: post.userID,
+      type: 'Pickup',
+      title: 'Claim cancelled',
+      message: `${collectorName} cancelled their claim on "${post.title}". Your post is now available for other collectors.`,
+      referenceID: postId,
+      referenceType: 'post',
+      actionURL: `/posts/${postId}`,
+      priority: 'medium',
+      metadata: {
+        collectorID: collectorID,
+        collectorName: collectorName,
+        postID: postId,
+        action: 'claim_cancelled'
+      }
+    });
+
+    // Invalidate cache when claim is cancelled
+    invalidatePostsCache();
+
+    res.json({
+      success: true,
+      message: 'Claim cancelled successfully. The post is now available for others to claim.',
+      data: {
+        postID: postId,
+        status: 'Active'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error cancelling claim:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to cancel claim. Please try again.'
     });
   }
 });

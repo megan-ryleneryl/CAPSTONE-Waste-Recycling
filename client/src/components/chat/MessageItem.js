@@ -38,7 +38,7 @@ const MessageItem = ({
       {showSenderName && !isOwn && (
         <div className={styles.senderName}>
           {message.senderName}
-          <span className={styles.senderType}>({message.senderType})</span>
+          {/* <span className={styles.senderType}>({message.senderType})</span> */}
         </div>
       )}
       

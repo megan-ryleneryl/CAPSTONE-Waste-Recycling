@@ -1,26 +1,46 @@
 // client/src/pages/Chat.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import ConversationList from '../components/chat/ConversationList';
 import ChatWindow from '../components/chat/ChatWindow';
 import styles from './Chat.module.css';
 
-const Chat = () => {
+const Chat = ({ activeFilter = 'all', onChatCountsUpdate }) => {
   const { currentUser: user, loading } = useAuth();
   const location = useLocation();
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [showConversationList, setShowConversationList] = useState(true);
 
+  // Memoize the counts update handler to prevent infinite loops
+  const handleCountsUpdate = useCallback((counts) => {
+    if (onChatCountsUpdate) {
+      onChatCountsUpdate(counts);
+    }
+  }, [onChatCountsUpdate]);
+
+  const handleOpenChat = (postID, otherUser, postData = null) => {
+    setSelectedConversation({
+      postID,
+      otherUser,
+      postData
+    });
+
+    // On mobile, hide conversation list when chat opens
+    if (isMobile) {
+      setShowConversationList(false);
+    }
+  };
+
   // ✅ MOVE ALL HOOKS BEFORE ANY EARLY RETURNS
-  
+
   // Handle initial conversation from navigation state
   useEffect(() => {
     if (location.state?.postID && location.state?.otherUser) {
       handleOpenChat(location.state.postID, location.state.otherUser, location.state.postData);
     }
-  }, [location.state]);
+  }, [location.state, isMobile]);
 
   // Handle responsive design
   useEffect(() => {
@@ -34,8 +54,7 @@ const Chat = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // ✅ NOW SAFE TO HAVE EARLY RETURNS AFTER ALL HOOKS
-  
+
   // Add loading state while user loads
   if (loading || !user) {
     return (
@@ -47,19 +66,6 @@ const Chat = () => {
       </div>
     );
   }
-
-  const handleOpenChat = (postID, otherUser, postData = null) => {
-    setSelectedConversation({
-      postID,
-      otherUser,
-      postData
-    });
-    
-    // On mobile, hide conversation list when chat opens
-    if (isMobile) {
-      setShowConversationList(false);
-    }
-  };
 
   const handleConversationSelect = (conversation) => {
     // Create otherUser object from conversation data
@@ -99,10 +105,12 @@ const Chat = () => {
             currentUser={user}
             onSelectConversation={handleConversationSelect}
             selectedConversationId={
-              selectedConversation 
+              selectedConversation
                 ? `${selectedConversation.postID}-${selectedConversation.otherUser.userID}`
                 : null
             }
+            activeFilter={activeFilter}
+            onCountsUpdate={handleCountsUpdate}
           />
         </div>
 

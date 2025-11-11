@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './Analytics.module.css';
-import { 
-  MapPin, 
-  Recycle, 
-  TrendingUp, 
-  Heart, 
-  Leaf, 
-  Trophy, 
-  Users, 
-  Package, 
-  Plus, 
-  Trees, 
+import GeographicHeatmap from '../components/analytics/GeographicHeatmap';
+import DisposalHubMap from '../components/analytics/DisposalHubMap';
+import AddDisposalHubForm from '../components/analytics/AddDisposalHubForm';
+import LocationFilter from '../components/analytics/LocationFilter';
+import {
+  MapPin,
+  Recycle,
+  TrendingUp,
+  Heart,
+  Leaf,
+  Trophy,
+  Users,
+  Package,
+  Plus,
+  Trees,
   Droplets,
   Zap
 } from 'lucide-react';
@@ -24,10 +28,41 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState(null);
-  
+
   const [analyticsData, setAnalyticsData] = useState(null);
   const [heatMapData, setHeatMapData] = useState([]);
   const [disposalSites, setDisposalSites] = useState([]);
+  const [showAddHubForm, setShowAddHubForm] = useState(false);
+
+  // Location filter state
+  const [locationFilter, setLocationFilter] = useState({
+    region: null,
+    province: null,
+    city: null,
+    barangay: null
+  });
+
+  // Disposal hub search state
+  const [searchLocation, setSearchLocation] = useState(null);
+  const [searchRadius, setSearchRadius] = useState(10); // Default 10km
+
+  // Memoized callback to prevent infinite loops
+  const handleLocationFilterChange = useCallback((newFilter) => {
+    setLocationFilter(newFilter);
+  }, []);
+
+  // Helper function to check if location filter is applied
+  const hasLocationFilter = () => {
+    return locationFilter.region || locationFilter.province ||
+           locationFilter.city || locationFilter.barangay;
+  };
+
+  // Get appropriate label for active users based on filter
+  const getActiveUsersLabel = () => {
+    return hasLocationFilter()
+      ? 'Active Users (Joined This Community)'
+      : 'Active Users';
+  };
 
   const navigate = useNavigate();
 
@@ -41,11 +76,120 @@ const Analytics = () => {
     setLoading(false);
   }, [navigate]);
 
-  useEffect(() => {
-    if (user) {
-      fetchAnalyticsData();
+  // Use useCallback to memoize fetchAnalyticsData with dependencies
+  const fetchAnalyticsData = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setDataLoading(true);
+      setError(null);
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+
+      if (!token) {
+        setError('Authentication token not found');
+        navigate('/login');
+        return;
+      }
+
+      // Build query parameters including location filter
+      const params = new URLSearchParams({ timeRange: selectedTimeRange });
+      if (locationFilter.region) params.append('region', locationFilter.region);
+      if (locationFilter.province) params.append('province', locationFilter.province);
+      if (locationFilter.city) params.append('city', locationFilter.city);
+      if (locationFilter.barangay) params.append('barangay', locationFilter.barangay);
+
+      const response = await axios.get(
+        `http://localhost:3001/api/analytics/dashboard?${params.toString()}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success && response.data.data) {
+        const data = response.data.data;
+
+        // Check if location has no activity
+        const hasActivity = data.totalRecycled > 0 ||
+                           data.totalInitiatives > 0 ||
+                           data.totalPickups > 0 ||
+                           data.activeUsers > 0;
+
+        if (!hasActivity && hasLocationFilter()) {
+          // Check if there's data at a broader level
+          let errorMsg = 'No recycling activity found in this location yet.';
+
+          if (locationFilter.city || locationFilter.barangay) {
+            // Check if there's data at region level
+            const regionalParams = new URLSearchParams({ timeRange: selectedTimeRange });
+            if (locationFilter.region) regionalParams.append('region', locationFilter.region);
+
+            try {
+              const regionalResponse = await axios.get(
+                `http://localhost:3001/api/analytics/dashboard?${regionalParams.toString()}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              );
+
+              const regionalData = regionalResponse.data.data;
+              const hasRegionalActivity = regionalData.totalRecycled > 0 ||
+                                         regionalData.totalInitiatives > 0 ||
+                                         regionalData.totalPickups > 0 ||
+                                         regionalData.activeUsers > 0;
+
+              if (hasRegionalActivity) {
+                errorMsg = 'No data found for this specific location, but there is activity in the broader region. Try selecting a different city or broaden your filter to see regional data.';
+              }
+            } catch (regionalError) {
+              // If regional check fails, use default message
+            }
+          }
+
+          setError(errorMsg);
+        } else {
+          // Clear error if there is activity or no filter
+          setError(null);
+        }
+
+        setAnalyticsData(data);
+      } else {
+        const errorMsg = 'Failed to load analytics data';
+        setError(errorMsg);
+        console.error('API response error:', response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      console.error('Error details:', error.response?.data);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch analytics';
+      setError(errorMessage);
+
+      // Set default data on error
+      setAnalyticsData({
+        totalRecycled: 0,
+        totalInitiatives: 0,
+        activeUsers: 0,
+        totalPickups: 0,
+        completedSupports: 0,
+        wasteDistribution: [],
+        trends: [],
+        topCollectors: [],
+        recentActivity: [],
+        percentageChanges: {}
+      });
+    } finally {
+      setDataLoading(false);
     }
-  }, [user, selectedTimeRange]);
+  }, [user, selectedTimeRange, locationFilter.region, locationFilter.province, locationFilter.city, locationFilter.barangay, navigate]);
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [fetchAnalyticsData]);
 
   useEffect(() => {
     if (activeTab === 'activity' && user) {
@@ -57,75 +201,7 @@ const Analytics = () => {
     if (activeTab === 'nearby' && user) {
       fetchDisposalSites();
     }
-  }, [activeTab, user]);
-
-  const fetchAnalyticsData = async () => {
-    try {
-      setDataLoading(true);
-      setError(null);
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      
-      if (!token) {
-        setError('Authentication token not found');
-        navigate('/login');
-        return;
-      }
-      
-      const response = await axios.get(
-        `http://localhost:3001/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.data.success && response.data.data) {
-        setAnalyticsData(response.data.data);
-        console.log('Analytics data loaded:', response.data.data);
-      } else {
-        setError('Failed to load analytics data');
-        console.error('API response:', response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
-      setError(error.response?.data?.message || 'Failed to fetch analytics');
-      
-      // Set default data on error
-      setAnalyticsData({
-        totalRecycled: 0,
-        totalInitiatives: 0,
-        activeUsers: 0,
-        totalPickups: 0,
-        userStats: {
-          totalPosts: 0,
-          activePickups: 0,
-          completedPickups: 0,
-          totalPoints: 0,
-          totalKgRecycled: 0
-        },
-        topCollectors: [],
-        wasteByType: {},
-        recyclingTrends: [],
-        communityImpact: {
-          co2Saved: 0,
-          treesEquivalent: 0,
-          waterSaved: 0,
-          energySaved: 0
-        },
-        recentActivity: [],
-        percentageChanges: {
-          recycled: '+0%',
-          initiatives: '+0%',
-          users: '+0%',
-          pickups: '+0%'
-        }
-      });
-    } finally {
-      setDataLoading(false);
-    }
-  };
+  }, [activeTab, user, searchLocation, searchRadius]);
 
   const getTrendClass = (trend) => {
     if (!trend) return '';
@@ -148,9 +224,9 @@ const Analytics = () => {
   const fetchHeatMapData = async () => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      
+
       const response = await axios.get(
-        'http://localhost:3001/api/analytics/heatmap',
+        'http://localhost:3001/api/analytics/heatmap?type=geographic',
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -163,23 +239,46 @@ const Analytics = () => {
       }
     } catch (error) {
       console.error('Error fetching heatmap data:', error);
-      setHeatMapData([
-        { area: 'Quezon City', activity: 'high', initiatives: 12, posts: 58 },
-        { area: 'Makati', activity: 'medium', initiatives: 8, posts: 34 },
-        { area: 'Pasig', activity: 'high', initiatives: 15, posts: 67 },
-        { area: 'Taguig', activity: 'low', initiatives: 3, posts: 12 }
-      ]);
+      // Generate fallback geographic data
+      const fallbackData = {
+        heatmapPoints: [
+          { lat: 14.6760, lng: 121.0437, intensity: 0.7 },
+          { lat: 14.5547, lng: 121.0244, intensity: 0.4 },
+          { lat: 14.5764, lng: 121.0851, intensity: 0.8 }
+        ],
+        areas: [
+          {
+            name: 'Quezon City',
+            lat: 14.6760,
+            lng: 121.0437,
+            activityCount: 70,
+            activityLevel: 'High',
+            posts: 58,
+            color: '#f03b20',
+            radius: 3000
+          }
+        ]
+      };
+
+      setHeatMapData(fallbackData);
     }
   };
 
   const fetchDisposalSites = async () => {
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const lat = user?.location?.lat || 14.6549;
-      const lng = user?.location?.lng || 121.0645;
-      
+
+      // Only fetch if searchLocation is explicitly set
+      if (!searchLocation) {
+        // Don't fetch on initial load - wait for user to set location
+        return;
+      }
+
+      const lat = searchLocation.lat;
+      const lng = searchLocation.lng;
+
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/disposal-sites?lat=${lat}&lng=${lng}`,
+        `http://localhost:3001/api/analytics/disposal-sites?lat=${lat}&lng=${lng}&radius=${searchRadius}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -192,12 +291,18 @@ const Analytics = () => {
       }
     } catch (error) {
       console.error('Error fetching disposal sites:', error);
-      setDisposalSites([
-        { id: 1, name: 'Green Earth MRF', distance: '1.2 km', types: ['Plastic', 'Paper'], active: true },
-        { id: 2, name: 'City Recycling Center', distance: '2.5 km', types: ['All types'], active: true },
-        { id: 3, name: 'E-Waste Hub', distance: '3.8 km', types: ['Electronics'], active: true }
-      ]);
+      setDisposalSites([]);
     }
+  };
+
+  // Handle location change from map
+  const handleSearchLocationChange = (newLocation) => {
+    setSearchLocation(newLocation);
+  };
+
+  // Handle radius change from map
+  const handleSearchRadiusChange = (newRadius) => {
+    setSearchRadius(newRadius);
   };
 
   const renderTabContent = () => {
@@ -205,41 +310,16 @@ const Analytics = () => {
       case 'nearby':
         return (
           <div className={styles.nearbyContent}>
-            {disposalSites.length > 0 ? (
-              <>
-                <div className={styles.mapPlaceholder}>
-                  <MapPin size={48} className={styles.placeholderIcon} />
-                  <h3>Interactive Map Coming Soon</h3>
-                  <p>Showing {disposalSites.length} disposal sites near you.</p>
-                </div>
-                <div className={styles.disposalSitesList}>
-                  <h3>Disposal Sites Near You</h3>
-                  {disposalSites.map(site => (
-                    <div key={site.id} className={styles.disposalSite}>
-                      <div className={styles.siteInfo}>
-                        <h4>{site.name}</h4>
-                        <span className={styles.distance}>{site.distance}</span>
-                        <div className={styles.acceptedTypes}>
-                          {site.types.map(type => (
-                            <span key={type} className={styles.typeTag}>{type}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className={styles.siteActions}>
-                        <button 
-                          className={styles.postButton}
-                          onClick={() => navigate('/create-post')}
-                        >
-                          <Plus size={16} /> Post
-                        </button>
-                        <button className={styles.messageButton}>
-                          Message
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
+            {user ? (
+              <DisposalHubMap
+                disposalSites={disposalSites}
+                userLocation={user?.location?.coordinates || { lat: 14.5995, lng: 121.0000 }}
+                currentSearchLocation={searchLocation}
+                searchRadius={searchRadius}
+                onLocationChange={handleSearchLocationChange}
+                onRadiusChange={handleSearchRadiusChange}
+                onSuggestHub={() => setShowAddHubForm(true)}
+              />
             ) : (
               <div className={styles.placeholderContent}>
                 <MapPin size={48} className={styles.placeholderIcon} />
@@ -249,44 +329,16 @@ const Analytics = () => {
             )}
           </div>
         );
-      
+
       case 'activity':
         return (
           <div className={styles.activityContent}>
-            {heatMapData.length > 0 ? (
-              <>
-                <div className={styles.heatMapGrid}>
-                  {heatMapData.map((area, index) => (
-                    <div 
-                      key={index} 
-                      className={`${styles.heatMapCard} ${styles[area.activity]}`}
-                    >
-                      <div className={styles.areaHeader}>
-                        <h3>{area.area}</h3>
-                        <span className={`${styles.activityBadge} ${styles[area.activity]}`}>
-                          {area.activity.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className={styles.areaStats}>
-                        <div className={styles.statItem}>
-                          <span className={styles.statValue}>{area.initiatives}</span>
-                          <span className={styles.statLabel}>Active Initiatives</span>
-                        </div>
-                        <div className={styles.statItem}>
-                          <span className={styles.statValue}>{area.posts || '50+'}</span>
-                          <span className={styles.statLabel}>Weekly Posts</span>
-                        </div>
-                      </div>
-                      <button 
-                        className={styles.exploreButton}
-                        onClick={() => navigate(`/posts?area=${area.area}`)}
-                      >
-                        Explore {area.area}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </>
+            {heatMapData && (heatMapData.areas || heatMapData.heatmapPoints) ? (
+              <GeographicHeatmap
+                heatmapData={heatMapData.heatmapPoints || []}
+                areaData={heatMapData.areas || []}
+                breakdown={heatMapData.breakdown || null}
+              />
             ) : (
               <div className={styles.placeholderContent}>
                 <Recycle size={48} className={styles.placeholderIcon} />
@@ -296,10 +348,10 @@ const Analytics = () => {
             )}
           </div>
         );
-      
+
       case 'impact':
         return renderImpactDashboard();
-      
+
       default:
         return null;
     }
@@ -311,6 +363,56 @@ const Analytics = () => {
         <div className={styles.loadingContainer}>
           <div className={styles.spinner}></div>
           <p>Loading analytics data...</p>
+        </div>
+      );
+    }
+
+    // Check if there's any meaningful data
+    const hasData = analyticsData.totalRecycled > 0 ||
+                    analyticsData.totalInitiatives > 0 ||
+                    analyticsData.totalPickups > 0;
+
+    if (!hasData && !dataLoading) {
+      return (
+        <div className={styles.impactDashboard}>
+          <div className={styles.dashboardHeader}>
+            <h2>
+              <TrendingUp className={styles.headerIcon} />
+              Community Impact Dashboard
+            </h2>
+          </div>
+
+          {/* Location Filter - Show even when no data */}
+          <LocationFilter
+            onFilterChange={handleLocationFilterChange}
+            currentFilter={locationFilter}
+          />
+
+          <div className={styles.emptyState}>
+            <Recycle size={64} style={{ opacity: 0.3, marginBottom: '20px' }} />
+            <h3>No Data for Selected Location</h3>
+            <p>Try selecting a different location above, or check back once there are:</p>
+            <ul style={{ textAlign: 'left', marginTop: '20px', marginBottom: '30px' }}>
+              <li>Completed waste pickups</li>
+              <li>Active initiative posts</li>
+              <li>Active users in the community</li>
+            </ul>
+            <p>Start by creating a waste post or supporting an initiative!</p>
+            <div className={styles.ctaButtons} style={{ marginTop: '30px' }}>
+              <button
+                className={styles.ctaPrimary}
+                onClick={() => navigate('/create-post', { state: { postType: 'Waste' } })}
+              >
+                <Plus size={18} /> Post Recyclables
+              </button>
+              <button
+                className={styles.ctaSecondary}
+                onClick={() => navigate('/create-post', { state: { postType: 'Initiative' } })}
+              >
+                <Heart size={18} /> Create Initiative
+              </button>
+            </div>
+          </div>
         </div>
       );
     }
@@ -355,7 +457,7 @@ const Analytics = () => {
         
         <div className={styles.dashboardHeader}>
           <h2>
-            <TrendingUp className={styles.headerIcon} /> 
+            <TrendingUp className={styles.headerIcon} />
             Community Impact Dashboard
           </h2>
           <div className={styles.timeRangeSelector}>
@@ -371,6 +473,12 @@ const Analytics = () => {
             ))}
           </div>
         </div>
+
+        {/* Location Filter */}
+        <LocationFilter
+          onFilterChange={handleLocationFilterChange}
+          currentFilter={locationFilter}
+        />
 
         <div className={styles.metricsGrid}>
           <div className={styles.metricCard}>
@@ -405,7 +513,7 @@ const Analytics = () => {
             </div>
             <div className={styles.metricContent}>
               <h3>{(analyticsData.activeUsers || 0).toLocaleString()}</h3>
-              <p>Active Users</p>
+              <p>{getActiveUsersLabel()}</p>
               <span className={`${styles.trend} ${getTrendClass(changes.users)}`}>
                 {changes.users || '+0%'} growth
               </span>
@@ -424,31 +532,17 @@ const Analytics = () => {
               </span>
             </div>
           </div>
-        </div>
 
-        {/* FIXED: Environmental Impact Section - Now displays all 4 values */}
-        <div className={styles.impactSection}>
-          <h3>Environmental Impact</h3>
-          <div className={styles.impactGrid}>
-            <div className={styles.impactCard}>
-              <Leaf className={styles.impactIcon} />
-              <h4>{(impact.co2Saved || 0).toLocaleString()} kg</h4>
-              <p>CO₂ Emissions Saved</p>
+          <div className={styles.metricCard}>
+            <div className={styles.metricIcon}>
+              <Heart />
             </div>
-            <div className={styles.impactCard}>
-              <Trees className={styles.impactIcon} />
-              <h4>{(impact.treesEquivalent || 0).toLocaleString()}</h4>
-              <p>Trees Equivalent</p>
-            </div>
-            <div className={styles.impactCard}>
-              <Droplets className={styles.impactIcon} />
-              <h4>{(impact.waterSaved || 0).toLocaleString()} L</h4>
-              <p>Water Saved</p>
-            </div>
-            <div className={styles.impactCard}>
-              <Zap className={styles.impactIcon} />
-              <h4>{(impact.energySaved || 0).toLocaleString()} kWh</h4>
-              <p>Energy Saved</p>
+            <div className={styles.metricContent}>
+              <h3>{analyticsData.completedSupports || 0}</h3>
+              <p>Completed Supports</p>
+              <span className={`${styles.trend} ${getTrendClass('+0%')}`}>
+                for initiatives
+              </span>
             </div>
           </div>
         </div>
@@ -547,6 +641,33 @@ const Analytics = () => {
           </div>
         </div>
 
+        {/* FIXED: Environmental Impact Section - Now displays all 4 values */}
+        <div className={styles.impactSection}>
+          <h3>Environmental Impact</h3>
+          <div className={styles.impactGrid}>
+            <div className={styles.impactCard}>
+              <Leaf className={styles.impactIcon} />
+              <h4>{(impact.co2Saved || 0).toLocaleString()} kg</h4>
+              <p>CO₂ Emissions Saved</p>
+            </div>
+            <div className={styles.impactCard}>
+              <Trees className={styles.impactIcon} />
+              <h4>{(impact.treesEquivalent || 0).toLocaleString()}</h4>
+              <p>Trees Equivalent</p>
+            </div>
+            <div className={styles.impactCard}>
+              <Droplets className={styles.impactIcon} />
+              <h4>{(impact.waterSaved || 0).toLocaleString()} L</h4>
+              <p>Water Saved</p>
+            </div>
+            <div className={styles.impactCard}>
+              <Zap className={styles.impactIcon} />
+              <h4>{(impact.energySaved || 0).toLocaleString()} kWh</h4>
+              <p>Energy Saved</p>
+            </div>
+          </div>
+        </div>
+
         <div className={styles.ctaSection}>
           <h3>Join the Movement!</h3>
           <p>Be part of the solution. Start recycling today.</p>
@@ -586,32 +707,46 @@ const Analytics = () => {
 
   return (
     <div className={styles.dashboardContainer}>
+      {/* Add Disposal Hub Form Modal */}
+      {showAddHubForm && (
+        <AddDisposalHubForm
+          onClose={() => setShowAddHubForm(false)}
+          onSuccess={(newHub) => {
+            // Refresh disposal sites
+            if (activeTab === 'nearby' && user) {
+              fetchDisposalSites();
+            }
+          }}
+          userLocation={user?.location?.coordinates || null}
+        />
+      )}
+
       <div className={styles.welcomeSection}>
         <div className={styles.welcomeHeader}>
           <div>
-            <h1 className={styles.welcomeTitle}>Welcome back, {user.firstName}!</h1>
+            <h1 className={styles.welcomeTitle}>Community Stats</h1>
             <p className={styles.welcomeSubtitle}>
-              Here's what's happening with your recycling activities
+              This is what's happening within our community's recycling activities.
             </p>
           </div>
           <div className={styles.userQuickStats}>
             <div className={styles.quickStat}>
               <span className={styles.quickStatValue}>
-                {analyticsData?.userStats?.totalPosts || 0}
+                {analyticsData?.activeUsers || 0}
               </span>
-              <span className={styles.quickStatLabel}>Your Posts</span>
+              <span className={styles.quickStatLabel}>{getActiveUsersLabel()}</span>
             </div>
             <div className={styles.quickStat}>
               <span className={styles.quickStatValue}>
-                {analyticsData?.userStats?.activePickups || 0}
+                {analyticsData?.totalInitiatives || 0}
               </span>
-              <span className={styles.quickStatLabel}>Active Pickups</span>
+              <span className={styles.quickStatLabel}>Initiatives</span>
             </div>
             <div className={styles.quickStat}>
               <span className={styles.quickStatValue}>
-                {analyticsData?.userStats?.totalPoints || 0}
+                {analyticsData?.totalRecycled || 0} kg
               </span>
-              <span className={styles.quickStatLabel}>Points</span>
+              <span className={styles.quickStatLabel}>Recycled</span>
             </div>
           </div>
         </div>
@@ -619,6 +754,12 @@ const Analytics = () => {
 
       <div className={styles.analyticsSection}>
         <div className={styles.navTabs}>
+          <button
+            className={`${styles.navTab} ${activeTab === 'impact' ? styles.activeTab : ''}`}
+            onClick={() => setActiveTab('impact')}
+          >
+            <TrendingUp size={18} /> Impact & Stats
+          </button>
           <button
             className={`${styles.navTab} ${activeTab === 'nearby' ? styles.activeTab : ''}`}
             onClick={() => setActiveTab('nearby')}
@@ -631,12 +772,7 @@ const Analytics = () => {
           >
             <Recycle size={18} /> Community Activity
           </button>
-          <button
-            className={`${styles.navTab} ${activeTab === 'impact' ? styles.activeTab : ''}`}
-            onClick={() => setActiveTab('impact')}
-          >
-            <TrendingUp size={18} /> Impact & Stats
-          </button>
+          
         </div>
 
         <div className={styles.tabContent}>

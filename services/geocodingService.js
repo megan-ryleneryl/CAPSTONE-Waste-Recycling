@@ -9,44 +9,72 @@ const geocoder = NodeGeocoder({
 
 class GeocodingService {
   /**
-   * Get coordinates from location object
+   * Get coordinates from location object with progressive fallback
+   * Tries: barangay → city → province → region
    * @param {Object} locationObj - Location with region, province, city, barangay, addressLine
-   * @returns {Object|null} - {lat, lng, formattedAddress} or null
+   * @returns {Object|null} - {lat, lng, formattedAddress, fallbackLevel} or null
    */
   static async getCoordinates(locationObj) {
     try {
       const { region, province, city, barangay } = locationObj;
 
-      // Build address string - EXCLUDE addressLine for more reliable geocoding
-      // Geocode to barangay level only (smallest unit for general location mapping)
-      // addressLine is kept in location object for pickup details
-      const parts = [
-        barangay?.name,
-        city?.name,
-        province?.name,
-        region?.name,
-        'Philippines'
-      ].filter(Boolean);
+      // Progressive fallback levels - try from most specific to least specific
+      const fallbackLevels = [
+        {
+          level: 'barangay',
+          parts: [barangay?.name, city?.name, province?.name, region?.name, 'Philippines']
+        },
+        {
+          level: 'city',
+          parts: [city?.name, province?.name, region?.name, 'Philippines']
+        },
+        {
+          level: 'province',
+          parts: [province?.name, region?.name, 'Philippines']
+        },
+        {
+          level: 'region',
+          parts: [region?.name, 'Philippines']
+        }
+      ];
 
-      const address = parts.join(', ');
-      console.log('🗺️ Geocoding address (barangay level):', address);
-      
-      const results = await geocoder.geocode(address);
-      
-      if (results && results.length > 0) {
-        console.log('✅ Geocoding successful:', {
-          lat: results[0].latitude,
-          lng: results[0].longitude
-        });
-        
-        return {
-          lat: results[0].latitude,
-          lng: results[0].longitude,
-          formattedAddress: results[0].formattedAddress
-        };
+      // Try each fallback level
+      for (const { level, parts } of fallbackLevels) {
+        const filteredParts = parts.filter(Boolean);
+
+        // Skip if no parts available at this level
+        if (filteredParts.length === 0) continue;
+
+        const address = filteredParts.join(', ');
+        console.log(`🗺️ Trying geocoding at ${level} level:`, address);
+
+        try {
+          const results = await geocoder.geocode(address);
+
+          if (results && results.length > 0) {
+            const isFallback = level !== 'barangay';
+
+            console.log(`✅ Geocoding successful at ${level} level:`, {
+              lat: results[0].latitude,
+              lng: results[0].longitude,
+              fallback: isFallback
+            });
+
+            return {
+              lat: results[0].latitude,
+              lng: results[0].longitude,
+              formattedAddress: results[0].formattedAddress,
+              fallbackLevel: level,
+              isFallback
+            };
+          }
+        } catch (levelError) {
+          console.log(`⚠️ Geocoding failed at ${level} level, trying next...`);
+          continue;
+        }
       }
-      
-      console.log('⚠️ No geocoding results found');
+
+      console.log('❌ No geocoding results found at any level');
       return null;
     } catch (error) {
       console.error('❌ Geocoding error:', error.message);

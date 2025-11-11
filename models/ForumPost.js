@@ -59,7 +59,7 @@ class ForumPost extends Post {
       tags: this.tags,
       isPinned: this.isPinned,
       isLocked: this.isLocked,
-      // ADD THESE THREE LINES:
+      interestedCollectors: this.interestedCollectors || [],
       // User flags
       isCollector: this.isCollector,
       isAdmin: this.isAdmin,

@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import PostDetails from '../components/posts/PostDetails/PostDetails';
-import CommentsSection from '../components/posts/CommentsSection/CommentsSection';
 // import PickupRequests from '../components/posts/PickupRequests/PickupRequests';
+import InitiativeSupportsModal from '../components/posts/InitiativeSupportsModal/InitiativeSupportsModal';
 import styles from './SinglePost.module.css';
 // Lucide icon imports
-import { Heart, MessageCircle, Trash2 } from 'lucide-react';
+import { MessageCircle, Trash2 } from 'lucide-react';
 
 const SinglePost = ({ onDataUpdate }) => {
   const { postId } = useParams();
@@ -19,6 +18,7 @@ const SinglePost = ({ onDataUpdate }) => {
   const [likeCount, setLikeCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [likingPost, setLikingPost] = useState(false);
+  const [showSupportsModal, setShowSupportsModal] = useState(false);
 
   useEffect(() => {
     fetchPost();
@@ -31,10 +31,17 @@ const SinglePost = ({ onDataUpdate }) => {
       setIsLiked(post.isLiked || false);
 
       if (onDataUpdate) {
-        onDataUpdate({ post });
+        onDataUpdate({
+          post,
+          onViewSupports: () => setShowSupportsModal(true),
+          likeCount,
+          isLiked,
+          onLikeToggle: handleLikeToggle,
+          likingPost
+        });
       }
     }
-  }, [post, onDataUpdate]);
+  }, [post, onDataUpdate, likeCount, isLiked, likingPost]);
 
   const fetchCurrentUser = async () => {
     try {
@@ -65,7 +72,15 @@ const SinglePost = ({ onDataUpdate }) => {
       );
 
       if (response.data.success) {
-        setPost(response.data.post);
+        const fetchedPost = response.data.post;
+
+        // Check if post is inactive (from deleted user)
+        if (fetchedPost.status === 'Inactive') {
+          setError('Post not found');
+          return;
+        }
+
+        setPost(fetchedPost);
       } else {
         setError('Post not found');
       }
@@ -384,29 +399,6 @@ const SinglePost = ({ onDataUpdate }) => {
 
         </div>
 
-        {/* Like and Comment Section for Forum Posts */}
-      {post.postType === 'Forum' && (
-        <div className={styles.interactionsSection}>
-          <div className={styles.likeSection}>
-            <button
-              className={`${styles.likeButton} ${isLiked ? styles.liked : ''}`}
-              onClick={handleLikeToggle}
-              disabled={likingPost}
-            >
-              <span className={styles.likeIcon}><Heart size={18} fill={post.isLiked ? 'currentColor' : 'none'} /></span>
-              <span className={styles.likeText}>
-                {likeCount} {likeCount === 1 ? 'Like' : 'Likes'}
-              </span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Comments Section for Forum Posts */}
-      {post.postType === 'Forum' && (
-        <CommentsSection post={post} currentUser={user} />
-      )}
-
         {/* Pickup Requests Section (for Collectors view on Initiative posts)
         {post.postType === 'Initiative' && isCollector && isOwner && (
           <PickupRequests
@@ -415,6 +407,16 @@ const SinglePost = ({ onDataUpdate }) => {
           />
         )} */}
       </div>
+
+      {/* Initiative Supports Modal */}
+      {post.postType === 'Initiative' && isOwner && (
+        <InitiativeSupportsModal
+          isOpen={showSupportsModal}
+          onClose={() => setShowSupportsModal(false)}
+          initiativeID={post.postID}
+          initiativeTitle={post.title}
+        />
+      )}
 
     </div>
   );

@@ -16,7 +16,15 @@ class User {
     this.isOrganization = data.isOrganization || false;
     this.organizationName = data.organizationName || null;
     this.preferredTimes = data.preferredTimes || [];
+    // Array of structured location objects matching Pickup.pickupLocation format
+    // Each location: { name, region: {code, name}, province: {code, name} | null,
+    //                  city: {code, name}, barangay: {code, name}, addressLine }
     this.preferredLocations = data.preferredLocations || [];
+    // User's current recycling community location (single barangay)
+    // Format: { region: {code, name}, province: {code, name} | null,
+    //           city: {code, name}, barangay: {code, name},
+    //           coordinates: {lat, lng}, fallbackLevel }
+    this.userLocation = data.userLocation || null;
     this.points = data.points || 0;
     this.badges = data.badges || []; // Array of {badgeId, earnedAt}
     this.profilePictureUrl = data.profilePictureUrl || '';
@@ -65,6 +73,7 @@ class User {
       organizationName: this.organizationName,
       preferredTimes: this.preferredTimes,
       preferredLocations: this.preferredLocations,
+      userLocation: this.userLocation,
       points: this.points,
       badges: this.badges,
       createdAt: this.createdAt,
@@ -279,6 +288,41 @@ class User {
       });
       await this.update({ badges: this.badges });
     }
+  }
+
+  // Validate and normalize preferred locations
+  // Ensures all locations follow the structured format
+  static normalizePreferredLocations(locations) {
+    if (!Array.isArray(locations)) return [];
+
+    return locations.map(location => {
+      // Handle old string format - convert to minimal structured format
+      if (typeof location === 'string') {
+        return {
+          name: location,
+          region: { code: '', name: '' },
+          province: null,
+          city: { code: '', name: '' },
+          barangay: { code: '', name: '' },
+          addressLine: location
+        };
+      }
+
+      // Ensure structured format has all required fields
+      return {
+        name: location.name || 'Unnamed Location',
+        region: location.region || { code: '', name: '' },
+        province: location.province || null,
+        city: location.city || { code: '', name: '' },
+        barangay: location.barangay || { code: '', name: '' },
+        addressLine: location.addressLine || ''
+      };
+    });
+  }
+
+  // Get normalized preferred locations
+  getNormalizedPreferredLocations() {
+    return User.normalizePreferredLocations(this.preferredLocations);
   }
 }
 

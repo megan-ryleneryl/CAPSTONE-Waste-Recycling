@@ -1,22 +1,22 @@
 // client/src/components/chat/ConversationList.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { MessageCircle, RefreshCw } from 'lucide-react';
+import { MessageCircle, RefreshCw, User, Users } from 'lucide-react';
 import ConversationListItem from './ConversationListItem';
 import styles from './ConversationList.module.css';
 
-const ConversationList = ({ currentUser, onSelectConversation, selectedConversationId }) => {
+const ConversationList = ({ currentUser, onSelectConversation, selectedConversationId, activeFilter = 'all', onCountsUpdate }) => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const previousCountsRef = useRef(null);
 
   useEffect(() => {
     if (currentUser && currentUser.userID) {
       loadConversations();
-      // Refresh conversations every 30 seconds
-      const interval = setInterval(loadConversations, 30000);
-      return () => clearInterval(interval);
+      // REMOVED: 30-second polling that was causing excessive reads
+      // Users can manually refresh if needed
     }
   }, [currentUser]);
 
@@ -27,20 +27,20 @@ const loadConversations = async () => {
     // Query messages where current user is sender OR receiver
     const messagesRef = collection(db, 'messages');
     
-    // Get messages where user is receiver
+    // OPTIMIZED: Reduce limit from 50 to 20 messages per query
+    // We only need the most recent message per conversation
     const receivedQuery = query(
       messagesRef,
       where('receiverID', '==', currentUser.userID),
       orderBy('sentAt', 'desc'),
-      limit(50)
+      limit(20)
     );
-    
-    // Get messages where user is sender
+
     const sentQuery = query(
       messagesRef,
       where('senderID', '==', currentUser.userID),
       orderBy('sentAt', 'desc'),
-      limit(50)
+      limit(20)
     );
     
     const [receivedSnapshot, sentSnapshot] = await Promise.all([
@@ -48,64 +48,111 @@ const loadConversations = async () => {
       getDocs(sentQuery)
     ]);
     
+    // Collect all messages first
+    const allMessages = [
+      ...receivedSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isReceived: true })),
+      ...sentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isReceived: false }))
+    ];
+
+    // Collect unique user IDs and post IDs
+    const userIDs = new Set();
+    const postIDs = new Set();
+
+    allMessages.forEach(msg => {
+      userIDs.add(msg.senderID);
+      userIDs.add(msg.receiverID);
+      postIDs.add(msg.postID);
+    });
+
+    // Fetch all users and posts in parallel
+    const userCache = new Map();
+    const postCache = new Map();
+
+    await Promise.all([
+      // Fetch all users
+      ...Array.from(userIDs).map(async (userID) => {
+        try {
+          const userDocRef = doc(db, 'users', userID);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            userCache.set(userID, {
+              name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User',
+              profilePicture: userData.profilePictureUrl || null,
+              exists: true
+            });
+          } else {
+            userCache.set(userID, {
+              name: 'Unknown User',
+              profilePicture: null,
+              exists: false
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching user:', error);
+          userCache.set(userID, {
+            name: 'Unknown User',
+            profilePicture: null,
+            exists: false
+          });
+        }
+      }),
+      // Fetch all posts
+      ...Array.from(postIDs).map(async (postID) => {
+        try {
+          const postDocRef = doc(db, 'posts', postID);
+          const postDoc = await getDoc(postDocRef);
+          if (postDoc.exists()) {
+            const postData = postDoc.data();
+            postCache.set(postID, {
+              title: postData.title || 'Untitled Post',
+              postType: postData.postType || 'Unknown',
+              status: postData.status || 'Unknown',
+              posterID: postData.userID,
+              exists: true
+            });
+          } else {
+            postCache.set(postID, {
+              title: 'Unknown Post',
+              postType: 'Unknown',
+              status: 'Unknown',
+              posterID: null,
+              exists: false
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching post:', error);
+          postCache.set(postID, {
+            title: 'Unknown Post',
+            postType: 'Unknown',
+            posterID: null,
+            exists: false
+          });
+        }
+      })
+    ]);
+
     // Group messages by conversation (postID + otherUserID)
     const conversationsMap = new Map();
-    
-    // Helper function to fetch user data
-    const fetchUserData = async (userID) => {
-      try {
-        const userDocRef = doc(db, 'users', userID);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          return {
-            name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || 'Unknown User',
-            profilePicture: userData.profilePictureUrl || null
-          };
-        }
-      } catch (error) {
-        console.error('Error fetching user:', error);
-      }
-      return {
-        name: 'Unknown User',
-        profilePicture: null
-      };
-    };
-    
-    // Helper function to fetch post data
-    const fetchPostData = async (postID) => {
-      try {
-        const postDocRef = doc(db, 'posts', postID);
-        const postDoc = await getDoc(postDocRef);
-        if (postDoc.exists()) {
-          const postData = postDoc.data();
-          return postData.title || 'Untitled Post';
-        }
-      } catch (error) {
-        console.error('Error fetching post:', error);
-      }
-      return 'Unknown Post';
-    };
-    
+
     // Process received messages
     for (const doc of receivedSnapshot.docs) {
       const msg = { id: doc.id, ...doc.data() };
-      const key = `${msg.postID}-${msg.senderID}`;
 
-      // Fetch missing data if needed
-      let userData = { name: msg.senderName, profilePicture: null };
-      let postTitle = msg.postTitle;
-
-      if (!msg.senderName || msg.senderName === 'Unknown User') {
-        userData = await fetchUserData(msg.senderID);
-      } else {
-        // Still fetch user data to get profile picture
-        const fullUserData = await fetchUserData(msg.senderID);
-        userData.profilePicture = fullUserData.profilePicture;
+      // Skip system messages not intended for current user
+      if (msg.messageType === 'system' && msg.receiverID !== currentUser.userID) {
+        continue;
       }
 
-      if (!postTitle || postTitle === 'Unknown Post') {
-        postTitle = await fetchPostData(msg.postID);
+      const key = `${msg.postID}-${msg.senderID}`;
+
+      // Get cached user and post data
+      const userData = userCache.get(msg.senderID);
+      const postData = postCache.get(msg.postID);
+
+      // Skip this conversation if the user or post no longer exists
+      if (!userData?.exists || !postData?.exists) {
+        continue;
       }
 
       if (!conversationsMap.has(key) ||
@@ -113,7 +160,10 @@ const loadConversations = async () => {
         conversationsMap.set(key, {
           id: key,
           postID: msg.postID,
-          postTitle: postTitle,
+          postTitle: postData.title,
+          postType: postData.postType,
+          postStatus: postData.status,
+          posterID: postData.posterID,
           otherUserID: msg.senderID,
           otherUserName: userData.name,
           otherUserProfilePicture: userData.profilePicture,
@@ -122,26 +172,25 @@ const loadConversations = async () => {
         });
       }
     }
-    
+
     // Process sent messages
     for (const doc of sentSnapshot.docs) {
       const msg = { id: doc.id, ...doc.data() };
-      const key = `${msg.postID}-${msg.receiverID}`;
 
-      // Fetch missing data if needed
-      let userData = { name: msg.receiverName, profilePicture: null };
-      let postTitle = msg.postTitle;
-
-      if (!msg.receiverName || msg.receiverName === 'Unknown User') {
-        userData = await fetchUserData(msg.receiverID);
-      } else {
-        // Still fetch user data to get profile picture
-        const fullUserData = await fetchUserData(msg.receiverID);
-        userData.profilePicture = fullUserData.profilePicture;
+      // Skip system messages not sent by current user (shouldn't happen, but be safe)
+      if (msg.messageType === 'system' && msg.senderID !== currentUser.userID) {
+        continue;
       }
 
-      if (!postTitle || postTitle === 'Unknown Post') {
-        postTitle = await fetchPostData(msg.postID);
+      const key = `${msg.postID}-${msg.receiverID}`;
+
+      // Get cached user and post data
+      const userData = userCache.get(msg.receiverID);
+      const postData = postCache.get(msg.postID);
+
+      // Skip this conversation if the user or post no longer exists
+      if (!userData?.exists || !postData?.exists) {
+        continue;
       }
 
       if (!conversationsMap.has(key) ||
@@ -149,7 +198,10 @@ const loadConversations = async () => {
         conversationsMap.set(key, {
           id: key,
           postID: msg.postID,
-          postTitle: postTitle,
+          postTitle: postData.title,
+          postType: postData.postType,
+          postStatus: postData.status,
+          posterID: postData.posterID,
           otherUserID: msg.receiverID,
           otherUserName: userData.name,
           otherUserProfilePicture: userData.profilePicture,
@@ -175,6 +227,74 @@ const loadConversations = async () => {
     setLoading(false);
   }
 };
+
+  // Filter and group conversations based on active filter from parent
+  const getFilteredAndGroupedConversations = () => {
+    let filtered = conversations;
+
+    // Filter by post type if not 'all'
+    if (activeFilter === 'waste') {
+      filtered = conversations.filter(conv => conv.postType === 'Waste');
+    } else if (activeFilter === 'initiative') {
+      filtered = conversations.filter(conv => conv.postType === 'Initiative');
+    } else if (activeFilter === 'forum') {
+      filtered = conversations.filter(conv => conv.postType === 'Forum');
+    }
+
+    // Group conversations by ownership
+    const myConversations = [];
+    const othersConversations = [];
+
+    filtered.forEach(conv => {
+      const isMyPost = conv.posterID === currentUser.userID;
+      if (isMyPost) {
+        myConversations.push(conv);
+      } else {
+        othersConversations.push(conv);
+      }
+    });
+
+    return {
+      myConversations,
+      othersConversations,
+      allConversations: filtered
+    };
+  };
+
+  const { myConversations, othersConversations, allConversations } = getFilteredAndGroupedConversations();
+
+  // Calculate counts for all filter types
+  useEffect(() => {
+    if (!onCountsUpdate) return;
+
+    const counts = {
+      all: conversations.length,
+      waste: 0,
+      initiative: 0,
+      forum: 0
+    };
+
+    conversations.forEach(conv => {
+      if (conv.postType === 'Waste') {
+        counts.waste++;
+      } else if (conv.postType === 'Initiative') {
+        counts.initiative++;
+      } else if (conv.postType === 'Forum') {
+        counts.forum++;
+      }
+    });
+
+    // Only update if counts have actually changed
+    const prevCounts = previousCountsRef.current;
+    if (!prevCounts ||
+        prevCounts.all !== counts.all ||
+        prevCounts.waste !== counts.waste ||
+        prevCounts.initiative !== counts.initiative ||
+        prevCounts.forum !== counts.forum) {
+      previousCountsRef.current = counts;
+      onCountsUpdate(counts);
+    }
+  }, [conversations, onCountsUpdate]);
 
   if (loading && !conversations.length) {
     return (
@@ -223,15 +343,73 @@ const loadConversations = async () => {
       </div>
 
       <div className={styles.conversationItems}>
-        {conversations.map((conversation) => (
-          <ConversationListItem
-            key={conversation.id}
-            conversation={conversation}
-            currentUser={currentUser}
-            onClick={onSelectConversation}
-            isSelected={selectedConversationId === conversation.id}
-          />
-        ))}
+        {allConversations.length > 0 ? (
+          <>
+            {/* Show sections for All, Waste and Initiative filters */}
+            {(activeFilter === 'all' || activeFilter === 'waste' || activeFilter === 'initiative') ? (
+              <>
+                {/* My Posts Section */}
+                {myConversations.length > 0 && (
+                  <>
+                    <div className={styles.sectionHeader}>
+                      <h3 className={styles.sectionTitle}>
+                        <User size={16} className={styles.sectionIcon} />
+                        {'My Posts'}
+                      </h3>
+                      <span className={styles.sectionCount}>{myConversations.length}</span>
+                    </div>
+                    {myConversations.map((conversation) => (
+                      <ConversationListItem
+                        key={conversation.id}
+                        conversation={conversation}
+                        currentUser={currentUser}
+                        onClick={onSelectConversation}
+                        isSelected={selectedConversationId === conversation.id}
+                      />
+                    ))}
+                  </>
+                )}
+
+                {/* Others' Posts Section */}
+                {othersConversations.length > 0 && (
+                  <>
+                    <div className={styles.sectionHeader}>
+                      <h3 className={styles.sectionTitle}>
+                        <Users size={16} className={styles.sectionIcon} />
+                        {'Others Posts'}
+                      </h3>
+                      <span className={styles.sectionCount}>{othersConversations.length}</span>
+                    </div>
+                    {othersConversations.map((conversation) => (
+                      <ConversationListItem
+                        key={conversation.id}
+                        conversation={conversation}
+                        currentUser={currentUser}
+                        onClick={onSelectConversation}
+                        isSelected={selectedConversationId === conversation.id}
+                      />
+                    ))}
+                  </>
+                )}
+              </>
+            ) : (
+              /* For 'forum' filter, show all conversations without sections */
+              allConversations.map((conversation) => (
+                <ConversationListItem
+                  key={conversation.id}
+                  conversation={conversation}
+                  currentUser={currentUser}
+                  onClick={onSelectConversation}
+                  isSelected={selectedConversationId === conversation.id}
+                />
+              ))
+            )}
+          </>
+        ) : (
+          <div className={styles.emptyTabState}>
+            <p>No conversations in this category</p>
+          </div>
+        )}
       </div>
     </div>
   );

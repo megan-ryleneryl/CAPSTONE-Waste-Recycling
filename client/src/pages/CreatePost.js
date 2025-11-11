@@ -4,7 +4,7 @@ import axios from 'axios';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
 import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
-import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3 } from 'lucide-react';
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { Image, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -12,9 +12,13 @@ const CreatePost = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
   const [isCollector, setIsCollector] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrganization, setIsOrganization] = useState(false);
+  const [isLocationExpanded, setIsLocationExpanded] = useState(true);
+  const [preferredLocations, setPreferredLocations] = useState([]);
+  const [preferredTimes, setPreferredTimes] = useState([]);
 
   const location = useLocation();
 
@@ -59,7 +63,6 @@ const CreatePost = () => {
     pickupDate: '',
     pickupTime: '',
     // Initiative specific
-    goal: '',
     targetAmount: '',
     endDate: '',
     // Forum specific
@@ -75,14 +78,17 @@ const CreatePost = () => {
         const response = await axios.get('http://localhost:3001/api/protected/profile', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+        setIsVerified(response.data.user.status === "Verified" || false);
         setIsCollector(response.data.user.isCollector || false);
         setIsAdmin(response.data.user.isAdmin || false);
         setIsOrganization(response.data.user.isOrganization || false);
+        setPreferredLocations(response.data.user.preferredLocations || []);
+        setPreferredTimes(response.data.user.preferredTimes || []);
       } catch (error) {
         console.error('Error fetching user profile:', error);
       }
     };
-    
+
     fetchUserProfile();
   }, []);
 
@@ -208,6 +214,95 @@ const CreatePost = () => {
     });
   };
 
+  // Handle selecting a preferred location
+  const handleSelectPreferredLocation = async (preferredLocation) => {
+    try {
+      // Set the form data with the preferred location
+      setFormData({
+        ...formData,
+        region: preferredLocation.region?.code || '',
+        province: preferredLocation.province?.code || 'NCR',
+        city: preferredLocation.city?.code || '',
+        barangay: preferredLocation.barangay?.code || '',
+        addressLine: preferredLocation.addressLine || ''
+      });
+
+      // Load the corresponding dropdowns
+      if (preferredLocation.region?.code) {
+        setLoadingLocations(true);
+
+        // Check if NCR
+        const selectedRegion = regions.find(r => r.code === preferredLocation.region.code);
+        const isNCR = selectedRegion && (
+          selectedRegion.name.includes('NCR') ||
+          selectedRegion.name.includes('National Capital Region') ||
+          preferredLocation.region.code === '130000000'
+        );
+
+        if (isNCR) {
+          const citiesData = await PSGCService.getCitiesFromRegion(preferredLocation.region.code);
+          setCities(citiesData);
+        } else if (preferredLocation.province?.code) {
+          const provincesData = await PSGCService.getProvinces(preferredLocation.region.code);
+          setProvinces(provincesData);
+
+          const citiesData = await PSGCService.getCitiesMunicipalities(preferredLocation.province.code);
+          setCities(citiesData);
+        }
+
+        if (preferredLocation.city?.code) {
+          const barangaysData = await PSGCService.getBarangays(preferredLocation.city.code);
+          setBarangays(barangaysData);
+        }
+
+        setLoadingLocations(false);
+      }
+    } catch (error) {
+      console.error('Error loading preferred location:', error);
+      setError('Failed to load preferred location. Please try selecting manually.');
+    }
+  };
+
+  // Handle selecting a preferred time
+  const handleSelectPreferredTime = (preferredTime) => {
+    // preferredTime is an object with { day, slot, startTime, endTime }
+    // We'll use the startTime for the pickup time
+    const timeValue = preferredTime.startTime || preferredTime.slot || '';
+
+    // Calculate the next date that matches the preferred day
+    let suggestedDate = '';
+    if (preferredTime.day) {
+      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const targetDay = daysOfWeek.indexOf(preferredTime.day);
+
+      if (targetDay !== -1) {
+        const today = new Date();
+        const currentDay = today.getDay();
+
+        // Calculate days until the target day
+        let daysUntilTarget = targetDay - currentDay;
+
+        // If the target day is today or has passed this week, schedule for next week
+        if (daysUntilTarget <= 0) {
+          daysUntilTarget += 7;
+        }
+
+        // Create the target date
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + daysUntilTarget);
+
+        // Format as YYYY-MM-DD for the date input
+        suggestedDate = targetDate.toISOString().split('T')[0];
+      }
+    }
+
+    setFormData({
+      ...formData,
+      pickupTime: timeValue,
+      pickupDate: suggestedDate || formData.pickupDate
+    });
+  };
+
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -285,11 +380,6 @@ const CreatePost = () => {
           }
         }
       } else if (postType === 'Initiative') {
-      if (!formData.goal.trim()) {
-        setError('Goal is required for Initiative posts');
-        return false;
-      }
-
       // Validate materials array (new format)
       if (!formData.materials || formData.materials.length === 0) {
         setError('At least one material is required for Initiative posts');
@@ -460,7 +550,6 @@ const handleRemoveImage = (index) => {
       if (formData.pickupDate) formDataToSend.append('pickupDate', formData.pickupDate);
       if (formData.pickupTime) formDataToSend.append('pickupTime', formData.pickupTime);
     } else if (postType === 'Initiative') {
-      formDataToSend.append('goal', formData.goal.trim());
       // Send materials as JSON string to preserve structure (similar to Waste posts)
       formDataToSend.append('materials', JSON.stringify(formData.materials));
       formDataToSend.append('targetAmount', parseFloat(formData.targetAmount));
@@ -568,7 +657,7 @@ const handleRemoveImage = (index) => {
             onClick={() => setPostType('Waste')}
           >
             <span><Recycle size={16} /> Waste Post</span>
-            <small>Offer recyclable materials</small>
+            <small>{'Offer recyclable materials'}</small>
           </button>
           
           <button
@@ -581,23 +670,26 @@ const handleRemoveImage = (index) => {
             <span><Sprout size={16} /> Initiative</span>
             <small>{canCreateInitiative ? 'Start a green project' : ''}</small>
             {!canCreateInitiative && (
-              <Link to="/profile" className={styles.signupLink}>
+              <Link 
+                to="/profile" 
+                className={`${styles.signupLink} ${postType === 'Initiative' ? styles.selectedSignupLink : ''}`}
+              >
                 Sign up as collector
               </Link>
             )}
           </button>
-          
+
           <button
             type="button"
             className={`${styles.typeButton} ${postType === 'Forum' ? styles.active : ''}`}
             onClick={() => setPostType('Forum')}
           >
-            <span><MessageCircle size={14} /> Forum Post</span>
-            <small>Share and discuss</small>
+            <span><MessageCircle size={16} /> Forum Post</span>
+            <small>{'Share and discuss'}</small>
           </button>
         </div>
 
-        {/* Form */}
+        {/* Form - Only show if user can create posts */}
         <form onSubmit={handleSubmit} className={styles.form}>
           {/* Common Fields */}
           <div className={styles.formGroup}>
@@ -620,6 +712,9 @@ const handleRemoveImage = (index) => {
           <div className={styles.formGroup}>
             <label htmlFor="description" className={styles.label}>
               Description *
+              {postType === 'Initiative' && (
+                <span className={styles.hint}>What are you doing? Describe the initiative details and activities</span>
+              )}
             </label>
             <textarea
               id="description"
@@ -627,7 +722,11 @@ const handleRemoveImage = (index) => {
               value={formData.description}
               onChange={handleInputChange}
               className={styles.textarea}
-              placeholder="Provide details about your post"
+              placeholder={
+                postType === 'Initiative'
+                  ? "e.g., We're collecting PET Bottles to create sustainable house bricks"
+                  : "Provide details about your post"
+              }
               rows="5"
               required
               maxLength="1000"
@@ -636,8 +735,52 @@ const handleRemoveImage = (index) => {
 
           {/* PSGC Location Fields */}
           <div className={styles.locationSection}>
-            <h3 className={styles.sectionTitle}><MapPin size={20}/> Location *</h3>
-            <p className={styles.sectionHint}>Select your complete address using the dropdowns below</p>
+            <div className={styles.sectionHeader}>
+              <h3 className={styles.sectionTitle}><MapPin size={20}/> Location *</h3>
+              <button
+                type="button"
+                className={styles.toggleButton}
+                onClick={() => setIsLocationExpanded(!isLocationExpanded)}
+                aria-expanded={isLocationExpanded}
+                aria-label={isLocationExpanded ? "Collapse location section" : "Expand location section"}
+              >
+                {isLocationExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+              </button>
+            </div>
+            {isLocationExpanded && (
+              <>
+                <p className={styles.sectionHint}>Select your complete address using the dropdowns below</p>
+
+                {/* Preferred Locations Suggestions */}
+                {preferredLocations && preferredLocations.length > 0 && (
+                  <div className={styles.suggestionsSection}>
+                    <label className={styles.suggestionsLabel}>
+                      Your Preferred Locations:
+                    </label>
+                    <div className={styles.suggestionsList}>
+                      {preferredLocations.map((loc, index) => {
+                        const locationName = loc.name || [
+                          loc.barangay?.name,
+                          loc.city?.name,
+                          loc.province?.name !== 'NCR' ? loc.province?.name : null,
+                          loc.region?.name
+                        ].filter(Boolean).join(', ');
+
+                        return (
+                          <button
+                            key={index}
+                            type="button"
+                            className={styles.suggestionButton}
+                            onClick={() => handleSelectPreferredLocation(loc)}
+                          >
+                            <MapPin size={14} />
+                            {locationName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
             
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
@@ -780,6 +923,8 @@ const handleRemoveImage = (index) => {
                   Be specific to help collectors find your location
                 </span>
               </div>
+              </>
+            )}
           </div> 
 
 
@@ -796,7 +941,6 @@ const handleRemoveImage = (index) => {
                 onChange={(materials) => setFormData({ ...formData, materials })}
               />
               
-              {/* Remove the quantity and unit inputs - now handled in MaterialSelector */}
               
               {/* Keep pickupDate and pickupTime */}
               <div className={styles.formRow}>
@@ -814,7 +958,7 @@ const handleRemoveImage = (index) => {
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
-                
+
                 <div className={styles.formGroup}>
                   <label htmlFor="pickupTime" className={styles.label}>
                     Preferred Pickup Time
@@ -827,8 +971,57 @@ const handleRemoveImage = (index) => {
                     onChange={handleInputChange}
                     className={styles.input}
                   />
+
                 </div>
               </div>
+                  {/* Preferred Times Suggestions */}
+                  {preferredTimes && preferredTimes.length > 0 && (
+                    <div className={styles.timeSuggestionsSection}>
+                      <label className={styles.suggestionsLabel}>
+                        Your Preferred Times:
+                      </label>
+                      <div className={styles.suggestionsList}>
+                        {preferredTimes.map((time, index) => {
+                          // Calculate the next matching date for display
+                          let nextDate = '';
+                          if (time.day) {
+                            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                            const targetDay = daysOfWeek.indexOf(time.day);
+                            if (targetDay !== -1) {
+                              const today = new Date();
+                              const currentDay = today.getDay();
+                              let daysUntilTarget = targetDay - currentDay;
+                              if (daysUntilTarget <= 0) {
+                                daysUntilTarget += 7;
+                              }
+                              const targetDate = new Date(today);
+                              targetDate.setDate(today.getDate() + daysUntilTarget);
+                              nextDate = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            }
+                          }
+
+                          // Display format: "Day - Slot (StartTime - EndTime) [Next: Date]"
+                          // Example: "Monday - Morning (08:00 - 12:00) [Next: Jan 20]"
+                          const displayText = time.day && time.slot
+                            ? `${time.day} - ${time.slot}${time.startTime ? ` (${time.startTime}${time.endTime ? ` - ${time.endTime}` : ''})` : ''}${nextDate ? ` [Next: ${nextDate}]` : ''}`
+                            : time.slot || time.startTime || 'Preferred Time';
+
+                          return (
+                            <button
+                              key={index}
+                              type="button"
+                              className={styles.suggestionButton}
+                              onClick={() => handleSelectPreferredTime(time)}
+                              title={nextDate ? `Click to set pickup for ${nextDate}` : 'Click to set pickup time'}
+                            >
+                              <Clock size={14} />
+                              {displayText}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
             </div>
           )}
 
@@ -839,27 +1032,9 @@ const handleRemoveImage = (index) => {
                 <Goal size={20} /> Initiative Details
               </h3>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="goal" className={styles.label}>
-                  Initiative Goal / Description *
-                </label>
-                <textarea
-                  id="goal"
-                  name="goal"
-                  value={formData.goal}
-                  onChange={handleInputChange}
-                  className={styles.textarea}
-                  placeholder="What do you want to achieve with this initiative? Describe your environmental goal."
-                  rows="3"
-                  required
-                  maxLength="500"
-                />
-              </div>
-
               {/* Material Selector - Materials Needed */}
               <div className={styles.formGroup}>
                 <label className={styles.label}>
-                  <Package size={16} /> Materials Needed *
                   <span className={styles.hint}>Select the materials you need for this initiative</span>
                 </label>
                 <MaterialSelector
@@ -910,7 +1085,7 @@ const handleRemoveImage = (index) => {
             <h3 className={styles.sectionTitle}>
               <Image size={20} /> Images (Optional)
             </h3>
-            <p className={styles.sectionHint}>Add up to 5 images to your post</p>
+            {/* <p className={styles.sectionHint}>Add up to 5 images to your post</p> */}
             
             <div className={styles.formGroup}>
               <label htmlFor="images" className={styles.label}>

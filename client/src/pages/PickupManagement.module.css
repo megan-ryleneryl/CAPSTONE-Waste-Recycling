@@ -2,9 +2,8 @@
 .pickupManagement {
   max-width: 1200px;
   margin: 0 auto;
-  padding: var(--spacing-xl);
+  padding-top: 2rem;
   min-height: 100vh;
-  background: var(--bg-secondary);
 }
 
 .header {
@@ -13,9 +12,9 @@
   align-items: center;
   margin-bottom: var(--spacing-xl);
   padding: var(--spacing-lg);
-  background: var(--bg-primary);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
 }
 
 .title {
@@ -66,9 +65,9 @@
   margin-bottom: var(--spacing-xl);
   flex-wrap: wrap;
   padding: var(--spacing-md);
-  background: var(--bg-primary);
   border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-xs);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
 }
 
 .filterBtn {

@@ -1,6 +1,5 @@
 .dashboardContainer {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
   font-family: var(--font-family-primary, 'Raleway', sans-serif);
   padding: 2rem;
 }
@@ -8,11 +7,11 @@
 /* Welcome Section - Enhanced */
 .welcomeSection {
   max-width: 1200px;
-  margin: 0 auto 2rem;
   padding: 2rem;
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
   border-radius: var(--border-radius-lg, 12px);
-  box-shadow: var(--shadow-sm, 0 2px 10px rgba(0, 0, 0, 0.05));
+
 }
 
 .welcomeHeader {
@@ -31,6 +30,7 @@
 }
 
 .welcomeSubtitle {
+  text-align: left;
   color: var(--text-secondary, #666);
   font-size: 1rem;
 }
@@ -1144,10 +1144,11 @@
 
 /* Admin Dashboard */
 .adminDashboard {
-  background: white;
+  margin-top: 2rem;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
   padding: 2rem;
   border-radius: var(--border-radius-lg, 12px);
-  box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
 }
 
 .adminGrid {
@@ -1239,10 +1240,10 @@
 
 /* Collector Dashboard */
 .collectorDashboard {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
   padding: 2rem;
   border-radius: var(--border-radius-lg, 12px);
-  box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
 }
 
 .collectorGrid {
@@ -1363,10 +1364,10 @@
 
 /* Organization Dashboard */
 .organizationDashboard {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
   padding: 2rem;
   border-radius: var(--border-radius-lg, 12px);
-  box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
   margin-top: 2rem;
 }
 
@@ -1488,10 +1489,10 @@
 
 /* Giver Dashboard */
 .giverDashboard {
-  background: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8f8 100%);
+  border: 1px solid #E5E7EB;
   padding: 2rem;
   border-radius: var(--border-radius-lg, 12px);
-  box-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.08));
 }
 
 .giverGrid {

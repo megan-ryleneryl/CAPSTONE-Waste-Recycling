@@ -14,11 +14,11 @@ const multer = require('multer');
 const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
 const profileRoutes = require('./routes/profileRoutes');
-const messageRoutes = require('./routes/messageRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const psgcRoutes = require('./routes/psgc');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const materialRoutes = require('./routes/materialRoutes');
+const disposalHubRoutes = require('./routes/disposalHubRoutes');
 
 // Import services
 const authService = require('./services/auth-service'); 
@@ -111,11 +111,11 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', verifyToken, postRoutes);
 app.use('/api/protected/profile', profileRoutes);
-app.use('/api/messages', messageRoutes);
 app.use('/api/psgc', psgcRoutes);
 app.use('/api/protected/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/materials', materialRoutes);
+app.use('/api/disposal-hubs', disposalHubRoutes);
 
 app.use('/api/admin', (req, res, next) => {
   next();
@@ -217,7 +217,7 @@ app.get('/api/protected/posts/:postId', async (req, res) => {
     
     // Get the post data
     const postData = post.toFirestore ? post.toFirestore() : post;
-    
+
     // Fetch the user who created this post
     let userData = null;
     try {
@@ -269,7 +269,7 @@ app.get('/api/protected/posts/:postId', async (req, res) => {
       commentCount,
       isOwner: postData.userID === req.user.userID
     };
-    
+
     res.json({
       success: true,
       post: enrichedPost
@@ -333,68 +333,6 @@ app.put('/api/protected/posts/:postId', async (req, res) => {
   }
 });
 
-// // Pickup routes
-// app.get('/api/protected/pickups', async (req, res) => {
-//   try {
-//     const { type = 'all' } = req.query;
-//     let pickups;
-    
-//     if (type === 'given') {
-//       pickups = await Pickup.findByGiverID(req.user.userID);
-//     } else if (type === 'collected') {
-//       pickups = await Pickup.findByCollectorID(req.user.userID);
-//     } else {
-//       // Get all pickups for this user (both given and collected)
-//       const givenPickups = await Pickup.findByGiverID(req.user.userID);
-//       const collectedPickups = await Pickup.findByCollectorID(req.user.userID);
-//       pickups = [...givenPickups, ...collectedPickups];
-//     }
-    
-//     res.json({ success: true, pickups });
-//   } catch (error) {
-//     console.error('Pickups fetch error:', error.message);
-//     res.status(500).json({ success: false, error: error.message });
-//   }
-// });
-
-// app.post('/api/protected/pickups', async (req, res) => {
-//   try {
-//     const pickupData = {
-//       ...req.body,
-//       collectorID: req.user.userID
-//     };
-    
-//     const pickup = await Pickup.create(pickupData);
-//     res.status(201).json({ 
-//       success: true, 
-//       pickup, 
-//       message: 'Pickup request created successfully' 
-//     });
-//   } catch (error) {
-//     console.error('Pickup creation error:', error.message);
-//     res.status(400).json({ success: false, error: error.message });
-//   }
-// });
-
-// app.put('/api/protected/pickups/:pickupId/confirm', async (req, res) => {
-//   try {
-//     const pickup = await Pickup.findById(req.params.pickupId);
-//     if (!pickup) {
-//       return res.status(404).json({ success: false, error: 'Pickup not found' });
-//     }
-    
-//     // Only the giver can confirm pickups
-//     if (pickup.giverID !== req.user.userID) {
-//       return res.status(403).json({ success: false, error: 'Unauthorized to confirm this pickup' });
-//     }
-    
-//     await pickup.confirm();
-//     res.json({ success: true, pickup, message: 'Pickup confirmed successfully' });
-//   } catch (error) {
-//     console.error('Pickup confirm error:', error.message);
-//     res.status(400).json({ success: false, error: error.message });
-//   }
-// });
 
 app.post('/api/protected/upload/profile-picture',
   upload.single('profilePicture'),
@@ -1006,7 +944,7 @@ app.put('/api/admin/materials/:materialID', async (req, res) => {
 app.delete('/api/admin/materials/:materialID', async (req, res) => {
   try {
     await Material.delete(req.params.materialID);
-    
+
     res.json({
       success: true,
       message: 'Material deleted successfully'
@@ -1014,6 +952,95 @@ app.delete('/api/admin/materials/:materialID', async (req, res) => {
   } catch (error) {
     console.error('Error deleting material:', error);
     res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Update material pricing history after pickup completion
+app.post('/api/protected/materials/update-pricing', async (req, res) => {
+  try {
+    const { materials } = req.body; // Array of {materialID, pricePerKg, quantity}
+
+    if (!Array.isArray(materials) || materials.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Materials array is required'
+      });
+    }
+
+    const updates = [];
+
+    for (const materialData of materials) {
+      const { materialID, pricePerKg, quantity } = materialData;
+
+      if (!materialID || pricePerKg === undefined) {
+        continue; // Skip invalid entries
+      }
+
+      try {
+        const material = await Material.findById(materialID);
+
+        if (!material) {
+          console.warn(`Material ${materialID} not found`);
+          continue;
+        }
+
+        // Add price to pricing history
+        const pricingEntry = {
+          price: parseFloat(pricePerKg),
+          quantity: parseFloat(quantity) || 0,
+          date: new Date(),
+          addedBy: req.user.userID
+        };
+
+        material.pricingHistory = material.pricingHistory || [];
+        material.pricingHistory.push(pricingEntry);
+
+        // Recalculate average price based on recent history (last 30 days)
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const recentPrices = material.pricingHistory.filter(entry => {
+          const entryDate = entry.date instanceof Date ? entry.date : new Date(entry.date);
+          return entryDate >= thirtyDaysAgo;
+        });
+
+        if (recentPrices.length > 0) {
+          const weightedSum = recentPrices.reduce((sum, entry) => {
+            const weight = entry.quantity || 1; // Use quantity as weight, default to 1
+            return sum + (entry.price * weight);
+          }, 0);
+          const totalWeight = recentPrices.reduce((sum, entry) => sum + (entry.quantity || 1), 0);
+          material.averagePricePerKg = weightedSum / totalWeight;
+        }
+
+        // Update material in database
+        await Material.update(materialID, {
+          pricingHistory: material.pricingHistory,
+          averagePricePerKg: material.averagePricePerKg,
+          updatedAt: new Date()
+        });
+
+        updates.push({
+          materialID,
+          materialName: material.displayName || material.type,
+          newAveragePrice: material.averagePricePerKg
+        });
+
+        console.log(`✅ Updated pricing for ${material.displayName || material.type}: ₱${pricePerKg}/kg (new avg: ₱${material.averagePricePerKg.toFixed(2)}/kg)`);
+      } catch (error) {
+        console.error(`Error updating material ${materialID}:`, error);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Material pricing updated successfully',
+      updates
+    });
+  } catch (error) {
+    console.error('Error updating material pricing:', error);
+    res.status(500).json({
       success: false,
       error: error.message
     });
