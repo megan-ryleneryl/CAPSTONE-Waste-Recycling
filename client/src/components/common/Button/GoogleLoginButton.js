@@ -25,13 +25,14 @@ const GoogleLoginButton = ({
         // Store the JWT token and user data
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
-        
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
         if (onSuccess) {
           onSuccess(response.data);
-        } else {
-          // Default navigation to posts page
-          navigate('/posts');
         }
+
+        // Force full page reload to ensure clean state
+        window.location.href = '/posts';
       }
     } catch (error) {
       console.error('Google login error:', error);

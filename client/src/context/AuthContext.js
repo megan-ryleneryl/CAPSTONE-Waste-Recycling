@@ -17,11 +17,18 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'));
 
   const logout = useCallback(() => {
+    // Clear all local storage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberedUser');
+
+    // Clear axios default headers
+    delete axios.defaults.headers.common['Authorization'];
+
+    // Clear state
     setToken(null);
     setCurrentUser(null);
+
     // Force a page reload to clear all state and subscriptions
     window.location.href = '/login';
   }, []);

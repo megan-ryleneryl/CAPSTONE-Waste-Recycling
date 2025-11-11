@@ -280,11 +280,26 @@ const TopNav = ({ user: propUser }) => {
   }, []);
 
   const handleLogout = () => {
+    // Clear all local storage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberedUser');
+
+    // Clear axios default headers
+    delete axios.defaults.headers.common['Authorization'];
+
+    // Clear state
     setUser(null);
-    navigate('/login');
+    setNotifications([]);
+    setIsPolling(false);
+
+    // Stop polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    // Force full page reload to ensure all state is cleared
+    window.location.href = '/login';
   };
 
   const toggleNotifications = () => {
