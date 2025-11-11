@@ -505,7 +505,7 @@ const PickupTracking = () => {
                     otherUser: {
                       userID: otherUserID,
                       firstName: otherUserName?.split(' ')[0] || 'Unknown',
-                      lastName: otherUserName?.split(' ')[1] || 'User'
+                      lastName: otherUserName?.split(' ').slice(1).join(' ') || 'User'
                     },
                     postData: postData
                   }

@@ -72,7 +72,7 @@ const Chat = ({ activeFilter = 'all', onChatCountsUpdate }) => {
     const otherUser = {
       userID: conversation.otherUserID,
       firstName: conversation.otherUserName?.split(' ')[0] || 'Unknown',
-      lastName: conversation.otherUserName?.split(' ')[1] || 'User',
+      lastName: conversation.otherUserName?.split(' ').slice(1).join(' ') || 'User',
       profilePictureUrl: conversation.otherUserProfilePicture || null,
       isCollector: false, // You might want to fetch from User model
       isAdmin: false, // You might want to fetch from User model
