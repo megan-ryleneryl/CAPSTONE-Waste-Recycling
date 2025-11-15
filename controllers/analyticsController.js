@@ -1233,43 +1233,12 @@ function formatOperatingHours(hours) {
   return hours[today] || 'Hours not available';
 }
 
-// FIXED: Environmental impact - all 3 values are now returned and calculated
-/**
- * Calculate environmental impact based on recycled waste
- *
- * RESEARCH-BASED COEFFICIENTS:
- *
- * 1. CO2 Saved: 2.89 kg CO2e per kg of waste recycled
- *    Source: EPA (2016) - "Advancing Sustainable Materials Management: Facts and Figures"
- *    Average across common recyclables (plastic, paper, metal, glass)
- *    Recycling avoids emissions from: landfill methane, virgin material production, transportation
- *
- * 2. Trees Equivalent: 1 tree = 21.77 kg of CO2 absorbed per year
- *    Source: European Environment Agency (EEA)
- *    Formula: (totalKg × CO2 factor) ÷ CO2 per tree per year
- *    = (totalKg × 2.89) ÷ 21.77 ≈ totalKg × 0.1328 trees per year
- *    For lifetime impact (50 years): totalKg × 0.1328 ÷ 50 ≈ totalKg × 0.00266
- *
- * 3. Water Saved: 50-100 liters per kg of recycled material
- *    Source: UN Environment Programme (UNEP) & Water Footprint Network
- *    - Plastic recycling: saves ~88 liters/kg (vs virgin production)
- *    - Paper recycling: saves ~27 liters/kg
- *    - Metal recycling: saves ~238 liters/kg (aluminum)
- *    - Average across materials: ~50 liters/kg (conservative estimate)
- *
- * 4. Energy Saved: 4-6 kWh per kg of recycled material
- *    Source: World Bank & EPA Energy Conservation Reports
- *    - Plastic recycling: saves ~5.6 kWh/kg
- *    - Aluminum recycling: saves ~8 kWh/kg
- *    - Paper recycling: saves ~2.5 kWh/kg
- *    - Average: ~5 kWh/kg
- */
 function calculateEnvironmentalImpact(totalKg) {
   return {
-    co2Saved: Math.round(totalKg * 2.89),      // kg CO2 equivalent saved
-    treesEquivalent: Math.round(totalKg * 0.00266),  // trees saved (50-year lifetime)
-    waterSaved: Math.round(totalKg * 50),       // liters of water saved
-    energySaved: Math.round(totalKg * 5)        // kWh energy saved
+    co2Saved: Math.round(totalKg * 2.88),      // kg CO2 equivalent saved
+    treesEquivalent: Math.round(totalKg * 0.00264),  // trees saved (50-year lifetime)
+    waterSaved: Math.round(totalKg * 15),       // liters of water saved
+    energySaved: Math.round(totalKg * 6)        // kWh energy saved
   };
 }
 
