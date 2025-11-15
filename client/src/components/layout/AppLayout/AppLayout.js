@@ -17,6 +17,7 @@ const AppLayout = ({ children }) => {
   const [chatCounts, setChatCounts] = useState({ all: 0, waste: 0, initiative: 0, forum: 0 });
   const [postCounts, setPostCounts] = useState({ all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 });
   const [showFirstLoginGuide, setShowFirstLoginGuide] = useState(false);
+  const [hasCheckedGuide, setHasCheckedGuide] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -102,11 +103,14 @@ const AppLayout = ({ children }) => {
     setPostCounts(counts);
   }, []);
 
-  // Check for first-time login and show guide
+  // Check for first-time login and show guide (only once per session)
   useEffect(() => {
-    // Only check when user is loaded and we're not on a no-layout page
-    if (currentUser && !loading && !noLayoutPages.includes(location.pathname)) {
+    // Only check once when user is loaded and we're not on a no-layout page
+    if (currentUser && !loading && !hasCheckedGuide && !noLayoutPages.includes(location.pathname)) {
       const hasSeenGuide = localStorage.getItem('hasSeenQuickGuide');
+
+      // Mark that we've checked (prevents showing on every page change)
+      setHasCheckedGuide(true);
 
       // Show guide if user hasn't seen it before
       if (!hasSeenGuide) {
@@ -118,7 +122,7 @@ const AppLayout = ({ children }) => {
         return () => clearTimeout(timer);
       }
     }
-  }, [currentUser, loading, location.pathname]);
+  }, [currentUser, loading, hasCheckedGuide, location.pathname]);
 
   // Don't show layout on certain pages
   if (noLayoutPages.includes(location.pathname)) {

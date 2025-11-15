@@ -3,11 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Trash2, Megaphone, MessageSquare, MapPin, TrendingUp, Clock, Navigation, MessageCircle, Calendar, AlertCircle } from 'lucide-react';
 
 // Shortcut Button Component
-const ShortcutButton = ({ to, children, icon: Icon }) => {
+const ShortcutButton = ({ to, children, icon: Icon, onClose }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
     navigate(to);
+    // Close the modal after navigation
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
@@ -45,8 +49,8 @@ const ShortcutButton = ({ to, children, icon: Icon }) => {
   );
 };
 
-// Guide Pages Content
-export const guidePages = [
+// Guide Pages Content - Function that accepts onClose callback
+export const getGuidePages = (onClose) => [
   // PAGE 1: Post Types & How They Work
   {
     title: 'Understanding Post Types',
@@ -138,8 +142,8 @@ export const guidePages = [
       </>
     ),
     shortcutButton: (
-      <ShortcutButton to="/create-post" icon={Trash2}>
-        Create Your First Post
+      <ShortcutButton to="/create-post" icon={Trash2} onClose={onClose}>
+        Try Creating a Post
       </ShortcutButton>
     ),
   },
@@ -165,11 +169,36 @@ export const guidePages = [
               minWidth: '48px',
               height: '48px'
             }}>
+              <TrendingUp size={24} color="#3B6535" />
+            </div>
+            <div>
+              <strong style={{ fontSize: '1.125rem', display: 'block', marginBottom: '0.5rem' }}>
+                Community Impact Dashboard: Impact & Stats
+              </strong>
+              <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', listStyle: 'disc' }}>
+                <li style={{ margin: '0.25rem 0', padding: 0 }}>View total recycling impact</li>
+                <li style={{ margin: '0.25rem 0', padding: 0 }}>Track community contribution trends</li>
+                <li style={{ margin: '0.25rem 0', padding: 0 }}>See material-specific statistics</li>
+              </ul>
+            </div>
+          </li>
+
+          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{
+              background: '#B3F2AC',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '48px',
+              height: '48px'
+            }}>
               <MapPin size={24} color="#3B6535" />
             </div>
             <div>
               <strong style={{ fontSize: '1.125rem', display: 'block', marginBottom: '0.5rem' }}>
-                Interactive Map
+                Disposal Hub Locator: Find Nearby Centers
               </strong>
               <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', listStyle: 'disc' }}>
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>Discover nearby disposal hubs (MRFs & junk shops)</li>
@@ -190,41 +219,19 @@ export const guidePages = [
               minWidth: '48px',
               height: '48px'
             }}>
-              <TrendingUp size={24} color="#3B6535" />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B6535" strokeWidth="2">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+                <circle cx="12" cy="9" r="2.5" />
+              </svg>
             </div>
             <div>
               <strong style={{ fontSize: '1.125rem', display: 'block', marginBottom: '0.5rem' }}>
-                Recycling Heat Map
+                Recycling Activity Heatmap: Community Activity
               </strong>
               <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', listStyle: 'disc' }}>
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>Identify high-activity recycling areas</li>
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>Find communities that need more initiatives</li>
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>Discover trending recycling locations</li>
-              </ul>
-            </div>
-          </li>
-
-          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-            <div style={{
-              background: '#B3F2AC',
-              padding: '0.75rem',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '48px',
-              height: '48px'
-            }}>
-              <TrendingUp size={24} color="#3B6535" />
-            </div>
-            <div>
-              <strong style={{ fontSize: '1.125rem', display: 'block', marginBottom: '0.5rem' }}>
-                Aggregated Analytics
-              </strong>
-              <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', listStyle: 'disc' }}>
-                <li style={{ margin: '0.25rem 0', padding: 0 }}>View total recycling impact</li>
-                <li style={{ margin: '0.25rem 0', padding: 0 }}>Track community contribution trends</li>
-                <li style={{ margin: '0.25rem 0', padding: 0 }}>See material-specific statistics</li>
               </ul>
             </div>
           </li>
@@ -249,7 +256,7 @@ export const guidePages = [
       </>
     ),
     shortcutButton: (
-      <ShortcutButton to="/analytics" icon={TrendingUp}>
+      <ShortcutButton to="/analytics" icon={TrendingUp} onClose={onClose}>
         View Analytics
       </ShortcutButton>
     ),
@@ -349,7 +356,7 @@ export const guidePages = [
       </>
     ),
     shortcutButton: (
-      <ShortcutButton to="/profile" icon={Clock}>
+      <ShortcutButton to="/profile" icon={Clock} onClose={onClose}>
         Go to Profile
       </ShortcutButton>
     ),
@@ -463,7 +470,7 @@ export const guidePages = [
       </>
     ),
     shortcutButton: (
-      <ShortcutButton to="/chat" icon={MessageCircle}>
+      <ShortcutButton to="/chat" icon={MessageCircle} onClose={onClose}>
         Open Chat
       </ShortcutButton>
     ),

@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import ModalPortal from '../modal/ModalPortal';
-import { guidePages } from './guideContent';
+import { getGuidePages } from './guideContent';
 import styles from './QuickGuide.module.css';
 
 const QuickGuide = ({ isOpen, onClose, initialPage = 1 }) => {
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  // Get guide pages with onClose callback
+  const guidePages = useMemo(() => getGuidePages(onClose), [onClose]);
 
   useEffect(() => {
     if (isOpen) {
