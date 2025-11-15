@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import TopNav from '../../navigation/TopNav/TopNav';
 import SideNav from '../../navigation/SideNav/SideNav';
 import RightSection from '../RightSection/RightSection';
+import QuickGuide from '../../guide/QuickGuide';
 import styles from './AppLayout.module.css';
 
 const AppLayout = ({ children }) => {
@@ -15,6 +16,7 @@ const AppLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatCounts, setChatCounts] = useState({ all: 0, waste: 0, initiative: 0, forum: 0 });
   const [postCounts, setPostCounts] = useState({ all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 });
+  const [showFirstLoginGuide, setShowFirstLoginGuide] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -100,6 +102,24 @@ const AppLayout = ({ children }) => {
     setPostCounts(counts);
   }, []);
 
+  // Check for first-time login and show guide
+  useEffect(() => {
+    // Only check when user is loaded and we're not on a no-layout page
+    if (currentUser && !loading && !noLayoutPages.includes(location.pathname)) {
+      const hasSeenGuide = localStorage.getItem('hasSeenQuickGuide');
+
+      // Show guide if user hasn't seen it before
+      if (!hasSeenGuide) {
+        // Small delay to ensure layout is fully rendered
+        const timer = setTimeout(() => {
+          setShowFirstLoginGuide(true);
+        }, 500);
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentUser, loading, location.pathname]);
+
   // Don't show layout on certain pages
   if (noLayoutPages.includes(location.pathname)) {
     return children;
@@ -172,12 +192,19 @@ const AppLayout = ({ children }) => {
         )}
         
         {showRightSection && (
-          <RightSection 
-            user={currentUser} 
+          <RightSection
+            user={currentUser}
             data={rightSectionData}
           />
         )}
       </div>
+
+      {/* First Login Quick Guide */}
+      <QuickGuide
+        isOpen={showFirstLoginGuide}
+        onClose={() => setShowFirstLoginGuide(false)}
+        initialPage={1}
+      />
     </div>
   );
 };

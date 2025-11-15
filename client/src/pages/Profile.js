@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Pencil, Trash2, MapPin, Sprout, Recycle, TrendingUp, Heart, Leaf, Trophy, Users, Package, Plus, Trees, Droplets } from 'lucide-react';
+import { Pencil, Trash2, MapPin, Sprout, Recycle, TrendingUp, Heart, Leaf, Trophy, Users, Package, Plus, Trees, Droplets, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
@@ -10,6 +10,7 @@ import ApplicationStatusTracker from '../components/profile/ApplicationStatusTra
 import PreferredTimesModal from '../components/profile/PreferredTimesModal';
 import PreferredLocationsModal from '../components/profile/PreferredLocationsModal';
 import UserLocationModal from '../components/profile/UserLocationModal';
+import GuideLink from '../components/guide/GuideLink';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
@@ -1405,7 +1406,10 @@ const Profile = ({ user: propsUser }) => {
 
                   {/* Pickup Preferences Section */}
                   <div className={styles.preferencesSection}>
-                    <h3 className={styles.sectionTitle}>Pickup Preferences</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <h3 className={styles.sectionTitle} style={{ margin: 0 }}>Pickup Preferences</h3>
+                      <GuideLink text="How to set up preferences" targetPage={3} icon={<HelpCircle size={16} />} />
+                    </div>
 
                     <div className={styles.preferencesContent}>
                       {/* Preferred Times */}

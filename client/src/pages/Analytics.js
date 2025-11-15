@@ -6,6 +6,7 @@ import GeographicHeatmap from '../components/analytics/GeographicHeatmap';
 import DisposalHubMap from '../components/analytics/DisposalHubMap';
 import AddDisposalHubForm from '../components/analytics/AddDisposalHubForm';
 import LocationFilter from '../components/analytics/LocationFilter';
+import GuideLink from '../components/guide/GuideLink';
 import {
   MapPin,
   Recycle,
@@ -18,7 +19,8 @@ import {
   Plus,
   Trees,
   Droplets,
-  Zap
+  Zap,
+  Info
 } from 'lucide-react';
 
 const Analytics = () => {
@@ -726,7 +728,10 @@ const Analytics = () => {
       <div className={styles.welcomeSection}>
         <div className={styles.welcomeHeader}>
           <div>
-            <h1 className={styles.welcomeTitle}>Community Stats</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <h1 className={styles.welcomeTitle}>Community Stats</h1>
+              <GuideLink text="Understanding these analytics" targetPage={2} icon={<Info size={16} />} />
+            </div>
             <p className={styles.welcomeSubtitle}>
               This is what's happening within our community's recycling activities.
             </p>
