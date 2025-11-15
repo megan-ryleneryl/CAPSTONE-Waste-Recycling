@@ -552,20 +552,22 @@ const Analytics = () => {
             <h3>Waste Distribution by Type</h3>
             <div className={styles.wasteDistribution}>
               {analyticsData.wasteByType && Object.entries(analyticsData.wasteByType).length > 0 ? (
-                Object.entries(analyticsData.wasteByType).map(([type, percentage]) => (
-                  <div key={type} className={styles.wasteTypeBar}>
-                    <div className={styles.wasteTypeLabel}>
-                      <span>{type}</span>
-                      <span>{percentage}%</span>
+                Object.entries(analyticsData.wasteByType)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([type, percentage]) => (
+                    <div key={type} className={styles.wasteTypeBar}>
+                      <div className={styles.wasteTypeLabel}>
+                        <span>{type}</span>
+                        <span>{percentage}%</span>
+                      </div>
+                      <div className={styles.progressBar}>
+                        <div
+                          className={styles.progressFill}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className={styles.progressBar}>
-                      <div 
-                        className={styles.progressFill} 
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
+                  ))
               ) : (
                 <p className={styles.noDataMessage}>No waste data available</p>
               )}
