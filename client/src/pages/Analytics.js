@@ -312,16 +312,37 @@ const Analytics = () => {
       case 'nearby':
         return (
           <div className={styles.nearbyContent}>
+            {/* Educational Tip Box */}
+            <div className={styles.tipBox}>
+              <MapPin size={20} className={styles.tipIcon} />
+              <div className={styles.tipContent}>
+                <strong>Why find nearby centers?</strong>
+                <p>Discover MRFs (Material Recovery Facilities) and junk shops near you
+                that accept recyclables. Drop off materials directly or find backup options
+                when collectors aren't available.</p>
+              </div>
+            </div>
+
             {user ? (
-              <DisposalHubMap
-                disposalSites={disposalSites}
-                userLocation={user?.location?.coordinates || { lat: 14.5995, lng: 121.0000 }}
-                currentSearchLocation={searchLocation}
-                searchRadius={searchRadius}
-                onLocationChange={handleSearchLocationChange}
-                onRadiusChange={handleSearchRadiusChange}
-                onSuggestHub={() => setShowAddHubForm(true)}
-              />
+              <>
+                <DisposalHubMap
+                  disposalSites={disposalSites}
+                  userLocation={user?.location?.coordinates || { lat: 14.5995, lng: 121.0000 }}
+                  currentSearchLocation={searchLocation}
+                  searchRadius={searchRadius}
+                  onLocationChange={handleSearchLocationChange}
+                  onRadiusChange={handleSearchRadiusChange}
+                  onSuggestHub={() => setShowAddHubForm(true)}
+                />
+
+                {/* Connection Hint */}
+                <div className={styles.connectionHint}>
+                  Curious where recycling is most active in your area?{' '}
+                  <button onClick={() => setActiveTab('activity')} className={styles.inlineLink}>
+                    View Community Activity →
+                  </button>
+                </div>
+              </>
             ) : (
               <div className={styles.placeholderContent}>
                 <MapPin size={48} className={styles.placeholderIcon} />
@@ -335,12 +356,39 @@ const Analytics = () => {
       case 'activity':
         return (
           <div className={styles.activityContent}>
+            {/* Educational Tip Box */}
+            <div className={styles.tipBox}>
+              <Recycle size={20} className={styles.tipIcon} />
+              <div className={styles.tipContent}>
+                <strong>Why see community activity?</strong>
+                <p>The heatmap shows where recycling is most active across the Philippines.
+                High activity zones (darker colors) have many posts and pickups, while lighter
+                areas need more initiatives. Use this to decide where to post or which communities
+                to support.</p>
+              </div>
+            </div>
+
             {heatMapData && (heatMapData.areas || heatMapData.heatmapPoints) ? (
-              <GeographicHeatmap
-                heatmapData={heatMapData.heatmapPoints || []}
-                areaData={heatMapData.areas || []}
-                breakdown={heatMapData.breakdown || null}
-              />
+              <>
+                <GeographicHeatmap
+                  heatmapData={heatMapData.heatmapPoints || []}
+                  areaData={heatMapData.areas || []}
+                  breakdown={heatMapData.breakdown || null}
+                />
+
+                {/* Light Tip */}
+                <div className={styles.lightTip}>
+                  High activity = faster pickups! Low activity = opportunity to lead initiatives.
+                </div>
+
+                {/* Connection Hint */}
+                <div className={styles.connectionHint}>
+                  Ready to contribute to these numbers?{' '}
+                  <button onClick={() => setActiveTab('impact')} className={styles.inlineLink}>
+                    Back to Impact & Stats
+                  </button>
+                </div>
+              </>
             ) : (
               <div className={styles.placeholderContent}>
                 <Recycle size={48} className={styles.placeholderIcon} />
@@ -481,6 +529,17 @@ const Analytics = () => {
           onFilterChange={handleLocationFilterChange}
           currentFilter={locationFilter}
         />
+
+        {/* Educational Tip Box */}
+        <div className={styles.tipBox}>
+          <TrendingUp size={20} className={styles.tipIcon} />
+          <div className={styles.tipContent}>
+            <strong>Why track community impact?</strong>
+            <p>These aggregated statistics show our collective recycling achievements.
+            See what materials are being recycled most, who the top collectors are,
+            and track our environmental progress together.</p>
+          </div>
+        </div>
 
         <div className={styles.metricsGrid}>
           <div className={styles.metricCard}>
@@ -688,13 +747,21 @@ const Analytics = () => {
             >
               <Heart size={18} /> Support Initiatives
             </button>
-            <button 
+            <button
               className={styles.ctaTertiary}
               onClick={() => navigate('/create-post', { state: { postType: 'Forum' } })}
             >
               Share Knowledge
             </button>
           </div>
+        </div>
+
+        {/* Connection Hint */}
+        <div className={styles.connectionHint}>
+          Want to find where to drop off these materials?{' '}
+          <button onClick={() => setActiveTab('nearby')} className={styles.inlineLink}>
+            Find Nearby Centers →
+          </button>
         </div>
       </div>
     );

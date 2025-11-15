@@ -24,11 +24,10 @@ const Landing = () => {
       <section className={styles.hero}>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
-            Your Partner in a <span className={styles.highlight}>Circular Economy</span>
+            Encouraging Filipinos <span className={styles.highlight}>to Recycle</span>
           </h1>
           <p className={styles.heroSubtitle}>
-            Connect waste givers with collectors to promote sustainable recycling 
-            practices and build a greener future together.
+            Creating a platform that connects recyclable waste from households to those who need it.
           </p>
           <div className={styles.heroButtons}>
             <Link to="/register" className={styles.primaryButton}>
@@ -84,16 +83,16 @@ const Landing = () => {
                 <p>Get points for every successful transaction and unlock badges</p>
               </div>
               <div className={styles.featureCard}>
-                <h3>Environmental Impact</h3>
-                <p>Track your contribution to reducing waste and protecting the environment</p>
+                <h3>Be Aware</h3>
+                <p>Be encouraged to make environmentally conscious decisions</p>
               </div>
               <div className={styles.featureCard}>
                 <h3>Verified Network</h3>
                 <p>Join a trusted community of verified collectors and organizations</p>
               </div>
               <div className={styles.featureCard}>
-                <h3>Track Progress</h3>
-                <p>Monitor your recycling statistics and environmental contribution</p>
+                <h3>Community Based</h3>
+                <p>See how your community is contributing to a greener future</p>
               </div>
               {/* Duplicate cards for infinite loop */}
               <div className={styles.featureCard}>
