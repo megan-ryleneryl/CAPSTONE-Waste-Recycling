@@ -393,7 +393,6 @@ export const getGuidePages = (onClose) => [
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>Discuss quantities, conditions, and specifics</li>
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>Negotiate pickup times within your preferences</li>
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>Ask questions before committing</li>
-                <li style={{ margin: '0.25rem 0', padding: 0 }}>Share photos if needed</li>
               </ul>
             </div>
           </li>
@@ -445,7 +444,6 @@ export const getGuidePages = (onClose) => [
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>View active pickups in Pickup Management</li>
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>Get reminders before scheduled time</li>
                 <li style={{ margin: '0.25rem 0', padding: 0 }}>Complete pickup after collection</li>
-                <li style={{ margin: '0.25rem 0', padding: 0 }}>Rate your experience</li>
               </ul>
             </div>
           </li>

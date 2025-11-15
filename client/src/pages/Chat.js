@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import ConversationList from '../components/chat/ConversationList';
 import ChatWindow from '../components/chat/ChatWindow';
-import GuideLink from '../components/guide/GuideLink';
 import styles from './Chat.module.css';
 
 const Chat = ({ activeFilter = 'all', onChatCountsUpdate }) => {
@@ -133,9 +132,6 @@ const Chat = ({ activeFilter = 'all', onChatCountsUpdate }) => {
               <div className={styles.emptyState}>
                 <h3>Select a conversation</h3>
                 <p>Choose a conversation from the list to start messaging</p>
-                <div style={{ marginTop: '1.5rem' }}>
-                  <GuideLink text="How to coordinate pickups using chat" targetPage={4} />
-                </div>
               </div>
             </div>
           )}

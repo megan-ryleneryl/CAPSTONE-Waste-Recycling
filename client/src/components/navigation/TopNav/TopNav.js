@@ -437,9 +437,20 @@ const TopNav = ({ user: propUser }) => {
                           if (!notification.isRead) {
                             markNotificationAsRead(notification.notificationID);
                           }
-                          // Navigate if there's a reference
-                          if (notification.referenceID) {
-                            navigate(`/notification/${notification.notificationID}`);
+                          // Navigate based on notification type
+                          if (notification.actionURL) {
+                            // Use actionURL if provided
+                            navigate(notification.actionURL);
+                            setShowNotifications(false);
+                          } else if (notification.referenceID && notification.referenceType) {
+                            // Navigate based on reference type
+                            if (notification.referenceType === 'post') {
+                              navigate(`/posts/${notification.referenceID}`);
+                            } else if (notification.referenceType === 'pickup') {
+                              navigate(`/tracking/${notification.referenceID}`);
+                            } else if (notification.referenceType === 'message') {
+                              navigate('/chat');
+                            }
                             setShowNotifications(false);
                           }
                         }}
