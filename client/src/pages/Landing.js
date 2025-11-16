@@ -24,7 +24,7 @@ const Landing = () => {
       <section className={styles.hero}>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
-            Encouraging Filipinos <span className={styles.highlight}>to Recycle</span>
+            Engaging Filipinos <br/> <span className={styles.highlight}>in Recycling</span>
           </h1>
           <p className={styles.heroSubtitle}>
             Creating a platform that connects recyclable waste from households to those who need it.

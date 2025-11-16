@@ -437,15 +437,37 @@ const TopNav = ({ user: propUser }) => {
                           if (!notification.isRead) {
                             markNotificationAsRead(notification.notificationID);
                           }
+
                           // Navigate based on notification type
                           if (notification.actionURL) {
                             // Use actionURL if provided
                             navigate(notification.actionURL);
                             setShowNotifications(false);
                           } else if (notification.referenceID && notification.referenceType) {
+                            // Check if this is a pickup request notification with collector info
+                            const hasCollectorInfo = notification.metadata?.collectorID &&
+                                                    notification.metadata?.postID;
+
                             // Navigate based on reference type
                             if (notification.referenceType === 'post') {
-                              navigate(`/posts/${notification.referenceID}`);
+                              // If it's a pickup-related notification with collector info, open chat
+                              if (hasCollectorInfo && notification.type?.toLowerCase().includes('pickup')) {
+                                const collectorName = notification.metadata.collectorName || 'Collector';
+                                const nameParts = collectorName.split(' ');
+                                navigate('/chat', {
+                                  state: {
+                                    postID: notification.metadata.postID,
+                                    otherUser: {
+                                      userID: notification.metadata.collectorID,
+                                      firstName: nameParts[0] || 'Unknown',
+                                      lastName: nameParts.slice(1).join(' ') || 'User'
+                                    }
+                                  }
+                                });
+                              } else {
+                                // Otherwise navigate to the post
+                                navigate(`/posts/${notification.referenceID}`);
+                              }
                             } else if (notification.referenceType === 'pickup') {
                               navigate(`/tracking/${notification.referenceID}`);
                             } else if (notification.referenceType === 'message') {
