@@ -401,6 +401,27 @@ async function getActiveInitiatives(locationFilter = null) {
   }
 }
 
+// Get completed initiatives within a time range
+async function getCompletedInitiatives(startDate, locationFilter = null) {
+  try {
+    const allPosts = await getCachedData('allPosts', () => Post.findAll());
+    const completedInitiatives = allPosts.filter(post => {
+      const completedDate = toDate(post.completedAt);
+      return post.postType === 'Initiative' &&
+             post.status === 'Completed' &&
+             completedDate &&
+             !isNaN(completedDate.getTime()) &&
+             completedDate >= startDate &&
+             matchesLocationFilter(post.location, locationFilter);
+    });
+
+    return { count: completedInitiatives.length };
+  } catch (error) {
+    console.error('Error getting completed initiatives:', error);
+    return { count: 0 };
+  }
+}
+
 // Get active users - count all non-suspended, non-deleted users
 // Optionally filter by location if user has set their userLocation
 async function getActiveUsers(locationFilter = null) {
@@ -1242,6 +1263,68 @@ function calculateEnvironmentalImpact(totalKg) {
   };
 }
 
+// Get active initiatives that existed during a specific time period
+async function getActiveInitiativesAtTime(startDate, endDate, locationFilter = null) {
+  try {
+    const allPosts = await getCachedData('allPosts', () => Post.findAll());
+    const initiativesAtTime = allPosts.filter(post => {
+      const createdAt = toDate(post.createdAt);
+      return post.postType === 'Initiative' &&
+             (post.status === 'Active' || post.status === 'Open') &&
+             createdAt &&
+             createdAt <= endDate && // Must have been created by the end of the period
+             matchesLocationFilter(post.location, locationFilter);
+    });
+
+    return { count: initiativesAtTime.length };
+  } catch (error) {
+    console.error('Error getting initiatives at time:', error);
+    return { count: 0 };
+  }
+}
+
+// Get active users that existed during a specific time period
+async function getActiveUsersAtTime(startDate, endDate, locationFilter = null) {
+  try {
+    const allUsers = await getCachedData('allUsers', () => User.findAll());
+    let usersAtTime = allUsers.filter(user => {
+      const createdAt = toDate(user.createdAt);
+      return user.status !== 'Suspended' &&
+             user.status !== 'Deleted' &&
+             createdAt &&
+             createdAt <= endDate; // Must have been created by the end of the period
+    });
+
+    // Apply location filter if provided
+    if (locationFilter && (locationFilter.region || locationFilter.province || locationFilter.city || locationFilter.barangay)) {
+      const usersWithLocation = usersAtTime.filter(user => user.userLocation);
+
+      if (locationFilter.barangay) {
+        usersAtTime = usersWithLocation.filter(user =>
+          user.userLocation?.barangay?.code === locationFilter.barangay
+        );
+      } else if (locationFilter.city) {
+        usersAtTime = usersWithLocation.filter(user =>
+          user.userLocation?.city?.code === locationFilter.city
+        );
+      } else if (locationFilter.province) {
+        usersAtTime = usersWithLocation.filter(user =>
+          user.userLocation?.province?.code === locationFilter.province
+        );
+      } else if (locationFilter.region) {
+        usersAtTime = usersWithLocation.filter(user =>
+          user.userLocation?.region?.code === locationFilter.region
+        );
+      }
+    }
+
+    return { count: usersAtTime.length };
+  } catch (error) {
+    console.error('Error getting users at time:', error);
+    return { count: 0 };
+  }
+}
+
 /**
  * Calculate actual percentage changes compared to previous period
  *
@@ -1253,7 +1336,7 @@ function calculateEnvironmentalImpact(totalKg) {
  */
 async function calculatePercentageChanges(timeRange, startDate, currentMetrics, locationFilter = null) {
   try {
-    // Calculate the previous period date range
+    // Calculate the previous period start date
     let previousStartDate = new Date(startDate);
 
     switch(timeRange) {
@@ -1268,9 +1351,8 @@ async function calculatePercentageChanges(timeRange, startDate, currentMetrics, 
         break;
       case 'all':
         // For 'all time', compare to one year ago
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        previousStartDate = new Date(2020, 0, 1);
+        previousStartDate = new Date(startDate);
+        previousStartDate.setFullYear(previousStartDate.getFullYear() - 1);
         break;
     }
 
@@ -1278,6 +1360,13 @@ async function calculatePercentageChanges(timeRange, startDate, currentMetrics, 
     const [prevRecycled, prevPickups] = await Promise.all([
       getTotalRecycled(previousStartDate, locationFilter),
       getTotalPickups(previousStartDate, locationFilter)
+    ]);
+
+    // For initiatives and users, get the count as of the START of current period
+    // This represents the baseline we're comparing growth against
+    const [prevInitiativesCount, prevUsersCount] = await Promise.all([
+      getActiveInitiativesAtTime(new Date(0), startDate, locationFilter), // All initiatives created before startDate
+      getActiveUsersAtTime(new Date(0), startDate, locationFilter) // All users created before startDate
     ]);
 
     // Calculate percentage change
@@ -1291,8 +1380,8 @@ async function calculatePercentageChanges(timeRange, startDate, currentMetrics, 
 
     return {
       recycled: calculateChange(currentMetrics.totalRecycled, prevRecycled),
-      initiatives: '+0%',  // Static count (current status, not time-based)
-      users: '+0%',        // Static count (current status, not time-based)
+      initiatives: calculateChange(currentMetrics.initiatives?.count || 0, prevInitiativesCount.count),
+      users: calculateChange(currentMetrics.users?.count || 0, prevUsersCount.count),
       pickups: calculateChange(currentMetrics.pickups?.completed || 0, prevPickups.completed)
     };
   } catch (error) {
