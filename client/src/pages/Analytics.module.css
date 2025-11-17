@@ -654,6 +654,27 @@
   color: white;
 }
 
+.periodLabel {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.65rem;
+  color: var(--text-tertiary, #999);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+/* Period Comparison Label - Displayed below time range selector */
+.periodComparisonLabel {
+  text-align: center;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+  background: var(--bg-secondary, #fbfbfb);
+  border-radius: var(--border-radius-md, 8px);
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
 /* Trends Section */
 .trendsSection {
   /* margin-top: 2rem; */

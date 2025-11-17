@@ -175,6 +175,7 @@ const Analytics = () => {
       setAnalyticsData({
         totalRecycled: 0,
         totalInitiatives: 0,
+        completedInitiatives: 0,
         activeUsers: 0,
         totalPickups: 0,
         completedSupports: 0,
@@ -211,6 +212,22 @@ const Analytics = () => {
     if (value > 0) return styles.trendUp;
     if (value < 0) return styles.trendDown;
     return styles.trendNeutral;
+  };
+
+  // Helper function to format period dates
+  const formatPeriodDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getPeriodLabel = (percentageChanges) => {
+    if (!percentageChanges?.currentPeriod || !percentageChanges?.previousPeriod) return '';
+    const currentStart = formatPeriodDate(percentageChanges.currentPeriod.start);
+    const currentEnd = formatPeriodDate(percentageChanges.currentPeriod.end);
+    const prevStart = formatPeriodDate(percentageChanges.previousPeriod.start);
+    const prevEnd = formatPeriodDate(percentageChanges.previousPeriod.end);
+    return `${currentStart}-${currentEnd} vs ${prevStart}-${prevEnd}`;
   };
 
   const getTimeRangeLabel = () => {
@@ -524,6 +541,13 @@ const Analytics = () => {
           </div>
         </div>
 
+        {/* Period Comparison Label */}
+        {getPeriodLabel(changes) && (
+          <div className={styles.periodComparisonLabel}>
+            Comparing: {getPeriodLabel(changes)}
+          </div>
+        )}
+
         {/* Location Filter */}
         <LocationFilter
           onFilterChange={handleLocationFilterChange}
@@ -550,7 +574,7 @@ const Analytics = () => {
               <h3>{(analyticsData.totalRecycled || 0).toLocaleString()} kg</h3>
               <p>Total Recycled</p>
               <span className={`${styles.trend} ${getTrendClass(changes.recycled)}`}>
-                {changes.recycled || '+0%'} from last {selectedTimeRange}
+                {changes.recycled || '+0%'}
               </span>
             </div>
           </div>
@@ -560,10 +584,10 @@ const Analytics = () => {
               <Heart />
             </div>
             <div className={styles.metricContent}>
-              <h3>{analyticsData.totalInitiatives || 0}</h3>
-              <p>Active Initiatives</p>
+              <h3>{analyticsData.completedInitiatives || 0}</h3>
+              <p>Completed Initiatives</p>
               <span className={`${styles.trend} ${getTrendClass(changes.initiatives)}`}>
-                {changes.initiatives || '+0%'} from last {selectedTimeRange}
+                {changes.initiatives || '+0%'}
               </span>
             </div>
           </div>
@@ -589,7 +613,7 @@ const Analytics = () => {
               <h3>{analyticsData.totalPickups || 0}</h3>
               <p>Successful Pickups</p>
               <span className={`${styles.trend} ${getTrendClass(changes.pickups)}`}>
-                {changes.pickups || '+0%'} completion
+                {changes.pickups || '+0%'}
               </span>
             </div>
           </div>
@@ -601,8 +625,8 @@ const Analytics = () => {
             <div className={styles.metricContent}>
               <h3>{analyticsData.completedSupports || 0}</h3>
               <p>Completed Supports</p>
-              <span className={`${styles.trend} ${getTrendClass('+0%')}`}>
-                for initiatives
+              <span className={`${styles.trend} ${getTrendClass(changes.supports)}`}>
+                {changes.supports || '+0%'}
               </span>
             </div>
           </div>
@@ -814,7 +838,7 @@ const Analytics = () => {
               <span className={styles.quickStatValue}>
                 {analyticsData?.totalInitiatives || 0}
               </span>
-              <span className={styles.quickStatLabel}>Initiatives</span>
+              <span className={styles.quickStatLabel}>Active Initiatives</span>
             </div>
             <div className={styles.quickStat}>
               <span className={styles.quickStatValue}>
