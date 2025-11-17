@@ -541,12 +541,7 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Period Comparison Label */}
-        {getPeriodLabel(changes) && (
-          <div className={styles.periodComparisonLabel}>
-            Comparing: {getPeriodLabel(changes)}
-          </div>
-        )}
+
 
         {/* Location Filter */}
         <LocationFilter
@@ -554,18 +549,7 @@ const Analytics = () => {
           currentFilter={locationFilter}
         />
 
-        {/* Educational Tip Box */}
-        <div className={styles.tipBox}>
-          <TrendingUp size={20} className={styles.tipIcon} />
-          <div className={styles.tipContent}>
-            <strong>Why track community impact?</strong>
-            <p>These aggregated statistics show our collective recycling achievements.
-            See what materials are being recycled most, who the top collectors are,
-            and track our environmental progress together.</p>
-          </div>
-        </div>
-
-        <div className={styles.metricsGrid}>
+                <div className={styles.metricsGrid}>
           <div className={styles.metricCard}>
             <div className={styles.metricIcon}>
               <Recycle />
@@ -631,6 +615,26 @@ const Analytics = () => {
             </div>
           </div>
         </div>
+        
+        {/* Period Comparison Label */}
+        {getPeriodLabel(changes) && (
+          <div className={styles.periodComparisonLabel}>
+            Comparing: {getPeriodLabel(changes)}
+          </div>
+        )}
+
+        {/* Educational Tip Box */}
+        <div className={styles.tipBox}>
+          <TrendingUp size={20} className={styles.tipIcon} />
+          <div className={styles.tipContent}>
+            <strong>Why track community impact?</strong>
+            <p>These aggregated statistics show our collective recycling achievements.
+            See what materials are being recycled most, who the top collectors are,
+            and track our environmental progress together.</p>
+          </div>
+        </div>
+
+
 
         <div className={styles.chartsContainer}>
           <div className={styles.chartCard}>
