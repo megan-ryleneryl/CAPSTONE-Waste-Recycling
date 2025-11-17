@@ -654,6 +654,27 @@
   color: white;
 }
 
+.periodLabel {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.65rem;
+  color: var(--text-tertiary, #999);
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+/* Period Comparison Label - Displayed below time range selector */
+.periodComparisonLabel {
+  text-align: center;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+  background: var(--bg-secondary, #fbfbfb);
+  border-radius: var(--border-radius-md, 8px);
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
 /* Trends Section */
 .trendsSection {
   /* margin-top: 2rem; */
@@ -1190,5 +1211,121 @@
   .timeButton {
     font-size: 0.75rem;
     padding: 0.4rem 0.8rem;
+  }
+}
+
+/* Educational Tip Boxes */
+.tipBox {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-left: 4px solid #3B6535;
+  border-radius: 8px;
+  margin: 1rem 0 1.5rem 0;
+  align-items: flex-start;
+}
+
+.tipIcon {
+  color: #3B6535;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.tipContent {
+  flex: 1;
+}
+
+.tipContent strong {
+  color: #3B6535;
+  font-size: 1rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.tipContent p {
+  margin: 0;
+  color: #374151;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Light Tip - Smaller, subtle tips */
+.lightTip {
+  padding: 0.75rem 1rem;
+  background: #fef3c7;
+  border-left: 3px solid #fbbf24;
+  border-radius: 6px;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+  color: #92400e;
+}
+
+/* Connection Hint - Links between tabs */
+.connectionHint {
+  text-align: center;
+  padding: 1rem;
+  margin: 2rem 0 1rem 0;
+  font-size: 0.9rem;
+  color: #6B7280;
+  background: #F9FAFB;
+  border-radius: 8px;
+  border: 1px dashed #D1D5DB;
+}
+
+.inlineLink {
+  background: none;
+  border: none;
+  color: #3B6535;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 0;
+  font-size: inherit;
+  transition: color 0.2s;
+}
+
+.inlineLink:hover {
+  color: #2d4e29;
+  text-decoration: underline;
+}
+
+/* Stat Hint - Small contextual text near stats */
+.statHint {
+  display: block;
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+/* Responsive adjustments for tip boxes */
+@media (max-width: 768px) {
+  .tipBox {
+    padding: 1rem;
+    gap: 0.75rem;
+    flex-direction: column;
+  }
+
+  .tipIcon {
+    margin-top: 0;
+  }
+
+  .tipContent strong {
+    font-size: 0.9rem;
+  }
+
+  .tipContent p {
+    font-size: 0.85rem;
+  }
+
+  .connectionHint {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .lightTip {
+    font-size: 0.8125rem;
+    padding: 0.625rem 0.875rem;
   }
 }

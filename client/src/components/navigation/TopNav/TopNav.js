@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import axios from 'axios';
 import EcoTayoLogo from './EcoTayoLogo.svg';
+import QuickGuide from '../../guide/QuickGuide';
 import styles from './TopNav.module.css';
 
 const TopNav = ({ user: propUser }) => {
@@ -10,6 +11,7 @@ const TopNav = ({ user: propUser }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [user, setUser] = useState(propUser);
+  const [showGuide, setShowGuide] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -280,11 +282,26 @@ const TopNav = ({ user: propUser }) => {
   }, []);
 
   const handleLogout = () => {
+    // Clear all local storage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberedUser');
+
+    // Clear axios default headers
+    delete axios.defaults.headers.common['Authorization'];
+
+    // Clear state
     setUser(null);
-    navigate('/login');
+    setNotifications([]);
+    setIsPolling(false);
+
+    // Stop polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    // Force full page reload to ensure all state is cleared
+    window.location.href = '/login';
   };
 
   const toggleNotifications = () => {
@@ -359,6 +376,15 @@ const TopNav = ({ user: propUser }) => {
     </svg>
   );
 
+  // Help/Info Icon Component
+  const HelpIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+
   return (
     <nav className={styles.navbar}>
       <div className={styles.navContent}>
@@ -411,9 +437,42 @@ const TopNav = ({ user: propUser }) => {
                           if (!notification.isRead) {
                             markNotificationAsRead(notification.notificationID);
                           }
-                          // Navigate if there's a reference
-                          if (notification.referenceID) {
-                            navigate(`/notification/${notification.notificationID}`);
+
+                          // Navigate based on notification type
+                          if (notification.actionURL) {
+                            // Use actionURL if provided
+                            navigate(notification.actionURL);
+                            setShowNotifications(false);
+                          } else if (notification.referenceID && notification.referenceType) {
+                            // Check if this is a pickup request notification with collector info
+                            const hasCollectorInfo = notification.metadata?.collectorID &&
+                                                    notification.metadata?.postID;
+
+                            // Navigate based on reference type
+                            if (notification.referenceType === 'post') {
+                              // If it's a pickup-related notification with collector info, open chat
+                              if (hasCollectorInfo && notification.type?.toLowerCase().includes('pickup')) {
+                                const collectorName = notification.metadata.collectorName || 'Collector';
+                                const nameParts = collectorName.split(' ');
+                                navigate('/chat', {
+                                  state: {
+                                    postID: notification.metadata.postID,
+                                    otherUser: {
+                                      userID: notification.metadata.collectorID,
+                                      firstName: nameParts[0] || 'Unknown',
+                                      lastName: nameParts.slice(1).join(' ') || 'User'
+                                    }
+                                  }
+                                });
+                              } else {
+                                // Otherwise navigate to the post
+                                navigate(`/posts/${notification.referenceID}`);
+                              }
+                            } else if (notification.referenceType === 'pickup') {
+                              navigate(`/tracking/${notification.referenceID}`);
+                            } else if (notification.referenceType === 'message') {
+                              navigate('/chat');
+                            }
                             setShowNotifications(false);
                           }
                         }}
@@ -431,6 +490,15 @@ const TopNav = ({ user: propUser }) => {
               </div>
             )}
           </div>
+
+          {/* Help Guide */}
+          <button
+            className={styles.navIcon}
+            onClick={() => setShowGuide(true)}
+            aria-label="Help Guide"
+          >
+            <HelpIcon />
+          </button>
 
           {/* Messages */}
           <button
@@ -533,6 +601,9 @@ const TopNav = ({ user: propUser }) => {
           </div>
         </div>
       </div>
+
+      {/* Quick Guide Modal */}
+      <QuickGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
     </nav>
   );
 };

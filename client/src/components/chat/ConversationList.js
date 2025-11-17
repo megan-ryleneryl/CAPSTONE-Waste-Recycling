@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from '
 import { db } from '../../services/firebase';
 import { MessageCircle, RefreshCw, User, Users } from 'lucide-react';
 import ConversationListItem from './ConversationListItem';
+import GuideLink from '../guide/GuideLink';
 import styles from './ConversationList.module.css';
 
 const ConversationList = ({ currentUser, onSelectConversation, selectedConversationId, activeFilter = 'all', onCountsUpdate }) => {
@@ -340,6 +341,11 @@ const loadConversations = async () => {
         >
           <RefreshCw size={20} />
         </button>
+      </div>
+
+      {/* Guide Link - Always visible */}
+      <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid #e5e7eb' }}>
+        <GuideLink text="How to coordinate pickups using chat" targetPage={4} />
       </div>
 
       <div className={styles.conversationItems}>

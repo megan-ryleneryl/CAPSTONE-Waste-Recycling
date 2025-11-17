@@ -104,7 +104,34 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onConfirmPickup, onRe
   const isGiver = currentUser?.userID === pickup.giverID;
   const isCollector = currentUser?.userID === pickup.collectorID;
   const canConfirm = pickup.status === 'Proposed' && isGiver;
-  const canCancel = pickup.status !== 'Completed' && pickup.status !== 'Cancelled';
+
+  // Check if pickup can be cancelled (5-hour policy)
+  const canCancelPickupCheck = () => {
+    if (pickup.status === 'Completed' || pickup.status === 'Cancelled') {
+      return false;
+    }
+
+    // Proposals can always be cancelled
+    if (pickup.status === 'Proposed') {
+      return true;
+    }
+
+    // For confirmed pickups, check 5-hour rule
+    if (pickup.pickupDate && pickup.pickupTime) {
+      try {
+        const pickupDateTime = new Date(`${pickup.pickupDate} ${pickup.pickupTime}`);
+        const hoursUntilPickup = (pickupDateTime - new Date()) / (1000 * 60 * 60);
+        return hoursUntilPickup >= 5;
+      } catch (error) {
+        console.error('Error calculating hours until pickup:', error);
+        return false;
+      }
+    }
+
+    return false;
+  };
+
+  const canCancel = canCancelPickupCheck();
   const canCancelProposal = pickup.status === 'Proposed' && isCollector && pickup.proposedBy === currentUser?.userID;
   const canStartPickup = pickup.status === 'Confirmed' && isCollector;
 

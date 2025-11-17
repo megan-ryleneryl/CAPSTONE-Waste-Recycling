@@ -18,7 +18,7 @@ const Login = () => {
   useEffect(() => {
     const rememberedUser = localStorage.getItem('rememberedUser');
     const token = localStorage.getItem('token');
-    
+
     if (rememberedUser && token) {
       // Auto-redirect to posts if "Remember Me" was previously checked
       navigate('/posts');
@@ -45,19 +45,20 @@ const Login = () => {
       });
       
       if (response.data.success) {
-        // Store token
+        // Store token and set axios header
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
-        
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
         // Handle "Remember Me"
         if (formData.rememberMe) {
           localStorage.setItem('rememberedUser', JSON.stringify(response.data.user));
         } else {
           localStorage.removeItem('rememberedUser');
         }
-        
-        // Navigate to posts screen
-        navigate('/posts');
+
+        // Force full page reload to ensure clean state
+        window.location.href = '/posts';
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');

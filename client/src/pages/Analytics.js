@@ -6,6 +6,7 @@ import GeographicHeatmap from '../components/analytics/GeographicHeatmap';
 import DisposalHubMap from '../components/analytics/DisposalHubMap';
 import AddDisposalHubForm from '../components/analytics/AddDisposalHubForm';
 import LocationFilter from '../components/analytics/LocationFilter';
+import GuideLink from '../components/guide/GuideLink';
 import {
   MapPin,
   Recycle,
@@ -18,7 +19,8 @@ import {
   Plus,
   Trees,
   Droplets,
-  Zap
+  Zap,
+  Info
 } from 'lucide-react';
 
 const Analytics = () => {
@@ -173,6 +175,7 @@ const Analytics = () => {
       setAnalyticsData({
         totalRecycled: 0,
         totalInitiatives: 0,
+        completedInitiatives: 0,
         activeUsers: 0,
         totalPickups: 0,
         completedSupports: 0,
@@ -209,6 +212,22 @@ const Analytics = () => {
     if (value > 0) return styles.trendUp;
     if (value < 0) return styles.trendDown;
     return styles.trendNeutral;
+  };
+
+  // Helper function to format period dates
+  const formatPeriodDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const getPeriodLabel = (percentageChanges) => {
+    if (!percentageChanges?.currentPeriod || !percentageChanges?.previousPeriod) return '';
+    const currentStart = formatPeriodDate(percentageChanges.currentPeriod.start);
+    const currentEnd = formatPeriodDate(percentageChanges.currentPeriod.end);
+    const prevStart = formatPeriodDate(percentageChanges.previousPeriod.start);
+    const prevEnd = formatPeriodDate(percentageChanges.previousPeriod.end);
+    return `${currentStart}-${currentEnd} vs ${prevStart}-${prevEnd}`;
   };
 
   const getTimeRangeLabel = () => {
@@ -310,16 +329,37 @@ const Analytics = () => {
       case 'nearby':
         return (
           <div className={styles.nearbyContent}>
+            {/* Educational Tip Box */}
+            <div className={styles.tipBox}>
+              <MapPin size={20} className={styles.tipIcon} />
+              <div className={styles.tipContent}>
+                <strong>Why find nearby centers?</strong>
+                <p>Discover MRFs (Material Recovery Facilities) and junk shops near you
+                that accept recyclables. Drop off materials directly or find backup options
+                when collectors aren't available.</p>
+              </div>
+            </div>
+
             {user ? (
-              <DisposalHubMap
-                disposalSites={disposalSites}
-                userLocation={user?.location?.coordinates || { lat: 14.5995, lng: 121.0000 }}
-                currentSearchLocation={searchLocation}
-                searchRadius={searchRadius}
-                onLocationChange={handleSearchLocationChange}
-                onRadiusChange={handleSearchRadiusChange}
-                onSuggestHub={() => setShowAddHubForm(true)}
-              />
+              <>
+                <DisposalHubMap
+                  disposalSites={disposalSites}
+                  userLocation={user?.location?.coordinates || { lat: 14.5995, lng: 121.0000 }}
+                  currentSearchLocation={searchLocation}
+                  searchRadius={searchRadius}
+                  onLocationChange={handleSearchLocationChange}
+                  onRadiusChange={handleSearchRadiusChange}
+                  onSuggestHub={() => setShowAddHubForm(true)}
+                />
+
+                {/* Connection Hint */}
+                <div className={styles.connectionHint}>
+                  Curious where recycling is most active in your area?{' '}
+                  <button onClick={() => setActiveTab('activity')} className={styles.inlineLink}>
+                    View Community Activity →
+                  </button>
+                </div>
+              </>
             ) : (
               <div className={styles.placeholderContent}>
                 <MapPin size={48} className={styles.placeholderIcon} />
@@ -333,12 +373,39 @@ const Analytics = () => {
       case 'activity':
         return (
           <div className={styles.activityContent}>
+            {/* Educational Tip Box */}
+            <div className={styles.tipBox}>
+              <Recycle size={20} className={styles.tipIcon} />
+              <div className={styles.tipContent}>
+                <strong>Why see community activity?</strong>
+                <p>The heatmap shows where recycling is most active across the Philippines.
+                High activity zones (darker colors) have many posts and pickups, while lighter
+                areas need more initiatives. Use this to decide where to post or which communities
+                to support.</p>
+              </div>
+            </div>
+
             {heatMapData && (heatMapData.areas || heatMapData.heatmapPoints) ? (
-              <GeographicHeatmap
-                heatmapData={heatMapData.heatmapPoints || []}
-                areaData={heatMapData.areas || []}
-                breakdown={heatMapData.breakdown || null}
-              />
+              <>
+                <GeographicHeatmap
+                  heatmapData={heatMapData.heatmapPoints || []}
+                  areaData={heatMapData.areas || []}
+                  breakdown={heatMapData.breakdown || null}
+                />
+
+                {/* Light Tip */}
+                <div className={styles.lightTip}>
+                  High activity = faster pickups! Low activity = opportunity to lead initiatives.
+                </div>
+
+                {/* Connection Hint */}
+                <div className={styles.connectionHint}>
+                  Ready to contribute to these numbers?{' '}
+                  <button onClick={() => setActiveTab('impact')} className={styles.inlineLink}>
+                    Back to Impact & Stats
+                  </button>
+                </div>
+              </>
             ) : (
               <div className={styles.placeholderContent}>
                 <Recycle size={48} className={styles.placeholderIcon} />
@@ -474,13 +541,15 @@ const Analytics = () => {
           </div>
         </div>
 
+
+
         {/* Location Filter */}
         <LocationFilter
           onFilterChange={handleLocationFilterChange}
           currentFilter={locationFilter}
         />
 
-        <div className={styles.metricsGrid}>
+                <div className={styles.metricsGrid}>
           <div className={styles.metricCard}>
             <div className={styles.metricIcon}>
               <Recycle />
@@ -489,7 +558,7 @@ const Analytics = () => {
               <h3>{(analyticsData.totalRecycled || 0).toLocaleString()} kg</h3>
               <p>Total Recycled</p>
               <span className={`${styles.trend} ${getTrendClass(changes.recycled)}`}>
-                {changes.recycled || '+0%'} from last {selectedTimeRange}
+                {changes.recycled || '+0%'}
               </span>
             </div>
           </div>
@@ -499,10 +568,10 @@ const Analytics = () => {
               <Heart />
             </div>
             <div className={styles.metricContent}>
-              <h3>{analyticsData.totalInitiatives || 0}</h3>
-              <p>Active Initiatives</p>
+              <h3>{analyticsData.completedInitiatives || 0}</h3>
+              <p>Completed Initiatives</p>
               <span className={`${styles.trend} ${getTrendClass(changes.initiatives)}`}>
-                {changes.initiatives || '+0%'} from last {selectedTimeRange}
+                {changes.initiatives || '+0%'}
               </span>
             </div>
           </div>
@@ -528,7 +597,7 @@ const Analytics = () => {
               <h3>{analyticsData.totalPickups || 0}</h3>
               <p>Successful Pickups</p>
               <span className={`${styles.trend} ${getTrendClass(changes.pickups)}`}>
-                {changes.pickups || '+0%'} completion
+                {changes.pickups || '+0%'}
               </span>
             </div>
           </div>
@@ -540,32 +609,54 @@ const Analytics = () => {
             <div className={styles.metricContent}>
               <h3>{analyticsData.completedSupports || 0}</h3>
               <p>Completed Supports</p>
-              <span className={`${styles.trend} ${getTrendClass('+0%')}`}>
-                for initiatives
+              <span className={`${styles.trend} ${getTrendClass(changes.supports)}`}>
+                {changes.supports || '+0%'}
               </span>
             </div>
           </div>
         </div>
+        
+        {/* Period Comparison Label */}
+        {getPeriodLabel(changes) && (
+          <div className={styles.periodComparisonLabel}>
+            Comparing: {getPeriodLabel(changes)}
+          </div>
+        )}
+
+        {/* Educational Tip Box */}
+        <div className={styles.tipBox}>
+          <TrendingUp size={20} className={styles.tipIcon} />
+          <div className={styles.tipContent}>
+            <strong>Why track community impact?</strong>
+            <p>These aggregated statistics show our collective recycling achievements.
+            See what materials are being recycled most, who the top collectors are,
+            and track our environmental progress together.</p>
+          </div>
+        </div>
+
+
 
         <div className={styles.chartsContainer}>
           <div className={styles.chartCard}>
             <h3>Waste Distribution by Type</h3>
             <div className={styles.wasteDistribution}>
               {analyticsData.wasteByType && Object.entries(analyticsData.wasteByType).length > 0 ? (
-                Object.entries(analyticsData.wasteByType).map(([type, percentage]) => (
-                  <div key={type} className={styles.wasteTypeBar}>
-                    <div className={styles.wasteTypeLabel}>
-                      <span>{type}</span>
-                      <span>{percentage}%</span>
+                Object.entries(analyticsData.wasteByType)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([type, percentage]) => (
+                    <div key={type} className={styles.wasteTypeBar}>
+                      <div className={styles.wasteTypeLabel}>
+                        <span>{type}</span>
+                        <span>{percentage}%</span>
+                      </div>
+                      <div className={styles.progressBar}>
+                        <div
+                          className={styles.progressFill}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className={styles.progressBar}>
-                      <div 
-                        className={styles.progressFill} 
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
+                  ))
               ) : (
                 <p className={styles.noDataMessage}>No waste data available</p>
               )}
@@ -684,13 +775,21 @@ const Analytics = () => {
             >
               <Heart size={18} /> Support Initiatives
             </button>
-            <button 
+            <button
               className={styles.ctaTertiary}
               onClick={() => navigate('/create-post', { state: { postType: 'Forum' } })}
             >
               Share Knowledge
             </button>
           </div>
+        </div>
+
+        {/* Connection Hint */}
+        <div className={styles.connectionHint}>
+          Want to find where to drop off these materials?{' '}
+          <button onClick={() => setActiveTab('nearby')} className={styles.inlineLink}>
+            Find Nearby Centers →
+          </button>
         </div>
       </div>
     );
@@ -724,7 +823,10 @@ const Analytics = () => {
       <div className={styles.welcomeSection}>
         <div className={styles.welcomeHeader}>
           <div>
-            <h1 className={styles.welcomeTitle}>Community Stats</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <h1 className={styles.welcomeTitle}>Community Stats</h1>
+              <GuideLink text="Understanding these analytics" targetPage={2} icon={<Info size={16} />} />
+            </div>
             <p className={styles.welcomeSubtitle}>
               This is what's happening within our community's recycling activities.
             </p>
@@ -740,7 +842,7 @@ const Analytics = () => {
               <span className={styles.quickStatValue}>
                 {analyticsData?.totalInitiatives || 0}
               </span>
-              <span className={styles.quickStatLabel}>Initiatives</span>
+              <span className={styles.quickStatLabel}>Active Initiatives</span>
             </div>
             <div className={styles.quickStat}>
               <span className={styles.quickStatValue}>

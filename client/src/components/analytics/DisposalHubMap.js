@@ -96,7 +96,13 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
   // Get directions to hub (opens Google Maps)
   const getDirections = (hub) => {
     if (hub.coordinates && hub.coordinates.lat && hub.coordinates.lng) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${hub.coordinates.lat},${hub.coordinates.lng}`;
+      let url = `https://www.google.com/maps/dir/?api=1&destination=${hub.coordinates.lat},${hub.coordinates.lng}`;
+
+      // Add origin if search location is set
+      if (currentSearchLocation && currentSearchLocation.lat && currentSearchLocation.lng) {
+        url += `&origin=${currentSearchLocation.lat},${currentSearchLocation.lng}`;
+      }
+
       window.open(url, '_blank');
     }
   };
@@ -110,11 +116,14 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
     }
   };
 
-  // Reset to user location
+  // Center map on search location
   const resetToUserLocation = () => {
-    if (userLocation) {
-      setMapCenter(userLocation);
+    if (currentSearchLocation) {
+      console.log('Centering map on search location:', currentSearchLocation);
+      setMapCenter({ ...currentSearchLocation }); // Create new object to force update
       setMapZoom(13);
+    } else {
+      alert('Please set your location first using "Use current location" or "Set a custom location"');
     }
   };
 
@@ -132,9 +141,11 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
-        setMapCenter(newLocation);
+        console.log('GPS location obtained:', newLocation);
+        setMapCenter({ ...newLocation }); // Create new object to force update
         setMapZoom(13);
         if (onLocationChange) {
+          console.log('Notifying parent of location change');
           onLocationChange(newLocation);
         }
         setIsGettingLocation(false);
@@ -154,9 +165,11 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
 
   // Handle map click to set custom location
   const handleMapClick = (location) => {
-    setMapCenter(location);
+    console.log('Map clicked, setting custom location:', location);
+    setMapCenter({ ...location }); // Create new object to force update
     setMapZoom(13);
     if (onLocationChange) {
+      console.log('Notifying parent of location change');
       onLocationChange(location);
     }
     setClickToSetLocation(false); // Disable click mode after setting location
@@ -426,14 +439,14 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
               />
             </div>
 
-            {/* Reset to user location (if available) */}
-            {userLocation && (
+            {/* Reset to search location (if set) */}
+            {currentSearchLocation && (
               <button
                 className={styles.mapControlButton}
                 onClick={resetToUserLocation}
-                title="Center on your location"
+                title="Center on search location"
               >
-                <Navigation size={20} />
+                <Navigation size={20} /> Center on search
               </button>
             )}
           </div>

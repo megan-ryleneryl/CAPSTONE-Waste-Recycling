@@ -92,25 +92,34 @@ const analyticsController = {
       console.log(`⚙ Computing FRESH analytics for user ${userID}, timeRange: ${timeRange}${locationFilterStr}`);
 
       // Calculate date range based on timeRange parameter
+      // Use bounded periods (startDate to endDate) for accurate period-to-period comparison
       const nowDate = new Date();
       let startDate = new Date();
+      let endDate = new Date(nowDate); // End date is always now
 
       switch(timeRange) {
         case 'week':
-          startDate.setDate(nowDate.getDate() - 7);
+          // Current week: Monday to today (or Sunday if week is complete)
+          const dayOfWeek = startDate.getDay();
+          const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+          startDate.setDate(startDate.getDate() - daysFromMonday);
+          startDate.setHours(0, 0, 0, 0);
           break;
         case 'month':
-          startDate.setMonth(nowDate.getMonth() - 1);
+          // Current month: 1st to today (or last day if month is complete)
+          startDate = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1);
           break;
         case 'year':
-          startDate.setFullYear(nowDate.getFullYear() - 1);
+          // Current year: Jan 1 to today (or Dec 31 if year is complete)
+          startDate = new Date(nowDate.getFullYear(), 0, 1);
           break;
         case 'all':
+          // All time: From 2020-01-01 to today
           startDate = new Date(2020, 0, 1);
           break;
       }
 
-      console.log(`  Date range: from ${startDate.toISOString()}`);
+      console.log(`  Date range: ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
       const currentUser = await User.findById(userID);
       if (!currentUser) {
@@ -121,9 +130,11 @@ const analyticsController = {
       }
 
       // Fetch various metrics in parallel
+      // Use bounded time ranges for all metrics except Active Users (which is cumulative)
       const [
         totalRecycled,
         initiatives,
+        completedInitiatives,
         users,
         pickups,
         completedSupports,
@@ -133,11 +144,12 @@ const analyticsController = {
         pendingApplications,
         recentActivity
       ] = await Promise.all([
-        getTotalRecycled(startDate, locationFilter),
-        getActiveInitiatives(locationFilter),
-        getActiveUsers(locationFilter),
-        getTotalPickups(startDate, locationFilter),
-        getCompletedSupports(startDate, locationFilter),
+        getTotalRecycledInRange(startDate, endDate, locationFilter), // BOUNDED: Only this period
+        getActiveInitiatives(locationFilter), // UNBOUNDED: Current active initiatives
+        getCompletedInitiativesInRange(startDate, endDate, locationFilter), // BOUNDED: Only this period
+        getActiveUsers(locationFilter), // UNBOUNDED: Cumulative total users
+        getTotalPickupsInRange(startDate, endDate, locationFilter), // BOUNDED: Only this period
+        getCompletedSupportsInRange(startDate, endDate, locationFilter), // BOUNDED: Only this period
         getWasteDistribution(startDate, locationFilter),
         getTopCollectors(startDate, locationFilter),
         getUserSpecificStats(userID, currentUser),
@@ -149,24 +161,29 @@ const analyticsController = {
       const trends = await getRecyclingTrends(timeRange, startDate, locationFilter);
       const percentageChanges = await calculatePercentageChanges(timeRange, startDate, {
         totalRecycled,
-        initiatives,
+        completedInitiatives,
         users,
-        pickups
+        pickups,
+        completedSupports
       }, locationFilter);
 
       console.log('Analytics Data Summary:', {
         totalRecycled,
         totalInitiatives: initiatives.count,
+        completedInitiatives: completedInitiatives.count,
         activeUsers: users.count,
         totalPickups: pickups.total,
+        completedPickups: pickups.completed,
         userStats: userSpecificStats,
-        communityImpact: environmentalImpact
+        communityImpact: environmentalImpact,
+        percentageChanges
       });
 
       const analyticsData = {
         // Platform-wide stats
         totalRecycled,
         totalInitiatives: initiatives.count,
+        completedInitiatives: completedInitiatives.count,
         activeUsers: users.count,
         totalPickups: pickups.total,
         completedSupports: completedSupports.count,
@@ -376,6 +393,7 @@ async function getTotalRecycled(startDate, locationFilter = null) {
       }
     });
 
+    console.log(`DEBUG getTotalRecycled: startDate=${startDate.toISOString()}, completedPickups=${completedPickups.length}, totalKg=${Math.round(totalKg)}`);
     return Math.round(totalKg);
   } catch (error) {
     console.error('Error getting total recycled:', error);
@@ -397,6 +415,42 @@ async function getActiveInitiatives(locationFilter = null) {
     return { count: activeInitiatives.length };
   } catch (error) {
     console.error('Error getting initiatives:', error);
+    return { count: 0 };
+  }
+}
+
+// Get completed initiatives within a time range
+// Uses updatedAt since initiatives don't have completedAt timestamp
+async function getCompletedInitiatives(startDate, locationFilter = null) {
+  try {
+    const allPosts = await getCachedData('allPosts', () => Post.findAll());
+
+    // Debug: Find all initiatives
+    const allInitiatives = allPosts.filter(post => post.postType === 'Initiative');
+    const completedInitiativesAll = allInitiatives.filter(post => post.status === 'Completed');
+
+    console.log(`DEBUG getCompletedInitiatives: Total initiatives=${allInitiatives.length}, Completed=${completedInitiativesAll.length}`);
+
+    const completedInitiatives = allPosts.filter(post => {
+      const updatedDate = toDate(post.updatedAt);
+      const isMatch = post.postType === 'Initiative' &&
+             post.status === 'Completed' &&
+             updatedDate &&
+             !isNaN(updatedDate.getTime()) &&
+             updatedDate >= startDate &&
+             matchesLocationFilter(post.location, locationFilter);
+
+      if (post.postType === 'Initiative' && post.status === 'Completed') {
+        console.log(`  Initiative "${post.title}": updatedAt=${updatedDate?.toISOString() || 'null'}, startDate=${startDate.toISOString()}, match=${isMatch}`);
+      }
+
+      return isMatch;
+    });
+
+    console.log(`  Completed initiatives in range: ${completedInitiatives.length}`);
+    return { count: completedInitiatives.length };
+  } catch (error) {
+    console.error('Error getting completed initiatives:', error);
     return { count: 0 };
   }
 }
@@ -1233,83 +1287,284 @@ function formatOperatingHours(hours) {
   return hours[today] || 'Hours not available';
 }
 
-// FIXED: Environmental impact - all 3 values are now returned and calculated
-/**
- * Calculate environmental impact based on recycled waste
- *
- * RESEARCH-BASED COEFFICIENTS:
- *
- * 1. CO2 Saved: 2.89 kg CO2e per kg of waste recycled
- *    Source: EPA (2016) - "Advancing Sustainable Materials Management: Facts and Figures"
- *    Average across common recyclables (plastic, paper, metal, glass)
- *    Recycling avoids emissions from: landfill methane, virgin material production, transportation
- *
- * 2. Trees Equivalent: 1 tree = 21.77 kg of CO2 absorbed per year
- *    Source: European Environment Agency (EEA)
- *    Formula: (totalKg × CO2 factor) ÷ CO2 per tree per year
- *    = (totalKg × 2.89) ÷ 21.77 ≈ totalKg × 0.1328 trees per year
- *    For lifetime impact (50 years): totalKg × 0.1328 ÷ 50 ≈ totalKg × 0.00266
- *
- * 3. Water Saved: 50-100 liters per kg of recycled material
- *    Source: UN Environment Programme (UNEP) & Water Footprint Network
- *    - Plastic recycling: saves ~88 liters/kg (vs virgin production)
- *    - Paper recycling: saves ~27 liters/kg
- *    - Metal recycling: saves ~238 liters/kg (aluminum)
- *    - Average across materials: ~50 liters/kg (conservative estimate)
- *
- * 4. Energy Saved: 4-6 kWh per kg of recycled material
- *    Source: World Bank & EPA Energy Conservation Reports
- *    - Plastic recycling: saves ~5.6 kWh/kg
- *    - Aluminum recycling: saves ~8 kWh/kg
- *    - Paper recycling: saves ~2.5 kWh/kg
- *    - Average: ~5 kWh/kg
- */
 function calculateEnvironmentalImpact(totalKg) {
   return {
-    co2Saved: Math.round(totalKg * 2.89),      // kg CO2 equivalent saved
-    treesEquivalent: Math.round(totalKg * 0.00266),  // trees saved (50-year lifetime)
-    waterSaved: Math.round(totalKg * 50),       // liters of water saved
-    energySaved: Math.round(totalKg * 5)        // kWh energy saved
+    co2Saved: Math.round(totalKg * 2.88),      // kg CO2 equivalent saved
+    treesEquivalent: Math.round(totalKg * 0.00264),  // trees saved (50-year lifetime)
+    waterSaved: Math.round(totalKg * 15),       // liters of water saved
+    energySaved: Math.round(totalKg * 6)        // kWh energy saved
   };
+}
+
+// Get active initiatives that existed during a specific time period
+async function getActiveInitiativesAtTime(startDate, endDate, locationFilter = null) {
+  try {
+    const allPosts = await getCachedData('allPosts', () => Post.findAll());
+    const initiativesAtTime = allPosts.filter(post => {
+      const createdAt = toDate(post.createdAt);
+      return post.postType === 'Initiative' &&
+             (post.status === 'Active' || post.status === 'Open') &&
+             createdAt &&
+             createdAt <= endDate && // Must have been created by the end of the period
+             matchesLocationFilter(post.location, locationFilter);
+    });
+
+    return { count: initiativesAtTime.length };
+  } catch (error) {
+    console.error('Error getting initiatives at time:', error);
+    return { count: 0 };
+  }
+}
+
+// Get active users that existed during a specific time period
+async function getActiveUsersAtTime(startDate, endDate, locationFilter = null) {
+  try {
+    const allUsers = await getCachedData('allUsers', () => User.findAll());
+    let usersAtTime = allUsers.filter(user => {
+      const createdAt = toDate(user.createdAt);
+      return user.status !== 'Suspended' &&
+             user.status !== 'Deleted' &&
+             createdAt &&
+             createdAt <= endDate; // Must have been created by the end of the period
+    });
+
+    // Apply location filter if provided
+    if (locationFilter && (locationFilter.region || locationFilter.province || locationFilter.city || locationFilter.barangay)) {
+      const usersWithLocation = usersAtTime.filter(user => user.userLocation);
+
+      if (locationFilter.barangay) {
+        usersAtTime = usersWithLocation.filter(user =>
+          user.userLocation?.barangay?.code === locationFilter.barangay
+        );
+      } else if (locationFilter.city) {
+        usersAtTime = usersWithLocation.filter(user =>
+          user.userLocation?.city?.code === locationFilter.city
+        );
+      } else if (locationFilter.province) {
+        usersAtTime = usersWithLocation.filter(user =>
+          user.userLocation?.province?.code === locationFilter.province
+        );
+      } else if (locationFilter.region) {
+        usersAtTime = usersWithLocation.filter(user =>
+          user.userLocation?.region?.code === locationFilter.region
+        );
+      }
+    }
+
+    return { count: usersAtTime.length };
+  } catch (error) {
+    console.error('Error getting users at time:', error);
+    return { count: 0 };
+  }
+}
+
+// Get total recycled within a specific time range (for period comparison)
+async function getTotalRecycledInRange(startDate, endDate, locationFilter = null) {
+  try {
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+    const completedPickups = allPickups.filter(pickup => {
+      const completedDate = toDate(pickup.completedAt);
+      return pickup.status === 'Completed' &&
+             completedDate &&
+             !isNaN(completedDate.getTime()) &&
+             completedDate >= startDate &&
+             completedDate < endDate &&
+             matchesLocationFilter(pickup.pickupLocation, locationFilter);
+    });
+
+    let totalKg = 0;
+    completedPickups.forEach(pickup => {
+      if (pickup.finalAmount) {
+        totalKg += parseFloat(pickup.finalAmount);
+      }
+    });
+
+    console.log(`DEBUG getTotalRecycledInRange: ${startDate.toISOString()} to ${endDate.toISOString()}, pickups=${completedPickups.length}, kg=${Math.round(totalKg)}`);
+    return Math.round(totalKg);
+  } catch (error) {
+    console.error('Error getting total recycled in range:', error);
+    return 0;
+  }
+}
+
+// Get total pickups within a specific time range (for period comparison)
+async function getTotalPickupsInRange(startDate, endDate, locationFilter = null) {
+  try {
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+    let completed = 0;
+
+    allPickups.forEach(pickup => {
+      const completedDate = toDate(pickup.completedAt);
+      if (pickup.status === 'Completed' &&
+          completedDate &&
+          !isNaN(completedDate.getTime()) &&
+          completedDate >= startDate &&
+          completedDate < endDate &&
+          matchesLocationFilter(pickup.pickupLocation, locationFilter)) {
+        completed++;
+      }
+    });
+
+    return { completed, total: completed };
+  } catch (error) {
+    console.error('Error getting pickups in range:', error);
+    return { completed: 0, total: 0 };
+  }
+}
+
+// Get completed initiatives within a specific time range (for period comparison)
+async function getCompletedInitiativesInRange(startDate, endDate, locationFilter = null) {
+  try {
+    const allPosts = await getCachedData('allPosts', () => Post.findAll());
+    const completedInitiatives = allPosts.filter(post => {
+      const updatedDate = toDate(post.updatedAt);
+      return post.postType === 'Initiative' &&
+             post.status === 'Completed' &&
+             updatedDate &&
+             !isNaN(updatedDate.getTime()) &&
+             updatedDate >= startDate &&
+             updatedDate < endDate &&
+             matchesLocationFilter(post.location, locationFilter);
+    });
+
+    return { count: completedInitiatives.length };
+  } catch (error) {
+    console.error('Error getting completed initiatives in range:', error);
+    return { count: 0 };
+  }
+}
+
+// Get completed supports within a specific time range (for period comparison)
+async function getCompletedSupportsInRange(startDate, endDate, locationFilter = null) {
+  try {
+    const allSupports = await getCachedData('allSupports', () => Support.findAll());
+    const allPosts = await getCachedData('allPosts', () => Post.findAll());
+
+    const completedSupports = allSupports.filter(support => {
+      const completedDate = toDate(support.completedAt);
+      const isCompleted = support.status === 'Completed';
+      const inTimeRange = completedDate &&
+                          !isNaN(completedDate.getTime()) &&
+                          completedDate >= startDate &&
+                          completedDate < endDate;
+
+      if (locationFilter && (locationFilter.region || locationFilter.province || locationFilter.city || locationFilter.barangay)) {
+        const relatedPost = allPosts.find(p => p.postID === support.initiativeID);
+        if (!relatedPost || !matchesLocationFilter(relatedPost.location, locationFilter)) {
+          return false;
+        }
+      }
+
+      return isCompleted && inTimeRange;
+    });
+
+    return { count: completedSupports.length };
+  } catch (error) {
+    console.error('Error getting completed supports in range:', error);
+    return { count: 0 };
+  }
 }
 
 /**
  * Calculate actual percentage changes compared to previous period
  *
- * This compares current period metrics to the previous equivalent period:
- * - Week: Compare to previous week
- * - Month: Compare to previous month
- * - Year: Compare to previous year
- * - All: Compare to previous year
+ * This compares current period metrics to the previous equivalent period using CALENDAR periods:
+ * - Week: Current week (Mon-Sun) vs Previous week (Mon-Sun)
+ * - Month: Current month (1st-last) vs Previous month (1st-last)
+ * - Year: Current year (Jan-Dec) vs Previous year (Jan-Dec)
+ * - All: Last 365 days vs Previous 365 days
  */
 async function calculatePercentageChanges(timeRange, startDate, currentMetrics, locationFilter = null) {
   try {
-    // Calculate the previous period date range
-    let previousStartDate = new Date(startDate);
+    const now = new Date();
+    let currentPeriodStart, currentPeriodEnd, previousPeriodStart, previousPeriodEnd;
 
     switch(timeRange) {
       case 'week':
-        previousStartDate.setDate(previousStartDate.getDate() - 7);
+        // Current week: Monday to Sunday (or today if we're mid-week)
+        currentPeriodEnd = new Date(now);
+        currentPeriodStart = new Date(now);
+        const dayOfWeek = currentPeriodStart.getDay();
+        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 0, Monday = 1
+        currentPeriodStart.setDate(currentPeriodStart.getDate() - daysFromMonday);
+        currentPeriodStart.setHours(0, 0, 0, 0);
+
+        // Previous week: Previous Monday to Sunday
+        previousPeriodEnd = new Date(currentPeriodStart);
+        previousPeriodEnd.setMilliseconds(-1); // Just before current week starts
+        previousPeriodStart = new Date(previousPeriodEnd);
+        previousPeriodStart.setDate(previousPeriodStart.getDate() - 6);
+        previousPeriodStart.setHours(0, 0, 0, 0);
         break;
+
       case 'month':
-        previousStartDate.setMonth(previousStartDate.getMonth() - 1);
+        // Current month: 1st to today
+        currentPeriodEnd = new Date(now);
+        currentPeriodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        // Previous month: 1st to last day of previous month
+        previousPeriodEnd = new Date(currentPeriodStart);
+        previousPeriodEnd.setMilliseconds(-1); // Last moment of previous month
+        previousPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         break;
+
       case 'year':
-        previousStartDate.setFullYear(previousStartDate.getFullYear() - 1);
+        // Current year: Jan 1 to today
+        currentPeriodEnd = new Date(now);
+        currentPeriodStart = new Date(now.getFullYear(), 0, 1);
+
+        // Previous year: Jan 1 to Dec 31 of previous year
+        previousPeriodEnd = new Date(currentPeriodStart);
+        previousPeriodEnd.setMilliseconds(-1); // Last moment of previous year
+        previousPeriodStart = new Date(now.getFullYear() - 1, 0, 1);
         break;
+
       case 'all':
-        // For 'all time', compare to one year ago
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        previousStartDate = new Date(2020, 0, 1);
+        // All time: Use startDate (2020-01-01) to today
+        currentPeriodEnd = new Date(now);
+        currentPeriodStart = new Date(startDate);
+
+        // Previous period: Same duration, shifted back
+        const durationMs = currentPeriodEnd - currentPeriodStart;
+        previousPeriodEnd = new Date(currentPeriodStart);
+        previousPeriodEnd.setMilliseconds(-1);
+        previousPeriodStart = new Date(previousPeriodEnd.getTime() - durationMs);
         break;
     }
 
-    // Fetch metrics for previous period with same location filter
-    const [prevRecycled, prevPickups] = await Promise.all([
-      getTotalRecycled(previousStartDate, locationFilter),
-      getTotalPickups(previousStartDate, locationFilter)
+    // Fetch metrics for previous period with BOUNDED time window (start to end)
+    const [prevRecycled, prevPickups, prevCompletedInitiatives, prevCompletedSupports] = await Promise.all([
+      getTotalRecycledInRange(previousPeriodStart, previousPeriodEnd, locationFilter),
+      getTotalPickupsInRange(previousPeriodStart, previousPeriodEnd, locationFilter),
+      getCompletedInitiativesInRange(previousPeriodStart, previousPeriodEnd, locationFilter),
+      getCompletedSupportsInRange(previousPeriodStart, previousPeriodEnd, locationFilter)
     ]);
+
+    // For users, get the count as of the START of current period
+    // This represents the baseline we're comparing growth against
+    const [prevUsersCount] = await Promise.all([
+      getActiveUsersAtTime(new Date(0), currentPeriodStart, locationFilter) // All users created before current period
+    ]);
+
+    console.log('Percentage Changes Calculation:', {
+      timeRange,
+      currentPeriod: `${currentPeriodStart.toISOString()} to ${currentPeriodEnd.toISOString()}`,
+      previousPeriod: `${previousPeriodStart.toISOString()} to ${previousPeriodEnd.toISOString()}`,
+      current: {
+        recycled: currentMetrics.totalRecycled,
+        initiatives: currentMetrics.completedInitiatives?.count || 0,
+        users: currentMetrics.users?.count || 0,
+        pickups: currentMetrics.pickups?.completed || 0,
+        supports: currentMetrics.completedSupports?.count || 0
+      },
+      previous: {
+        recycled: prevRecycled,
+        initiatives: prevCompletedInitiatives.count,
+        users: prevUsersCount.count,
+        pickups: prevPickups.completed,
+        supports: prevCompletedSupports.count
+      }
+    });
 
     // Calculate percentage change
     const calculateChange = (current, previous) => {
@@ -1322,9 +1577,19 @@ async function calculatePercentageChanges(timeRange, startDate, currentMetrics, 
 
     return {
       recycled: calculateChange(currentMetrics.totalRecycled, prevRecycled),
-      initiatives: '+0%',  // Static count (current status, not time-based)
-      users: '+0%',        // Static count (current status, not time-based)
-      pickups: calculateChange(currentMetrics.pickups?.completed || 0, prevPickups.completed)
+      initiatives: calculateChange(currentMetrics.completedInitiatives?.count || 0, prevCompletedInitiatives.count),
+      users: calculateChange(currentMetrics.users?.count || 0, prevUsersCount.count),
+      pickups: calculateChange(currentMetrics.pickups?.completed || 0, prevPickups.completed),
+      supports: calculateChange(currentMetrics.completedSupports?.count || 0, prevCompletedSupports.count),
+      // Include period dates for display on frontend
+      currentPeriod: {
+        start: currentPeriodStart.toISOString(),
+        end: currentPeriodEnd.toISOString()
+      },
+      previousPeriod: {
+        start: previousPeriodStart.toISOString(),
+        end: previousPeriodEnd.toISOString()
+      }
     };
   } catch (error) {
     console.error('Error calculating percentage changes:', error);
@@ -1333,7 +1598,10 @@ async function calculatePercentageChanges(timeRange, startDate, currentMetrics, 
       recycled: '+0%',
       initiatives: '+0%',
       users: '+0%',
-      pickups: '+0%'
+      pickups: '+0%',
+      supports: '+0%',
+      currentPeriod: null,
+      previousPeriod: null
     };
   }
 }

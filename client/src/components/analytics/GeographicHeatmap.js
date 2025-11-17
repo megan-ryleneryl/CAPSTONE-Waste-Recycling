@@ -231,7 +231,7 @@ const GeographicHeatmap = ({ heatmapData = [], areaData = [], breakdown = null }
         <div className={styles.titleSection}>
           <h2 className={styles.title}>
             <MapPin className={styles.titleIcon} />
-            Geographic Activity Heatmap
+            Recycling Activity Heatmap
           </h2>
           <p className={styles.subtitle}>
             Recycling activity distribution across {mapView === 'philippines' ? 'the Philippines' : 'Metro Manila'}

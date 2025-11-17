@@ -4,6 +4,7 @@ import axios from 'axios';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
 import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
+import GuideLink from '../components/guide/GuideLink';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { Image, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -687,6 +688,11 @@ const handleRemoveImage = (index) => {
             <span><MessageCircle size={16} /> Forum Post</span>
             <small>{'Share and discuss'}</small>
           </button>
+        </div>
+
+        {/* Guide Link */}
+        <div style={{ textAlign: 'center', margin: '1rem 0' }}>
+          <GuideLink text="Learn more about post types" targetPage={1} />
         </div>
 
         {/* Form - Only show if user can create posts */}
