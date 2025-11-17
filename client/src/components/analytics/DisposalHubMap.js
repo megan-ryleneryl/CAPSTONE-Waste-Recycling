@@ -96,7 +96,13 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
   // Get directions to hub (opens Google Maps)
   const getDirections = (hub) => {
     if (hub.coordinates && hub.coordinates.lat && hub.coordinates.lng) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${hub.coordinates.lat},${hub.coordinates.lng}`;
+      let url = `https://www.google.com/maps/dir/?api=1&destination=${hub.coordinates.lat},${hub.coordinates.lng}`;
+
+      // Add origin if search location is set
+      if (currentSearchLocation && currentSearchLocation.lat && currentSearchLocation.lng) {
+        url += `&origin=${currentSearchLocation.lat},${currentSearchLocation.lng}`;
+      }
+
       window.open(url, '_blank');
     }
   };
