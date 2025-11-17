@@ -25,17 +25,6 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Check if JWT_SECRET exists
-    if (!process.env.JWT_SECRET) {
-      return res.status(500).json({
-        success: false,
-        message: 'Server configuration error'
-      });
-    }
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
     // Fetch full user data from database to get isCollector and isAdmin
     const user = await User.findById(decoded.userID);
 
