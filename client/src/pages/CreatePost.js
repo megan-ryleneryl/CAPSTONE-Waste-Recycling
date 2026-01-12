@@ -675,7 +675,7 @@ const handleRemoveImage = (index) => {
                 to="/profile" 
                 className={`${styles.signupLink} ${postType === 'Initiative' ? styles.selectedSignupLink : ''}`}
               >
-                Sign up as collector
+                Sign up as Organization
               </Link>
             )}
           </button>
