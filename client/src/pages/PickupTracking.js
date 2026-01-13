@@ -1,11 +1,13 @@
 // client/src/pages/PickupTracking.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircle, Truck, Package, Check, Trash2, Scale, MapPin, Calendar, Phone, User, Clock, DollarSign, FileText, MessageCircle } from 'lucide-react';
+import { CheckCircle, Truck, Package, Check, Trash2, Scale, MapPin, Calendar, Phone, User, Clock, DollarSign, FileText, MessageCircle, Navigation } from 'lucide-react';
 import PickupCompletionModal from '../components/pickup/PickupCompletionModal';
+import useLocationTracking from '../hooks/useLocationTracking';
+import { formatDistance } from '../utils/geoUtils';
 import axios from 'axios';
 import styles from './PickupTracking.module.css';
 
@@ -20,6 +22,13 @@ const PickupTracking = () => {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [availableMaterials, setAvailableMaterials] = useState([]);
+
+  // Ref to prevent multiple arrival updates
+  const hasTriggeredArrival = useRef(false);
+
+  // Determine user role (needed early for hooks)
+  const isGiver = currentUser?.userID === pickup?.giverID;
+  const isCollector = currentUser?.userID === pickup?.collectorID;
 
   // Fetch available materials with prices
   useEffect(() => {
@@ -263,8 +272,10 @@ const PickupTracking = () => {
       // Add timestamp for specific status changes
       if (newStatus === 'In-Transit') {
         updateData.inTransitAt = serverTimestamp();
+        updateData.locationTrackingActive = true;
       } else if (newStatus === 'ArrivedAtPickup') {
         updateData.arrivedAt = serverTimestamp();
+        updateData.locationTrackingActive = false;
       }
 
       await updateDoc(pickupRef, updateData);
@@ -358,7 +369,8 @@ const PickupTracking = () => {
         paymentMethod: completionData.paymentMethod || '',
         completionNotes: completionData.notes || '',
         identityVerified: true,
-        finalAmount: completionData.totalAmount || 0
+        finalAmount: completionData.totalAmount || 0,
+        locationTrackingActive: false
       });
 
       // Update support status if this is an initiative support pickup
@@ -461,6 +473,63 @@ const PickupTracking = () => {
     return colors[status] || '#6b7280';
   };
 
+  // Memoized callbacks for location tracking
+  const handleArrival = useCallback((arrivalData) => {
+    if (hasTriggeredArrival.current) return;
+    hasTriggeredArrival.current = true;
+    console.log('Arrived at pickup location!', arrivalData);
+    handleStatusUpdate('ArrivedAtPickup');
+  }, [pickupId, currentUser, pickup, postData]);
+
+  const handleLocationUpdate = useCallback(async (locationData) => {
+    // Update Firestore with current location (throttled by hook)
+    if (!pickup?.id) return;
+
+    try {
+      const pickupRef = doc(db, 'pickups', pickup.id);
+      await updateDoc(pickupRef, {
+        collectorCurrentLocation: {
+          lat: locationData.location.lat,
+          lng: locationData.location.lng,
+          accuracy: locationData.location.accuracy,
+          timestamp: new Date()
+        }
+        // Don't update locationTrackingActive or updatedAt on every location update
+        // to avoid triggering unnecessary re-renders
+      });
+    } catch (error) {
+      console.error('Error updating collector location:', error);
+    }
+  }, [pickup?.id]);
+
+  // Reset arrival trigger when status changes away from In-Transit
+  useEffect(() => {
+    if (pickup?.status !== 'In-Transit') {
+      hasTriggeredArrival.current = false;
+    }
+  }, [pickup?.status]);
+
+  // Get pickup location coordinates
+  const targetLocation = pickup?.pickupLocation?.coordinates || null;
+
+  // Location tracking hook - only enabled when collector is in transit
+  const shouldTrack = isCollector && pickup?.status === 'In-Transit' && targetLocation;
+
+  const {
+    currentLocation,
+    distance,
+    isTracking,
+    error: locationError,
+    hasArrived,
+  } = useLocationTracking({
+    enabled: shouldTrack,
+    targetLocation: targetLocation,
+    arrivalRadius: 50, // 50 meters
+    updateInterval: 8000, // 8 seconds
+    onArrival: handleArrival,
+    onLocationUpdate: handleLocationUpdate
+  });
+
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
@@ -479,8 +548,6 @@ const PickupTracking = () => {
     );
   }
 
-  const isGiver = currentUser?.userID === pickup.giverID;
-  const isCollector = currentUser?.userID === pickup.collectorID;
   const canUpdateStatus = isCollector && pickup.status !== 'Completed' && pickup.status !== 'Cancelled';
   const canComplete = isGiver && (pickup.status === 'ArrivedAtPickup' || pickup.status === 'In-Transit');
 
@@ -619,14 +686,48 @@ const PickupTracking = () => {
                   </button>
                 )}
                 {pickup.status === 'In-Transit' && (
-                  <button
-                    className={styles.primaryButton}
-                    onClick={() => handleStatusUpdate('ArrivedAtPickup')}
-                    disabled={updating}
-                  >
-                    <Package size={20} />
-                    <span>{updating ? 'Updating...' : 'Arrived at Pickup'}</span>
-                  </button>
+                  <>
+                    {/* Location Tracking Status */}
+                    {isTracking && distance !== null && (
+                      <div className={styles.locationTrackingInfo}>
+                        <div className={styles.trackingStatus}>
+                          <Navigation size={18} className={styles.trackingIcon} />
+                          <span>Location tracking active</span>
+                        </div>
+                        <div className={styles.distanceInfo}>
+                          <MapPin size={18} />
+                          <span className={styles.distanceText}>
+                            {formatDistance(distance)} away from pickup location
+                          </span>
+                        </div>
+                        {distance <= 100 && distance > 50 && (
+                          <div className={styles.approachingAlert}>
+                            <span>🎯 Almost there! Arrival will be detected automatically within 50m.</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Location Error Message */}
+                    {locationError && (
+                      <div className={styles.locationError}>
+                        <span>⚠️ {locationError}</span>
+                        <span style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                          You can still manually mark arrival below.
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Manual Arrival Button (backup) */}
+                    <button
+                      className={styles.primaryButton}
+                      onClick={() => handleStatusUpdate('ArrivedAtPickup')}
+                      disabled={updating}
+                    >
+                      <Package size={20} />
+                      <span>{updating ? 'Updating...' : 'Arrived at Pickup'}</span>
+                    </button>
+                  </>
                 )}
               </>
             )}
