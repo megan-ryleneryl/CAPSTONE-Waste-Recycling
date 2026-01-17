@@ -8,6 +8,7 @@ import { getDistance, isWithinRadius } from '../utils/geoUtils';
  * @param {Object} options.targetLocation - Target location {lat, lng}
  * @param {number} options.arrivalRadius - Radius in meters to consider "arrived" (default: 50)
  * @param {number} options.updateInterval - Update interval in milliseconds (default: 8000)
+ * @param {boolean} options.useHighAccuracy - Use GPS for high accuracy (default: false for network location)
  * @param {Function} options.onArrival - Callback when arrived at destination
  * @param {Function} options.onLocationUpdate - Callback on each location update
  * @returns {Object} Tracking state and controls
@@ -17,6 +18,7 @@ const useLocationTracking = ({
   targetLocation = null,
   arrivalRadius = 50,
   updateInterval = 8000,
+  useHighAccuracy = false,
   onArrival = null,
   onLocationUpdate = null,
 }) => {
@@ -31,6 +33,17 @@ const useLocationTracking = ({
   const intervalIdRef = useRef(null);
   const lastPositionRef = useRef(null);
   const hasTriggeredArrivalRef = useRef(false);
+  const isTrackingRef = useRef(false); // Track if we're currently tracking to prevent duplicates
+
+  // Use refs to store callbacks to avoid recreating functions
+  const onArrivalRef = useRef(onArrival);
+  const onLocationUpdateRef = useRef(onLocationUpdate);
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onArrivalRef.current = onArrival;
+    onLocationUpdateRef.current = onLocationUpdate;
+  }, [onArrival, onLocationUpdate]);
 
   /**
    * Request location permission and get current position
@@ -55,10 +68,10 @@ const useLocationTracking = ({
               setPermissionStatus('denied');
               break;
             case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Location information unavailable. Please check your GPS/location settings.';
+              errorMessage = 'Location information unavailable. Please check your location settings.';
               break;
             case error.TIMEOUT:
-              errorMessage = 'Location request timed out. Trying with lower accuracy...';
+              errorMessage = 'Location request timed out. Please try again.';
               break;
             default:
               errorMessage = 'An unknown error occurred while getting location.';
@@ -67,13 +80,13 @@ const useLocationTracking = ({
           reject(new Error(errorMessage));
         },
         {
-          enableHighAccuracy: true, // Try high accuracy first to trigger permission prompt
-          timeout: 15000, // Increased timeout for Windows/desktop
-          maximumAge: 10000,
+          enableHighAccuracy: useHighAccuracy,
+          timeout: useHighAccuracy ? 15000 : 10000,
+          maximumAge: useHighAccuracy ? 10000 : 30000,
         }
       );
     });
-  }, []);
+  }, [useHighAccuracy]);
 
   /**
    * Update location and check arrival
@@ -88,11 +101,11 @@ const useLocationTracking = ({
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
 
-        // Warn about low accuracy but still use it for distance calculation
-        if (accuracy > 500) {
+        // Warn about very low accuracy but still use it for distance calculation
+        if (accuracy > 1000) {
           console.warn('Location accuracy very low:', accuracy, 'meters');
-          setError(`Low GPS accuracy (±${Math.round(accuracy)}m). Distance may be inaccurate.`);
-        } else if (accuracy > 100) {
+          setError(`Low location accuracy (±${Math.round(accuracy)}m). Distance may be inaccurate.`);
+        } else if (accuracy > 500) {
           console.warn('Location accuracy low:', accuracy, 'meters');
         } else {
           // Good accuracy, clear any previous error
@@ -117,19 +130,19 @@ const useLocationTracking = ({
           );
           setDistance(distanceToTarget);
 
-          // Check if arrived (only trigger if accuracy is good enough)
+          // Check if arrived
           const arrivedAtDestination = isWithinRadius(
             { lat: latitude, lng: longitude },
             targetLocation,
             arrivalRadius
           );
 
-          // Only trigger arrival if accuracy is reasonable (< 100m)
-          if (arrivedAtDestination && !hasTriggeredArrivalRef.current && accuracy < 100) {
+          // Only trigger arrival if accuracy is reasonable (< 200m for network-based location)
+          if (arrivedAtDestination && !hasTriggeredArrivalRef.current && accuracy < 200) {
             setHasArrived(true);
             hasTriggeredArrivalRef.current = true;
-            if (onArrival) {
-              onArrival({
+            if (onArrivalRef.current) {
+              onArrivalRef.current({
                 location: newLocation,
                 distance: distanceToTarget,
               });
@@ -137,8 +150,8 @@ const useLocationTracking = ({
           }
 
           // Callback for location update (still update even with low accuracy)
-          if (onLocationUpdate && accuracy < 1000) {
-            onLocationUpdate({
+          if (onLocationUpdateRef.current && accuracy < 2000) {
+            onLocationUpdateRef.current({
               location: newLocation,
               distance: distanceToTarget,
               arrived: arrivedAtDestination,
@@ -166,19 +179,26 @@ const useLocationTracking = ({
         setError(errorMessage);
       },
       {
-        enableHighAccuracy: true, // Request high accuracy for updates
-        timeout: 15000,
-        maximumAge: 5000,
+        enableHighAccuracy: useHighAccuracy,
+        timeout: useHighAccuracy ? 15000 : 10000,
+        maximumAge: useHighAccuracy ? 10000 : 30000,
       }
     );
-  }, [targetLocation, arrivalRadius, onArrival, onLocationUpdate]);
+  }, [targetLocation, arrivalRadius, useHighAccuracy]); // Removed onArrival and onLocationUpdate - using refs instead
 
   /**
    * Start location tracking
    */
   const startTracking = useCallback(async () => {
+    // Prevent starting if already tracking
+    if (isTrackingRef.current) {
+      console.log('Already tracking, skipping start');
+      return;
+    }
+
     try {
       console.log('Starting location tracking...');
+      isTrackingRef.current = true;
 
       // Request permission and get initial position
       try {
@@ -191,20 +211,20 @@ const useLocationTracking = ({
           throw new Error('Geolocation is not supported');
         }
 
-        // Try once more with lower requirements
+        // Retry one more time
         await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(
             (position) => {
               setPermissionStatus('granted');
-              console.log('Location permission granted (low accuracy)');
+              console.log('Location permission granted on retry');
               resolve(position);
             },
             (error) => {
               reject(new Error('Unable to access location. Please check browser settings.'));
             },
             {
-              enableHighAccuracy: false,
-              timeout: 20000,
+              enableHighAccuracy: useHighAccuracy,
+              timeout: 15000,
               maximumAge: 60000,
             }
           );
@@ -228,6 +248,7 @@ const useLocationTracking = ({
       console.error('Failed to start tracking:', err);
       setError(err.message || 'Failed to start location tracking');
       setIsTracking(false);
+      isTrackingRef.current = false;
     }
   }, [requestLocationPermission, updateLocation, updateInterval]);
 
@@ -235,6 +256,7 @@ const useLocationTracking = ({
    * Stop location tracking
    */
   const stopTracking = useCallback(() => {
+    console.log('Stopping location tracking...');
     if (intervalIdRef.current) {
       clearInterval(intervalIdRef.current);
       intervalIdRef.current = null;
@@ -244,6 +266,7 @@ const useLocationTracking = ({
       watchIdRef.current = null;
     }
     setIsTracking(false);
+    isTrackingRef.current = false;
   }, []);
 
   /**
@@ -257,22 +280,30 @@ const useLocationTracking = ({
     setHasArrived(false);
     hasTriggeredArrivalRef.current = false;
     lastPositionRef.current = null;
+    isTrackingRef.current = false;
   }, [stopTracking]);
 
   /**
    * Effect to handle enabled state changes
    */
   useEffect(() => {
+    let mounted = true;
+
     if (enabled && !isTracking && !hasArrived) {
+      console.log('Enabling location tracking...');
       startTracking();
     } else if (!enabled && isTracking) {
+      console.log('Disabling location tracking...');
       stopTracking();
     }
 
     return () => {
+      mounted = false;
+      // Cleanup on unmount
       stopTracking();
     };
-  }, [enabled, isTracking, hasArrived, startTracking, stopTracking]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]); // Only re-run when enabled changes, not when callbacks change
 
   return {
     currentLocation,

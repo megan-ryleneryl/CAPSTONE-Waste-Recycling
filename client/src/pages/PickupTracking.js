@@ -22,6 +22,13 @@ const PickupTracking = () => {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [availableMaterials, setAvailableMaterials] = useState([]);
+  const [showLocationPermissionDialog, setShowLocationPermissionDialog] = useState(false);
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
+  const [useHighAccuracy, setUseHighAccuracy] = useState(() => {
+    // Load from localStorage or default to false (network location)
+    const saved = localStorage.getItem('locationAccuracyMode');
+    return saved === 'high';
+  });
 
   // Ref to prevent multiple arrival updates
   const hasTriggeredArrival = useRef(false);
@@ -260,6 +267,27 @@ const PickupTracking = () => {
     return steps;
   };
 
+  // Handler for "On the Way" button - shows permission dialog first
+  const handleOnTheWay = () => {
+    setShowLocationPermissionDialog(true);
+  };
+
+  // Called when user accepts location permission
+  const handleAcceptLocationPermission = async () => {
+    setShowLocationPermissionDialog(false);
+    setLocationPermissionGranted(true);
+    // Now update status to In-Transit
+    await handleStatusUpdate('In-Transit');
+  };
+
+  // Called when user denies location permission
+  const handleDenyLocationPermission = async () => {
+    setShowLocationPermissionDialog(false);
+    setLocationPermissionGranted(false);
+    // Still allow status update, but without tracking
+    await handleStatusUpdate('In-Transit');
+  };
+
   const handleStatusUpdate = async (newStatus) => {
     setUpdating(true);
     try {
@@ -272,7 +300,7 @@ const PickupTracking = () => {
       // Add timestamp for specific status changes
       if (newStatus === 'In-Transit') {
         updateData.inTransitAt = serverTimestamp();
-        updateData.locationTrackingActive = true;
+        updateData.locationTrackingActive = locationPermissionGranted; // Only if permission granted
       } else if (newStatus === 'ArrivedAtPickup') {
         updateData.arrivedAt = serverTimestamp();
         updateData.locationTrackingActive = false;
@@ -473,20 +501,35 @@ const PickupTracking = () => {
     return colors[status] || '#6b7280';
   };
 
-  // Memoized callbacks for location tracking
+  // Memoized callbacks for location tracking - use refs to avoid recreating
   const handleArrival = useCallback((arrivalData) => {
     if (hasTriggeredArrival.current) return;
     hasTriggeredArrival.current = true;
     console.log('Arrived at pickup location!', arrivalData);
-    handleStatusUpdate('ArrivedAtPickup');
-  }, [pickupId, currentUser, pickup, postData]);
+
+    // Use async to avoid blocking
+    (async () => {
+      try {
+        const pickupRef = doc(db, 'pickups', pickupId);
+        const updateData = {
+          status: 'ArrivedAtPickup',
+          arrivedAt: serverTimestamp(),
+          locationTrackingActive: false,
+          updatedAt: serverTimestamp()
+        };
+        await updateDoc(pickupRef, updateData);
+      } catch (error) {
+        console.error('Error updating arrival status:', error);
+      }
+    })();
+  }, [pickupId]); // Only depend on pickupId which doesn't change
 
   const handleLocationUpdate = useCallback(async (locationData) => {
-    // Update Firestore with current location (throttled by hook)
-    if (!pickup?.id) return;
+    // Use pickupId from closure instead of pickup object
+    if (!pickupId) return;
 
     try {
-      const pickupRef = doc(db, 'pickups', pickup.id);
+      const pickupRef = doc(db, 'pickups', pickupId);
       await updateDoc(pickupRef, {
         collectorCurrentLocation: {
           lat: locationData.location.lat,
@@ -500,20 +543,25 @@ const PickupTracking = () => {
     } catch (error) {
       console.error('Error updating collector location:', error);
     }
-  }, [pickup?.id]);
+  }, [pickupId]); // Only depend on pickupId which doesn't change
 
-  // Reset arrival trigger when status changes away from In-Transit
+  // Reset arrival trigger and permission when status changes away from In-Transit
+  // Also restore permission if page is reloaded while In-Transit
   useEffect(() => {
-    if (pickup?.status !== 'In-Transit') {
+    if (pickup?.status === 'In-Transit' && pickup?.locationTrackingActive) {
+      // Restore permission if tracking was active (page reload case)
+      setLocationPermissionGranted(true);
+    } else if (pickup?.status !== 'In-Transit') {
       hasTriggeredArrival.current = false;
+      setLocationPermissionGranted(false);
     }
-  }, [pickup?.status]);
+  }, [pickup?.status, pickup?.locationTrackingActive]);
 
   // Get pickup location coordinates
   const targetLocation = pickup?.pickupLocation?.coordinates || null;
 
-  // Location tracking hook - only enabled when collector is in transit
-  const shouldTrack = isCollector && pickup?.status === 'In-Transit' && targetLocation;
+  // Location tracking hook - only enabled when collector is in transit AND has granted permission
+  const shouldTrack = isCollector && pickup?.status === 'In-Transit' && targetLocation && locationPermissionGranted;
 
   const {
     currentLocation,
@@ -526,9 +574,17 @@ const PickupTracking = () => {
     targetLocation: targetLocation,
     arrivalRadius: 50, // 50 meters
     updateInterval: 8000, // 8 seconds
+    useHighAccuracy: useHighAccuracy,
     onArrival: handleArrival,
     onLocationUpdate: handleLocationUpdate
   });
+
+  // Toggle accuracy mode
+  const toggleAccuracyMode = () => {
+    const newMode = !useHighAccuracy;
+    setUseHighAccuracy(newMode);
+    localStorage.setItem('locationAccuracyMode', newMode ? 'high' : 'network');
+  };
 
   if (loading) {
     return (
@@ -678,7 +734,7 @@ const PickupTracking = () => {
                 {pickup.status === 'Confirmed' && (
                   <button
                     className={styles.primaryButton}
-                    onClick={() => handleStatusUpdate('In-Transit')}
+                    onClick={handleOnTheWay}
                     disabled={updating}
                   >
                     <Truck size={20} />
@@ -688,28 +744,49 @@ const PickupTracking = () => {
                 {pickup.status === 'In-Transit' && (
                   <>
                     {/* Location Tracking Status */}
-                    {isTracking && distance !== null && (
-                      <div className={styles.locationTrackingInfo}>
+                    {isTracking && (
+                      <div className={locationError ? styles.locationTrackingInfoWarning : styles.locationTrackingInfo}>
                         <div className={styles.trackingStatus}>
                           <Navigation size={18} className={styles.trackingIcon} />
                           <span>Location tracking active</span>
+                          <button
+                            className={styles.accuracyToggle}
+                            onClick={toggleAccuracyMode}
+                            title={useHighAccuracy ? 'Using GPS (High Accuracy) - Click to switch to Network mode' : 'Using Network Location - Click to switch to GPS mode'}
+                          >
+                            {useHighAccuracy ? '📍 GPS Mode' : '📶 Network Mode'}
+                          </button>
                         </div>
-                        <div className={styles.distanceInfo}>
-                          <MapPin size={18} />
-                          <span className={styles.distanceText}>
-                            {formatDistance(distance)} away from pickup location
-                          </span>
-                        </div>
-                        {distance <= 100 && distance > 50 && (
-                          <div className={styles.approachingAlert}>
-                            <span>🎯 Almost there! Arrival will be detected automatically within 50m.</span>
+                        {distance !== null && (
+                          <>
+                            <div className={styles.distanceInfo}>
+                              <MapPin size={18} />
+                              <span className={styles.distanceText}>
+                                {formatDistance(distance)} away from pickup location
+                              </span>
+                              {currentLocation?.accuracy && (
+                                <span className={styles.accuracyInfo}>
+                                  (±{Math.round(currentLocation.accuracy)}m)
+                                </span>
+                              )}
+                            </div>
+                            {distance <= 100 && distance > 50 && !locationError && (
+                              <div className={styles.approachingAlert}>
+                                <span>🎯 Almost there! Arrival will be detected automatically within 50m.</span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {locationError && (
+                          <div className={styles.accuracyWarning}>
+                            <span>⚠️ {locationError}</span>
                           </div>
                         )}
                       </div>
                     )}
 
-                    {/* Location Error Message */}
-                    {locationError && (
+                    {/* Location Error Message - Critical errors only */}
+                    {!isTracking && locationError && (
                       <div className={styles.locationError}>
                         <span>⚠️ {locationError}</span>
                         <span style={{ fontSize: '0.875rem', marginTop: '0.25rem' }}>
@@ -1036,6 +1113,50 @@ const PickupTracking = () => {
           )}
         </div>
       </div>
+
+      {/* Location Permission Dialog */}
+      {showLocationPermissionDialog && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.permissionDialog}>
+            <div className={styles.permissionHeader}>
+              <MapPin size={32} className={styles.permissionIcon} />
+              <h3>Enable Location Tracking?</h3>
+            </div>
+            <div className={styles.permissionBody}>
+              <p>
+                To automatically detect when you arrive at the pickup location,
+                we need access to your device's location.
+              </p>
+              <ul className={styles.permissionFeatures}>
+                <li>✓ Automatic arrival detection within 50 meters</li>
+                <li>✓ Real-time distance updates every 8 seconds</li>
+                <li>✓ No manual status update needed when you arrive</li>
+              </ul>
+              <p className={styles.permissionNote}>
+                <strong>Note:</strong> Your location is only tracked while you're in transit
+                and is not stored permanently. You can still manually mark arrival if you decline.
+              </p>
+            </div>
+            <div className={styles.permissionActions}>
+              <button
+                className={styles.permissionDenyButton}
+                onClick={handleDenyLocationPermission}
+                disabled={updating}
+              >
+                Continue Without Tracking
+              </button>
+              <button
+                className={styles.permissionAllowButton}
+                onClick={handleAcceptLocationPermission}
+                disabled={updating}
+              >
+                <MapPin size={18} />
+                Allow Location Access
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Completion Modal */}
       {showCompletionModal && (
