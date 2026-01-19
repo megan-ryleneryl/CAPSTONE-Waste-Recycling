@@ -53,7 +53,16 @@ class Pickup {
     // Status management
     this.status = data.status || 'Proposed';
     // Status flow: Proposed → Confirmed → In-Transit → ArrivedAtPickup → Completed (or Cancelled at any point)
-    
+
+    // Location tracking (for collectors during In-Transit status)
+    this.collectorCurrentLocation = data.collectorCurrentLocation ? {
+      lat: data.collectorCurrentLocation.lat || null,
+      lng: data.collectorCurrentLocation.lng || null,
+      accuracy: data.collectorCurrentLocation.accuracy || null,
+      timestamp: data.collectorCurrentLocation.timestamp || null
+    } : null;
+    this.locationTrackingActive = data.locationTrackingActive || false;
+
     // Completion details
     this.actualWaste = data.actualWaste || [];  // Array of material objects
     this.finalAmount = data.finalAmount || 0;  // Total weight at root level
