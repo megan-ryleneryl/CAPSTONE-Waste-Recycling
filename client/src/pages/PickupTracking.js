@@ -1,5 +1,6 @@
 // client/src/pages/PickupTracking.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -1130,10 +1131,17 @@ const PickupTracking = () => {
         </div>
       </div>
 
-      {/* Location Permission Dialog */}
-      {showLocationPermissionDialog && (
+      {/* Location Permission Dialog - rendered in portal to cover entire screen */}
+      {showLocationPermissionDialog && createPortal(
         <div className={styles.modalOverlay}>
           <div className={styles.permissionDialog}>
+            <button
+              className={styles.modalCloseButton}
+              onClick={() => setShowLocationPermissionDialog(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
             <div className={styles.permissionHeader}>
               <MapPin size={32} className={styles.permissionIcon} />
               <h3>Enable Location Tracking?</h3>
@@ -1171,11 +1179,12 @@ const PickupTracking = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Arrival Notification Modal */}
-      {showArrivalNotification && (
+      {/* Arrival Notification Modal - rendered in portal to cover entire screen */}
+      {showArrivalNotification && createPortal(
         <div className={styles.modalOverlay}>
           <div className={styles.arrivalNotification}>
             <div className={styles.arrivalIcon}>
@@ -1193,7 +1202,8 @@ const PickupTracking = () => {
               Got it
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Completion Modal */}
