@@ -961,6 +961,55 @@
   cursor: not-allowed;
 }
 
+/* Arrival Notification Modal */
+.arrivalNotification {
+  background: var(--bg-primary);
+  border-radius: var(--border-radius-lg);
+  max-width: 400px;
+  width: 90%;
+  padding: var(--spacing-xl);
+  text-align: center;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: slideIn 0.3s ease-out;
+}
+
+.arrivalIcon {
+  margin-bottom: var(--spacing-md);
+}
+
+.arrivalTitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: #059669;
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+.arrivalMessage {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-xl) 0;
+  line-height: 1.5;
+}
+
+.arrivalButton {
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: #059669;
+  color: var(--text-white);
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-primary);
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.arrivalButton:hover {
+  background: #047857;
+  transform: translateY(-2px);
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .content {

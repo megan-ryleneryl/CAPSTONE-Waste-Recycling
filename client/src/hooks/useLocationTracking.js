@@ -8,7 +8,6 @@ import { getDistance, isWithinRadius } from '../utils/geoUtils';
  * @param {Object} options.targetLocation - Target location {lat, lng}
  * @param {number} options.arrivalRadius - Radius in meters to consider "arrived" (default: 50)
  * @param {number} options.updateInterval - Update interval in milliseconds (default: 8000)
- * @param {boolean} options.useHighAccuracy - Use GPS for high accuracy (default: false for network location)
  * @param {Function} options.onArrival - Callback when arrived at destination
  * @param {Function} options.onLocationUpdate - Callback on each location update
  * @returns {Object} Tracking state and controls
@@ -18,7 +17,6 @@ const useLocationTracking = ({
   targetLocation = null,
   arrivalRadius = 50,
   updateInterval = 8000,
-  useHighAccuracy = false,
   onArrival = null,
   onLocationUpdate = null,
 }) => {
@@ -80,13 +78,13 @@ const useLocationTracking = ({
           reject(new Error(errorMessage));
         },
         {
-          enableHighAccuracy: useHighAccuracy,
-          timeout: useHighAccuracy ? 15000 : 10000,
-          maximumAge: useHighAccuracy ? 10000 : 30000,
+          enableHighAccuracy: false,
+          timeout: 10000,
+          maximumAge: 30000,
         }
       );
     });
-  }, [useHighAccuracy]);
+  }, []);
 
   /**
    * Update location and check arrival
@@ -137,8 +135,18 @@ const useLocationTracking = ({
             arrivalRadius
           );
 
-          // Only trigger arrival if accuracy is reasonable (< 200m for network-based location)
-          if (arrivedAtDestination && !hasTriggeredArrivalRef.current && accuracy < 200) {
+          // Debug arrival check
+          console.log('Arrival check:', {
+            distanceToTarget,
+            arrivalRadius,
+            arrivedAtDestination,
+            hasTriggeredArrival: hasTriggeredArrivalRef.current,
+            accuracy
+          });
+
+          // Only trigger arrival if accuracy is reasonable (< 500m for network-based location)
+          if (arrivedAtDestination && !hasTriggeredArrivalRef.current && accuracy < 500) {
+            console.log('🎉 Arrival triggered! Updating status...');
             setHasArrived(true);
             hasTriggeredArrivalRef.current = true;
             if (onArrivalRef.current) {
@@ -179,12 +187,12 @@ const useLocationTracking = ({
         setError(errorMessage);
       },
       {
-        enableHighAccuracy: useHighAccuracy,
-        timeout: useHighAccuracy ? 15000 : 10000,
-        maximumAge: useHighAccuracy ? 10000 : 30000,
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 30000,
       }
     );
-  }, [targetLocation, arrivalRadius, useHighAccuracy]); // Removed onArrival and onLocationUpdate - using refs instead
+  }, [targetLocation, arrivalRadius]); // Removed onArrival and onLocationUpdate - using refs instead
 
   /**
    * Start location tracking
@@ -205,8 +213,8 @@ const useLocationTracking = ({
         await requestLocationPermission();
         console.log('Location permission granted');
       } catch (permError) {
-        // If high accuracy fails, try again with lower accuracy
-        console.warn('High accuracy failed, retrying with low accuracy...');
+        // First attempt failed, retry one more time
+        console.warn('First attempt failed, retrying...');
         if (!navigator.geolocation) {
           throw new Error('Geolocation is not supported');
         }
@@ -223,7 +231,7 @@ const useLocationTracking = ({
               reject(new Error('Unable to access location. Please check browser settings.'));
             },
             {
-              enableHighAccuracy: useHighAccuracy,
+              enableHighAccuracy: false,
               timeout: 15000,
               maximumAge: 60000,
             }
