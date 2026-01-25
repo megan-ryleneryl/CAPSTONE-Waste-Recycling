@@ -242,6 +242,37 @@
   right: 1rem;
 }
 
+/* Image Indicators */
+.imageIndicators {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+}
+
+.indicator:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.indicator.active {
+  background: white;
+  width: 24px;
+  border-radius: 4px;
+}
+
 /* Details Section */
 .details {
   background: #F9FAFB;

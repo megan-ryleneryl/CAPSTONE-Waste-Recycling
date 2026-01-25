@@ -668,8 +668,8 @@ const handleMessageOwner = async (post, event) => {
             {/* Image Carousel or Placeholder */}
             {postImages.length > 0 ? (
               <div className={styles.imageContainer}>
-                <img 
-                  src={postImages[currentImageIndex]} 
+                <img
+                  src={postImages[currentImageIndex]}
                   alt={`${post.title} - Image ${currentImageIndex + 1}`}
                   className={styles.postImage}
                   onError={(e) => {
@@ -679,20 +679,35 @@ const handleMessageOwner = async (post, event) => {
                 />
                 {postImages.length > 1 && (
                   <>
-                    <button 
+                    <button
                       className={`${styles.navButton} ${styles.prevButton}`}
                       onClick={(e) => handlePrevImage(e, post.postID, postImages.length)}
                       aria-label="Previous image"
                     >
                       ←
                     </button>
-                    <button 
+                    <button
                       className={`${styles.navButton} ${styles.nextButton}`}
                       onClick={(e) => handleNextImage(e, post.postID, postImages.length)}
                       aria-label="Next image"
                     >
                       →
                     </button>
+                    <div className={styles.imageIndicators}>
+                      {postImages.map((_, idx) => (
+                        <span
+                          key={idx}
+                          className={`${styles.indicator} ${idx === currentImageIndex ? styles.active : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setImageIndexes(prev => ({
+                              ...prev,
+                              [post.postID]: idx
+                            }));
+                          }}
+                        />
+                      ))}
+                    </div>
                   </>
                 )}
               </div>
