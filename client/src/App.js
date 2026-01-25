@@ -17,6 +17,7 @@ import PickupManagement from './pages/PickupManagement';
 import PickupTracking from './pages/PickupTracking';
 import EditMaterials from './pages/EditMaterials';
 import DisposalHubManagement from './pages/DisposalHubManagement';
+import Leagues from './pages/Leagues';
 import './App.css';
 
 // Protected Route Component
@@ -137,13 +138,22 @@ function App() {
               } 
             />
 
-            <Route 
-              path="/pickups" 
+            <Route
+              path="/pickups"
               element={
                 <ProtectedRoute>
                   <PickupManagement />
                 </ProtectedRoute>
-              } 
+              }
+            />
+
+            <Route
+              path="/leagues"
+              element={
+                <ProtectedRoute>
+                  <Leagues />
+                </ProtectedRoute>
+              }
             />
 
             {/* Admin Routes */}
