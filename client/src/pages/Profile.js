@@ -1135,6 +1135,42 @@ const Profile = ({ user: propsUser }) => {
     }
   };
 
+  // Handle privacy settings toggle changes
+  const handlePrivacySettingChange = async (setting, value) => {
+    try {
+      const token = localStorage.getItem('token');
+      const newPrivacySettings = {
+        ...user.privacySettings,
+        [setting]: value
+      };
+
+      // If showEarnings is disabled, also disable showNameOnLeaderboard
+      if (setting === 'showEarnings' && !value) {
+        newPrivacySettings.showNameOnLeaderboard = false;
+      }
+
+      const response = await axios.put(
+        'http://localhost:3001/api/protected/profile',
+        { privacySettings: newPrivacySettings },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        const updatedUser = { ...user, privacySettings: newPrivacySettings };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Error updating privacy settings:', error);
+      alert('Failed to update privacy settings. Please try again.');
+    }
+  };
+
   const hasPendingCollectorApplication = () => {
     return userApplications.some(app => 
       app.applicationType === 'Collector_Privilege' && 
@@ -1491,6 +1527,57 @@ const Profile = ({ user: propsUser }) => {
                             <p className={styles.noPreference}>Add your preferred locations to get started</p>
                           )}
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Privacy Settings Section */}
+                  <div className={styles.privacySection}>
+                    <div className={styles.sectionHeader}>
+                      <h3 className={styles.sectionTitle}>Privacy Settings</h3>
+                    </div>
+                    <p className={styles.sectionDescription}>
+                      Control how your information appears on community leaderboards.
+                    </p>
+
+                    <div className={styles.privacyContent}>
+                      <div className={styles.privacyItem}>
+                        <div className={styles.privacyItemInfo}>
+                          <h4>Show Earnings on Leaderboard</h4>
+                          <p className={styles.privacyDescription}>
+                            Allow your earnings to appear on the Community Top Earners leaderboard.
+                            This helps inspire others to recycle!
+                          </p>
+                        </div>
+                        <label className={styles.toggle}>
+                          <input
+                            type="checkbox"
+                            checked={user?.privacySettings?.showEarnings || false}
+                            onChange={(e) => handlePrivacySettingChange('showEarnings', e.target.checked)}
+                          />
+                          <span className={styles.toggleSlider}></span>
+                        </label>
+                      </div>
+
+                      <div className={styles.privacyItem}>
+                        <div className={styles.privacyItemInfo}>
+                          <h4>Show Name on Leaderboard</h4>
+                          <p className={styles.privacyDescription}>
+                            Display your name instead of "Anonymous User" on leaderboards.
+                            {!user?.privacySettings?.showEarnings && (
+                              <span className={styles.privacyNote}> (Enable "Show Earnings" first)</span>
+                            )}
+                          </p>
+                        </div>
+                        <label className={styles.toggle}>
+                          <input
+                            type="checkbox"
+                            checked={user?.privacySettings?.showNameOnLeaderboard || false}
+                            onChange={(e) => handlePrivacySettingChange('showNameOnLeaderboard', e.target.checked)}
+                            disabled={!user?.privacySettings?.showEarnings}
+                          />
+                          <span className={styles.toggleSlider}></span>
+                        </label>
                       </div>
                     </div>
                   </div>

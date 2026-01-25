@@ -1192,3 +1192,113 @@
     transform: translateY(0);
   }
 }
+
+/* Privacy Settings Section */
+.privacySection {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.privacySection .sectionTitle {
+  margin: 0 0 0.5rem 0;
+}
+
+.sectionDescription {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.privacyContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.privacyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.privacyItemInfo {
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.privacyItemInfo h4 {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.privacyDescription {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.privacyNote {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Toggle Switch */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSlider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #d1d5db;
+  transition: 0.3s;
+  border-radius: 28px;
+}
+
+.toggleSlider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle input:checked + .toggleSlider {
+  background-color: #3B6535;
+}
+
+.toggle input:checked + .toggleSlider:before {
+  transform: translateX(24px);
+}
+
+.toggle input:disabled + .toggleSlider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

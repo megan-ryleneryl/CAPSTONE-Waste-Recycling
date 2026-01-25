@@ -118,7 +118,8 @@ router.get('/', async (req, res) => {
         createdAt: req.user.createdAt,
         preferredTimes: req.user.preferredTimes || [],
         preferredLocations: req.user.preferredLocations || [],
-        userLocation: req.user.userLocation || null
+        userLocation: req.user.userLocation || null,
+        privacySettings: req.user.privacySettings || { showEarnings: false, showNameOnLeaderboard: false }
       }
     };
     
@@ -144,7 +145,8 @@ router.put('/', async (req, res) => {
       'address',
       'preferredTimes',
       'preferredLocations',
-      'userLocation'
+      'userLocation',
+      'privacySettings'
     ];
     
     const updates = {};
