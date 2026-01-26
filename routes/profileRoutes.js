@@ -107,7 +107,7 @@ router.get('/', async (req, res) => {
         isCollector: req.user.isCollector || false,
         isAdmin: req.user.isAdmin || false,
         status: req.user.status || 'Pending',
-        isOrganization: req.user.isOrganization || false,
+        organizationID: req.user.organizationID || null,
         organizationName: req.user.organizationName || '',
         points: req.user.points || 0,
         totalDonations: totalDonations,
@@ -291,7 +291,7 @@ router.post('/apply-organization', upload.single('proofDocument'), async (req, r
       });
     }
     
-    if (user.isOrganization) {
+    if (user.organizationID !== null) {
       return res.status(400).json({ 
         success: false, 
         message: 'User already has an organization account' 

@@ -1060,7 +1060,7 @@ return (
                       profilePictureUrl: collectorUser.profilePictureUrl,
                       isCollector: collectorUser.isCollector,
                       isAdmin: collectorUser.isAdmin,
-                      isOrganization: collectorUser.isOrganization,
+                      organizationID: collectorUser.organizationID,
                       organizationName: collectorUser.organizationName
                     },
                     postData: post

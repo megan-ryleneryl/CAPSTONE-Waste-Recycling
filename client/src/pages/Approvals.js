@@ -69,7 +69,7 @@ const Approvals = () => {
       if (response.data.success) {
         const user = response.data.user;
         const userInfo = {
-          displayName: user.isOrganization && user.organizationName 
+          displayName: user.organizationID && user.organizationName 
             ? `${user.organizationName} (${user.firstName} ${user.lastName})`
             : `${user.firstName} ${user.lastName}`,
           isAdmin: user.isAdmin || false,

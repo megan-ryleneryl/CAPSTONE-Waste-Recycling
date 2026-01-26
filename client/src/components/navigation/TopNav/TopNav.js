@@ -575,7 +575,7 @@ const TopNav = ({ user: propUser }) => {
                       )}
                       
                       {/* Organization Badge */}
-                      {user?.isOrganization && (
+                      {user?.organizationID !== null && (
                         <span className={`${styles.roleBadge} ${styles.roleOrganization}`}>
                           Organization
                         </span>

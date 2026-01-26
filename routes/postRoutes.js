@@ -130,7 +130,7 @@ router.get('/', verifyToken, async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             profilePictureUrl: user.profilePictureUrl,
-            isOrganization: user.isOrganization,
+            organizationID: user.organizationID,
             organizationName: user.organizationName,
             isCollector: user.isCollector,
             isAdmin: user.isAdmin,
@@ -239,7 +239,7 @@ router.get('/:postId', verifyToken, async (req, res) => {
           firstName: postUser.firstName,
           lastName: postUser.lastName,
           profilePictureUrl: postUser.profilePictureUrl,
-          isOrganization: postUser.isOrganization,
+          organizationID: postUser.organizationID,
           organizationName: postUser.organizationName,
           badges: postUser.badges,
           points: postUser.points
@@ -395,7 +395,7 @@ router.post('/create', verifyToken, (req, res, next) => {
       images: imageUrls,
       isCollector: user.isCollector || false,
       isAdmin: user.isAdmin || false,
-      isOrganization: user.isOrganization || false,
+      organizationID: user.organizationID || null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -945,7 +945,7 @@ router.get('/:postId/comments', verifyToken, async (req, res) => {
             firstName: user.firstName,
             lastName: user.lastName,
             profilePictureUrl: user.profilePictureUrl,
-            isOrganization: user.isOrganization,
+            organizationID: user.organizationID,
             organizationName: user.organizationName
           };
         }

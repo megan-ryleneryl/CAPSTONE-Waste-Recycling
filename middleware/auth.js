@@ -55,7 +55,7 @@ const verifyToken = async (req, res, next) => {
       status: user.status,
       isCollector: user.isCollector || false,
       isAdmin: user.isAdmin || false,
-      isOrganization: user.isOrganization || false
+      organizationID: user.organizationID || null
     };
 
     next();

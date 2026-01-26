@@ -16,7 +16,7 @@ const CreatePost = () => {
   const [isVerified, setIsVerified] = useState(false);
   const [isCollector, setIsCollector] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isOrganization, setIsOrganization] = useState(false);
+  const [organizationID, setOrganizationID] = useState(null)
   const [isLocationExpanded, setIsLocationExpanded] = useState(true);
   const [preferredLocations, setPreferredLocations] = useState([]);
   const [preferredTimes, setPreferredTimes] = useState([]);
@@ -82,7 +82,7 @@ const CreatePost = () => {
         setIsVerified(response.data.user.status === "Verified" || false);
         setIsCollector(response.data.user.isCollector || false);
         setIsAdmin(response.data.user.isAdmin || false);
-        setIsOrganization(response.data.user.isOrganization || false);
+        setOrganizationID(response.data.user.organizationID || null);
         setPreferredLocations(response.data.user.preferredLocations || []);
         setPreferredTimes(response.data.user.preferredTimes || []);
       } catch (error) {

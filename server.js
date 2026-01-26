@@ -230,7 +230,7 @@ app.get('/api/protected/posts/:postId', async (req, res) => {
           firstName: postUser.firstName,
           lastName: postUser.lastName,
           profilePictureUrl: postUser.profilePictureUrl,
-          isOrganization: postUser.isOrganization,
+          organizationID: postUser.organizationID,
           organizationName: postUser.organizationName,
           badges: postUser.badges,
           points: postUser.points
@@ -476,7 +476,7 @@ app.get('/api/protected/users/:userId', async (req, res) => {
       userID: user.userID,
       firstName: user.firstName,
       lastName: user.lastName,
-      isOrganization: user.isOrganization,
+      organizationID: user.organizationID,
       isCollector: user.isCollector,
       isAdmin: user.isAdmin,
       organizationName: user.organizationName,
@@ -615,7 +615,7 @@ app.get('/api/admin/users/:userID', async (req, res) => {
         email: user.email,
         isCollector: user.isCollector,
         isAdmin: user.isAdmin,
-        isOrganization: user.isOrganization,
+        organizationID: user.organizationID,
         organizationName: user.organizationName
       }
     });

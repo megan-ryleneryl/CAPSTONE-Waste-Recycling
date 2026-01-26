@@ -76,7 +76,7 @@ const Chat = ({ activeFilter = 'all', onChatCountsUpdate }) => {
       profilePictureUrl: conversation.otherUserProfilePicture || null,
       isCollector: false, // You might want to fetch from User model
       isAdmin: false, // You might want to fetch from User model
-      isOrganization: false // You might want to fetch from User model
+      organizationID: null // You might want to fetch from User model
     };
 
     handleOpenChat(conversation.postID, otherUser);

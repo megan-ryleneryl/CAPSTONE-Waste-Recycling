@@ -173,7 +173,7 @@ class AuthService {
       await this.setCustomClaims(userID, {
         isAdmin: flags.isAdmin || false,
         isCollector: flags.isCollector || false,
-        isOrganization: flags.isOrganization || false
+        orgizationID: flags.organizationID || null
       });
       
       return user;

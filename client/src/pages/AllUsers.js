@@ -224,7 +224,7 @@ const AllUsers = () => {
       (filters.role === 'admin' && user.isAdmin) ||
       (filters.role === 'collector' && user.isCollector) ||
       (filters.role === 'giver' && !user.isCollector) ||
-      (filters.role === 'organization' && user.isOrganization);
+      (filters.role === 'organization' && user.organizationID !== null);
     
     // Filter by status
     const statusMatch = filters.status === 'all' || 

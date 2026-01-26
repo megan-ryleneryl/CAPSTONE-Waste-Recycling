@@ -918,7 +918,7 @@ async function getUserSpecificStats(userID, user) {
     }
     
     // ORGANIZATION STATS
-    if (user.isOrganization) {
+    if (user.organizationID !== null) {
       try {
         const orgInitiatives = userPosts.filter(p => p.postType === 'Initiative');
         const activeInitiatives = orgInitiatives.filter(p => 

@@ -44,8 +44,7 @@ class Post {
     // User flags for post permissions
     this.isCollector = data.isCollector || false;
     this.isAdmin = data.isAdmin || false;
-    this.isOrganization = data.isOrganization || false;
-  
+    this.organizationID = data.organizationID || null;  
       
     // For Waste posts - claim tracking
     this.claimedBy = data.claimedBy || null;
@@ -130,7 +129,7 @@ class Post {
       // User flags
       isCollector: this.isCollector,
       isAdmin: this.isAdmin,
-      isOrganization: this.isOrganization
+      organizationID: this.organizationID
     };
   }
 

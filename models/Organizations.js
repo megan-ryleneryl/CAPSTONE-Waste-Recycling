@@ -6,15 +6,15 @@ class Organization {
   constructor(data = {}, options = {}) {
     this.organizationID = data.organizationID || uuidv4();
     this.organizationName = data.organizationName || '';
-    this.members = data.members || []; // Array of userIDs
-    this.admins = data.admins || []; // Array of userIDs
+    this.members = Array.isArray(data.members) ? data.members : [];
+    this.admins = Array.isArray(data.admins) ? data.admins : [];
     this.description = data.description || '';
     this.profilePicture = data.profilePicture || null;
     this.isActive = data.isActive !== undefined ? data.isActive : true;
     this.updatedAt = data.updatedAt || new Date();
     this.createdAt = data.createdAt || new Date();
 
-    // Basic validation
+    // Only validate on new creation, not when loading from DB
     if (options.validateOnCreate !== false && this.organizationName.trim().length === 0) {
       throw new Error('Organization name is required');
     }
@@ -132,6 +132,11 @@ class Organization {
       updatedAt: new Date()
     };
     
+    // If organization name is being updated, sync to all members
+    if (updateData.organizationName && updateData.organizationName !== this.organizationName) {
+      await this.syncNameToMembers(updateData.organizationName);
+    }
+    
     // Update Firestore first
     const updated = await Organization.update(this.organizationID, dataToUpdate);
     
@@ -144,31 +149,107 @@ class Organization {
     return await Organization.delete(this.organizationID);
   }
 
-  // Member management methods
-  // Add member to organization
+  // ============================================
+  // ORGANIZATION NAME SYNC FUNCTIONS
+  // ============================================
+  
+  /**
+   * Sync organization name to all member users
+   * Call this whenever organization name changes
+   */
+  async syncNameToMembers(newName = null) {
+    const User = require('./Users');
+    const nameToSync = newName || this.organizationName;
+    
+    try {
+      // Update all members with the new organization name
+      for (const memberID of this.members) {
+        await User.update(memberID, { 
+          organizationName: nameToSync 
+        });
+      }
+      
+      console.log(`Synced organization name to ${this.members.length} members`);
+      return { success: true, memberCount: this.members.length };
+    } catch (error) {
+      console.error('Failed to sync organization name:', error);
+      throw new Error(`Failed to sync organization name: ${error.message}`);
+    }
+  }
+  
+  /**
+   * Update organization name and sync to all members
+   * Use this method instead of regular update when changing name
+   */
+  async updateName(newName) {
+    if (!newName || newName.trim().length === 0) {
+      throw new Error('Organization name cannot be empty');
+    }
+    
+    // Update organization
+    await this.update({ organizationName: newName });
+    
+    // Sync is handled automatically in update() method
+    return this;
+  }
+
+  // ============================================
+  // MEMBER MANAGEMENT METHODS
+  // ============================================
+  
+  /**
+   * Add member to organization and set their organizationName
+   */
   async addMember(userID) {
+    const User = require('./Users');
+    
     if (this.members.includes(userID)) {
       throw new Error('User is already a member');
     }
     
     this.members.push(userID);
-    return await this.update({ members: this.members });
+    
+    // Update organization
+    await Organization.update(this.organizationID, { members: this.members });
+    
+    // Update user with organizationID and organizationName
+    await User.update(userID, { 
+      organizationID: this.organizationID,
+      organizationName: this.organizationName
+    });
+    
+    return this;
   }
 
-  // Remove member from organization
+  /**
+   * Remove member from organization and clear their organization data
+   */
   async removeMember(userID) {
+    const User = require('./Users');
+    
     this.members = this.members.filter(id => id !== userID);
     
     // Also remove from admins if they were admin
     this.admins = this.admins.filter(id => id !== userID);
     
-    return await this.update({ 
+    // Update organization
+    await Organization.update(this.organizationID, { 
       members: this.members,
       admins: this.admins 
     });
+    
+    // Clear user's organization data
+    await User.update(userID, { 
+      organizationID: null,
+      organizationName: null
+    });
+    
+    return this;
   }
 
-  // Add admin (must already be member)
+  /**
+   * Add admin (must already be member)
+   */
   async addAdmin(userID) {
     if (!this.members.includes(userID)) {
       throw new Error('User must be a member before becoming admin');
@@ -182,7 +263,9 @@ class Organization {
     return await this.update({ admins: this.admins });
   }
 
-  // Remove admin status (but keep as member)
+  /**
+   * Remove admin status (but keep as member)
+   */
   async removeAdmin(userID) {
     this.admins = this.admins.filter(id => id !== userID);
     return await this.update({ admins: this.admins });
@@ -198,8 +281,5 @@ class Organization {
     return this.admins.includes(userID);
   }
 }
-
-
-
 
 module.exports = Organization;
