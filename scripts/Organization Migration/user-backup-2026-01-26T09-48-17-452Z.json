@@ -1,0 +1,1186 @@
+[
+  {
+    "id": "036ee300-cf26-4271-8372-1b72e3227273",
+    "userID": "036ee300-cf26-4271-8372-1b72e3227273",
+    "firstName": "Rey",
+    "lastName": "Alejandro",
+    "email": "rey.alejandro@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$Ia4YyCLKBqgDZhPoZbfaAedcqMwJjpDLTeEe/eEt0eLvLyZLvV9Yq",
+    "status": "Pending",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "userLocation": null,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763200183,
+      "_nanoseconds": 24000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "points": 7
+  },
+  {
+    "id": "08e3be1a-9e9a-416a-b69e-ac72bd05afbe",
+    "userID": "08e3be1a-9e9a-416a-b69e-ac72bd05afbe",
+    "firstName": "Andrew",
+    "lastName": "Aniago",
+    "email": "aniagoandrew@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$l5OzzBzjwaqsGYp3SLhJ1OjF3ojc12YRkQ9fMSO2DHqB2AnJWtRpG",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "points": 0,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1762766827,
+      "_nanoseconds": 571000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "status": "Verified",
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "137607000",
+        "name": "Taguig City"
+      },
+      "barangay": {
+        "code": "137607012",
+        "name": "Santa Ana"
+      },
+      "coordinates": {
+        "lat": 14.5264347,
+        "lng": 121.0748296
+      },
+      "fallbackLevel": "barangay"
+    },
+    "preferredTimes": [
+      {
+        "day": "Saturday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      },
+      {
+        "day": "Sunday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      }
+    ],
+    "preferredLocations": [
+      {
+        "name": "my home",
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "province": null,
+        "city": {
+          "code": "137607000",
+          "name": "Taguig City"
+        },
+        "barangay": {
+          "code": "137607012",
+          "name": "Santa Ana"
+        },
+        "addressLine": "Camella Elisande"
+      }
+    ]
+  },
+  {
+    "id": "0e08d3ad-82ed-46fd-bf96-900d5e66cbaa",
+    "userID": "0e08d3ad-82ed-46fd-bf96-900d5e66cbaa",
+    "firstName": "Sonny",
+    "lastName": "Boy",
+    "email": "sonny.boy@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$j4Z5ZvaTNUa8HXMvc1r.TuksnIP29C0x5Vtoquw/1MeF1ozDopuvS",
+    "status": "Pending",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1762521249,
+      "_nanoseconds": 220000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "points": 10
+  },
+  {
+    "id": "1aab0f45-3060-40aa-927d-4e339e894f00",
+    "userID": "1aab0f45-3060-40aa-927d-4e339e894f00",
+    "firstName": "EMILIO RAFAEL",
+    "lastName": "NOEL",
+    "email": "emilio.rrnoel@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$mezc7U7Y46nM6FedwlvKa..q1vllVpQht6dn2UhLN8/JxA8dsILEq",
+    "status": "Pending",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "userLocation": null,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763213466,
+      "_nanoseconds": 674000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "points": 12
+  },
+  {
+    "id": "22d9d3ff-2e57-41aa-a239-49bcd5611ba0",
+    "userID": "22d9d3ff-2e57-41aa-a239-49bcd5611ba0",
+    "email": "johngiveon@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$Dx5o57AuEP06ZwpZBeToi.x09zEAtVozxtYtHVkZkiWPRWWAjHwcy",
+    "isAdmin": false,
+    "organizationName": null,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763193046,
+      "_nanoseconds": 520000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "137607000",
+        "name": "Taguig City"
+      },
+      "barangay": {
+        "code": "137607012",
+        "name": "Santa Ana"
+      },
+      "coordinates": {
+        "lat": 14.5264347,
+        "lng": 121.0748296
+      },
+      "fallbackLevel": "barangay"
+    },
+    "preferredTimes": [
+      {
+        "day": "Wednesday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      },
+      {
+        "day": "Saturday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      }
+    ],
+    "preferredLocations": [
+      {
+        "name": "home",
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "province": null,
+        "city": {
+          "code": "137607000",
+          "name": "Taguig City"
+        },
+        "barangay": {
+          "code": "137607012",
+          "name": "Santa Ana"
+        },
+        "addressLine": "Asuncion Cmpd"
+      }
+    ],
+    "points": 21,
+    "isCollector": false,
+    "isOrganization": false,
+    "status": "Verified",
+    "firstName": "Johnny",
+    "lastName": "Old"
+  },
+  {
+    "id": "345d32fa-5ac2-410f-9acb-cc0336b7576a",
+    "userID": "345d32fa-5ac2-410f-9acb-cc0336b7576a",
+    "firstName": "John",
+    "lastName": "Giveonato",
+    "email": "test@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$jUf9oC78Or8jRSgtBEp3z.2Jve6LGzeIrP5qw9ekhh2CWVi.zdtDa",
+    "status": "Pending",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "userLocation": null,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763387716,
+      "_nanoseconds": 90000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "points": 3
+  },
+  {
+    "id": "45f90e45-1f1d-445c-85f6-afd51b36b0d6",
+    "userID": "45f90e45-1f1d-445c-85f6-afd51b36b0d6",
+    "email": "luke_marion_aniago@dlsu.edu.ph",
+    "passwordHash": "$2a$10$L61JOtBAHMnjGB537hTM6OejYoqQSBm3XZVB1ZY8ON8RcgdSgYb7i",
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "points": 0,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1762767193,
+      "_nanoseconds": 404000000
+    },
+    "profilePictureUrl": "https://lh3.googleusercontent.com/a/ACg8ocLCxQEw7GWPH1PqK2Act-VS1WpYCzffCZYksZV4E6p3vJPXwt8=s96-c",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "137607000",
+        "name": "Taguig City"
+      },
+      "barangay": {
+        "code": "137607012",
+        "name": "Santa Ana"
+      },
+      "coordinates": {
+        "lat": 14.5264347,
+        "lng": 121.0748296
+      },
+      "fallbackLevel": "barangay"
+    },
+    "status": "Verified",
+    "isCollector": true,
+    "firstName": "Marion",
+    "lastName": "Dela Cruz",
+    "phone": "0956 548 9999",
+    "preferredLocations": [
+      {
+        "name": "house",
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "province": null,
+        "city": {
+          "code": "137607000",
+          "name": "Taguig City"
+        },
+        "barangay": {
+          "code": "137607012",
+          "name": "Santa Ana"
+        },
+        "addressLine": "Camella Elisande"
+      }
+    ],
+    "preferredTimes": [
+      {
+        "day": "Saturday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      },
+      {
+        "day": "Sunday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      }
+    ]
+  },
+  {
+    "id": "6690504c-5833-4032-9dd8-d811659b3500",
+    "userID": "6690504c-5833-4032-9dd8-d811659b3500",
+    "firstName": "Sherylle",
+    "lastName": "Galinato",
+    "email": "sherylle.galinato@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$OB6oJJoE.2dtcZWPTQ1FOey642Dsezn2l9SodV5YzacftF3C7pciO",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763016191,
+      "_nanoseconds": 915000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "133900000",
+        "name": "City of Manila"
+      },
+      "barangay": {
+        "code": "133901247",
+        "name": "Barangay 246"
+      },
+      "coordinates": {
+        "lat": 14.6103917,
+        "lng": 120.9828343
+      },
+      "fallbackLevel": "barangay"
+    },
+    "status": "Verified",
+    "points": 116
+  },
+  {
+    "id": "6e15c2f3-4c11-4122-8bcc-042345f9becd",
+    "userID": "6e15c2f3-4c11-4122-8bcc-042345f9becd",
+    "firstName": "Megan",
+    "lastName": "Sioco",
+    "email": "megan@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$2X3sOyrhFYvS0Xdp3NTwYeQqaU6A9ykWo/cP/GS/rmYrJAEsYSoom",
+    "isCollector": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "points": 0,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1761296082,
+      "_nanoseconds": 519000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "elevatedBy": "a791debe-5327-4290-9905-509c42c6873b",
+    "elevatedAt": "2025-10-27T01:59:48.440Z",
+    "updatedAt": "2025-10-27T01:59:48.440Z",
+    "status": "Verified",
+    "isAdmin": false
+  },
+  {
+    "id": "74606c69-986d-4f8f-ac88-3a5586b30480",
+    "userID": "74606c69-986d-4f8f-ac88-3a5586b30480",
+    "email": "masterlukeetv@gmail.com",
+    "passwordHash": "$2a$10$FRaHEAEWJGVnVtZZX0h5m.0EvIczQgORBcjTzlRpBMX1p92xd6ogK",
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "points": 0,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1762772044,
+      "_nanoseconds": 533000000
+    },
+    "profilePictureUrl": "https://lh3.googleusercontent.com/a/ACg8ocI_LpW_ZCB1R2t7DosblPxGB_THS0fPDBfRJ0BUbfnyh2_txKVW=s96-c",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "firstName": "Baron",
+    "lastName": "Santos",
+    "phone": "0997 997 9997",
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "137607000",
+        "name": "Taguig City"
+      },
+      "barangay": {
+        "code": "137607012",
+        "name": "Santa Ana"
+      },
+      "coordinates": {
+        "lat": 14.5264347,
+        "lng": 121.0748296
+      },
+      "fallbackLevel": "barangay"
+    },
+    "preferredTimes": [
+      {
+        "day": "Friday",
+        "startTime": "06:00",
+        "endTime": "12:00",
+        "slot": "morning"
+      }
+    ],
+    "preferredLocations": [
+      {
+        "name": "junk shop",
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "province": null,
+        "city": {
+          "code": "137607000",
+          "name": "Taguig City"
+        },
+        "barangay": {
+          "code": "137607012",
+          "name": "Santa Ana"
+        },
+        "addressLine": "Asuncion Cmpd"
+      }
+    ],
+    "isCollector": true,
+    "status": "Verified"
+  },
+  {
+    "id": "888b5ff2-ebd9-464a-8813-36cf2dae7041",
+    "userID": "888b5ff2-ebd9-464a-8813-36cf2dae7041",
+    "firstName": "Cheshire",
+    "lastName": "Pie",
+    "email": "cheshirepiepancake@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$TCD4JLQEdMqubbCDlFW6pukGs0GLgtQ2rsnRmlG3ELNEVLfZC/GXC",
+    "status": "Pending",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "userLocation": null,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1762598751,
+      "_nanoseconds": 857000000
+    },
+    "profilePictureUrl": "https://lh3.googleusercontent.com/a/ACg8ocLKw6OikOjcU46Nr7eWeHVzStbWGZJaYxK8_6FyjnuaN3GTVJLb=s96-c",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "points": 3
+  },
+  {
+    "id": "92271d7f-0dc1-4e5c-8d70-d56808be2dc0",
+    "userID": "92271d7f-0dc1-4e5c-8d70-d56808be2dc0",
+    "firstName": "Kenneth",
+    "lastName": "Vidal",
+    "email": "kenneth_vidal@dlsu.edu.ph",
+    "phone": "",
+    "passwordHash": "$2a$10$tbeypoxQWtt8WgH51cmnOetYgLqQVGIvTyYbzbt3b/4yu0pEk323O",
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1762774552,
+      "_nanoseconds": 515000000
+    },
+    "profilePictureUrl": "https://lh3.googleusercontent.com/a/ACg8ocIYn41KU32ywyRA_JhWDL210vfdt6nkG4N7Dm1P6Fx9BUGDtosN=s96-c",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "preferredTimes": [
+      {
+        "day": "Monday",
+        "startTime": "18:00",
+        "endTime": "22:00",
+        "slot": "evening"
+      },
+      {
+        "day": "Wednesday",
+        "startTime": "18:00",
+        "endTime": "22:00",
+        "slot": "evening"
+      },
+      {
+        "day": "Friday",
+        "startTime": "18:00",
+        "endTime": "22:00",
+        "slot": "evening"
+      }
+    ],
+    "preferredLocations": [
+      {
+        "name": "Home",
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "province": null,
+        "city": {
+          "code": "133900000",
+          "name": "City of Manila"
+        },
+        "barangay": {
+          "code": "133910042",
+          "name": "Barangay 727"
+        },
+        "addressLine": "Burgundy Transpacific Place, 2444-A Taft Avenue"
+      }
+    ],
+    "isCollector": true,
+    "status": "Verified",
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "137607000",
+        "name": "Taguig City"
+      },
+      "barangay": {
+        "code": "137607012",
+        "name": "Santa Ana"
+      },
+      "coordinates": {
+        "lat": 14.5264347,
+        "lng": 121.0748296
+      },
+      "fallbackLevel": "barangay"
+    },
+    "points": 40
+  },
+  {
+    "id": "a2c2508a-bfb4-4b60-b3f5-2c199813e9bc",
+    "userID": "a2c2508a-bfb4-4b60-b3f5-2c199813e9bc",
+    "firstName": "Kenneth",
+    "email": "kenneth.b.vidal@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$iwF4nrOUVflDNjkKNqSUJuQj4RBj7FMueTAqNqCE8CrttGfxU1.5.",
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "points": 0,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1762778076,
+      "_nanoseconds": 833000000
+    },
+    "profilePictureUrl": "https://lh3.googleusercontent.com/a/ACg8ocIa_5SaIX28ETDoFltxmWRYHfV9vjm0sg0WifbFHGLCoCYUwCA=s96-c",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "lastName": "Vidal 2",
+    "status": "Verified",
+    "isCollector": true,
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "133900000",
+        "name": "City of Manila"
+      },
+      "barangay": {
+        "code": "133910042",
+        "name": "Barangay 727"
+      },
+      "coordinates": {
+        "lat": 14.5659435,
+        "lng": 120.9955096
+      },
+      "fallbackLevel": "barangay"
+    },
+    "preferredTimes": [
+      {
+        "day": "Tuesday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      },
+      {
+        "day": "Thursday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      },
+      {
+        "day": "Saturday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      }
+    ],
+    "preferredLocations": [
+      {
+        "name": "School",
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "province": null,
+        "city": {
+          "code": "133900000",
+          "name": "City of Manila"
+        },
+        "barangay": {
+          "code": "133910042",
+          "name": "Barangay 727"
+        },
+        "addressLine": "Burgundy Transpacific Place, 2444-A Taft Avenue"
+      }
+    ]
+  },
+  {
+    "id": "a791debe-5327-4290-9905-509c42c6873b",
+    "userID": "a791debe-5327-4290-9905-509c42c6873b",
+    "firstName": "Megan Rylene",
+    "lastName": "Sioco",
+    "email": "megan_rylene_sioco@dlsu.edu.ph",
+    "phone": "",
+    "passwordHash": "$2a$10$4oO2oYbtNbYJ1rU763X9AukN5DF6eGYfj6al42jAsR5ReQ3k5C3mO",
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1758291951,
+      "_nanoseconds": 374000000
+    },
+    "deletedAt": null,
+    "unsuspendedBy": "fa541cb3-6065-4264-9fd6-0a2364fde5dd",
+    "elevatedBy": "fa541cb3-6065-4264-9fd6-0a2364fde5dd",
+    "profilePictureUrl": "/uploads/profile-pictures/a791debe-5327-4290-9905-509c42c6873b/profilePicture-1758870613604-884479079.jpeg",
+    "isCollector": true,
+    "migratedAt": {
+      "_seconds": 1758881307,
+      "_nanoseconds": 237000000
+    },
+    "revokedBy": "fa541cb3-6065-4264-9fd6-0a2364fde5dd",
+    "revokedAt": "2025-10-06T08:49:02.652Z",
+    "isAdmin": true,
+    "elevatedAt": "2025-10-06T08:50:43.026Z",
+    "updatedAt": "2025-10-06T08:50:43.026Z",
+    "unsuspendedAt": "2025-10-06T08:51:40.580Z",
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "status": "Verified",
+    "points": 10
+  },
+  {
+    "id": "a81db5d9-950f-411f-8191-1859d64e8ae8",
+    "userID": "a81db5d9-950f-411f-8191-1859d64e8ae8",
+    "firstName": "Ewaste",
+    "lastName": "Erased",
+    "email": "ewaste_erased@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$5ZsUtQ0HNB6c3wnWzYiMduBJ.ft1tqJj6wFDqtpuciSd7nblhpP4q",
+    "status": "Pending",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "userLocation": null,
+    "points": 0,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763192911,
+      "_nanoseconds": 434000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null
+  },
+  {
+    "id": "a8de495e-f4a2-45f6-8cf1-7a9401595082",
+    "userID": "a8de495e-f4a2-45f6-8cf1-7a9401595082",
+    "firstName": "Luke",
+    "lastName": "Aniago",
+    "email": "aniagoluke@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$0sOGrweDsnmS8xJW1yR0Tu9k1FDwbHtGPk39GDvnEaRABRrDHCdeS",
+    "isOrganization": false,
+    "organizationName": null,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1758108350,
+      "_nanoseconds": 922000000
+    },
+    "profilePictureUrl": "https://lh3.googleusercontent.com/a/ACg8ocJxR8DH8OCtEySrDsaSxcYKcHw1eg_6Lzafono-DLeNGCN-vfnF=s96-c",
+    "deletedAt": null,
+    "preferredTimes": [
+      {
+        "endTime": "18:00",
+        "slot": "afternoon",
+        "startTime": "12:00",
+        "day": "Wednesday"
+      },
+      {
+        "day": "Saturday",
+        "endTime": "18:00",
+        "startTime": "12:00",
+        "slot": "afternoon"
+      }
+    ],
+    "status": "Verified",
+    "migratedAt": {
+      "_seconds": 1758881307,
+      "_nanoseconds": 244000000
+    },
+    "isAdmin": false,
+    "isCollector": true,
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "137607000",
+        "name": "Taguig City"
+      },
+      "barangay": {
+        "code": "137607012",
+        "name": "Santa Ana"
+      },
+      "coordinates": {
+        "lat": 14.5264347,
+        "lng": 121.0748296
+      },
+      "fallbackLevel": "barangay"
+    },
+    "preferredLocations": [
+      {
+        "city": {
+          "code": "137607000",
+          "name": "Taguig City"
+        },
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "addressLine": "Bambang Ni Felix",
+        "province": null,
+        "name": "home",
+        "barangay": {
+          "code": "137607012",
+          "name": "Santa Ana"
+        }
+      },
+      {
+        "name": "office",
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "province": null,
+        "city": {
+          "code": "137607000",
+          "name": "Taguig City"
+        },
+        "barangay": {
+          "code": "137607014",
+          "name": "Tuktukan"
+        },
+        "addressLine": "City Hall"
+      }
+    ],
+    "points": 173,
+    "privacySettings": {
+      "showEarnings": true,
+      "showNameOnLeaderboard": true
+    }
+  },
+  {
+    "id": "bea7257a-9948-4aba-992e-3f543819dedc",
+    "userID": "bea7257a-9948-4aba-992e-3f543819dedc",
+    "firstName": "Amie",
+    "lastName": "Buenavije",
+    "email": "amie.b@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$OSe.MpbhbgVrRHJO2Fu9.eODAHwsiN4pPwjAOzaPEz/1n0/qcda.6",
+    "status": "Pending",
+    "isCollector": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "userLocation": null,
+    "points": 0,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763349102,
+      "_nanoseconds": 916000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "isAdmin": true,
+    "elevatedBy": "fa541cb3-6065-4264-9fd6-0a2364fde5dd",
+    "elevatedAt": "2025-11-17T03:12:12.278Z",
+    "updatedAt": "2025-11-17T03:12:12.278Z"
+  },
+  {
+    "id": "caac7ed6-f7b3-44bd-99e1-a67ea3ca2bbc",
+    "userID": "caac7ed6-f7b3-44bd-99e1-a67ea3ca2bbc",
+    "firstName": "Ishi",
+    "lastName": "Ople",
+    "email": "patricia_ople@dlsu.edu.ph",
+    "phone": "",
+    "passwordHash": "$2a$10$ANXd4PDZrCH1o3ql5z3kUee76n4X3vc3VgM6DC2zchBzvbsS8Zftu",
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1759563781,
+      "_nanoseconds": 352000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "elevatedBy": "fa541cb3-6065-4264-9fd6-0a2364fde5dd",
+    "elevatedAt": "2025-10-06T08:24:14.231Z",
+    "userType": "Admin",
+    "status": "Verified",
+    "updatedAt": "2025-10-06T08:24:14.231Z",
+    "points": 13,
+    "isCollector": true
+  },
+  {
+    "id": "ce931ce6-76c4-41b7-b43b-1b34d792d638",
+    "userID": "ce931ce6-76c4-41b7-b43b-1b34d792d638",
+    "firstName": "John",
+    "lastName": "Gomez",
+    "email": "johngomez@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$WfUEzU.DGEoYFAxB4KbTeOIR63ggCsOXuy96xeVWzzT.GeLrH0mz2",
+    "isAdmin": false,
+    "organizationName": null,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763353644,
+      "_nanoseconds": 949000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "137607000",
+        "name": "Taguig City"
+      },
+      "barangay": {
+        "code": "137607012",
+        "name": "Santa Ana"
+      },
+      "coordinates": {
+        "lat": 14.5264347,
+        "lng": 121.0748296
+      },
+      "fallbackLevel": "barangay"
+    },
+    "preferredTimes": [
+      {
+        "day": "Wednesday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      },
+      {
+        "day": "Saturday",
+        "startTime": "12:00",
+        "endTime": "18:00",
+        "slot": "afternoon"
+      }
+    ],
+    "preferredLocations": [
+      {
+        "addressLine": "Asuncion Cmpd",
+        "province": null,
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "city": {
+          "name": "Taguig City",
+          "code": "137607000"
+        },
+        "barangay": {
+          "name": "Santa Ana",
+          "code": "137607012"
+        },
+        "name": "home"
+      },
+      {
+        "name": "org",
+        "region": {
+          "code": "130000000",
+          "name": "NCR"
+        },
+        "province": null,
+        "city": {
+          "code": "137607000",
+          "name": "Taguig City"
+        },
+        "barangay": {
+          "code": "137607014",
+          "name": "Tuktukan"
+        },
+        "addressLine": "City Hall"
+      }
+    ],
+    "status": "Verified",
+    "points": 14,
+    "isOrganization": true,
+    "isCollector": true
+  },
+  {
+    "id": "dbf5edd7-504d-4805-b161-5c6bca48e3ec",
+    "userID": "dbf5edd7-504d-4805-b161-5c6bca48e3ec",
+    "firstName": "Peeka",
+    "lastName": "Chu",
+    "email": "peeka@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$sK9hSR64jMy/gc0IhlFERu31couOH/zgR/wCpFIwuxSUt4MICUIpy",
+    "status": "Pending",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "userLocation": null,
+    "points": 0,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763198829,
+      "_nanoseconds": 964000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null
+  },
+  {
+    "id": "ebe8ed7b-7801-4367-909c-bd85e372ae28",
+    "userID": "ebe8ed7b-7801-4367-909c-bd85e372ae28",
+    "firstName": "Christie",
+    "lastName": "Alabanza",
+    "email": "c.alabanza@neworigins.com",
+    "phone": "",
+    "passwordHash": "$2a$10$q0.OO.7KrkCyaBhR4EN73eXKK4HlarMucr5bWqNIBG4YlC0QDLKPa",
+    "isAdmin": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1763015871,
+      "_nanoseconds": 680000000
+    },
+    "profilePictureUrl": "",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "userLocation": {
+      "region": {
+        "code": "130000000",
+        "name": "NCR"
+      },
+      "province": null,
+      "city": {
+        "code": "133900000",
+        "name": "City of Manila"
+      },
+      "barangay": {
+        "code": "133902006",
+        "name": "Barangay 292"
+      },
+      "coordinates": {
+        "lat": 14.6321661,
+        "lng": 120.9685694
+      },
+      "fallbackLevel": "barangay"
+    },
+    "isCollector": true,
+    "status": "Verified",
+    "isOrganization": true,
+    "points": 29
+  },
+  {
+    "id": "edff2fc2-0ea7-4ce4-824e-d2df24f46595",
+    "userID": "edff2fc2-0ea7-4ce4-824e-d2df24f46595",
+    "firstName": "Kenneth",
+    "lastName": "Vidal",
+    "email": "kenneth_vidal@dlsu.edu.ph",
+    "phone": "",
+    "passwordHash": "$2a$10$LKnVuyo9KNQa9VbK9Nhxkej8zb649148npTcKLM3dy0QiFjqwAD1y",
+    "isCollector": false,
+    "isAdmin": false,
+    "isOrganization": false,
+    "organizationName": null,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "userLocation": null,
+    "points": 0,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1762774021,
+      "_nanoseconds": 824000000
+    },
+    "profilePictureUrl": "https://lh3.googleusercontent.com/a/ACg8ocIYn41KU32ywyRA_JhWDL210vfdt6nkG4N7Dm1P6Fx9BUGDtosN=s96-c",
+    "deletedAt": null,
+    "suspensionReason": null,
+    "suspendedAt": null,
+    "suspendedBy": null,
+    "unsuspendedAt": null,
+    "unsuspendedBy": null,
+    "status": "Verified"
+  },
+  {
+    "id": "fa541cb3-6065-4264-9fd6-0a2364fde5dd",
+    "userID": "fa541cb3-6065-4264-9fd6-0a2364fde5dd",
+    "firstName": "Capstone",
+    "lastName": "MILK",
+    "email": "capstone.milk@gmail.com",
+    "phone": "",
+    "passwordHash": "$2a$10$GMdOFO8q7oEX77AWl2E/peiROhIflJf6orjOYJGxabuU3LchtcZuy",
+    "organizationName": null,
+    "badges": [],
+    "createdAt": {
+      "_seconds": 1757949256,
+      "_nanoseconds": 697000000
+    },
+    "deletedAt": null,
+    "status": "Verified",
+    "profilePictureUrl": "https://lh3.googleusercontent.com/a/ACg8ocJErp2y5tvPu4PwA4CMauFAzulDkWdXHyQ6NJUAJ-bN95pS6A=s96-c",
+    "isCollector": true,
+    "migratedAt": {
+      "_seconds": 1758881307,
+      "_nanoseconds": 236000000
+    },
+    "isAdmin": true,
+    "isOrganization": true,
+    "preferredTimes": [],
+    "preferredLocations": [],
+    "points": 42
+  }
+]

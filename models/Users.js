@@ -15,6 +15,7 @@ class User {
     this.isAdmin = data.isAdmin || false; 
     this.isOrganization = data.isOrganization || false;
     this.organizationName = data.organizationName || null;
+    this.organizationID = data.organizationID || null;
     this.preferredTimes = data.preferredTimes || [];
     // Array of structured location objects matching Pickup.pickupLocation format
     // Each location: { name, region: {code, name}, province: {code, name} | null,
@@ -50,6 +51,9 @@ class User {
     if (!['Pending', 'Verified', 'Submitted', 'Rejected'].includes(this.status)) {
       errors.push('Valid status is required');
     }
+    if (this.organizationID !== null && typeof this.organizationID !== 'string') {
+      errors.push('organizationID must be a string or null');
+    }
 
     return {
       isValid: errors.length === 0,
@@ -71,6 +75,7 @@ class User {
       isAdmin: this.isAdmin,
       isOrganization: this.isOrganization,
       organizationName: this.organizationName,
+      organizationID: this.organizationID,
       preferredTimes: this.preferredTimes,
       preferredLocations: this.preferredLocations,
       userLocation: this.userLocation,
@@ -79,7 +84,6 @@ class User {
       createdAt: this.createdAt,
       profilePictureUrl: this.profilePictureUrl,
       deletedAt: this.deletedAt,
-      status: this.status,
       suspensionReason: this.suspensionReason,
       suspendedAt: this.suspendedAt,
       suspendedBy: this.suspendedBy,
