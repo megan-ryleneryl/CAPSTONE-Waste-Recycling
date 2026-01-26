@@ -28,6 +28,10 @@ class User {
     this.userLocation = data.userLocation || null;
     this.points = data.points || 0;
     this.badges = data.badges || []; // Array of {badgeId, earnedAt}
+    this.privacySettings = data.privacySettings || {
+      showEarnings: false,        // Consent to show earnings on leaderboard
+      showNameOnLeaderboard: false // Consent to show real name (vs "Anonymous User")
+    };
     this.profilePictureUrl = data.profilePictureUrl || '';
     this.createdAt = data.createdAt || new Date();
     this.deletedAt = null;
@@ -81,6 +85,7 @@ class User {
       userLocation: this.userLocation,
       points: this.points,
       badges: this.badges,
+      privacySettings: this.privacySettings,
       createdAt: this.createdAt,
       profilePictureUrl: this.profilePictureUrl,
       deletedAt: this.deletedAt,

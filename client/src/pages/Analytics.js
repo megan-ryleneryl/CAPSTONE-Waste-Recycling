@@ -20,7 +20,9 @@ import {
   Trees,
   Droplets,
   Zap,
-  Info
+  Info,
+  Wallet,
+  DollarSign
 } from 'lucide-react';
 
 const Analytics = () => {
@@ -681,6 +683,97 @@ const Analytics = () => {
                 ))
               ) : (
                 <p className={styles.noDataMessage}>No collector data available</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Community Earnings Section */}
+        <div className={styles.earningsSection}>
+          <div className={styles.earningsHeader}>
+            <h3>
+              <Wallet size={20} className={styles.earningsIcon} />
+              Community Earnings
+            </h3>
+            <p className={styles.earningsSubtitle}>
+              See how much our community earns from recycling
+            </p>
+          </div>
+
+          {/* Community Stats */}
+          <div className={styles.earningsStats}>
+            <div className={styles.earningStat}>
+              <DollarSign size={24} className={styles.earningStatIcon} />
+              <div>
+                <span className={styles.earningValue}>
+                  ₱{(analyticsData.communityEarnings?.totalCommunityEarnings || 0).toLocaleString()}
+                </span>
+                <span className={styles.earningLabel}>Total Earned by Community</span>
+              </div>
+            </div>
+            <div className={styles.earningStat}>
+              <div>
+                <span className={styles.earningValue}>
+                  ₱{(analyticsData.communityEarnings?.averagePerPickup || 0).toFixed(2)}
+                </span>
+                <span className={styles.earningLabel}>Avg. per Pickup</span>
+              </div>
+            </div>
+            <div className={styles.earningStat}>
+              <div>
+                <span className={styles.earningValue}>
+                  {analyticsData.communityEarnings?.uniqueEarners || 0}
+                </span>
+                <span className={styles.earningLabel}>People Earning</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Your Earnings Context */}
+          <div className={styles.yourEarnings}>
+            <h4>Your Earnings ({getTimeRangeLabel()})</h4>
+            <div className={styles.yourEarningsGrid}>
+              <div>
+                <span className={styles.yourEarningsValue}>
+                  ₱{(analyticsData.userEarnings?.totalEarnings || 0).toLocaleString()}
+                </span>
+                <span className={styles.yourEarningsLabel}>Total Earned</span>
+              </div>
+              <div>
+                <span className={styles.yourEarningsValue}>
+                  {analyticsData.userEarnings?.pickupCount || 0}
+                </span>
+                <span className={styles.yourEarningsLabel}>Paid Pickups</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Earners Leaderboard */}
+          <div className={styles.topEarnersSection}>
+            <h4>Top Earners</h4>
+            <div className={styles.leaderboard}>
+              {analyticsData.topEarners && analyticsData.topEarners.length > 0 ? (
+                analyticsData.topEarners.map((earner, index) => (
+                  <div key={index} className={styles.leaderboardItem}>
+                    <div className={styles.rank}>
+                      <Trophy className={`${styles.trophy} ${styles[earner.badge]}`} />
+                      <span>#{index + 1}</span>
+                    </div>
+                    <div className={styles.collectorInfo}>
+                      <h4 className={earner.isAnonymous ? styles.anonymousName : ''}>
+                        {earner.name}
+                      </h4>
+                      <p>₱{(earner.totalEarnings || 0).toLocaleString()} earned</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className={styles.noEarnersMessage}>
+                  <p>No users have opted in to show earnings yet.</p>
+                  <p className={styles.noEarnersHint}>
+                    You can opt in from your Profile → Privacy Settings
+                  </p>
+                </div>
               )}
             </div>
           </div>

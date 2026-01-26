@@ -140,6 +140,9 @@ const analyticsController = {
         completedSupports,
         wasteTypes,
         topCollectors,
+        topEarners,
+        communityEarnings,
+        userEarnings,
         userSpecificStats,
         pendingApplications,
         recentActivity
@@ -152,6 +155,9 @@ const analyticsController = {
         getCompletedSupportsInRange(startDate, endDate, locationFilter), // BOUNDED: Only this period
         getWasteDistribution(startDate, locationFilter),
         getTopCollectors(startDate, locationFilter),
+        getTopEarners(startDate, locationFilter),
+        getCommunityEarningsStats(startDate, locationFilter),
+        getUserEarningsStats(userID, startDate),
         getUserSpecificStats(userID, currentUser),
         currentUser.isAdmin ? getPendingApplications() : { count: 0 },
         getUserRecentActivity(userID, startDate)
@@ -205,6 +211,9 @@ const analyticsController = {
 
         communityImpact: environmentalImpact,
         topCollectors: topCollectors.slice(0, 3),
+        topEarners: topEarners.slice(0, 5),
+        communityEarnings,
+        userEarnings,
         wasteByType: wasteTypes,
         recyclingTrends: trends,
         recentActivity,
@@ -669,6 +678,150 @@ async function getTopCollectors(startDate, locationFilter = null) {
   } catch (error) {
     console.error('Error getting top collectors:', error);
     return [];
+  }
+}
+
+// Get top earners (users who earned the most from recycling) - only opted-in users
+async function getTopEarners(startDate, locationFilter = null) {
+  try {
+    const allUsers = await getCachedData('allUsers', () => User.findAll());
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    // Filter users who have opted in to show earnings
+    const optedInUsers = allUsers.filter(user =>
+      user.privacySettings?.showEarnings === true
+    );
+
+    const earnerStats = await Promise.all(
+      optedInUsers.map(async (user) => {
+        try {
+          // Get pickups where this user is the giver (received payment)
+          const userPickups = allPickups.filter(pickup =>
+            pickup.giverID === user.userID &&
+            pickup.status === 'Completed' &&
+            pickup.paymentReceived > 0 &&
+            matchesLocationFilter(pickup.pickupLocation, locationFilter)
+          );
+
+          // Apply time filter
+          const filteredPickups = userPickups.filter(pickup => {
+            const completedDate = toDate(pickup.completedAt);
+            return completedDate && !isNaN(completedDate.getTime()) && completedDate >= startDate;
+          });
+
+          const totalEarnings = filteredPickups.reduce(
+            (sum, pickup) => sum + (parseFloat(pickup.paymentReceived) || 0), 0
+          );
+
+          const pickupCount = filteredPickups.length;
+
+          return {
+            userID: user.userID,
+            name: user.privacySettings?.showNameOnLeaderboard
+              ? (user.organizationName || `${user.firstName} ${user.lastName}`)
+              : 'Anonymous User',
+            totalEarnings: Math.round(totalEarnings * 100) / 100,
+            pickupCount,
+            profilePicture: user.privacySettings?.showNameOnLeaderboard
+              ? user.profilePictureUrl
+              : null,
+            isAnonymous: !user.privacySettings?.showNameOnLeaderboard
+          };
+        } catch (error) {
+          console.error(`Error getting earnings for user ${user.userID}:`, error);
+          return null;
+        }
+      })
+    );
+
+    // Filter out nulls and users with no earnings, then sort by earnings
+    const validEarners = earnerStats.filter(e => e && e.totalEarnings > 0);
+    validEarners.sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+    return validEarners.map((earner, index) => ({
+      ...earner,
+      badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : null,
+      rank: index + 1
+    }));
+  } catch (error) {
+    console.error('Error getting top earners:', error);
+    return [];
+  }
+}
+
+// Get community-wide earnings statistics (aggregate data, no privacy filter needed)
+async function getCommunityEarningsStats(startDate, locationFilter = null) {
+  try {
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    // Get all completed pickups with payment
+    const completedPickups = allPickups.filter(pickup => {
+      const completedDate = toDate(pickup.completedAt);
+      return pickup.status === 'Completed' &&
+             pickup.paymentReceived > 0 &&
+             completedDate &&
+             !isNaN(completedDate.getTime()) &&
+             completedDate >= startDate &&
+             matchesLocationFilter(pickup.pickupLocation, locationFilter);
+    });
+
+    const totalEarnings = completedPickups.reduce(
+      (sum, pickup) => sum + (parseFloat(pickup.paymentReceived) || 0), 0
+    );
+
+    const pickupCount = completedPickups.length;
+    const averagePerPickup = pickupCount > 0 ? totalEarnings / pickupCount : 0;
+
+    // Get unique earners count
+    const uniqueEarners = new Set(completedPickups.map(p => p.giverID)).size;
+
+    return {
+      totalCommunityEarnings: Math.round(totalEarnings * 100) / 100,
+      pickupCount,
+      averagePerPickup: Math.round(averagePerPickup * 100) / 100,
+      uniqueEarners
+    };
+  } catch (error) {
+    console.error('Error getting community earnings stats:', error);
+    return {
+      totalCommunityEarnings: 0,
+      pickupCount: 0,
+      averagePerPickup: 0,
+      uniqueEarners: 0
+    };
+  }
+}
+
+// Get earnings stats for a specific user (for personal context)
+async function getUserEarningsStats(userID, startDate) {
+  try {
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    // Get user's completed pickups with payment (as giver)
+    const userPickups = allPickups.filter(pickup => {
+      const completedDate = toDate(pickup.completedAt);
+      return pickup.giverID === userID &&
+             pickup.status === 'Completed' &&
+             pickup.paymentReceived > 0 &&
+             completedDate &&
+             !isNaN(completedDate.getTime()) &&
+             completedDate >= startDate;
+    });
+
+    const totalEarnings = userPickups.reduce(
+      (sum, pickup) => sum + (parseFloat(pickup.paymentReceived) || 0), 0
+    );
+
+    return {
+      totalEarnings: Math.round(totalEarnings * 100) / 100,
+      pickupCount: userPickups.length,
+      averagePerPickup: userPickups.length > 0
+        ? Math.round((totalEarnings / userPickups.length) * 100) / 100
+        : 0
+    };
+  } catch (error) {
+    console.error('Error getting user earnings stats:', error);
+    return { totalEarnings: 0, pickupCount: 0, averagePerPickup: 0 };
   }
 }
 

@@ -1329,3 +1329,154 @@
     padding: 0.625rem 0.875rem;
   }
 }
+
+/* ==================== */
+/* Community Earnings Section */
+/* ==================== */
+.earningsSection {
+  background: linear-gradient(135deg, #f9fafb 0%, #f0fdf4 100%);
+  border-radius: var(--border-radius-lg, 12px);
+  padding: 1.5rem;
+  margin-top: 2rem;
+  border: 1px solid #e5e7eb;
+}
+
+.earningsHeader {
+  margin-bottom: 1.5rem;
+}
+
+.earningsHeader h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.earningsIcon {
+  color: #3B6535;
+}
+
+.earningsSubtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.earningsStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.earningStat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.earningStatIcon {
+  color: #3B6535;
+  flex-shrink: 0;
+}
+
+.earningValue {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #3B6535;
+}
+
+.earningLabel {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.125rem;
+}
+
+.yourEarnings {
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #3B6535 0%, #4a7d44 100%);
+  border-radius: 8px;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+.yourEarnings h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.yourEarningsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.yourEarningsValue {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.yourEarningsLabel {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+.topEarnersSection h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.anonymousName {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.noEarnersMessage {
+  text-align: center;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+}
+
+.noEarnersMessage p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.noEarnersHint {
+  margin-top: 0.5rem !important;
+  font-size: 0.85rem;
+  color: #9ca3af !important;
+}
+
+/* Responsive styles for earnings section */
+@media (max-width: 768px) {
+  .earningsStats {
+    grid-template-columns: 1fr;
+  }
+
+  .yourEarningsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .yourEarningsValue {
+    font-size: 1.5rem;
+  }
+}
