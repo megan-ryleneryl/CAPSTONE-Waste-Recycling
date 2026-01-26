@@ -78,6 +78,32 @@ class AuthService {
     }
   }
 
+  // Middleware for organization admin routes
+  async requireOrganizationAdmin(req, res, next) {
+    try {
+      if (!req.user) {
+        return res.status(403).json({ error: 'Authentication required' });
+      }
+      
+      if (!req.user.organizationID) {
+        return res.status(403).json({ error: 'Organization membership required' });
+      }
+      
+      const Organization = require('../models/Organizations');
+      const org = await Organization.findById(req.user.organizationID);
+      
+      if (!org || !org.isAdmin(req.user.userID)) {
+        return res.status(403).json({ error: 'Organization admin access required' });
+      }
+      
+      req.organization = org; // Attach org to request
+      next();
+    } catch (error) {
+      console.error('Organization admin middleware error:', error);
+      return res.status(403).json({ error: 'Access denied' });
+    }
+  }
+
   // Middleware for collector-only routes
   async requireCollector(req, res, next) {
     try {

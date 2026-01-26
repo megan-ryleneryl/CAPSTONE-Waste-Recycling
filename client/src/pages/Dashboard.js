@@ -184,7 +184,7 @@ const Dashboard = () => {
           {giverSection}
         </>
       );
-    } else if (user.isOrganization && user.isCollector) {
+    } else if (user.organizationID !== null && user.isCollector) {
       return (
         <>
           {renderOrganizationDashboard()}
@@ -192,7 +192,7 @@ const Dashboard = () => {
           {giverSection}
         </>
       );
-    } else if (user.isOrganization) {
+    } else if (user.organizationID !== null) {
       return (
         <>
           {renderOrganizationDashboard()}
@@ -484,7 +484,7 @@ const Dashboard = () => {
     <div className={styles.giverDashboard}>
       <h3 className={styles.sectionTitle}>
         <Recycle className={styles.sectionIcon} />
-        {user.isCollector || user.isOrganization ? 'Your Recycling Activity' : 'Your Dashboard'}
+        {user.isCollector || user.organizationID !== null ? 'Your Recycling Activity' : 'Your Dashboard'}
       </h3>
       
       <div className={styles.giverGrid}>
@@ -618,7 +618,7 @@ const Dashboard = () => {
       );
     }
 
-    if (user.isOrganization || user.isCollector) {
+    if (user.organizationID !== null || user.isCollector) {
       actions.push(
         <button 
           key="create-initiative"
