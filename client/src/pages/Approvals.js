@@ -53,92 +53,24 @@ const Approvals = () => {
     });
   };
 
-  // Fetch user details for a given userID
-  const fetchUserDetails = async (userID) => {
-    if (userDetails[userID]) return userDetails[userID];
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `http://localhost:3001/api/admin/users/${userID}`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
-      
-      if (response.data.success) {
-        const user = response.data.user;
-        const userInfo = {
-          displayName: user.organizationID && user.organizationName 
-            ? `${user.organizationName} (${user.firstName} ${user.lastName})`
-            : `${user.firstName} ${user.lastName}`,
-          isAdmin: user.isAdmin || false,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName
-        };
-        
-        setUserDetails(prev => ({
-          ...prev,
-          [userID]: userInfo
-        }));
-        
-        return userInfo;
-      }
-    } catch (error) {
-      // Handle 404 - user was deleted
-      if (error.response?.status === 404) {
-        const deletedUserInfo = {
-          displayName: 'Deleted User',
-          isAdmin: false,
-          email: 'N/A',
-          firstName: 'Deleted',
-          lastName: 'User',
-          isDeleted: true
-        };
-        
-        setUserDetails(prev => ({
-          ...prev,
-          [userID]: deletedUserInfo
-        }));
-        
-        return deletedUserInfo;
-      }
-      
-      console.error('Error fetching user details:', error);
-      return { 
-        displayName: 'Unknown User', 
-        isAdmin: false,
-        isDeleted: false 
-      };
-    }
-  };
-
   const fetchApplications = async () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Fetch all applications, not just pending
+      // Fetch all applications with user details included
       const response = await axios.get(
         'http://localhost:3001/api/admin/applications',
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
       );
-      
+
       if (response.data.success) {
         const apps = response.data.applications;
+        const users = response.data.userDetails; // User details are now included!
+        
         setApplications(apps);
-        
-        // Fetch user details for all applications
-        const userIDs = [...new Set([
-          ...apps.map(app => app.userID),
-          ...apps.filter(app => app.reviewedBy).map(app => app.reviewedBy)
-        ])];
-        
-        for (const userID of userIDs) {
-          await fetchUserDetails(userID);
-        }
+        setUserDetails(users); // Set all user details at once
       }
     } catch (error) {
       console.error('Error fetching applications:', error.response || error);

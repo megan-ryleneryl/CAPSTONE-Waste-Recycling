@@ -531,6 +531,41 @@ app.get('/api/admin/users', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+//   try {    
+//     const Application = require('./models/Application');
+    
+//     // Fetch all applications regardless of status
+//     const pendingApplications = await Application.findByStatus('Pending');
+//     const submittedApplications = await Application.findByStatus('Submitted');
+//     const approvedApplications = await Application.findByStatus('Approved');
+//     const rejectedApplications = await Application.findByStatus('Rejected');
+    
+//     // Combine all arrays
+//     const allApplications = [
+//       ...pendingApplications,
+//       ...submittedApplications,
+//       ...approvedApplications,
+//       ...rejectedApplications
+//     ];
+    
+//     // Sort by submittedAt date (most recent first)
+//     allApplications.sort((a, b) => {
+//       const dateA = new Date(a.reviewedAt || a.submittedAt);
+//       const dateB = new Date(b.reviewedAt || b.submittedAt);
+//       return dateB - dateA;
+//     });
+        
+//     res.json({ success: true, applications: allApplications });
+//   } catch (error) {
+//     console.error('Applications fetch error:', error);
+//     console.error('Error stack:', error.stack);
+//     res.status(500).json({ 
+//       success: false, 
+//       error: error.message,
+//       details: 'Failed to fetch applications. Please check server logs.'
+//     });
+//   }
+// });
 
 app.get('/api/admin/applications', async (req, res) => {
   try {    
@@ -549,15 +584,75 @@ app.get('/api/admin/applications', async (req, res) => {
       ...approvedApplications,
       ...rejectedApplications
     ];
-    
+        
     // Sort by submittedAt date (most recent first)
     allApplications.sort((a, b) => {
       const dateA = new Date(a.reviewedAt || a.submittedAt);
       const dateB = new Date(b.reviewedAt || b.submittedAt);
       return dateB - dateA;
     });
+    
+    // Extract unique user IDs (both applicants and reviewers)
+    const userIDs = [...new Set([
+      ...allApplications.map(app => app.userID),
+      ...allApplications.filter(app => app.reviewedBy).map(app => app.reviewedBy)
+    ])];
+    
+    const userFetchStart = Date.now();
+    
+    // PARALLEL fetch all user details using Promise.all
+    const userFetches = userIDs.map(async (userID) => {
+      try {
+        const user = await User.findById(userID);
+        if (user) {
+          return [userID, {
+            userID: user.userID,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            isCollector: user.isCollector,
+            isAdmin: user.isAdmin,
+            isOrganization: user.isOrganization,
+            organizationName: user.organizationName,
+            displayName: user.isOrganization && user.organizationName 
+              ? `${user.organizationName} (${user.firstName} ${user.lastName})`
+              : `${user.firstName} ${user.lastName}`
+          }];
+        }
+        return null;
+      } catch (error) {
+        // Handle deleted users
+        if (error.message.includes('not found')) {
+          return [userID, {
+            userID: userID,
+            firstName: 'Deleted',
+            lastName: 'User',
+            email: 'N/A',
+            isCollector: false,
+            isAdmin: false,
+            isOrganization: false,
+            organizationName: null,
+            displayName: 'Deleted User',
+            isDeleted: true
+          }];
+        }
+        console.error(`Error fetching user ${userID}:`, error.message);
+        return null;
+      }
+    });
+    
+    // Wait for all user fetches to complete in parallel
+    const userResults = await Promise.all(userFetches);
+    const userDetailsMap = Object.fromEntries(userResults.filter(result => result !== null));
+    
+    const userFetchTime = Date.now() - userFetchStart;
+    const totalTime = Date.now() - startTime;
         
-    res.json({ success: true, applications: allApplications });
+    res.json({ 
+      success: true, 
+      applications: allApplications,
+      userDetails: userDetailsMap
+    });
   } catch (error) {
     console.error('Applications fetch error:', error);
     console.error('Error stack:', error.stack);
@@ -1028,8 +1123,6 @@ app.post('/api/protected/materials/update-pricing', async (req, res) => {
           materialName: material.displayName || material.type,
           newAveragePrice: material.averagePricePerKg
         });
-
-        console.log(`✅ Updated pricing for ${material.displayName || material.type}: ₱${pricePerKg}/kg (new avg: ₱${material.averagePricePerKg.toFixed(2)}/kg)`);
       } catch (error) {
         console.error(`Error updating material ${materialID}:`, error);
       }
