@@ -156,6 +156,52 @@ router.put('/', async (req, res) => {
         updates[key] = req.body[key];
       }
     });
+
+    // Check if user is updating preferredTimes or preferredLocations
+    const user = await User.findById(req.user.userID);
+    const Point = require('../models/Point');
+    
+    // Award points for first-time or updated preferred times
+    if (updates.preferredTimes && updates.preferredTimes.length > 0) {
+      const hadPreferredTimes = user.preferredTimes && user.preferredTimes.length > 0;
+      if (!hadPreferredTimes) {
+        // First time setting preferred times
+        await Point.create({
+          userID: req.user.userID,
+          pointsEarned: 1,
+          transaction: 'Profile_Completion',
+          description: 'Set preferred pickup times'
+        });
+      }
+    }
+    
+    // Award points for first-time or updated preferred locations
+    if (updates.preferredLocations && updates.preferredLocations.length > 0) {
+      const hadPreferredLocations = user.preferredLocations && user.preferredLocations.length > 0;
+      if (!hadPreferredLocations) {
+        // First time setting preferred locations
+        await Point.create({
+          userID: req.user.userID,
+          pointsEarned: 1,
+          transaction: 'Profile_Completion',
+          description: 'Set preferred pickup locations'
+        });
+      }
+    }
+
+    // Award points for first-time user location (recycling community)
+    if (updates.userLocation) {
+      const hadUserLocation = user.userLocation && user.userLocation !== null;
+      if (!hadUserLocation) {
+        // First time setting user location
+        await Point.create({
+          userID: req.user.userID,
+          pointsEarned: 1,
+          transaction: 'Profile_Completion',
+          description: 'Set recycling community location'
+        });
+      }
+    }
     
     // Update user in database
     const updatedUser = await User.update(req.user.userID, updates);

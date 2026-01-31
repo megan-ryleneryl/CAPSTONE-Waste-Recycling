@@ -9,14 +9,14 @@ class Point {
     this.pointID = data.pointID || uuidv4();
     this.userID = data.userID || '';
     this.pointsEarned = data.pointsEarned || 0;
-    this.transaction = data.transaction || ''; // Post_Creation, Post_Interaction, Pickup_Completion, Initiative_Support
+    this.transaction = data.transaction || ''; // Post_Creation, Post_Interaction, Pickup_Completion, Initiative_Support, Profile_Completion
     this.receivedAt = data.receivedAt || new Date();
     this.description = data.description || ''; // Optional description of the transaction
   }
 
   // Validation
   validate() {
-    const validTransactions = ['Post_Creation', 'Post_Interaction', 'Pickup_Completion', 'Initiative_Support'];
+    const validTransactions = ['Post_Creation', 'Post_Interaction', 'Pickup_Completion', 'Initiative_Support', 'Profile_Completion'];
     const errors = [];
     
     if (!this.userID) errors.push('User ID is required');

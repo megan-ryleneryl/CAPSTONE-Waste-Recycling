@@ -219,9 +219,18 @@ class Application {
       let userUpdate = {};
       
       if (status === 'Approved') {
+        const Point = require('./Point');
+
         switch (this.applicationType) {
           case 'Account_Verification':
             userUpdate.status = 'Verified';
+            // Award 5 points for account verification
+            await Point.create({
+              userID: this.userID,
+              pointsEarned: 5,
+              transaction: 'Profile_Completion',
+              description: 'Account verified'
+            });
             break;
             
           case 'Org_Verification':
@@ -232,6 +241,14 @@ class Application {
             
             // Default to 'create' for old applications without requestType
             const requestType = this.requestType || 'create';
+            
+            // Award 10 points for organization verification
+            await Point.create({
+              userID: this.userID,
+              pointsEarned: 10,
+              transaction: 'Profile_Completion',
+              description: 'Organization account approved'
+            });
             
             if (requestType === 'create') {
               // CREATE new organization
@@ -269,6 +286,13 @@ class Application {
             if (!user.isCollector) {
               userUpdate.isCollector = true;
             }
+            // Award 10 points for becoming a collector
+              await Point.create({
+                userID: this.userID,
+                pointsEarned: 10,
+                transaction: 'Profile_Completion',
+                description: 'Collector privilege approved'
+              });
             userUpdate.status = 'Verified';
             break;
         }
