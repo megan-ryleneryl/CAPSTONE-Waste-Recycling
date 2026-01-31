@@ -644,9 +644,6 @@ app.get('/api/admin/applications', async (req, res) => {
     // Wait for all user fetches to complete in parallel
     const userResults = await Promise.all(userFetches);
     const userDetailsMap = Object.fromEntries(userResults.filter(result => result !== null));
-    
-    const userFetchTime = Date.now() - userFetchStart;
-    const totalTime = Date.now() - startTime;
         
     res.json({ 
       success: true, 
