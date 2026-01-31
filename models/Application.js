@@ -2,6 +2,7 @@
 const { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, query, where, getDocs, orderBy } = require('firebase/firestore');
 const { v4: uuidv4 } = require('uuid');
 const User = require('./Users');
+const Notification = require('./Notification');
 
 class Application {
   constructor(data = {}) {
@@ -309,9 +310,65 @@ class Application {
       }
       
       await User.update(user.userID, userUpdate);
+
+      // Send notification to applicant
+      try {
+        await this.sendApplicationNotification(status, justification);
+      } catch (error) {
+        console.error('Failed to send application notification:', error);
+        // Don't throw - notification failure shouldn't block the review process
+      }
     }
 
     return this;
+  }
+
+  // Send notification for application approval/rejection
+  async sendApplicationNotification(status, justification = null) {
+    const applicationTypeNames = {
+      'Account_Verification': 'Account Verification',
+      'Org_Verification': 'Organization Verification',
+      'Collector_Privilege': 'Collector Privilege'
+    };
+
+    const applicationTypeName = applicationTypeNames[this.applicationType] || this.applicationType;
+
+    if (status === 'Approved') {
+      await Notification.create({
+        userID: this.userID,
+        type: 'Application',
+        title: 'Application Approved! ✓',
+        message: `Your ${applicationTypeName} application has been approved! You now have access to additional features.`,
+        referenceID: this.applicationID,
+        referenceType: 'application',
+        actionURL: '/profile',
+        priority: 'high',
+        metadata: {
+          applicationID: this.applicationID,
+          applicationType: this.applicationType,
+          reviewedBy: this.reviewedBy,
+          reviewedAt: this.reviewedAt
+        }
+      });
+    } else if (status === 'Rejected') {
+      await Notification.create({
+        userID: this.userID,
+        type: 'Application',
+        title: 'Application Update',
+        message: `Your ${applicationTypeName} application was not approved. ${justification ? `Reason: ${justification}` : 'Please review and resubmit if needed.'}`,
+        referenceID: this.applicationID,
+        referenceType: 'application',
+        actionURL: '/profile',
+        priority: 'high',
+        metadata: {
+          applicationID: this.applicationID,
+          applicationType: this.applicationType,
+          reviewedBy: this.reviewedBy,
+          reviewedAt: this.reviewedAt,
+          justification: justification
+        }
+      });
+    }
   }
 
   // Add document to application
