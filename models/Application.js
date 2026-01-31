@@ -9,7 +9,9 @@ class Application {
     this.userID = data.userID || '';
     this.applicationType = data.applicationType || ''; // Account_Verification, Org_Verification, Collector_Privilege
     this.justification = data.justification || null;
-    this.organizationName = data.organizationName || '';
+    this.organizationName = data.organizationName || ''; // For 'create' requests
+    this.requestType = data.requestType || null; // 'join' or 'create' (for Org_Verification only)
+    this.targetOrganizationID = data.targetOrganizationID || null; // For 'join' requests
     this.documents = data.documents || []; // Array of file URLs
     this.status = data.status || 'Pending'; // Pending, Submitted, Approved, Rejected
     this.reviewedBy = data.reviewedBy || null;
@@ -28,6 +30,21 @@ class Application {
     if (!['Pending', 'Submitted', 'Approved', 'Rejected'].includes(this.status)) {
       errors.push('Valid status is required');
     }
+    
+    // Org_Verification specific validation
+    // Only validate for NEW applications (Pending/Submitted), not old approved/rejected ones
+    if (this.applicationType === 'Org_Verification' && 
+        (this.status === 'Pending' || this.status === 'Submitted')) {
+      if (!this.requestType || !['join', 'create'].includes(this.requestType)) {
+        errors.push('Request type (join/create) is required for organization applications');
+      }
+      if (this.requestType === 'join' && !this.targetOrganizationID) {
+        errors.push('Target organization ID is required for join requests');
+      }
+      if (this.requestType === 'create' && !this.organizationName) {
+        errors.push('Organization name is required for create requests');
+      }
+    }
 
     return {
       isValid: errors.length === 0,
@@ -43,6 +60,8 @@ class Application {
       applicationType: this.applicationType,
       justification: this.justification,
       organizationName: this.organizationName,
+      requestType: this.requestType,
+      targetOrganizationID: this.targetOrganizationID,
       documents: this.documents,
       status: this.status,
       reviewedBy: this.reviewedBy,
@@ -204,10 +223,48 @@ class Application {
           case 'Account_Verification':
             userUpdate.status = 'Verified';
             break;
+            
           case 'Org_Verification':
             userUpdate.status = 'Verified';
-            userUpdate.isOrganization = true;
+            
+            // Handle organization membership based on request type
+            const Organization = require('./Organizations');
+            
+            // Default to 'create' for old applications without requestType
+            const requestType = this.requestType || 'create';
+            
+            if (requestType === 'create') {
+              // CREATE new organization
+              const orgName = this.organizationName || 'Unnamed Organization';
+              const org = await Organization.create({
+                organizationName: orgName,
+                members: [this.userID],
+                admins: [this.userID],
+                description: this.justification || '',
+                createdAt: new Date()
+              });
+              
+              // Link user to organization
+              userUpdate.organizationID = org.organizationID;
+              userUpdate.organizationName = org.organizationName;
+              
+            } else if (requestType === 'join') {
+              // JOIN existing organization
+              const org = await Organization.findById(this.targetOrganizationID);
+              
+              if (!org) {
+                throw new Error('Target organization not found');
+              }
+              
+              // Add user as member (this also sets their organizationID and organizationName)
+              await org.addMember(this.userID);
+              
+              // Note: addMember already updates the user, but we set it here too for consistency
+              userUpdate.organizationID = org.organizationID;
+              userUpdate.organizationName = org.organizationName;
+            }
             break;
+            
           case 'Collector_Privilege':
             if (!user.isCollector) {
               userUpdate.isCollector = true;
@@ -219,6 +276,12 @@ class Application {
         // CRITICAL: Reset user status to Pending when rejected
         // This allows them to resubmit verification
         userUpdate.status = 'Pending';
+        
+        // If rejecting org application, clear any org data
+        if (this.applicationType === 'Org_Verification') {
+          userUpdate.organizationID = null;
+          userUpdate.organizationName = null;
+        }
       }
       
       await User.update(user.userID, userUpdate);

@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/Users');
 const jwt = require('jsonwebtoken');
 const Application = require('../models/Application');
+const Organization = require('../models/Organizations');
 const { StorageService, upload } = require('../services/storage-service');
 
 // Authentication middleware specific for profile routes
@@ -269,32 +270,69 @@ router.post('/apply-collector', upload.single('mrfProof'), async (req, res) => {
 router.post('/apply-organization', upload.single('proofDocument'), async (req, res) => {
   try {
     const { 
-      organizationName,  
+      requestType,           // 'join' or 'create'
+      organizationName,      // For 'create' requests
+      targetOrganizationID,  // For 'join' requests
       reason
     } = req.body;
     
-    // Validate required fields
-    if (!organizationName || !reason) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Organization name and reason are required' 
+    // Validate request type
+    if (!requestType || !['join', 'create'].includes(requestType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid request type (join/create) is required'
       });
+    }
+    
+    // Validate based on request type
+    if (requestType === 'create') {
+      if (!organizationName || !reason) {
+        return res.status(400).json({
+          success: false,
+          message: 'Organization name and reason are required for new organizations'
+        });
+      }
+    } else if (requestType === 'join') {
+      if (!targetOrganizationID || !reason) {
+        return res.status(400).json({
+          success: false,
+          message: 'Organization selection and reason are required to join'
+        });
+      }
+      
+      // Verify target organization exists
+      const Organization = require('../models/Organizations');
+      const targetOrg = await Organization.findById(targetOrganizationID);
+      
+      if (!targetOrg) {
+        return res.status(404).json({
+          success: false,
+          message: 'Selected organization not found'
+        });
+      }
+      
+      if (!targetOrg.isActive) {
+        return res.status(400).json({
+          success: false,
+          message: 'Selected organization is not active'
+        });
+      }
     }
 
     // Check if user already has an organization
     const user = await User.findById(req.user.userID);
     
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
     
     if (user.organizationID !== null) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'User already has an organization account' 
+      return res.status(400).json({
+        success: false,
+        message: 'User already belongs to an organization'
       });
     }
     
@@ -323,34 +361,79 @@ router.post('/apply-organization', upload.single('proofDocument'), async (req, r
       justification: reason,
       documents: documents,
       submittedAt: new Date(),
-      organizationName: organizationName,
-      metadata: {
+      requestType: requestType
+    };
+    
+    // Add appropriate fields based on request type
+    if (requestType === 'create') {
+      applicationData.organizationName = organizationName;
+      applicationData.metadata = {
         organizationName: organizationName,
         reason: reason
-      }
-    };
+      };
+    } else if (requestType === 'join') {
+      const Organization = require('../models/Organizations');
+      const targetOrg = await Organization.findById(targetOrganizationID);
+      applicationData.targetOrganizationID = targetOrganizationID;
+      applicationData.organizationName = targetOrg.organizationName; // Store for display
+      applicationData.metadata = {
+        targetOrganizationID: targetOrganizationID,
+        organizationName: targetOrg.organizationName,
+        reason: reason
+      };
+    }
 
     const application = await Application.create(applicationData);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Organization application submitted successfully',
       application: {
         applicationID: application.applicationID,
         applicationType: application.applicationType,
         status: application.status,
         justification: application.justification,
+        requestType: application.requestType,
         organizationName: application.organizationName,
+        targetOrganizationID: application.targetOrganizationID,
         documents: application.documents,
         submittedAt: application.submittedAt
       }
     });
   } catch (error) {
     console.error('Organization application error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error submitting organization application', 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error submitting organization application',
+      error: error.message
+    });
+  }
+});
+
+// Get list of all active organizations (for dropdown)
+router.get('/organizations/list', async (req, res) => {
+  try {    
+    // Get all active organizations
+    const allOrgs = await Organization.findAll();
+    const activeOrgs = allOrgs.filter(org => org.isActive);
+    
+    // Return only necessary fields for dropdown
+    const orgList = activeOrgs.map(org => ({
+      organizationID: org.organizationID,
+      organizationName: org.organizationName,
+      description: org.description
+    }));
+    
+    res.json({
+      success: true,
+      organizations: orgList
+    });
+  } catch (error) {
+    console.error('Error fetching organizations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching organizations',
+      error: error.message
     });
   }
 });

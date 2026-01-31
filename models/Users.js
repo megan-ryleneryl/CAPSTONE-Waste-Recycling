@@ -13,7 +13,6 @@ class User {
     this.status = data.status || 'Pending'; // Suspended, Pending, Verified, Submitted
     this.isCollector = data.isCollector || false;
     this.isAdmin = data.isAdmin || false; 
-    this.isOrganization = data.isOrganization || false;
     this.organizationName = data.organizationName || null;
     this.organizationID = data.organizationID || null;
     this.preferredTimes = data.preferredTimes || [];
@@ -51,7 +50,6 @@ class User {
     if (!this.email) errors.push('Email is required');
     if (typeof this.isCollector !== 'boolean') errors.push('isCollector must be boolean');
     if (typeof this.isAdmin !== 'boolean') errors.push('isAdmin must be boolean');
-    if (typeof this.isOrganization !== 'boolean') errors.push('isOrganization must be boolean');
     if (!['Pending', 'Verified', 'Submitted', 'Rejected'].includes(this.status)) {
       errors.push('Valid status is required');
     }
@@ -77,7 +75,6 @@ class User {
       status: this.status,
       isCollector: this.isCollector,
       isAdmin: this.isAdmin,
-      isOrganization: this.isOrganization,
       organizationName: this.organizationName,
       organizationID: this.organizationID,
       preferredTimes: this.preferredTimes,
@@ -145,38 +142,6 @@ class User {
       return null;
     } catch (error) {
       throw new Error(`Failed to find user by email: ${error.message}`);
-    }
-  }
-
-  static async findByFlags(filters = {}) {
-    const db = getFirestore();
-    try {
-      const usersRef = collection(db, 'users');
-      const conditions = [];
-      
-      if (filters.isAdmin !== undefined) {
-        conditions.push(where('isAdmin', '==', filters.isAdmin));
-      }
-      if (filters.isCollector !== undefined) {
-        conditions.push(where('isCollector', '==', filters.isCollector));
-      }
-      if (filters.isOrganization !== undefined) {
-        conditions.push(where('isOrganization', '==', filters.isOrganization));
-      }
-      
-      const q = conditions.length > 0 
-        ? query(usersRef, ...conditions) 
-        : usersRef;
-      const querySnapshot = await getDocs(q);
-      
-      const users = [];
-      querySnapshot.forEach((doc) => {
-        users.push(new User(doc.data()));
-      });
-      
-      return users;
-    } catch (error) {
-      throw new Error(`Failed to find users by flags: ${error.message}`);
     }
   }
 

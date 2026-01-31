@@ -14,11 +14,60 @@ import GuideLink from '../components/guide/GuideLink';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
+  const [requestType, setRequestType] = useState('create'); // 'create' or 'join'
+  const [organizations, setOrganizations] = useState([]);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+  
   const [formData, setFormData] = useState({
-    organizationName: '',
+    requestType: 'create',
+    organizationName: '',      // For 'create' requests
+    targetOrganizationID: '',  // For 'join' requests
     reason: '',
     proofDocument: null
   });
+
+  // Fetch available organizations when component mounts
+  useEffect(() => {
+    if (requestType === 'join') {
+      fetchOrganizations();
+    }
+  }, [requestType]);
+
+  const fetchOrganizations = async () => {
+    setLoadingOrgs(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        'http://localhost:3001/api/protected/profile/organizations/list',
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      if (response.data.success) {
+        // Sort alphabetically by name
+        const sorted = response.data.organizations.sort((a, b) => 
+          a.organizationName.localeCompare(b.organizationName)
+        );
+        setOrganizations(sorted);
+      }
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      alert('Failed to load organizations. Please try again.');
+    } finally {
+      setLoadingOrgs(false);
+    }
+  };
+
+  const handleRequestTypeChange = (type) => {
+    setRequestType(type);
+    setFormData({
+      ...formData,
+      requestType: type,
+      organizationName: '',
+      targetOrganizationID: ''
+    });
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -31,7 +80,18 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Validate based on request type
+    if (requestType === 'join' && !formData.targetOrganizationID) {
+      alert('Please select an organization to join');
+      return;
+    }
+    if (requestType === 'create' && !formData.organizationName) {
+      alert('Please enter an organization name');
+      return;
+    }
+    
+    onSubmit({ ...formData, requestType });
   };
 
   const handleBackdropClick = (e) => {
@@ -46,37 +106,115 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
         <div className={styles.modalContent}>
           <div className={styles.modalHeader}>
             <button onClick={onClose} className={styles.closeButton}>×</button>
-            <h2>Apply for Org Account</h2>
+            <h2>Apply for Organization Account</h2>
           </div>
           
           <form onSubmit={handleSubmit} className={styles.form}>
+            {/* Request Type Selection */}
             <div className={styles.formGroup}>
-              <label>Organization Name</label>
-              <input
-                type="text"
-                name="organizationName"
-                value={formData.organizationName}
-                onChange={handleInputChange}
-                className={styles.input}
-                required
-              />
+              <label>Request Type</label>
+              <div className={styles.radioGroup}>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="requestType"
+                    value="create"
+                    checked={requestType === 'create'}
+                    onChange={() => handleRequestTypeChange('create')}
+                  />
+                  <span>Create New Organization</span>
+                </label>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="requestType"
+                    value="join"
+                    checked={requestType === 'join'}
+                    onChange={() => handleRequestTypeChange('join')}
+                  />
+                  <span>Join Existing Organization</span>
+                </label>
+              </div>
             </div>
 
+            {/* Conditional Fields Based on Request Type */}
+            {requestType === 'create' ? (
+              <>
+                {/* Organization Name Input - For Create */}
+                <div className={styles.formGroup}>
+                  <label>Organization Name</label>
+                  <input
+                    type="text"
+                    name="organizationName"
+                    value={formData.organizationName}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    placeholder="Enter your organization's name"
+                    required
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Organization Dropdown - For Join */}
+                <div className={styles.formGroup}>
+                  <label>Select Organization</label>
+                  {loadingOrgs ? (
+                    <p>Loading organizations...</p>
+                  ) : (
+                    <select
+                      name="targetOrganizationID"
+                      value={formData.targetOrganizationID}
+                      onChange={handleInputChange}
+                      className={styles.select}
+                      required
+                    >
+                      <option value="">-- Select an organization --</option>
+                      {organizations.map(org => (
+                        <option key={org.organizationID} value={org.organizationID}>
+                          {org.organizationName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {organizations.length === 0 && !loadingOrgs && (
+                    <p className={styles.helpText}>
+                      No organizations available. Consider creating a new one instead.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Reason - Common to both */}
             <div className={styles.formGroup}>
-              <label>Reason for applying</label>
+              <label>
+                {requestType === 'create' 
+                  ? 'Why are you creating this organization?' 
+                  : 'Why do you want to join this organization?'}
+              </label>
               <textarea
                 name="reason"
                 value={formData.reason}
                 onChange={handleInputChange}
                 className={styles.textarea}
                 rows="5"
-                placeholder="Explain why your organization wants to join..."
+                placeholder={
+                  requestType === 'create'
+                    ? "Explain your organization's mission and goals..."
+                    : "Explain your affiliation with this organization..."
+                }
                 required
               />
             </div>
 
+            {/* Proof Document - Common to both */}
             <div className={styles.formGroup}>
-              <label>Proof of Organization Membership</label>
+              <label>
+                {requestType === 'create'
+                  ? 'Proof of Organization Registration'
+                  : 'Proof of Organization Membership'}
+              </label>
               <input
                 type="file"
                 onChange={handleFileChange}
@@ -84,10 +222,15 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
                 accept=".pdf,.jpg,.jpeg,.png"
                 required
               />
+              <p className={styles.helpText}>
+                {requestType === 'create'
+                  ? 'Upload registration documents, certificates, or official letters'
+                  : 'Upload ID card, certificate, or official letter from the organization'}
+              </p>
             </div>
 
             <button type="submit" className={styles.submitButton}>
-              Submit
+              Submit Application
             </button>
           </form>
         </div>
@@ -911,8 +1054,16 @@ const Profile = ({ user: propsUser }) => {
       
       // Create FormData for file upload
       const uploadData = new FormData();
-      uploadData.append('organizationName', formData.organizationName);
+      uploadData.append('requestType', formData.requestType);
       uploadData.append('reason', formData.reason);
+      
+      // Add organization-specific fields based on request type
+      if (formData.requestType === 'create') {
+        uploadData.append('organizationName', formData.organizationName);
+      } else if (formData.requestType === 'join') {
+        uploadData.append('targetOrganizationID', formData.targetOrganizationID);
+      }
+      
       if (formData.proofDocument) {
         uploadData.append('proofDocument', formData.proofDocument);
       }
@@ -933,22 +1084,7 @@ const Profile = ({ user: propsUser }) => {
         setSubmittedApplication(response.data.application);
         setShowStatusTracker(true);
         setError('');
-
-        // Update user state to reflect organization status
-        setUser(prevUser => ({
-          ...prevUser,
-          isOrganization: true,
-          organizationName: formData.organizationName
-        }));
         
-        // Update localStorage
-        const updatedUser = {
-          ...user,
-          isOrganization: true,
-          organizationName: formData.organizationName
-        };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-
         alert('Organization application submitted successfully! Please wait for approval.');
         fetchUserProfile();
         fetchUserApplications();
@@ -1234,7 +1370,7 @@ const Profile = ({ user: propsUser }) => {
                   </h2>
                   
                   {/* Display organization name if user is an organization */}
-                  {user?.isOrganization && user?.organizationName && (
+                  {user?.organizationID && user?.organizationName && (
                     <p className={styles.organizationName}>
                       <svg 
                         width="16" 
@@ -1303,7 +1439,7 @@ const Profile = ({ user: propsUser }) => {
                     )}
                     
                     {/* Organization Badge */}
-                    {user?.isOrganization && (
+                    {user?.organizationID !== null && (
                       <span className={`${styles.badge} ${styles.roleOrganization}`}>
                         Organization
                       </span>
@@ -1608,7 +1744,7 @@ const Profile = ({ user: propsUser }) => {
                       </div>
                     )}
 
-                    {!user.isOrganization && !hasPendingOrganizationApplication() && (
+                    {user.organizationID === null && !hasPendingOrganizationApplication() && (
                       <div className={styles.ctaCard}>
                         <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects and build your reputation by making Initiative Posts.</p>
                         <button
@@ -1620,7 +1756,7 @@ const Profile = ({ user: propsUser }) => {
                       </div>
                     )}
 
-                    {(!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication()) || (!user.isOrganization && !hasPendingOrganizationApplication()) ? (
+                    {(!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication()) || (user.organizationID === null && !hasPendingOrganizationApplication()) ? (
                       <p className={styles.ctaNote}>
                         <strong>Note: If you're applying for verification or applications</strong>, your application requires admin approval before your account status changes. Please give us 3-5 business days to review and process your application.
                       </p>
@@ -1742,7 +1878,7 @@ const Profile = ({ user: propsUser }) => {
                     )}
 
                     {/* Organization Stats - Only for organizations */}
-                    {user?.isOrganization && (
+                    {user?.organizationID !== null && (
                       <div className={styles.roleStatsSection}>
                         <h4 className={styles.roleStatsTitle}>
                           <Heart size={20} /> Organization Impact
