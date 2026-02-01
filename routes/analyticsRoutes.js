@@ -18,4 +18,7 @@ router.get('/heatmap', analyticsController.getHeatmapData);
 // Nearby disposal sites endpoint
 router.get('/disposal-sites', analyticsController.getNearbyDisposalSites);
 
+// City leaderboard endpoint for Leagues page
+router.get('/city-leaderboard', analyticsController.getCityLeaderboard);
+
 module.exports = router;
