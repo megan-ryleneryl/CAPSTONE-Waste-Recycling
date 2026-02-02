@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import { ToastContainer } from './components/notifications';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -66,9 +68,11 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
+      <ToastProvider>
+        <Router>
+          <ToastContainer />
+          <div className="App">
+            <Routes>
             {/* Public routes - No AppLayout */}
             <Route path="/" element={<Landing />} />
             
@@ -204,9 +208,10 @@ function App() {
 
 
             <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </div>
-      </Router>
+            </Routes>
+          </div>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

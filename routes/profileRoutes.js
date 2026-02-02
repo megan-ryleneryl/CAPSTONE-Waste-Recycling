@@ -613,17 +613,135 @@ router.delete('/account', async (req, res) => {
     const userID = req.user.userID;
 
     await User.softDelete(userID);
-    
-    res.json({ 
-      success: true, 
-      message: 'Account deleted successfully' 
+
+    res.json({
+      success: true,
+      message: 'Account deleted successfully'
     });
   } catch (error) {
     console.error('Account deletion error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error deleting account', 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting account',
+      error: error.message
+    });
+  }
+});
+
+// Check and award badges for user
+router.post('/check-badges', async (req, res) => {
+  try {
+    const userID = req.user.userID;
+    const user = await User.findById(userID);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Get user's current badges
+    const currentBadges = user.badges || [];
+    const earnedBadgeIds = currentBadges.map(b => b.badgeId);
+
+    // Fetch user stats
+    const Post = require('../models/Post');
+    const Pickup = require('../models/Pickup');
+
+    // Get posts created by user
+    const userPosts = await Post.findByUser(userID);
+    const postsCreated = userPosts.filter(p => p.postType === 'Waste').length;
+    const initiativesCreated = userPosts.filter(p => p.postType === 'Initiative').length;
+
+    // Get completed pickups
+    const giverPickups = await Pickup.findByUser(userID, 'giver');
+    const collectorPickups = await Pickup.findByUser(userID, 'collector');
+    const pickupsCompleted = [...giverPickups, ...collectorPickups].filter(
+      p => p.status === 'Completed'
+    ).length;
+
+    // Build stats object
+    const userStats = {
+      postsCreated,
+      pickupsCompleted,
+      initiativesCreated,
+      points: user.points || 0,
+      createdAt: user.createdAt
+    };
+
+    // Badge definitions (simplified for server-side check)
+    const BADGES = {
+      FIRST_POST: { id: 'first_post', requirements: { minPostsCreated: 1 }, points: 10 },
+      FIRST_PICKUP: { id: 'first_pickup', requirements: { minPickupsCompleted: 1 }, points: 15 },
+      PICKUPS_5: { id: 'pickups_5', requirements: { minPickupsCompleted: 5 }, points: 30 },
+      PICKUPS_25: { id: 'pickups_25', requirements: { minPickupsCompleted: 25 }, points: 75 },
+      PICKUPS_50: { id: 'pickups_50', requirements: { minPickupsCompleted: 50 }, points: 150 },
+      POINTS_100: { id: 'points_100', requirements: { minPoints: 100 }, points: 0 },
+      POINTS_500: { id: 'points_500', requirements: { minPoints: 500 }, points: 0 },
+      POINTS_1000: { id: 'points_1000', requirements: { minPoints: 1000 }, points: 0 },
+      INITIATIVE_CREATOR: { id: 'initiative_creator', requirements: { minInitiativesCreated: 1 }, points: 50 },
+      EARLY_ADOPTER: { id: 'early_adopter', requirements: { joinedBeforeDate: '2026-08-01' }, points: 100 },
+    };
+
+    // Check eligibility for each badge
+    const checkEligibility = (badge) => {
+      const req = badge.requirements;
+      if (req.minPostsCreated && userStats.postsCreated < req.minPostsCreated) return false;
+      if (req.minPickupsCompleted && userStats.pickupsCompleted < req.minPickupsCompleted) return false;
+      if (req.minPoints && userStats.points < req.minPoints) return false;
+      if (req.minInitiativesCreated && userStats.initiativesCreated < req.minInitiativesCreated) return false;
+      if (req.joinedBeforeDate && userStats.createdAt) {
+        const joinDate = userStats.createdAt.toDate ? userStats.createdAt.toDate() : new Date(userStats.createdAt);
+        const cutoffDate = new Date(req.joinedBeforeDate);
+        if (joinDate >= cutoffDate) return false;
+      }
+      return true;
+    };
+
+    // Find newly eligible badges
+    const newBadges = [];
+    let totalNewPoints = 0;
+
+    for (const [key, badge] of Object.entries(BADGES)) {
+      if (!earnedBadgeIds.includes(badge.id) && checkEligibility(badge)) {
+        newBadges.push({
+          badgeId: badge.id,
+          earnedAt: new Date()
+        });
+        totalNewPoints += badge.points;
+      }
+    }
+
+    // Award new badges if any
+    if (newBadges.length > 0) {
+      const updatedBadges = [...currentBadges, ...newBadges];
+      await User.update(userID, { badges: updatedBadges });
+
+      // Award points for new badges
+      if (totalNewPoints > 0) {
+        const Point = require('../models/Point');
+        await Point.create({
+          userID: userID,
+          pointsEarned: totalNewPoints,
+          transaction: 'Badge_Earned',
+          description: `Earned ${newBadges.length} badge(s)`
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      newBadges: newBadges,
+      totalBadges: currentBadges.length + newBadges.length,
+      stats: userStats
+    });
+  } catch (error) {
+    console.error('Badge check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking badges',
+      error: error.message
     });
   }
 });

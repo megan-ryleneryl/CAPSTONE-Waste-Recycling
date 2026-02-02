@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { useToast } from '../context/ToastContext';
+import { BADGES } from '../config/badges';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
 import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
@@ -11,6 +13,7 @@ import { useLocation } from 'react-router-dom';
 
 const CreatePost = () => {
   const navigate = useNavigate();
+  const { success, showPointsEarned, showBadgeUnlocked } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVerified, setIsVerified] = useState(false);
@@ -581,11 +584,33 @@ const handleRemoveImage = (index) => {
     console.log('Response received:', response.data);
     
     if (response.data.success) {
-      // Show success message if you have a toast/notification system
-      console.log(response.data.message);
-      
-      // Redirect to posts page or the created post
-      navigate('/posts');
+      // Show success toast
+      success(`${postType} post created successfully!`, {
+        title: 'Post Created'
+      });
+
+      // Check if this is the first post (badge unlock)
+      const isFirstPost = response.data.isFirstPost;
+
+      // Show points earned popup for waste posts
+      if (postType === 'Waste') {
+        showPointsEarned(10, 'Waste Post Created', {
+          bonus: null,
+          streak: null
+        });
+      }
+
+      // If first post, show badge unlock after points popup
+      if (isFirstPost && postType === 'Waste') {
+        setTimeout(() => {
+          showBadgeUnlocked(BADGES.FIRST_POST);
+        }, 3500); // After points popup closes
+      }
+
+      // Redirect to posts page after popups
+      setTimeout(() => {
+        navigate('/posts');
+      }, isFirstPost ? 7000 : (postType === 'Waste' ? 2000 : 500));
     }
   } catch (err) {
     // Enhanced error logging

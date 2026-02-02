@@ -2,9 +2,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, addDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, serverTimestamp, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { BADGES } from '../config/badges';
 import { CheckCircle, Truck, Package, Check, Trash2, Scale, MapPin, Calendar, Phone, User, Clock, DollarSign, FileText, MessageCircle, Navigation } from 'lucide-react';
 import PickupCompletionModal from '../components/pickup/PickupCompletionModal';
 import useLocationTracking from '../hooks/useLocationTracking';
@@ -16,6 +18,7 @@ const PickupTracking = () => {
   const { pickupId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { pickupNotification, success, showPointsEarned, showBadgeUnlocked } = useToast();
   const [pickup, setPickup] = useState(null);
   const [postData, setPostData] = useState(null);
   const [supportData, setSupportData] = useState(null);
@@ -351,6 +354,38 @@ const PickupTracking = () => {
       };
       await addDoc(messagesRef, statusMessage);
 
+      // Show toast notification for status update
+      if (newStatus === 'In-Transit') {
+        pickupNotification('You are now on the way to the pickup location', {
+          title: 'On The Way'
+        });
+      } else if (newStatus === 'ArrivedAtPickup') {
+        pickupNotification('You have arrived at the pickup location', {
+          title: 'Arrived'
+        });
+      }
+
+      // Create notification for the other party
+      try {
+        const token = localStorage.getItem('token');
+        const notificationData = {
+          status: newStatus,
+          pickupID: pickupId,
+          recipientID: isCollector ? pickup.giverID : pickup.collectorID,
+          actorName: `${currentUser.firstName} ${currentUser.lastName}`,
+          location: formatLocation(pickup.pickupLocation) || formatLocation(postData?.location)
+        };
+
+        await axios.post(
+          'http://localhost:3001/api/protected/notifications/pickup-status',
+          notificationData,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+      } catch (notifError) {
+        console.error('Error creating notification:', notifError);
+        // Don't fail the status update if notification fails
+      }
+
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update status. Please try again.');
@@ -465,8 +500,58 @@ const PickupTracking = () => {
       });
 
       setShowCompletionModal(false);
-      alert('Pickup completed successfully!');
-      navigate('/pickups');
+
+      // Create notification for the collector
+      try {
+        const token = localStorage.getItem('token');
+        const notificationData = {
+          status: 'Completed',
+          pickupID: pickupId,
+          recipientID: pickup.collectorID,
+          actorName: `${currentUser.firstName} ${currentUser.lastName}`,
+          location: formatLocation(pickup.pickupLocation) || formatLocation(postData?.location)
+        };
+
+        await axios.post(
+          'http://localhost:3001/api/protected/notifications/pickup-status',
+          notificationData,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+      } catch (notifError) {
+        console.error('Error creating completion notification:', notifError);
+      }
+
+      // Show success toast and points popup
+      success('Pickup completed successfully! Thank you for recycling.', {
+        title: 'Pickup Complete'
+      });
+
+      // Award points to the giver for completing a pickup
+      showPointsEarned(15, 'Pickup Completed', {
+        bonus: null,
+        streak: null
+      });
+
+      // Check if this is the user's first completed pickup
+      const userPickupsQuery = query(
+        collection(db, 'pickups'),
+        where('giverID', '==', currentUser.userID),
+        where('status', '==', 'Completed')
+      );
+      const userPickupsSnap = await getDocs(userPickupsQuery);
+      const isFirstPickup = userPickupsSnap.size === 1;
+
+      // If first pickup, show badge unlock
+      if (isFirstPickup) {
+        setTimeout(() => {
+          showBadgeUnlocked(BADGES.FIRST_PICKUP);
+        }, 3500);
+      }
+
+      // Navigate after delay to show the popup
+      setTimeout(() => {
+        navigate('/pickups');
+      }, isFirstPickup ? 7000 : 2500);
     } catch (error) {
       console.error('Error completing pickup:', error);
       alert('Failed to complete pickup. Please try again.');
