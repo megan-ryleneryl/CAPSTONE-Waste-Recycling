@@ -761,6 +761,34 @@ const Profile = ({ user: propsUser }) => {
     }
   };
 
+  // Check and award eligible badges
+  const checkAndAwardBadges = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'http://localhost:3001/api/protected/profile/check-badges',
+        {},
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success && response.data.newBadges?.length > 0) {
+        // Refresh user profile to get updated badges
+        await fetchUserProfile();
+
+        // Show notification for each new badge
+        response.data.newBadges.forEach((badge, index) => {
+          setTimeout(() => {
+            success(`Badge unlocked: ${badge.badgeId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`);
+          }, index * 1000);
+        });
+      }
+    } catch (error) {
+      console.error('Error checking badges:', error);
+    }
+  };
+
   const fetchUserProfile = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -864,6 +892,8 @@ const Profile = ({ user: propsUser }) => {
     fetchUserProfile();
     fetchUserApplications();
     fetchAnalyticsData();
+    // Check and award any eligible badges on profile load
+    checkAndAwardBadges();
   }, [fetchUserProfile]);
 
   // Fetch analytics when time range changes
@@ -1795,6 +1825,9 @@ const Profile = ({ user: propsUser }) => {
                     pickupsCompleted: (analyticsData?.giverStats?.successfulPickups || 0) + (analyticsData?.collectorStats?.successfulPickups || 0),
                     kgRecycled: analyticsData?.giverStats?.totalKgRecycled || 0,
                     initiativesSupported: analyticsData?.giverStats?.initiativesSupported || 0,
+                  }}
+                  onClaimBadge={async () => {
+                    await checkAndAwardBadges();
                   }}
                 />
               )}

@@ -262,6 +262,46 @@
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
 }
 
+/* Claim button */
+.badge-claim-btn {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #3B6535 0%, #4a7c42 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(59, 101, 53, 0.3);
+  animation: claimPulse 2s ease-in-out infinite;
+}
+
+@keyframes claimPulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(59, 101, 53, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(59, 101, 53, 0.5);
+  }
+}
+
+.badge-claim-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.4);
+}
+
+.badge-claim-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.badge-claim-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 /* Mobile responsive */
 @media (max-width: 480px) {
   .badge-card {
@@ -283,6 +323,11 @@
   }
 
   .badge-description {
+    font-size: 11px;
+  }
+
+  .badge-claim-btn {
+    padding: 6px 12px;
     font-size: 11px;
   }
 }

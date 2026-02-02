@@ -646,11 +646,11 @@ router.post('/check-badges', async (req, res) => {
     const earnedBadgeIds = currentBadges.map(b => b.badgeId);
 
     // Fetch user stats
-    const Post = require('../models/Post');
+    const Post = require('../models/Posts');
     const Pickup = require('../models/Pickup');
 
     // Get posts created by user
-    const userPosts = await Post.findByUser(userID);
+    const userPosts = await Post.findByUserID(userID);
     const postsCreated = userPosts.filter(p => p.postType === 'Waste').length;
     const initiativesCreated = userPosts.filter(p => p.postType === 'Initiative').length;
 

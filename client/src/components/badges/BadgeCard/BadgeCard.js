@@ -15,8 +15,9 @@ const ICON_MAP = {
   Calendar, CheckCircle, Medal, Swords
 };
 
-const BadgeCard = ({ badge, earned = false, earnedAt = null, progress = null, onClick }) => {
+const BadgeCard = ({ badge, earned = false, earnedAt = null, progress = null, onClick, onClaimBadge }) => {
   const [showShareModal, setShowShareModal] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   const IconComponent = ICON_MAP[badge.icon] || Star;
   const rarity = BADGE_RARITY[badge.rarity] || BADGE_RARITY.COMMON;
@@ -24,6 +25,17 @@ const BadgeCard = ({ badge, earned = false, earnedAt = null, progress = null, on
   const handleShare = (e) => {
     e.stopPropagation();
     setShowShareModal(true);
+  };
+
+  const handleClaim = async (e) => {
+    e.stopPropagation();
+    if (claiming || !onClaimBadge) return;
+    setClaiming(true);
+    try {
+      await onClaimBadge();
+    } finally {
+      setClaiming(false);
+    }
   };
 
   const formatDate = (date) => {
@@ -78,6 +90,17 @@ const BadgeCard = ({ badge, earned = false, earnedAt = null, progress = null, on
               </div>
               <span className="badge-progress-text">{Math.round(progress)}%</span>
             </div>
+          )}
+
+          {/* Claim button for badges at 100% progress */}
+          {!earned && onClaimBadge && progress >= 100 && (
+            <button
+              className="badge-claim-btn"
+              onClick={handleClaim}
+              disabled={claiming}
+            >
+              {claiming ? 'Claiming...' : 'Claim Badge'}
+            </button>
           )}
 
           {/* Earned date */}

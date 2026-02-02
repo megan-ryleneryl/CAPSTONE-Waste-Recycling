@@ -4,7 +4,7 @@ import { BadgeCard } from '../index';
 import { BADGES, BADGE_CATEGORIES, getAllBadgesSorted, getBadgesByCategory } from '../../../config/badges';
 import './BadgesSection.css';
 
-const BadgesSection = ({ userBadges = [], userStats = {} }) => {
+const BadgesSection = ({ userBadges = [], userStats = {}, onClaimBadge }) => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -141,6 +141,7 @@ const BadgesSection = ({ userBadges = [], userStats = {} }) => {
               earned={isEarned}
               earnedAt={userBadge?.earnedAt}
               progress={progress}
+              onClaimBadge={progress >= 100 && !isEarned ? onClaimBadge : null}
             />
           );
         })}
