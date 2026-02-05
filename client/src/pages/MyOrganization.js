@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -108,8 +109,6 @@ const MyOrganization = () => {
         contactPhone: currentUser.phone || '',
         address: currentUser.address || '',
         createdAt: currentUser.createdAt,
-        status: 'Active',
-        orgType: 'ngo' // Could be 'junkshop', 'ngo', 'lgu'
       };
       
       setOrganization(orgData);
@@ -160,7 +159,6 @@ const MyOrganization = () => {
         lastName: currentUser.lastName,
         email: currentUser.email,
         isOrgAdmin: true,
-        joinedAt: currentUser.createdAt,
         profilePictureUrl: currentUser.profilePictureUrl
       }]);
       
@@ -507,7 +505,6 @@ const MyOrganization = () => {
               <th>Member</th>
               <th>Email</th>
               <th>Role</th>
-              <th>Joined</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -533,7 +530,6 @@ const MyOrganization = () => {
                     {member.isOrgAdmin ? 'Admin' : 'Member'}
                   </span>
                 </td>
-                <td className={styles.dateCell}>{formatDate(member.joinedAt)}</td>
                 <td>
                   <button
                     onClick={() => { setSelectedMember(member); setShowMemberModal(true); }}
@@ -726,30 +722,6 @@ const MyOrganization = () => {
               </div>
             </div>
 
-            {/* Giver Satisfaction */}
-            <div className={styles.insightCard}>
-              <h4><Star size={18} /> Giver Satisfaction</h4>
-              <div className={styles.satisfactionMain}>
-                <div className={styles.ratingValue}>
-                  <span>{data.platformInsights?.avgPickupRating || 0}</span>
-                  <span className={styles.ratingMax}>/5</span>
-                </div>
-                <div className={styles.satisfactionDetails}>
-                  <p>{data.platformInsights?.giverSatisfaction || 0}% satisfaction</p>
-                  <p>{data.platformInsights?.returnGiverRate || 0}% return rate</p>
-                </div>
-              </div>
-              <div className={styles.starsContainer}>
-                {[1,2,3,4,5].map(i => (
-                  <Star 
-                    key={i} 
-                    size={20} 
-                    className={i <= Math.round(data.platformInsights?.avgPickupRating || 0) ? styles.starFilled : styles.starEmpty}
-                  />
-                ))}
-              </div>
-            </div>
-
             {/* Peak Collection Times */}
             <div className={styles.insightCard}>
               <h4><Clock size={18} /> Peak Collection Insights</h4>
@@ -801,7 +773,6 @@ const MyOrganization = () => {
             {[
               { value: `${(data.impact?.co2Saved || 0).toLocaleString()} kg`, label: 'CO₂ Prevented', icon: <Leaf size={24} /> },
               { value: data.impact?.treesEquivalent || 0, label: 'Trees Saved', icon: <Trees size={24} /> },
-              { value: `${(data.impact?.waterSaved || 0).toLocaleString()} L`, label: 'Water Conserved', icon: <Droplets size={24} /> },
               { value: `${data.impact?.landfillDiverted || 0} tons`, label: 'Landfill Diverted', icon: <Recycle size={24} /> },
               { value: data.impact?.householdsServed || 0, label: 'Households Served', icon: <Home size={24} /> },
               { value: data.impact?.barrangaysCovered || 0, label: 'Barangays Covered', icon: <MapPin size={24} /> }
@@ -816,7 +787,7 @@ const MyOrganization = () => {
 
           <div className={styles.downloadSection}>
             <button className={styles.downloadButton}>
-              📊 Download Impact Report (PDF)
+              Download Impact Report (PDF)
             </button>
           </div>
         </div>
@@ -916,7 +887,7 @@ const MyOrganization = () => {
       </div>
 
       {/* Edit Modal */}
-      {showEditModal && (
+      {showEditModal && ReactDOM.createPortal(
         <div className={styles.modalBackdrop} onClick={() => setShowEditModal(false)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
@@ -981,11 +952,12 @@ const MyOrganization = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Member Modal */}
-      {showMemberModal && selectedMember && (
+      {showMemberModal && selectedMember && ReactDOM.createPortal(
         <div className={styles.modalBackdrop} onClick={() => setShowMemberModal(false)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
@@ -1012,7 +984,6 @@ const MyOrganization = () => {
               </div>
               <div className={styles.memberModalInfo}>
                 <p><strong>Email:</strong> {selectedMember.email}</p>
-                <p><strong>Joined:</strong> {formatDate(selectedMember.joinedAt)}</p>
               </div>
             </div>
             <div className={styles.memberModalFooter}>
@@ -1040,7 +1011,8 @@ const MyOrganization = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
