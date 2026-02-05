@@ -1,0 +1,493 @@
+.badge-unlocked-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0);
+  z-index: 10003;
+  transition: background 0.4s ease;
+  padding: 20px;
+}
+
+.badge-unlocked-overlay.phase-show,
+.badge-unlocked-overlay.phase-idle {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.badge-unlocked-overlay.phase-exit {
+  background: rgba(0, 0, 0, 0);
+}
+
+/* Confetti */
+.badge-confetti {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-particle {
+  position: absolute;
+  top: 30%;
+  left: var(--left);
+  width: var(--size);
+  height: var(--size);
+  background: var(--color);
+  animation: confettiBurst var(--duration) ease-out var(--delay) forwards;
+  transform: rotate(var(--rotation));
+  opacity: 0;
+}
+
+.confetti-star {
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.confetti-circle {
+  border-radius: 50%;
+}
+
+.confetti-rect {
+  border-radius: 2px;
+}
+
+@keyframes confettiBurst {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(0);
+    opacity: 1;
+  }
+  10% {
+    transform: translateY(-50px) rotate(90deg) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(100vh - 30%)) rotate(720deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* Main Card */
+.badge-unlocked-card {
+  position: relative;
+  background: linear-gradient(145deg, #3B6535 0%, #1f3a1b 100%);
+  border-radius: 28px;
+  padding: 40px 32px;
+  max-width: 360px;
+  width: 100%;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5),
+              0 0 80px var(--rarity-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(179, 242, 172, 0.2);
+  text-align: center;
+}
+
+.phase-enter .badge-unlocked-card {
+  animation: cardBounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.phase-show .badge-unlocked-card,
+.phase-idle .badge-unlocked-card {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.phase-exit .badge-unlocked-card {
+  animation: cardFadeOut 0.4s ease forwards;
+}
+
+@keyframes cardBounceIn {
+  0% {
+    transform: scale(0.3) rotate(-10deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1) rotate(3deg);
+  }
+  80% {
+    transform: scale(0.95) rotate(-1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes cardFadeOut {
+  to {
+    transform: scale(0.9) translateY(-30px);
+    opacity: 0;
+  }
+}
+
+/* Close button */
+.badge-unlocked-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.badge-unlocked-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* Radial burst */
+.badge-radial-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  animation: burstRotate 30s linear infinite;
+}
+
+.radial-ray {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 80%;
+  background: linear-gradient(to top, transparent, var(--rarity-color), transparent);
+  opacity: 0.15;
+  transform-origin: bottom center;
+  transform: translateX(-50%) rotate(var(--rotation));
+}
+
+@keyframes burstRotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Orbit particles */
+.badge-orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  height: 180px;
+  transform: translate(-50%, -50%);
+  animation: orbitSpin 8s linear infinite;
+}
+
+.orbit-particle {
+  position: absolute;
+  color: var(--color);
+  animation: orbitPulse 1.5s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+.orbit-particle:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); }
+.orbit-particle:nth-child(2) { top: 15%; right: 15%; }
+.orbit-particle:nth-child(3) { top: 50%; right: 0; transform: translateY(-50%); }
+.orbit-particle:nth-child(4) { bottom: 15%; right: 15%; }
+.orbit-particle:nth-child(5) { bottom: 0; left: 50%; transform: translateX(-50%); }
+.orbit-particle:nth-child(6) { bottom: 15%; left: 15%; }
+.orbit-particle:nth-child(7) { top: 50%; left: 0; transform: translateY(-50%); }
+.orbit-particle:nth-child(8) { top: 15%; left: 15%; }
+
+@keyframes orbitSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes orbitPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Header */
+.badge-unlocked-header {
+  position: relative;
+  margin-bottom: 24px;
+  z-index: 1;
+}
+
+.unlocked-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--rarity-color);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  animation: labelGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes labelGlow {
+  0%, 100% { text-shadow: 0 0 10px var(--rarity-glow); }
+  50% { text-shadow: 0 0 20px var(--rarity-color), 0 0 30px var(--rarity-glow); }
+}
+
+.unlocked-rarity {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--rarity-color);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Icon container */
+.badge-unlocked-icon-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 24px;
+  z-index: 1;
+}
+
+.badge-unlocked-icon-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  background: var(--rarity-color);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  filter: blur(30px);
+  opacity: 0.5;
+  animation: iconGlowPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconGlowPulse {
+  0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.2); }
+}
+
+.badge-unlocked-icon-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 2px solid var(--rarity-color);
+  transform: translate(-50%, -50%);
+}
+
+.badge-unlocked-icon-ring.ring-1 {
+  width: 100px;
+  height: 100px;
+  animation: ringExpand1 2s ease-out infinite;
+}
+
+.badge-unlocked-icon-ring.ring-2 {
+  width: 120px;
+  height: 120px;
+  animation: ringExpand2 2s ease-out infinite;
+  animation-delay: 0.3s;
+}
+
+@keyframes ringExpand1 {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+@keyframes ringExpand2 {
+  0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+.badge-unlocked-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, var(--rarity-color), color-mix(in srgb, var(--rarity-color) 70%, black));
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  box-shadow: 0 10px 30px var(--rarity-glow),
+              inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  animation: iconPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes iconPop {
+  0% { transform: translate(-50%, -50%) scale(0) rotate(-30deg); }
+  60% { transform: translate(-50%, -50%) scale(1.2) rotate(10deg); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+/* Badge info */
+.badge-unlocked-info {
+  position: relative;
+  margin-bottom: 20px;
+  z-index: 1;
+}
+
+.badge-unlocked-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 8px 0;
+  animation: nameSlide 0.5s ease-out 0.4s both;
+}
+
+@keyframes nameSlide {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.badge-unlocked-description {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  line-height: 1.5;
+  animation: descSlide 0.5s ease-out 0.5s both;
+}
+
+@keyframes descSlide {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Points */
+.badge-unlocked-points {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #F0924C 0%, #d97f3b 100%);
+  border-radius: 20px;
+  margin-bottom: 24px;
+  animation: pointsPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both;
+}
+
+.badge-unlocked-points span {
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+}
+
+.badge-unlocked-points svg {
+  color: white;
+}
+
+@keyframes pointsPop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Action buttons */
+.badge-unlocked-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+  animation: actionsSlide 0.5s ease-out 0.7s both;
+}
+
+@keyframes actionsSlide {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.badge-action-share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--rarity-color);
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.badge-action-share:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px var(--rarity-glow);
+}
+
+.badge-action-close {
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.badge-action-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+/* Mobile responsive */
+@media (max-width: 400px) {
+  .badge-unlocked-card {
+    padding: 32px 24px;
+  }
+
+  .badge-unlocked-icon-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .badge-unlocked-icon {
+    width: 76px;
+    height: 76px;
+  }
+
+  .badge-unlocked-icon svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .badge-unlocked-name {
+    font-size: 20px;
+  }
+}

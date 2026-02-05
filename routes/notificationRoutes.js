@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
+const notificationService = require('../services/notification-service');
 const { verifyToken } = require('../middleware/auth');
 
 // Get user notifications
@@ -71,6 +72,82 @@ router.patch('/read-all', verifyToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error marking all as read',
+      error: error.message
+    });
+  }
+});
+
+// Create pickup status notification
+router.post('/pickup-status', verifyToken, async (req, res) => {
+  try {
+    const { status, pickupID, recipientID, recipientName, actorName, location } = req.body;
+
+    if (!status || !pickupID || !recipientID) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: status, pickupID, recipientID'
+      });
+    }
+
+    const pickupDetails = {
+      pickupID,
+      location: location || 'pickup location'
+    };
+
+    let notification;
+
+    switch (status) {
+      case 'Confirmed':
+        notification = await notificationService.notifyPickupConfirmed(
+          recipientID,
+          actorName || 'User',
+          pickupDetails
+        );
+        break;
+      case 'In-Transit':
+        notification = await notificationService.notifyPickupInTransit(
+          recipientID,
+          actorName || 'Collector',
+          pickupDetails
+        );
+        break;
+      case 'ArrivedAtPickup':
+        notification = await notificationService.notifyPickupArrived(
+          recipientID,
+          actorName || 'Collector',
+          pickupDetails
+        );
+        break;
+      case 'Completed':
+        notification = await notificationService.notifyPickupCompleted(
+          recipientID,
+          location || 'pickup location',
+          pickupID
+        );
+        break;
+      case 'Cancelled':
+        notification = await notificationService.notifyPickupCancelled(
+          recipientID,
+          location || 'pickup location',
+          pickupID
+        );
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: `Unknown pickup status: ${status}`
+        });
+    }
+
+    res.json({
+      success: true,
+      notification: notification?.toFirestore?.() || notification
+    });
+  } catch (error) {
+    console.error('Error creating pickup notification:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating pickup notification',
       error: error.message
     });
   }

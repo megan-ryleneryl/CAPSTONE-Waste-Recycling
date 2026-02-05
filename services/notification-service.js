@@ -96,8 +96,31 @@ class NotificationService {
       type: 'Pickup',
       title: 'Pickup Confirmed',
       message: `${giverName} confirmed your pickup request at ${pickupDetails.location}`,
-      referenceID: pickupDetails.pickupID
+      referenceID: pickupDetails.pickupID,
+      referenceType: 'pickup'
     }, collectorToken);
+  }
+
+  async notifyPickupInTransit(giverID, collectorName, pickupDetails, giverToken = null) {
+    return await this.createAndSendNotification({
+      userID: giverID,
+      type: 'Pickup',
+      title: 'Collector On The Way',
+      message: `${collectorName} is on the way to collect your waste at ${pickupDetails.location}`,
+      referenceID: pickupDetails.pickupID,
+      referenceType: 'pickup'
+    }, giverToken);
+  }
+
+  async notifyPickupArrived(giverID, collectorName, pickupDetails, giverToken = null) {
+    return await this.createAndSendNotification({
+      userID: giverID,
+      type: 'Pickup',
+      title: 'Collector Has Arrived',
+      message: `${collectorName} has arrived at the pickup location`,
+      referenceID: pickupDetails.pickupID,
+      referenceType: 'pickup'
+    }, giverToken);
   }
 
   async notifyPickupCompleted(userID, location, pickupID, userToken = null) {

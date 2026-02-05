@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Pencil, Trash2, MapPin, Sprout, Recycle, TrendingUp, Heart, Leaf, Trophy, Users, Package, Plus, Trees, Droplets, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
 import DeleteAccountModal from '../components/profile/DeleteAccountModal/DeleteAccountModal';
@@ -10,6 +11,7 @@ import ApplicationStatusTracker from '../components/profile/ApplicationStatusTra
 import PreferredTimesModal from '../components/profile/PreferredTimesModal';
 import PreferredLocationsModal from '../components/profile/PreferredLocationsModal';
 import UserLocationModal from '../components/profile/UserLocationModal';
+import { BadgesSection } from '../components/badges';
 import GuideLink from '../components/guide/GuideLink';
 
 // Component for Organization Application Form
@@ -684,6 +686,7 @@ const ApplicationSelector = ({ applications, onSelect, onClose }) => {
 
 // Main Profile Component
 const Profile = ({ user: propsUser }) => {
+  const { success, showPointsEarned } = useToast();
   const [user, setUser] = useState(propsUser || null);
   const [profilePictureUrl, setProfilePictureUrl] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -755,6 +758,34 @@ const Profile = ({ user: propsUser }) => {
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
+    }
+  };
+
+  // Check and award eligible badges
+  const checkAndAwardBadges = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'http://localhost:3001/api/protected/profile/check-badges',
+        {},
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success && response.data.newBadges?.length > 0) {
+        // Refresh user profile to get updated badges
+        await fetchUserProfile();
+
+        // Show notification for each new badge
+        response.data.newBadges.forEach((badge, index) => {
+          setTimeout(() => {
+            success(`Badge unlocked: ${badge.badgeId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`);
+          }, index * 1000);
+        });
+      }
+    } catch (error) {
+      console.error('Error checking badges:', error);
     }
   };
 
@@ -861,6 +892,8 @@ const Profile = ({ user: propsUser }) => {
     fetchUserProfile();
     fetchUserApplications();
     fetchAnalyticsData();
+    // Check and award any eligible badges on profile load
+    checkAndAwardBadges();
   }, [fetchUserProfile]);
 
   // Fetch analytics when time range changes
@@ -1177,15 +1210,21 @@ const Profile = ({ user: propsUser }) => {
       if (response.data.success) {
         // If backend returns updated user, use it
         const updatedUser = response.data.user || { ...user, preferredTimes: times };
-        
+
         // Update local state with backend response
         setUser(updatedUser);
-        
+
         // Update localStorage
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
+
         // Close modal
         setActiveModal(null);
+
+        // Show success toast and points popup if this is first time setting
+        success('Preferred times updated successfully!');
+        if (response.data.pointsAwarded) {
+          showPointsEarned(1, 'Profile Completed: Preferred Times');
+        }
       }
     } catch (error) {
       console.error('Error updating preferred times:', error);
@@ -1225,11 +1264,16 @@ const Profile = ({ user: propsUser }) => {
 
         // Close modal
         setActiveModal(null);
+
+        // Show success toast and points popup if this is first time setting
+        success('Preferred locations updated successfully!');
+        if (response.data.pointsAwarded) {
+          showPointsEarned(1, 'Profile Completed: Preferred Locations');
+        }
       }
     } catch (error) {
       console.error('Error updating preferred locations:', error);
       setError('Failed to update preferred locations');
-      alert('Failed to save locations. Please try again.');
     }
   };
 
@@ -1509,6 +1553,12 @@ const Profile = ({ user: propsUser }) => {
                 Preferences
               </button>
               <button
+                className={`${styles.tabButton} ${activeTab === 'badges' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('badges')}
+              >
+                Badges
+              </button>
+              <button
                 className={`${styles.tabButton} ${activeTab === 'stats' ? styles.activeTab : ''}`}
                 onClick={() => setActiveTab('stats')}
               >
@@ -1763,6 +1813,23 @@ const Profile = ({ user: propsUser }) => {
                     ) : null}
                   </div>
                 </div>
+              )}
+
+              {/* Badges Tab */}
+              {activeTab === 'badges' && (
+                <BadgesSection
+                  userBadges={user?.badges || []}
+                  userStats={{
+                    points: user?.points || 0,
+                    postsCreated: analyticsData?.giverStats?.totalPostsCreated || 0,
+                    pickupsCompleted: (analyticsData?.giverStats?.successfulPickups || 0) + (analyticsData?.collectorStats?.successfulPickups || 0),
+                    kgRecycled: analyticsData?.giverStats?.totalKgRecycled || 0,
+                    initiativesSupported: analyticsData?.giverStats?.initiativesSupported || 0,
+                  }}
+                  onClaimBadge={async () => {
+                    await checkAndAwardBadges();
+                  }}
+                />
               )}
 
               {/* Stats Tab */}

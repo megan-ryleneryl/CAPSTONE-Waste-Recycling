@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useToast } from '../../../context/ToastContext';
 import ModalPortal from '../../modal/ModalPortal';
 import CommentsSection from '../CommentsSection/CommentsSection';
 import styles from './PostDetails.module.css';
@@ -9,6 +10,7 @@ import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Cal
 
 const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLiked, onLikeToggle, likingPost }) => {
   const navigate = useNavigate();
+  const { success, error: showError, warning } = useToast();
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [isRequestingPickup, setIsRequestingPickup] = useState(false);
@@ -272,7 +274,9 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
       );
 
       if (response.data.success) {
-        alert('Support request sent successfully! You can now chat with the initiative owner.');
+        success('Support request sent! You can now chat with the initiative owner.', {
+          title: 'Support Submitted'
+        });
         setShowSupportModal(false);
         setSupportData({ notes: '' });
         setSelectedMaterials([]);
@@ -289,7 +293,9 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
       }
     } catch (error) {
       console.error('Error supporting initiative:', error);
-      alert(error.response?.data?.message || 'Failed to send support request');
+      showError(error.response?.data?.message || 'Failed to send support request', {
+        title: 'Support Failed'
+      });
     } finally {
       setIsSupportingInitiative(false);
     }

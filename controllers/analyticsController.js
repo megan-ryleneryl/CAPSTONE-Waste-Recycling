@@ -307,8 +307,168 @@ const analyticsController = {
         error: error.message
       });
     }
+  },
+
+  // Get city leaderboard for Leagues page
+  async getCityLeaderboard(req, res) {
+    try {
+      const userID = req.user.userID;
+      const currentUser = await User.findById(userID);
+
+      if (!currentUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Get all users with their location and points
+      const allUsers = await getCachedData('allUsers', () => User.findAll());
+
+      // Group users by city
+      const cityMap = new Map();
+
+      allUsers.forEach(user => {
+        if (user.status === 'Suspended' || user.status === 'Deleted') return;
+
+        const cityCode = user.userLocation?.city?.code;
+        const cityName = user.userLocation?.city?.name;
+
+        if (!cityCode || !cityName) return;
+
+        if (!cityMap.has(cityCode)) {
+          cityMap.set(cityCode, {
+            cityCode,
+            cityName,
+            totalPoints: 0,
+            userCount: 0,
+            users: []
+          });
+        }
+
+        const cityData = cityMap.get(cityCode);
+        cityData.totalPoints += user.points || 0;
+        cityData.userCount += 1;
+        cityData.users.push({
+          userID: user.userID,
+          name: user.organizationName || `${user.firstName} ${user.lastName}`,
+          points: user.points || 0
+        });
+      });
+
+      // Convert to array and calculate scores
+      const cities = Array.from(cityMap.values()).map(city => ({
+        cityCode: city.cityCode,
+        cityName: city.cityName,
+        totalPoints: city.totalPoints,
+        userCount: city.userCount,
+        score: city.userCount > 0 ? Math.round(city.totalPoints / city.userCount) : 0,
+        users: city.users.sort((a, b) => b.points - a.points).slice(0, 10) // Top 10 users
+      }));
+
+      // Sort by score (engagement score = total points / users)
+      cities.sort((a, b) => b.score - a.score);
+
+      // Add rank to each city
+      cities.forEach((city, index) => {
+        city.rank = index + 1;
+      });
+
+      // Get current user's city data
+      const userCityCode = currentUser.userLocation?.city?.code;
+      let userCityData = null;
+      let topUsersInCity = [];
+
+      if (userCityCode) {
+        const userCity = cities.find(c => c.cityCode === userCityCode);
+        if (userCity) {
+          userCityData = {
+            ...userCity,
+            pointsToOvertake: 0,
+            nextCity: null
+          };
+
+          // Calculate points needed to overtake next city
+          if (userCity.rank > 1) {
+            const nextCity = cities[userCity.rank - 2]; // City above in ranking
+            const pointsDiff = nextCity.score - userCity.score;
+            userCityData.pointsToOvertake = Math.max(0, pointsDiff * userCity.userCount + 1);
+            userCityData.nextCity = nextCity.cityName;
+          }
+
+          // Get top users in the user's city (Heavy Lifters)
+          topUsersInCity = userCity.users.slice(0, 3).map((u, idx) => ({
+            rank: idx + 1,
+            name: u.name,
+            points: u.points
+          }));
+        }
+      }
+
+      // Get waste distribution for user's city
+      const wasteByType = await getWasteDistributionForCity(userCityCode);
+
+      res.json({
+        success: true,
+        data: {
+          cities: cities.map(c => ({
+            cityCode: c.cityCode,
+            cityName: c.cityName,
+            totalPoints: c.totalPoints,
+            userCount: c.userCount,
+            score: c.score,
+            rank: c.rank
+          })),
+          userCityData,
+          topUsersInCity,
+          wasteByType
+        }
+      });
+    } catch (error) {
+      console.error('City leaderboard error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch city leaderboard',
+        error: error.message
+      });
+    }
   }
 };
+
+// Get waste distribution for a specific city
+async function getWasteDistributionForCity(cityCode) {
+  try {
+    if (!cityCode) return {};
+
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    const completedPickups = allPickups.filter(pickup => {
+      return pickup.status === 'Completed' &&
+             pickup.pickupLocation?.city?.code === cityCode;
+    });
+
+    const distribution = {};
+    let totalWeight = 0;
+
+    completedPickups.forEach(pickup => {
+      if (pickup.actualWaste && Array.isArray(pickup.actualWaste)) {
+        const weight = parseFloat(pickup.finalAmount) || 0;
+
+        pickup.actualWaste.forEach(material => {
+          const materialType = material.materialName || material.type || 'Other';
+          const materialWeight = weight / pickup.actualWaste.length;
+          distribution[materialType] = (distribution[materialType] || 0) + materialWeight;
+          totalWeight += materialWeight;
+        });
+      }
+    });
+
+    return distribution;
+  } catch (error) {
+    console.error('Error getting waste distribution for city:', error);
+    return {};
+  }
+}
 
 // ============================================================================
 // HELPER FUNCTIONS

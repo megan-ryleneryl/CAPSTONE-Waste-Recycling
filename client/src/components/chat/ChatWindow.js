@@ -4,6 +4,7 @@ import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp,
 import { db } from '../../services/firebase';
 import { useNavigate, Link } from 'react-router-dom';
 import { Calendar, Package, Edit3, XCircle, ClipboardList } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 import PickupScheduleForm from './PickupScheduleForm';
 import PickupCard from './PickupCard';
 import axios from 'axios';
@@ -16,6 +17,7 @@ import styles from './ChatWindow.module.css';
 
 
 const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData }) => {
+  const { pickupNotification, success, error: showError } = useToast();
   const [messages, setMessages] = useState([]);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [showProposedPickupsModal, setShowProposedPickupsModal] = useState(false);
@@ -373,10 +375,14 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       setActivePickup({ id: pickupRef.id, ...pickupData });
       setShowScheduleForm(false);
 
-      alert('Pickup scheduled successfully!');
+      pickupNotification('Pickup schedule proposed! Waiting for confirmation.', {
+        title: 'Schedule Proposed'
+      });
     } catch (error) {
       console.error('Error scheduling pickup:', error);
-      alert('Failed to schedule pickup. Please try again.');
+      showError('Failed to schedule pickup. Please try again.', {
+        title: 'Scheduling Failed'
+      });
     }
   };
 
@@ -547,10 +553,14 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         setPost({ id: updatedPostSnap.id, ...updatedPostSnap.data() });
       }
 
-      alert('Pickup confirmed!');
+      success('Pickup confirmed! The collector has been notified.', {
+        title: 'Pickup Confirmed'
+      });
     } catch (error) {
       console.error('Error confirming pickup:', error);
-      alert('Failed to confirm pickup. Please try again.');
+      showError('Failed to confirm pickup. Please try again.', {
+        title: 'Confirmation Failed'
+      });
     }
   };
 
