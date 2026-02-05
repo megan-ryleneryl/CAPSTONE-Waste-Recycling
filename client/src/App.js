@@ -18,6 +18,7 @@ import PickupTracking from './pages/PickupTracking';
 import EditMaterials from './pages/EditMaterials';
 import DisposalHubManagement from './pages/DisposalHubManagement';
 import Leagues from './pages/Leagues';
+import MyOrganization from './pages/MyOrganization';
 import './App.css';
 
 // Protected Route Component
@@ -125,6 +126,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Organization Route - Only accessible if user has organizationID */}
+            <Route 
+              path="/my-organization" 
+              element={
+                <ProtectedRoute>
+                  <MyOrganization />
                 </ProtectedRoute>
               } 
             />

@@ -17,7 +17,8 @@ import {
   FileText,
   ClipboardPenLine,
   MapPin,
-  Trophy }
+  Trophy,
+  Building2 }
   from 'lucide-react';
 
 const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = { all: 0, waste: 0, initiative: 0, forum: 0 }, postCounts = { all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 } }) => {
@@ -45,6 +46,7 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
     { path: '/chat', label: 'Messages', icon: <MessageCircle size={20} /> },
     { path: '/pickups', label: 'My Pickups', icon: <Package size={20} /> },
     { path: '/leagues', label: 'Leagues', icon: <Trophy size={20} /> },
+    ...(user?.organizationID ? [{ path: '/my-organization', label: 'My Organization', icon: <Building2 size={20} /> }] : []),
     { path: '/profile', label: 'Profile', icon: <User size={20} /> },
   ];
 
