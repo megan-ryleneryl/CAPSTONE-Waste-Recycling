@@ -10,6 +10,9 @@ class Organization {
     this.admins = Array.isArray(data.admins) ? data.admins : [];
     this.description = data.description || '';
     this.profilePicture = data.profilePicture || null;
+    this.contactEmail = data.contactEmail || '';
+    this.contactPhone = data.contactPhone || '';
+    this.address = data.address || '';
     this.isActive = data.isActive !== undefined ? data.isActive : true;
     this.updatedAt = data.updatedAt || new Date();
     this.createdAt = data.createdAt || new Date();
@@ -29,6 +32,9 @@ class Organization {
       admins: this.admins,
       description: this.description,
       profilePicture: this.profilePicture,
+      contactEmail: this.contactEmail,
+      contactPhone: this.contactPhone,
+      address: this.address,
       isActive: this.isActive,
       updatedAt: new Date(), // Always update timestamp
       createdAt: this.createdAt

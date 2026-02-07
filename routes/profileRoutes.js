@@ -147,7 +147,9 @@ router.put('/', async (req, res) => {
       'preferredTimes',
       'preferredLocations',
       'userLocation',
-      'privacySettings'
+      'privacySettings',
+      'organizationName',
+      'organizationDescription'
     ];
     
     const updates = {};

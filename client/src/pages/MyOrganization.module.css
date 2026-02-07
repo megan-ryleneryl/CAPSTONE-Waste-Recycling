@@ -1276,16 +1276,18 @@
 .downloadButton {
   padding: 0.75rem 2rem;
   background: var(--primary-color);
-  color: var(--accent-color);
+  color: #ffffff;
   border: none;
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-sm);
   transition: var(--transition-all);
+  margin: 0 auto;
 }
 
 .downloadButton:hover {
@@ -1664,4 +1666,114 @@
   .impactReportGrid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ===== NEW STYLES FOR UPDATED MYORGANIZATION ===== */
+
+/* Mini spinner for upload button */
+.miniSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Initiative author text */
+.initiativeAuthor {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* Material Breakdown */
+.materialBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.materialRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.materialInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.materialName {
+  font-weight: 600;
+  color: var(--text-primary, #333);
+  font-size: 0.9rem;
+}
+
+.materialAmount {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+}
+
+.materialBar {
+  width: 100%;
+  height: 8px;
+  background: var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.materialFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color, #3B6535), var(--primary-light, #B3F2AC));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+/* Download button enhancements */
+.downloadButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0.85rem 2rem;
+  background: var(--primary-color, #3B6535);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--border-radius-md, 8px);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: var(--font-family-primary, 'Raleway', sans-serif);
+  margin: 0 auto;
+}
+
+.downloadButton:hover:not(:disabled) {
+  background: #2d4e29;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
+}
+
+.downloadButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Camera button disabled state */
+.cameraButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }

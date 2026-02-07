@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -34,7 +34,8 @@ import {
   Award,
   Zap,
   CheckCircle,
-  X
+  X,
+  Download
 } from 'lucide-react';
 
 // Tree icon component (not in lucide-react standard)
@@ -49,7 +50,8 @@ const Trees = ({ size = 24, ...props }) => (
 
 const MyOrganization = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, refreshUser } = useAuth();
+  const fileInputRef = useRef(null);
   
   // Core state
   const [loading, setLoading] = useState(true);
@@ -68,7 +70,9 @@ const MyOrganization = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [memberFilter, setMemberFilter] = useState('all');
-  const [selectedTimeRange, setSelectedTimeRange] = useState('month');
+  const [selectedTimeRange, setSelectedTimeRange] = useState('all');
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [downloadingReport, setDownloadingReport] = useState(false);
   
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -78,6 +82,20 @@ const MyOrganization = () => {
     contactPhone: '',
     address: ''
   });
+
+  // Get auth token helper
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  // Construct profile picture URL
+  const getProfilePictureUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    const baseUrl = 'http://localhost:3001';
+    return url.startsWith('/') ? baseUrl + url : baseUrl + '/' + url;
+  };
 
   // Check if user has organization access
   useEffect(() => {
@@ -95,21 +113,33 @@ const MyOrganization = () => {
     setError('');
     
     try {
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = getAuthHeaders();
       
-      // For now, we'll use the current user's organization data
-      // In the future, this could be a separate Organization collection
-      const orgData = {
-        id: currentUser.userID,
-        name: currentUser.organizationName || 'My Organization',
-        description: currentUser.organizationDescription || 'Welcome to our organization. Edit this description to tell others about your mission and goals.',
-        profilePictureUrl: currentUser.profilePictureUrl || null,
-        contactEmail: currentUser.email,
-        contactPhone: currentUser.phone || '',
-        address: currentUser.address || '',
-        createdAt: currentUser.createdAt,
-      };
+      // 1. Fetch organization details
+      let orgData = null;
+      try {
+        const orgResponse = await axios.get(
+          'http://localhost:3001/api/organizations/my/organization',
+          { headers }
+        );
+        
+        if (orgResponse.data.success) {
+          const org = orgResponse.data.organization;
+          orgData = {
+            id: org.organizationID,
+            name: org.organizationName || '',
+            description: org.description || '',
+            profilePictureUrl: getProfilePictureUrl(org.profilePicture),
+            contactEmail: org.contactEmail || '',
+            contactPhone: org.contactPhone || '',
+            address: org.address || '',
+            createdAt: org.createdAt,
+            memberCount: org.members?.length || 1,
+            adminCount: org.admins?.length || 1
+          };
+        }
+      } catch (orgError) {
+      }
       
       setOrganization(orgData);
       setEditForm({
@@ -120,47 +150,41 @@ const MyOrganization = () => {
         address: orgData.address
       });
       
-      // Fetch initiatives created by this organization
-      try {
-        const initiativesResponse = await axios.get(
-          `http://localhost:3001/api/posts?postType=Initiative&userID=${currentUser.userID}`,
-          { headers }
-        );
-        
-        if (initiativesResponse.data.success) {
-          setInitiatives(initiativesResponse.data.posts || []);
-        }
-      } catch (initError) {
-        console.error('Error fetching initiatives:', initError);
+      // 2. Fetch members, initiatives, and analytics in parallel
+      const [membersResult, initiativesResult, analyticsResult] = await Promise.allSettled([
+        fetchMembers(headers),
+        fetchInitiatives(headers),
+        fetchAnalyticsData(headers, selectedTimeRange)
+      ]);
+
+      if (membersResult.status === 'fulfilled') {
+        setMembers(membersResult.value);
+      } else {
+        console.error('Members fetch failed:', membersResult.reason);
+        // Fallback: at least show current user
+        setMembers([{
+          userID: currentUser.userID,
+          firstName: currentUser.firstName,
+          lastName: currentUser.lastName,
+          email: currentUser.email,
+          isOrgAdmin: true,
+          profilePictureUrl: getProfilePictureUrl(currentUser.profilePictureUrl)
+        }]);
+      }
+
+      if (initiativesResult.status === 'fulfilled') {
+        setInitiatives(initiativesResult.value);
+      } else {
+        console.error('Initiatives fetch failed:', initiativesResult.reason);
         setInitiatives([]);
       }
-      
-      // Fetch analytics data
-      try {
-        const analyticsResponse = await axios.get(
-          `http://localhost:3001/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
-          { headers }
-        );
-        
-        if (analyticsResponse.data.success) {
-          setAnalytics(analyticsResponse.data.data);
-        }
-      } catch (analyticsError) {
-        console.error('Error fetching analytics:', analyticsError);
-        // Set default analytics
+
+      if (analyticsResult.status === 'fulfilled') {
+        setAnalytics(analyticsResult.value);
+      } else {
+        console.error('Analytics fetch failed:', analyticsResult.reason);
         setAnalytics(getDefaultAnalytics());
       }
-      
-      // For single-user organizations, the member is just the current user
-      // In a multi-member system, this would fetch from an organization members collection
-      setMembers([{
-        userID: currentUser.userID,
-        firstName: currentUser.firstName,
-        lastName: currentUser.lastName,
-        email: currentUser.email,
-        isOrgAdmin: true,
-        profilePictureUrl: currentUser.profilePictureUrl
-      }]);
       
     } catch (err) {
       console.error('Error fetching organization data:', err);
@@ -170,28 +194,126 @@ const MyOrganization = () => {
     }
   }, [currentUser, selectedTimeRange]);
 
+  // Fetch members from the organization endpoint
+  const fetchMembers = async (headers) => {
+    try {
+      const response = await axios.get(
+        'http://localhost:3001/api/organizations/my/organization/members',
+        { headers }
+      );
+      if (response.data.success) {
+        return response.data.members.map(m => ({
+          ...m,
+          profilePictureUrl: getProfilePictureUrl(m.profilePictureUrl)
+        }));
+      }
+    } catch (err) {
+      console.warn('Members endpoint error, falling back:', err.message);
+    }
+    // Fallback
+    return [{
+      userID: currentUser.userID,
+      firstName: currentUser.firstName,
+      lastName: currentUser.lastName,
+      email: currentUser.email,
+      isOrgAdmin: true,
+      profilePictureUrl: getProfilePictureUrl(currentUser.profilePictureUrl)
+    }];
+  };
+
+  // Fetch initiatives from all org members
+  const fetchInitiatives = async (headers) => {
+    try {
+      const response = await axios.get(
+        'http://localhost:3001/api/organizations/my/organization/initiatives',
+        { headers }
+      );
+      if (response.data.success) {
+        return response.data.initiatives || [];
+      }
+    } catch (err) {
+      console.warn('Org initiatives endpoint error, falling back:', err.message);
+    }
+    // Fallback: fetch just the current user's initiatives
+    try {
+      const response = await axios.get(
+        `http://localhost:3001/api/posts?postType=Initiative&userID=${currentUser.userID}`,
+        { headers }
+      );
+      if (response.data.success) {
+        return response.data.posts || [];
+      }
+    } catch (e) {
+      console.error('Initiative fallback also failed:', e.message);
+    }
+    return [];
+  };
+
+  // Fetch analytics data
+  const fetchAnalyticsData = async (headers, timeRange) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3001/api/organizations/my/organization/analytics?timeRange=${timeRange || selectedTimeRange}`,
+        { headers: headers || getAuthHeaders() }
+      );
+      if (response.data.success) {
+        return response.data.data;
+      }
+    } catch (err) {
+      console.warn('Org analytics endpoint error, falling back:', err.message);
+    }
+    // Fallback: try the general analytics endpoint and normalize response
+    try {
+      const response = await axios.get(
+        `http://localhost:3001/api/analytics/dashboard?timeRange=${timeRange || selectedTimeRange}`,
+        { headers: headers || getAuthHeaders() }
+      );
+      if (response.data.success) {
+        const raw = response.data.data || response.data;
+        // Normalize community analytics structure to match org analytics structure
+        return {
+          earnings: raw.earnings || getDefaultAnalytics().earnings,
+          operations: raw.operations || {
+            totalPickups: raw.totalPickups || 0,
+            completedPickups: raw.totalPickups || 0,
+            successRate: 0,
+            repeatGivers: 0,
+            activeGivers: 0
+          },
+          volume: raw.volume || {
+            totalCollected: raw.totalRecycled || 0,
+            thisMonth: 0,
+            lastMonth: 0,
+            growthRate: 0
+          },
+          impact: raw.impact || {
+            co2Saved: raw.communityImpact?.co2Saved || 0,
+            treesEquivalent: raw.communityImpact?.treesEquivalent || 0,
+            waterSaved: raw.communityImpact?.waterSaved || 0,
+            landfillDiverted: 0,
+            householdsServed: 0,
+            barrangaysCovered: 0
+          },
+          materialBreakdown: raw.materialBreakdown || [],
+          platformInsights: raw.platformInsights || getDefaultAnalytics().platformInsights
+        };
+      }
+    } catch (e) {
+      console.warn('General analytics also failed:', e.message);
+    }
+    return getDefaultAnalytics();
+  };
+
   // Refetch analytics when time range changes
   useEffect(() => {
     if (organization && activeTab === 'analytics') {
-      fetchAnalyticsData();
+      const refetch = async () => {
+        const data = await fetchAnalyticsData(null, selectedTimeRange);
+        setAnalytics(data);
+      };
+      refetch();
     }
   }, [selectedTimeRange]);
-
-  const fetchAnalyticsData = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `http://localhost:3001/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      
-      if (response.data.success) {
-        setAnalytics(response.data.data);
-      }
-    } catch (err) {
-      console.error('Error fetching analytics:', err);
-    }
-  };
 
   // Default analytics structure
   const getDefaultAnalytics = () => ({
@@ -207,7 +329,6 @@ const MyOrganization = () => {
       totalPickups: 0,
       completedPickups: 0,
       successRate: 0,
-      avgResponseTime: 0,
       repeatGivers: 0,
       activeGivers: 0
     },
@@ -244,7 +365,15 @@ const MyOrganization = () => {
   // Helper functions
   const formatDate = (date) => {
     if (!date) return 'N/A';
-    const d = date.toDate ? date.toDate() : new Date(date);
+    let d;
+    if (date?.seconds) {
+      d = new Date(date.seconds * 1000);
+    } else if (date?.toDate) {
+      d = date.toDate();
+    } else {
+      d = new Date(date);
+    }
+    if (isNaN(d.getTime())) return 'N/A';
     return d.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
@@ -256,14 +385,96 @@ const MyOrganization = () => {
     return `₱${(amount || 0).toLocaleString()}`;
   };
 
+  // Handle profile picture upload
+  const handleProfilePictureClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      alert('Please upload a valid image file (JPEG, PNG, or GIF)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+
+    setUploadingPicture(true);
+    try {
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+
+      const response = await axios.post(
+        'http://localhost:3001/api/organizations/my/organization/profile-picture',
+        formData,
+        {
+          headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setOrganization(prev => ({
+          ...prev,
+          profilePictureUrl: getProfilePictureUrl(response.data.fileUrl)
+        }));
+        alert('Organization profile picture updated!');
+      }
+    } catch (err) {
+      console.error('Error uploading profile picture:', err);
+      alert('Failed to upload organization profile picture.');
+    } finally {
+      setUploadingPicture(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // Handle edit form submission
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     
     try {
-      const token = localStorage.getItem('token');
-      
-      // Update user profile with organization details
+      // Try the organization update endpoint first
+      try {
+        const response = await axios.put(
+          'http://localhost:3001/api/organizations/my/organization',
+          {
+            organizationName: editForm.name,
+            description: editForm.description,
+            contactEmail: editForm.contactEmail,
+            contactPhone: editForm.contactPhone,
+            address: editForm.address
+          },
+          { headers: getAuthHeaders() }
+        );
+        
+        if (response.data.success) {
+          setOrganization(prev => ({
+            ...prev,
+            name: editForm.name,
+            description: editForm.description,
+            contactEmail: editForm.contactEmail,
+            contactPhone: editForm.contactPhone,
+            address: editForm.address
+          }));
+          setShowEditModal(false);
+          alert('Organization details updated!');
+          return;
+        }
+      } catch (orgErr) {
+        console.warn('Org update endpoint failed, trying profile:', orgErr.message);
+      }
+
+      // Fallback: update via profile endpoint
       const response = await axios.put(
         'http://localhost:3001/api/protected/profile',
         {
@@ -272,7 +483,7 @@ const MyOrganization = () => {
           phone: editForm.contactPhone,
           address: editForm.address
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: getAuthHeaders() }
       );
       
       if (response.data.success) {
@@ -284,10 +495,202 @@ const MyOrganization = () => {
           address: editForm.address
         }));
         setShowEditModal(false);
+        alert('Organization details updated!');
       }
     } catch (err) {
       console.error('Error updating organization:', err);
       setError('Failed to update organization details.');
+    }
+  };
+
+  // Handle impact report download
+  const handleDownloadReport = async () => {
+    setDownloadingReport(true);
+    try {
+      // Fetch impact report data
+      let reportData;
+      try {
+        const response = await axios.get(
+          'http://localhost:3001/api/organizations/my/organization/impact-report',
+          { headers: getAuthHeaders() }
+        );
+        if (response.data.success) {
+          reportData = response.data.report;
+        }
+      } catch (err) {
+        console.warn('Impact report endpoint unavailable, using local data');
+      }
+
+      // Fall back to analytics data if endpoint not available
+      if (!reportData) {
+        const data = analytics || getDefaultAnalytics();
+        reportData = {
+          organizationName: organization?.name || 'Organization',
+          generatedAt: new Date().toISOString(),
+          memberCount: members.length,
+          totalPickups: data.operations?.completedPickups || 0,
+          totalKgCollected: data.volume?.totalCollected || 0,
+          co2Prevented: data.impact?.co2Saved || 0,
+          treesSaved: data.impact?.treesEquivalent || 0,
+          waterSaved: data.impact?.waterSaved || 0,
+          landfillDiverted: data.impact?.landfillDiverted || 0,
+          uniqueHouseholds: data.impact?.householdsServed || 0
+        };
+      }
+
+      // Dynamically import jsPDF and generate PDF
+      const { default: jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 20;
+      const contentWidth = pageWidth - margin * 2;
+      let y = 20;
+
+      // --- Header ---
+      pdf.setFillColor(59, 101, 53);
+      pdf.rect(0, 0, pageWidth, 45, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(22);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(reportData.organizationName || 'Organization', pageWidth / 2, 18, { align: 'center' });
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Environmental Impact Report', pageWidth / 2, 28, { align: 'center' });
+      pdf.setFontSize(9);
+      pdf.setFillColor(179, 242, 172);
+      pdf.roundedRect(pageWidth / 2 - 20, 32, 40, 7, 2, 2, 'F');
+      pdf.setTextColor(59, 101, 53);
+      pdf.text('EcoTayo Verified', pageWidth / 2, 37, { align: 'center' });
+
+      y = 55;
+      pdf.setTextColor(51, 51, 51);
+
+      // --- Environmental Impact Section ---
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(59, 101, 53);
+      pdf.text('Environmental Impact', margin, y);
+      y += 3;
+      pdf.setDrawColor(59, 101, 53);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 10;
+
+      const impactMetrics = [
+        { value: `${(reportData.co2Prevented || 0).toLocaleString()} kg`, label: 'CO2 Emissions Prevented' },
+        { value: `${reportData.treesSaved || 0}`, label: 'Trees Equivalent Saved' },
+        { value: `${(reportData.waterSaved || 0).toLocaleString()} L`, label: 'Water Saved' },
+        { value: `${reportData.landfillDiverted || 0} tons`, label: 'Landfill Waste Diverted' },
+        { value: `${reportData.uniqueHouseholds || 0}`, label: 'Households Served' },
+        { value: `${(reportData.totalKgCollected || 0).toLocaleString()} kg`, label: 'Total Waste Collected' }
+      ];
+
+      const colWidth = contentWidth / 3;
+      impactMetrics.forEach((metric, idx) => {
+        const col = idx % 3;
+        const row = Math.floor(idx / 3);
+        const x = margin + col * colWidth;
+        const boxY = y + row * 35;
+
+        pdf.setFillColor(248, 249, 250);
+        pdf.roundedRect(x + 2, boxY, colWidth - 4, 30, 3, 3, 'F');
+        pdf.setDrawColor(224, 224, 224);
+        pdf.roundedRect(x + 2, boxY, colWidth - 4, 30, 3, 3, 'S');
+
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(59, 101, 53);
+        pdf.text(metric.value, x + colWidth / 2, boxY + 14, { align: 'center' });
+
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(102, 102, 102);
+        pdf.text(metric.label, x + colWidth / 2, boxY + 23, { align: 'center' });
+      });
+
+      y += 80;
+
+      // --- Operations Summary Section ---
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(59, 101, 53);
+      pdf.text('Operations Summary', margin, y);
+      y += 3;
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 10;
+
+      const opsMetrics = [
+        { value: `${reportData.memberCount || 0}`, label: 'Team Members' },
+        { value: `${reportData.totalPickups || 0}`, label: 'Completed Pickups' },
+        { value: `${(reportData.totalKgCollected || 0).toLocaleString()} kg`, label: 'Materials Collected' }
+      ];
+
+      opsMetrics.forEach((metric, idx) => {
+        const x = margin + idx * colWidth;
+        pdf.setFillColor(248, 249, 250);
+        pdf.roundedRect(x + 2, y, colWidth - 4, 30, 3, 3, 'F');
+        pdf.setDrawColor(224, 224, 224);
+        pdf.roundedRect(x + 2, y, colWidth - 4, 30, 3, 3, 'S');
+
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(59, 101, 53);
+        pdf.text(metric.value, x + colWidth / 2, y + 14, { align: 'center' });
+
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(102, 102, 102);
+        pdf.text(metric.label, x + colWidth / 2, y + 23, { align: 'center' });
+      });
+
+      y += 45;
+
+      // --- Summary Paragraph ---
+      pdf.setFillColor(240, 247, 238);
+      pdf.roundedRect(margin, y, contentWidth, 40, 3, 3, 'F');
+      pdf.setDrawColor(59, 101, 53);
+      pdf.setLineWidth(1);
+      pdf.line(margin, y, margin, y + 40);
+      pdf.setLineWidth(0.5);
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(51, 51, 51);
+      const summaryLines = [
+        `${reportData.organizationName} has made a significant contribution to environmental`,
+        `sustainability through the EcoTayo platform.`,
+        ``,
+        `By collecting ${(reportData.totalKgCollected || 0).toLocaleString()} kg of recyclable materials, the organization has`,
+        `prevented ${(reportData.co2Prevented || 0).toLocaleString()} kg of CO2 emissions, the equivalent of saving ${reportData.treesSaved || 0} trees.`,
+        `These efforts have served ${reportData.uniqueHouseholds || 0} households and diverted ${reportData.landfillDiverted || 0} tons from landfills.`
+      ];
+      summaryLines.forEach((line, i) => {
+        pdf.text(line, margin + 5, y + 8 + i * 5.5);
+      });
+
+      y += 50;
+
+      // --- Footer ---
+      pdf.setDrawColor(224, 224, 224);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 8;
+      pdf.setFontSize(9);
+      pdf.setTextColor(153, 153, 153);
+      pdf.text(
+        `Generated on ${new Date(reportData.generatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
+        pageWidth / 2, y, { align: 'center' }
+      );
+      pdf.text('Powered by EcoTayo - Building a Circular Economy Together', pageWidth / 2, y + 6, { align: 'center' });
+
+      // Save PDF
+      const fileName = `${(reportData.organizationName || 'Organization').replace(/\s+/g, '_')}_Impact_Report.pdf`;
+      pdf.save(fileName);
+
+    } catch (err) {
+      console.error('Error generating impact report:', err);
+      alert('Failed to generate impact report. Make sure jspdf is installed (npm install jspdf).');
+    } finally {
+      setDownloadingReport(false);
     }
   };
 
@@ -313,7 +716,16 @@ const MyOrganization = () => {
     const targetAmount = initiative.targetAmount || 100;
     const currentAmount = initiative.currentAmount || 0;
     const progress = Math.round((currentAmount / targetAmount) * 100);
-    const targetDate = initiative.targetDate ? new Date(initiative.targetDate) : new Date();
+    
+    let targetDate;
+    const endDateVal = initiative.endDate || initiative.targetDate;
+    if (endDateVal?.seconds) {
+      targetDate = new Date(endDateVal.seconds * 1000);
+    } else if (endDateVal) {
+      targetDate = new Date(endDateVal);
+    } else {
+      targetDate = new Date();
+    }
     const daysLeft = Math.max(0, Math.ceil((targetDate - new Date()) / (1000 * 60 * 60 * 24)));
     
     return (
@@ -336,8 +748,14 @@ const MyOrganization = () => {
           </div>
           
           <p className={styles.initiativeDescription}>
-            {initiative.description?.substring(0, 80)}...
+            {initiative.description?.substring(0, 80)}{initiative.description?.length > 80 ? '...' : ''}
           </p>
+
+          {initiative.authorName && (
+            <p className={styles.initiativeAuthor}>
+              <Users size={12} /> by {initiative.authorName}
+            </p>
+          )}
           
           <div className={styles.progressSection}>
             <div className={styles.progressHeader}>
@@ -401,7 +819,7 @@ const MyOrganization = () => {
           { icon: <Users size={24} />, value: members.length, label: 'Total Members' },
           { icon: <Shield size={24} />, value: members.filter(m => m.isOrgAdmin).length, label: 'Admins' },
           { icon: <Heart size={24} />, value: initiativeStats.active, label: 'Active Initiatives' },
-          { icon: <Package size={24} />, value: analytics?.operations?.completedPickups || 0, label: 'Total Pickups' }
+          { icon: <Package size={24} />, value: analytics?.operations?.completedPickups || 0, label: 'Completed Pickups' }
         ].map((stat, idx) => (
           <div key={idx} className={styles.statCard}>
             <div className={styles.statIcon}>{stat.icon}</div>
@@ -445,9 +863,15 @@ const MyOrganization = () => {
         
         {initiatives.length > 0 ? (
           <div className={styles.initiativesGrid}>
-            {initiatives.slice(0, 3).map(initiative => (
+            {initiatives.filter(i => i.status === 'Active').slice(0, 3).map(initiative => (
               <InitiativeProgressCard key={initiative.postID} initiative={initiative} />
             ))}
+            {initiatives.filter(i => i.status === 'Active').length === 0 && (
+              <div className={styles.emptyState}>
+                <Heart size={48} />
+                <p>No active initiatives. All initiatives have been completed or none created yet!</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className={styles.emptyState}>
@@ -515,9 +939,13 @@ const MyOrganization = () => {
                   <div className={styles.memberCell}>
                     <div className={styles.memberAvatar}>
                       {member.profilePictureUrl ? (
-                        <img src={member.profilePictureUrl} alt="" />
+                        <img 
+                          src={member.profilePictureUrl} 
+                          alt="" 
+                          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = 'flex'); }}
+                        />
                       ) : (
-                        `${member.firstName[0]}${member.lastName[0]}`
+                        `${member.firstName?.[0] || ''}${member.lastName?.[0] || ''}`
                       )}
                     </div>
                     <span className={styles.memberName}>{member.firstName} {member.lastName}</span>
@@ -604,13 +1032,13 @@ const MyOrganization = () => {
       <div className={styles.tabContent}>
         {/* Time Range Selector */}
         <div className={styles.timeRangeSelector}>
-          {['week', 'month', 'year', 'all'].map(range => (
+          {['all', 'week', 'month', 'year'].map(range => (
             <button
               key={range}
               onClick={() => setSelectedTimeRange(range)}
               className={`${styles.timeRangeButton} ${selectedTimeRange === range ? styles.active : ''}`}
             >
-              {range === 'week' ? 'Week' : range === 'month' ? 'Month' : range === 'year' ? 'Year' : 'All Time'}
+              {range === 'all' ? 'All Time' : range === 'week' ? 'Week' : range === 'month' ? 'Month' : 'Year'}
             </button>
           ))}
         </div>
@@ -633,8 +1061,8 @@ const MyOrganization = () => {
               { 
                 label: 'This Month', 
                 value: formatCurrency(data.earnings?.thisMonth),
-                change: `+${data.earnings?.growthRate || 0}%`,
-                positive: true,
+                change: `${data.earnings?.growthRate >= 0 ? '+' : ''}${data.earnings?.growthRate || 0}%`,
+                positive: (data.earnings?.growthRate || 0) >= 0,
                 icon: <TrendingUp size={18} />
               },
               { 
@@ -684,7 +1112,6 @@ const MyOrganization = () => {
           <div className={styles.operationsGrid}>
             {[
               { icon: <CheckCircle />, value: `${data.operations?.successRate || 0}%`, label: 'Pickup Success Rate', highlight: true },
-              { icon: <Clock />, value: `${data.operations?.avgResponseTime || 0} hrs`, label: 'Avg Response Time' },
               { icon: <Users />, value: `${data.operations?.repeatGivers || 0}%`, label: 'Repeat Givers', sublabel: 'Loyalty rate' },
               { icon: <Home />, value: data.operations?.activeGivers || 0, label: 'Active Givers', sublabel: 'This month' }
             ].map((stat, idx) => (
@@ -697,6 +1124,31 @@ const MyOrganization = () => {
             ))}
           </div>
         </div>
+
+        {/* Material Breakdown */}
+        {data.materialBreakdown && data.materialBreakdown.length > 0 && (
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>
+              <Recycle size={20} className={styles.sectionIcon} /> Material Breakdown
+            </h3>
+            <div className={styles.materialBreakdown}>
+              {data.materialBreakdown.map((material, idx) => (
+                <div key={idx} className={styles.materialRow}>
+                  <div className={styles.materialInfo}>
+                    <span className={styles.materialName}>{material.type}</span>
+                    <span className={styles.materialAmount}>{material.amount} kg ({material.percentage}%)</span>
+                  </div>
+                  <div className={styles.materialBar}>
+                    <div 
+                      className={styles.materialFill} 
+                      style={{ width: `${material.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Platform Insights */}
         <div className={styles.insightsSection}>
@@ -718,7 +1170,7 @@ const MyOrganization = () => {
                 Top {100 - (data.platformInsights?.percentileMaterials || 0)}% in material collection volume
               </p>
               <div className={styles.insightTip}>
-                💡 Tip: Increase pickup frequency to climb rankings
+                Tip: Increase pickup frequency to climb rankings
               </div>
             </div>
 
@@ -736,7 +1188,7 @@ const MyOrganization = () => {
                 </div>
               </div>
               <div className={styles.insightTipSuccess}>
-                📈 Schedule pickups during peak times for better coordination
+                Schedule pickups during peak times for better coordination
               </div>
             </div>
 
@@ -746,7 +1198,7 @@ const MyOrganization = () => {
               <div className={styles.coverageGrid}>
                 <div>
                   <p className={styles.coverageLabel}>Active Areas</p>
-                  <p className={styles.coverageValuePrimary}>{data.platformInsights?.barrangaysCovered || 0}</p>
+                  <p className={styles.coverageValuePrimary}>{data.platformInsights?.barrangaysCovered || data.impact?.barrangaysCovered || 0}</p>
                 </div>
                 <div>
                   <p className={styles.coverageLabel}>Untapped</p>
@@ -755,7 +1207,7 @@ const MyOrganization = () => {
               </div>
               <p className={styles.topArea}>Top area: <strong>{data.platformInsights?.topBarangay || 'N/A'}</strong></p>
               <div className={styles.insightTipWarning}>
-                🎯 {data.platformInsights?.untappedBarangays || 0} nearby barangays have givers waiting!
+                Expand to {data.platformInsights?.untappedBarangays || 0} nearby barangays have givers waiting!
               </div>
             </div>
           </div>
@@ -786,8 +1238,13 @@ const MyOrganization = () => {
           </div>
 
           <div className={styles.downloadSection}>
-            <button className={styles.downloadButton}>
-              Download Impact Report (PDF)
+            <button 
+              className={styles.downloadButton}
+              onClick={handleDownloadReport}
+              disabled={downloadingReport}
+            >
+              <Download size={18} />
+              {downloadingReport ? 'Generating...' : 'Download Impact Report (PDF)'}
             </button>
           </div>
         </div>
@@ -819,25 +1276,49 @@ const MyOrganization = () => {
 
   return (
     <div className={styles.pageContainer}>
+      {/* Hidden file input for profile picture */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/gif"
+        onChange={handleProfilePictureChange}
+        style={{ display: 'none' }}
+      />
+
       {/* Organization Header */}
       <div className={styles.headerCard}>
         <div className={styles.headerContent}>
           <div className={styles.avatarSection}>
             <div className={styles.orgAvatar}>
               {organization?.profilePictureUrl ? (
-                <img src={organization.profilePictureUrl} alt={organization.name} />
+                <img 
+                  src={organization.profilePictureUrl} 
+                  alt={organization.name}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
               ) : (
                 <Building2 size={48} />
               )}
             </div>
-            <button className={styles.cameraButton}>
-              <Camera size={16} />
+            <button 
+              className={styles.cameraButton}
+              onClick={handleProfilePictureClick}
+              disabled={uploadingPicture}
+              title="Change profile picture"
+            >
+              {uploadingPicture ? (
+                <div className={styles.miniSpinner} />
+              ) : (
+                <Camera size={16} />
+              )}
             </button>
           </div>
           
           <div className={styles.orgInfo}>
             <h1 className={styles.orgName}>{organization?.name}</h1>
-            <p className={styles.orgDescription}>{organization?.description}</p>
+            <p className={styles.orgDescription}>{organization?.description  || 'Welcome to our organization. Edit this description to tell others about your mission and goals.'}</p>
             <div className={styles.contactInfo}>
               <span><Mail size={14} /> {organization?.contactEmail}</span>
               {organization?.contactPhone && (
@@ -923,7 +1404,6 @@ const MyOrganization = () => {
                   value={editForm.contactEmail}
                   onChange={(e) => setEditForm({...editForm, contactEmail: e.target.value})}
                   className={styles.input}
-                  disabled
                 />
               </div>
               <div className={styles.formGroup}>
@@ -972,7 +1452,7 @@ const MyOrganization = () => {
                   {selectedMember.profilePictureUrl ? (
                     <img src={selectedMember.profilePictureUrl} alt="" />
                   ) : (
-                    `${selectedMember.firstName[0]}${selectedMember.lastName[0]}`
+                    `${selectedMember.firstName?.[0] || ''}${selectedMember.lastName?.[0] || ''}`
                   )}
                 </div>
                 <div>
@@ -984,6 +1464,8 @@ const MyOrganization = () => {
               </div>
               <div className={styles.memberModalInfo}>
                 <p><strong>Email:</strong> {selectedMember.email}</p>
+                {selectedMember.phone && <p><strong>Phone:</strong> {selectedMember.phone}</p>}
+                {selectedMember.isCollector && <p><strong>Role:</strong> Collector</p>}
               </div>
             </div>
             <div className={styles.memberModalFooter}>
