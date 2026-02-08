@@ -208,61 +208,25 @@ router.get('/my/organization/members', async (req, res) => {
 // ============================================================
 router.get('/my/organization/initiatives', async (req, res) => {
   try {
-    const user = await User.findById(req.user.userID);
-    const organizationID = user?.organizationID;
-
+    // Get organizationID from req.user (set by auth middleware) or fetch from DB
+    const organizationID = req.user.organizationID || (await User.findById(req.user.userID))?.organizationID;
     if (!organizationID) {
       return res.status(404).json({ success: false, message: 'User is not part of any organization' });
     }
 
     const organization = await Organization.findById(organizationID);
-    if (!organization || !organization.isMember(req.user.userID)) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    if (!organization) {
+      return res.status(404).json({ success: false, message: 'Organization not found' });
     }
-
-    // Fetch initiative posts from ALL members and admins
-    const allMemberIDs = [...new Set([...organization.members, ...organization.admins])];
-
-    const allInitiatives = [];
-    await Promise.all(
-      allMemberIDs.map(async (memberID) => {
-        try {
-          const memberPosts = await Post.findByUserID(memberID);
-          const initiatives = memberPosts.filter(p => p.postType === 'Initiative');
-          allInitiatives.push(...initiatives);
-        } catch (err) {
-          console.error(`Failed to fetch posts for member ${memberID}:`, err);
-        }
-      })
-    );
-
-    // Enrich with user data
-    const enrichedInitiatives = await Promise.all(
-      allInitiatives.map(async (post) => {
-        const postData = post.toFirestore ? post.toFirestore() : post;
-        let authorName = 'Unknown';
-        try {
-          const author = await User.findById(postData.userID);
-          if (author) {
-            authorName = `${author.firstName} ${author.lastName}`;
-          }
-        } catch (e) { /* ignore */ }
-
-        return {
-          ...postData,
-          authorName
-        };
-      })
-    );
-
-    // Sort by createdAt descending
-    enrichedInitiatives.sort((a, b) => {
-      const dateA = a.createdAt?.seconds ? a.createdAt.seconds : new Date(a.createdAt).getTime() / 1000;
-      const dateB = b.createdAt?.seconds ? b.createdAt.seconds : new Date(b.createdAt).getTime() / 1000;
-      return dateB - dateA;
+    
+    const memberIDs = organization.members.map(m => typeof m === 'string' ? m : m.userID).filter(Boolean);
+    
+    const initiatives = await Post.find({
+      userID: { $in: memberIDs },
+      postType: 'Initiative'
     });
-
-    res.json({ success: true, initiatives: enrichedInitiatives });
+    
+    res.json({ success: true, initiatives });
   } catch (error) {
     console.error('Initiatives fetch error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -274,310 +238,56 @@ router.get('/my/organization/initiatives', async (req, res) => {
 // ============================================================
 router.get('/my/organization/analytics', async (req, res) => {
   try {
-    const { timeRange = 'all' } = req.query;
-
-    const user = await User.findById(req.user.userID);
-    const organizationID = user?.organizationID;
-
+    // Get organizationID from req.user (set by auth middleware) or fetch from DB
+    const organizationID = req.user.organizationID || (await User.findById(req.user.userID))?.organizationID;
     if (!organizationID) {
       return res.status(404).json({ success: false, message: 'User is not part of any organization' });
     }
 
+    // Get organization and verify membership
     const organization = await Organization.findById(organizationID);
     if (!organization || !organization.isMember(req.user.userID)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
-
-    const allMemberIDs = [...new Set([...organization.members, ...organization.admins])];
-
-    // Calculate time filter
-    const now = new Date();
-    let timeFilter = null;
-    switch (timeRange) {
-      case 'week':
-        timeFilter = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'month':
-        timeFilter = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'year':
-        timeFilter = new Date(now.getFullYear(), 0, 1);
-        break;
-      default:
-        timeFilter = null; // all time
-    }
-
-    // Last month bounds for comparison
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-
-    // Fetch all pickups for all members (both as giver and collector)
-    let allPickups = [];
-    await Promise.all(
-      allMemberIDs.map(async (memberID) => {
-        try {
-          // Pickups where member is either giver or collector
-          const memberPickups = await Pickup.findByUser(memberID, 'both');
-          allPickups.push(...memberPickups);
-        } catch (err) {
-          console.error(`Failed to fetch pickups for ${memberID}:`, err);
-        }
-      })
+    
+    // Get all member IDs
+    const memberIDs = organization.members.map(m => typeof m === 'string' ? m : m.userID).filter(Boolean);
+    
+    // Fetch all initiative posts from members
+    const initiatives = await Post.find({
+      userID: { $in: memberIDs },
+      postType: 'Initiative'
+    });
+    
+    // Calculate metrics
+    const totalCollected = initiatives.reduce((sum, post) => 
+      sum + (post.currentAmount || 0), 0
     );
-
-    // Deduplicate by pickupID
-    const pickupMap = new Map();
-    allPickups.forEach(p => pickupMap.set(p.pickupID, p));
-    allPickups = Array.from(pickupMap.values());
-
-    // Helper to parse date from various formats
-    const parseDate = (d) => {
-      if (!d) return null;
-      if (d.seconds) return new Date(d.seconds * 1000);
-      if (d.toDate) return d.toDate();
-      return new Date(d);
-    };
-
-    // Apply time filter
-    const filteredPickups = timeFilter
-      ? allPickups.filter(p => {
-          const date = parseDate(p.createdAt);
-          return date && date >= timeFilter;
-        })
-      : allPickups;
-
-    const completedPickups = filteredPickups.filter(p => p.status === 'Completed');
-    const allCompletedPickups = allPickups.filter(p => p.status === 'Completed');
-
-    // --- Earnings ---
-    const totalEarningsAll = allCompletedPickups.reduce((sum, p) => sum + (p.paymentReceived || 0), 0);
-    const totalEarnings = completedPickups.reduce((sum, p) => sum + (p.paymentReceived || 0), 0);
-
-    const thisMonthPickups = allCompletedPickups.filter(p => {
-      const d = parseDate(p.createdAt);
-      return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-    const lastMonthPickups = allCompletedPickups.filter(p => {
-      const d = parseDate(p.createdAt);
-      return d && d >= lastMonthStart && d <= lastMonthEnd;
-    });
-
-    const thisMonthEarnings = thisMonthPickups.reduce((sum, p) => sum + (p.paymentReceived || 0), 0);
-    const lastMonthEarnings = lastMonthPickups.reduce((sum, p) => sum + (p.paymentReceived || 0), 0);
-    const growthRate = lastMonthEarnings > 0
-      ? Math.round(((thisMonthEarnings - lastMonthEarnings) / lastMonthEarnings) * 100)
-      : (thisMonthEarnings > 0 ? 100 : 0);
-    const avgPerPickup = completedPickups.length > 0
-      ? Math.round(totalEarnings / completedPickups.length)
-      : 0;
-
-    // Projected: extrapolate from current month
-    const dayOfMonth = now.getDate();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const projectedMonthly = dayOfMonth > 0
-      ? Math.round((thisMonthEarnings / dayOfMonth) * daysInMonth)
-      : 0;
-
-    // --- Volume (kg collected) ---
-    const totalCollected = completedPickups.reduce((sum, p) => {
-      return sum + (p.actualWaste?.finalAmount || p.expectedWaste?.estimatedAmount || 0);
-    }, 0);
-    const thisMonthVolume = thisMonthPickups.reduce((sum, p) => {
-      return sum + (p.actualWaste?.finalAmount || p.expectedWaste?.estimatedAmount || 0);
-    }, 0);
-    const lastMonthVolume = lastMonthPickups.reduce((sum, p) => {
-      return sum + (p.actualWaste?.finalAmount || p.expectedWaste?.estimatedAmount || 0);
-    }, 0);
-    const volumeGrowth = lastMonthVolume > 0
-      ? Math.round(((thisMonthVolume - lastMonthVolume) / lastMonthVolume) * 100)
-      : (thisMonthVolume > 0 ? 100 : 0);
-
-    // --- Operations ---
-    const totalPickupsCount = filteredPickups.length;
-    const completedCount = completedPickups.length;
-    const successRate = totalPickupsCount > 0
-      ? Math.round((completedCount / totalPickupsCount) * 100)
-      : 0;
-
-    // Unique givers
-    const allGiverIDs = new Set(completedPickups.map(p => p.giverID));
-    const thisMonthGiverIDs = new Set(thisMonthPickups.map(p => p.giverID));
-
-    // Repeat givers (appeared more than once across all time)
-    const giverFrequency = {};
-    allCompletedPickups.forEach(p => {
-      giverFrequency[p.giverID] = (giverFrequency[p.giverID] || 0) + 1;
-    });
-    const repeatGiverCount = Object.values(giverFrequency).filter(count => count > 1).length;
-    const totalUniqueGivers = Object.keys(giverFrequency).length;
-    const repeatGiverRate = totalUniqueGivers > 0
-      ? Math.round((repeatGiverCount / totalUniqueGivers) * 100)
-      : 0;
-
-    // Avg response time (hours from creation to completion - approximation)
-    let totalResponseHours = 0;
-    let responseCount = 0;
-    completedPickups.forEach(p => {
-      const created = parseDate(p.createdAt);
-      const completed = parseDate(p.completedAt || p.updatedAt);
-      if (created && completed) {
-        const hours = (completed - created) / (1000 * 60 * 60);
-        if (hours > 0 && hours < 720) { // cap at 30 days
-          totalResponseHours += hours;
-          responseCount++;
+    
+    // Environmental impact calculations
+    const co2Saved = totalCollected * 2.5; // kg CO2 per kg waste
+    const treesEquivalent = Math.floor(co2Saved / 21); // 21kg CO2 per tree/year
+    const waterSaved = totalCollected * 50; // liters per kg
+    
+    res.json({
+      success: true,
+      data: {
+        volume: { totalCollected },
+        impact: {
+          co2Saved,
+          treesEquivalent,
+          waterSaved,
+          landfillDiverted: totalCollected / 1000, // tons
+          householdsServed: initiatives.length,
+          barrangaysCovered: new Set(initiatives.map(p => p.location?.barangay?.code)).size
+        },
+        operations: {
+          completedPickups: initiatives.filter(p => p.status === 'Completed').length,
+          totalPickups: initiatives.length
         }
       }
     });
-    const avgResponseTime = responseCount > 0 ? Math.round(totalResponseHours / responseCount) : 0;
-
-    // --- Environmental Impact ---
-    // Standard conversion factors per kg of recycled material:
-    // CO2: ~2.5 kg CO2 saved per kg recycled (EPA average)
-    // Water: ~7 liters saved per kg recycled
-    // Trees: ~17 trees saved per ton (1000kg) = 0.017 per kg
-    const totalKg = allCompletedPickups.reduce((sum, p) => {
-      return sum + (p.actualWaste?.finalAmount || p.expectedWaste?.estimatedAmount || 0);
-    }, 0);
-
-    const co2Saved = Math.round(totalKg * 2.5);
-    const treesEquivalent = Math.round(totalKg * 0.017);
-    const waterSaved = Math.round(totalKg * 7);
-    const landfillDiverted = parseFloat((totalKg / 1000).toFixed(2)); // tons
-
-    // Barangays/households from pickup locations
-    const barangays = new Set();
-    const households = new Set();
-    allCompletedPickups.forEach(p => {
-      if (p.pickupLocation) {
-        const loc = typeof p.pickupLocation === 'string' ? p.pickupLocation : '';
-        if (loc) households.add(loc);
-      }
-      // Try to extract barangay from location data
-      const location = p.pickupLocation;
-      if (location && typeof location === 'object' && location.barangay?.name) {
-        barangays.add(location.barangay.name);
-      } else if (typeof location === 'string' && location.length > 0) {
-        barangays.add(location.split(',')[0]?.trim() || location);
-      }
-    });
-
-    // --- Material Breakdown ---
-    const materialMap = {};
-    allCompletedPickups.forEach(p => {
-      const types = p.actualWaste?.types || p.expectedWaste?.types || [];
-      const amount = p.actualWaste?.finalAmount || p.expectedWaste?.estimatedAmount || 0;
-      const perType = types.length > 0 ? amount / types.length : 0;
-      types.forEach(type => {
-        const name = typeof type === 'string' ? type : (type.name || type.materialName || 'Other');
-        materialMap[name] = (materialMap[name] || 0) + perType;
-      });
-      if (types.length === 0 && amount > 0) {
-        materialMap['Other'] = (materialMap['Other'] || 0) + amount;
-      }
-    });
-
-    const totalMaterialKg = Object.values(materialMap).reduce((a, b) => a + b, 0);
-    const materialBreakdown = Object.entries(materialMap)
-      .map(([type, amount]) => ({
-        type,
-        amount: Math.round(amount * 100) / 100,
-        percentage: totalMaterialKg > 0 ? Math.round((amount / totalMaterialKg) * 100) : 0
-      }))
-      .sort((a, b) => b.amount - a.amount);
-
-    // --- Platform Insights ---
-    // Peak collection day/time
-    const dayCount = {};
-    const hourCount = {};
-    allCompletedPickups.forEach(p => {
-      const d = parseDate(p.pickupDate || p.createdAt);
-      if (d) {
-        const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getDay()];
-        dayCount[dayName] = (dayCount[dayName] || 0) + 1;
-
-        const hour = d.getHours();
-        let timeSlot;
-        if (hour < 9) timeSlot = '6AM-9AM';
-        else if (hour < 12) timeSlot = '9AM-12PM';
-        else if (hour < 15) timeSlot = '12PM-3PM';
-        else if (hour < 18) timeSlot = '3PM-6PM';
-        else timeSlot = '6PM-9PM';
-        hourCount[timeSlot] = (hourCount[timeSlot] || 0) + 1;
-      }
-    });
-
-    const peakDay = Object.entries(dayCount).sort((a, b) => b[1] - a[1])[0];
-    const peakTime = Object.entries(hourCount).sort((a, b) => b[1] - a[1])[0];
-
-    // Top barangay
-    const barangayCount = {};
-    allCompletedPickups.forEach(p => {
-      const loc = p.pickupLocation;
-      let brgy = null;
-      if (loc && typeof loc === 'object' && loc.barangay?.name) {
-        brgy = loc.barangay.name;
-      } else if (typeof loc === 'string' && loc.length > 0) {
-        brgy = loc.split(',')[0]?.trim();
-      }
-      if (brgy) barangayCount[brgy] = (barangayCount[brgy] || 0) + 1;
-    });
-    const topBarangay = Object.entries(barangayCount).sort((a, b) => b[1] - a[1])[0];
-
-    // Area ranking (approximate - count other org collectors in the area)
-    let rankInArea = 1;
-    let totalOrgsInArea = 1;
-
-    const analyticsData = {
-      earnings: {
-        totalEarnings: totalEarningsAll,
-        thisMonth: thisMonthEarnings,
-        lastMonth: lastMonthEarnings,
-        growthRate,
-        avgPerPickup,
-        projectedMonthly
-      },
-      operations: {
-        totalPickups: totalPickupsCount,
-        completedPickups: completedCount,
-        successRate,
-        avgResponseTime,
-        repeatGivers: repeatGiverRate,
-        activeGivers: thisMonthGiverIDs.size
-      },
-      volume: {
-        totalCollected: Math.round(totalCollected * 100) / 100,
-        thisMonth: Math.round(thisMonthVolume * 100) / 100,
-        lastMonth: Math.round(lastMonthVolume * 100) / 100,
-        growthRate: volumeGrowth,
-        avgPerPickup: completedCount > 0 ? Math.round((totalCollected / completedCount) * 100) / 100 : 0
-      },
-      impact: {
-        co2Saved,
-        treesEquivalent,
-        waterSaved,
-        landfillDiverted,
-        householdsServed: households.size,
-        barrangaysCovered: barangays.size
-      },
-      materialBreakdown,
-      platformInsights: {
-        rankInArea,
-        totalOrgsInArea,
-        percentileMaterials: totalCollected > 0 ? 75 : 0,
-        avgPickupRating: 0,
-        giverSatisfaction: successRate,
-        returnGiverRate: repeatGiverRate,
-        peakCollectionDay: peakDay ? peakDay[0] : 'N/A',
-        peakCollectionTime: peakTime ? peakTime[0] : 'N/A',
-        topBarangay: topBarangay ? topBarangay[0] : 'N/A',
-        untappedBarangays: 0,
-        barrangaysCovered: barangays.size
-      }
-    };
-
-    res.json({ success: true, data: analyticsData });
   } catch (error) {
-    console.error('Organization analytics error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
