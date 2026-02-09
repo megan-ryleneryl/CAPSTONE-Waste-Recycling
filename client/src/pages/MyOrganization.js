@@ -503,11 +503,11 @@ const MyOrganization = () => {
     }
   };
 
-  // Handle impact report download
+  // Handle impact report download - Comprehensive Analytics Report
   const handleDownloadReport = async () => {
     setDownloadingReport(true);
     try {
-      // Fetch impact report data
+      // Fetch comprehensive impact report data
       let reportData;
       try {
         const response = await axios.get(
@@ -526,15 +526,16 @@ const MyOrganization = () => {
         const data = analytics || getDefaultAnalytics();
         reportData = {
           organizationName: organization?.name || 'Organization',
+          organizationDescription: organization?.description || '',
           generatedAt: new Date().toISOString(),
+          reportPeriod: 'All Time',
           memberCount: members.length,
-          totalPickups: data.operations?.completedPickups || 0,
-          totalKgCollected: data.volume?.totalCollected || 0,
-          co2Prevented: data.impact?.co2Saved || 0,
-          treesSaved: data.impact?.treesEquivalent || 0,
-          waterSaved: data.impact?.waterSaved || 0,
-          landfillDiverted: data.impact?.landfillDiverted || 0,
-          uniqueHouseholds: data.impact?.householdsServed || 0
+          earnings: data.earnings || { totalEarnings: 0, thisMonth: 0, lastMonth: 0, growthRate: 0, avgPerPickup: 0 },
+          volume: data.volume || { totalCollected: 0 },
+          operations: data.operations || { totalPickups: 0, completedPickups: 0, successRate: 0, repeatGivers: 0, activeGivers: 0 },
+          impact: data.impact || { co2Saved: 0, treesEquivalent: 0, waterSaved: 0, landfillDiverted: 0, householdsServed: 0, barrangaysCovered: 0 },
+          materialBreakdown: data.materialBreakdown || [],
+          insights: data.platformInsights || { peakCollectionDay: 'N/A', peakCollectionTime: 'N/A', topBarangay: 'N/A' }
         };
       }
 
@@ -542,148 +543,268 @@ const MyOrganization = () => {
       const { default: jsPDF } = await import('jspdf');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
-      const margin = 20;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
       const contentWidth = pageWidth - margin * 2;
-      let y = 20;
+      let y = 0;
 
-      // --- Header ---
-      pdf.setFillColor(59, 101, 53);
-      pdf.rect(0, 0, pageWidth, 45, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(22);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(reportData.organizationName || 'Organization', pageWidth / 2, 18, { align: 'center' });
-      pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text('Environmental Impact Report', pageWidth / 2, 28, { align: 'center' });
-      pdf.setFontSize(9);
-      pdf.setFillColor(179, 242, 172);
-      pdf.roundedRect(pageWidth / 2 - 20, 32, 40, 7, 2, 2, 'F');
-      pdf.setTextColor(59, 101, 53);
-      pdf.text('EcoTayo Verified', pageWidth / 2, 37, { align: 'center' });
+      // Helper function to add page header
+      const addPageHeader = (title, subtitle = '') => {
+        pdf.setFillColor(59, 101, 53);
+        pdf.rect(0, 0, pageWidth, 35, 'F'); // Reduced from 40 to 35
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(20);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(reportData.organizationName || 'Organization', pageWidth / 2, 13, { align: 'center' }); // Reduced from 15 to 13
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(title, pageWidth / 2, 21, { align: 'center' }); // Reduced from 24 to 21
+        if (subtitle) {
+          pdf.setFontSize(9);
+          pdf.text(subtitle, pageWidth / 2, 28, { align: 'center' }); // Reduced from 32 to 28
+        }
+        // EcoTayo badge
+        pdf.setFillColor(179, 242, 172);
+        pdf.roundedRect(pageWidth - margin - 35, 24, 35, 7, 2, 2, 'F'); // Reduced from 28 to 24
+        pdf.setTextColor(59, 101, 53);
+        pdf.setFontSize(7);
+        pdf.text('EcoTayo Verified', pageWidth - margin - 17.5, 29, { align: 'center' }); // Reduced from 33 to 29
+        return 45; // Reduced from 50 to 45
+      };
 
-      y = 55;
-      pdf.setTextColor(51, 51, 51);
+      // Helper function to add section title
+      const addSectionTitle = (title, yPos) => {
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(59, 101, 53);
+        pdf.text(title, margin, yPos);
+        pdf.setDrawColor(59, 101, 53);
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPos + 2, pageWidth - margin, yPos + 2);
+        return yPos + 8; // Reduced from 10 to 8
+      };
 
-      // --- Environmental Impact Section ---
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(59, 101, 53);
-      pdf.text('Environmental Impact', margin, y);
-      y += 3;
-      pdf.setDrawColor(59, 101, 53);
-      pdf.setLineWidth(0.5);
-      pdf.line(margin, y, pageWidth - margin, y);
-      y += 10;
+      // Helper function to draw metric box
+      const drawMetricBox = (x, y, width, height, value, label, highlight = false) => {
+        pdf.setFillColor(highlight ? 240 : 248, highlight ? 247 : 249, highlight ? 238 : 250);
+        pdf.roundedRect(x, y, width, height, 3, 3, 'F');
+        pdf.setDrawColor(highlight ? 59 : 224, highlight ? 101 : 224, highlight ? 53 : 224);
+        pdf.roundedRect(x, y, width, height, 3, 3, 'S');
 
-      const impactMetrics = [
-        { value: `${(reportData.co2Prevented || 0).toLocaleString()} kg`, label: 'CO2 Emissions Prevented' },
-        { value: `${reportData.treesSaved || 0}`, label: 'Trees Equivalent Saved' },
-        { value: `${(reportData.waterSaved || 0).toLocaleString()} L`, label: 'Water Saved' },
-        { value: `${reportData.landfillDiverted || 0} tons`, label: 'Landfill Waste Diverted' },
-        { value: `${reportData.uniqueHouseholds || 0}`, label: 'Households Served' },
-        { value: `${(reportData.totalKgCollected || 0).toLocaleString()} kg`, label: 'Total Waste Collected' }
+        // Scale font size based on box height
+        const valueFontSize = height >= 28 ? 16 : 14;
+        const labelFontSize = height >= 28 ? 7 : 6;
+        
+        pdf.setFontSize(valueFontSize);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(59, 101, 53);
+        pdf.text(String(value), x + width / 2, y + height / 2 - 1, { align: 'center' });
+
+        pdf.setFontSize(labelFontSize);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(102, 102, 102);
+        pdf.text(label, x + width / 2, y + height / 2 + 6, { align: 'center' });
+      };
+
+      // Helper to add footer
+      const addFooter = (pageNum, totalPages) => {
+        pdf.setFontSize(8);
+        pdf.setTextColor(153, 153, 153);
+        pdf.text(
+          `Generated on ${new Date(reportData.generatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
+          margin, pageHeight - 10
+        );
+        pdf.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+        pdf.text('Powered by EcoTayo', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      };
+
+      // ==================== PAGE 1: Executive Summary ====================
+      y = addPageHeader('Comprehensive Analytics Report', `Report Period: ${reportData.reportPeriod || 'All Time'}`);
+
+      // Quick Stats Row
+      y = addSectionTitle('Executive Summary', y);
+      const quickStats = [
+        { value: `P${(reportData.earnings?.totalEarnings || 0).toLocaleString()}`, label: 'Total Earnings' },
+        { value: `${(reportData.volume?.totalCollected || 0).toLocaleString()} kg`, label: 'Waste Collected' },
+        { value: `${reportData.operations?.completedPickups || 0}`, label: 'Completed Pickups' },
+        { value: `${reportData.operations?.successRate || 0}%`, label: 'Success Rate' }
       ];
+      const statWidth = (contentWidth - 15) / 4;
+      quickStats.forEach((stat, idx) => {
+        drawMetricBox(margin + idx * (statWidth + 5), y, statWidth, 28, stat.value, stat.label, true);
+      });
+      y += 38;
 
-      const colWidth = contentWidth / 3;
+      // Environmental Impact Section
+      y = addSectionTitle('Environmental Impact', y);
+      const impactMetrics = [
+        { value: `${(reportData.impact?.co2Saved || 0).toLocaleString()} kg`, label: 'CO2 Prevented' },
+        { value: `${reportData.impact?.treesEquivalent || 0}`, label: 'Trees Equivalent' },
+        { value: `${(reportData.impact?.waterSaved || 0).toLocaleString()} L`, label: 'Water Saved' },
+        { value: `${reportData.impact?.landfillDiverted || 0} tons`, label: 'Landfill Diverted' },
+        { value: `${reportData.impact?.householdsServed || 0}`, label: 'Households Served' },
+        { value: `${reportData.impact?.barrangaysCovered || 0}`, label: 'Barangays Covered' }
+      ];
+      const impactColWidth = (contentWidth - 10) / 3;
       impactMetrics.forEach((metric, idx) => {
         const col = idx % 3;
         const row = Math.floor(idx / 3);
-        const x = margin + col * colWidth;
-        const boxY = y + row * 35;
-
-        pdf.setFillColor(248, 249, 250);
-        pdf.roundedRect(x + 2, boxY, colWidth - 4, 30, 3, 3, 'F');
-        pdf.setDrawColor(224, 224, 224);
-        pdf.roundedRect(x + 2, boxY, colWidth - 4, 30, 3, 3, 'S');
-
-        pdf.setFontSize(18);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(59, 101, 53);
-        pdf.text(metric.value, x + colWidth / 2, boxY + 14, { align: 'center' });
-
-        pdf.setFontSize(8);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(102, 102, 102);
-        pdf.text(metric.label, x + colWidth / 2, boxY + 23, { align: 'center' });
+        drawMetricBox(margin + col * (impactColWidth + 5), y + row * 30, impactColWidth, 26, metric.value, metric.label); // Reduced row spacing from 32 to 30, height from 28 to 26
       });
+      y += 68; // Reduced from 72 to 68
 
-      y += 80;
-
-      // --- Operations Summary Section ---
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(59, 101, 53);
-      pdf.text('Operations Summary', margin, y);
-      y += 3;
-      pdf.line(margin, y, pageWidth - margin, y);
-      y += 10;
-
+      // Operations Performance Section
+      y = addSectionTitle('Operations Performance', y);
       const opsMetrics = [
-        { value: `${reportData.memberCount || 0}`, label: 'Team Members' },
-        { value: `${reportData.totalPickups || 0}`, label: 'Completed Pickups' },
-        { value: `${(reportData.totalKgCollected || 0).toLocaleString()} kg`, label: 'Materials Collected' }
+        { value: `${reportData.operations?.totalPickups || 0}`, label: 'Total Pickups' },
+        { value: `${reportData.operations?.completedPickups || 0}`, label: 'Completed' },
+        { value: `${reportData.operations?.successRate || 0}%`, label: 'Success Rate' },
+        { value: `${reportData.operations?.repeatGivers || 0}%`, label: 'Repeat Givers' },
+        { value: `${reportData.operations?.activeGivers || reportData.operations?.activeGiversThisMonth || 0}`, label: 'Active This Month' },
+        { value: `${reportData.memberCount || 0}`, label: 'Team Members' }
       ];
-
       opsMetrics.forEach((metric, idx) => {
-        const x = margin + idx * colWidth;
-        pdf.setFillColor(248, 249, 250);
-        pdf.roundedRect(x + 2, y, colWidth - 4, 30, 3, 3, 'F');
-        pdf.setDrawColor(224, 224, 224);
-        pdf.roundedRect(x + 2, y, colWidth - 4, 30, 3, 3, 'S');
-
-        pdf.setFontSize(18);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(59, 101, 53);
-        pdf.text(metric.value, x + colWidth / 2, y + 14, { align: 'center' });
-
-        pdf.setFontSize(8);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(102, 102, 102);
-        pdf.text(metric.label, x + colWidth / 2, y + 23, { align: 'center' });
+        const col = idx % 3;
+        const row = Math.floor(idx / 3);
+        drawMetricBox(margin + col * (impactColWidth + 5), y + row * 30, impactColWidth, 26, metric.value, metric.label); // Reduced row spacing from 32 to 30, height from 28 to 26
       });
+      y += 68; // Reduced from 72 to 68
 
-      y += 45;
-
-      // --- Summary Paragraph ---
+      // Summary paragraph
       pdf.setFillColor(240, 247, 238);
-      pdf.roundedRect(margin, y, contentWidth, 40, 3, 3, 'F');
+      pdf.roundedRect(margin, y, contentWidth, 25, 3, 3, 'F'); // Reduced from 35 to 30
       pdf.setDrawColor(59, 101, 53);
-      pdf.setLineWidth(1);
-      pdf.line(margin, y, margin, y + 40);
+      pdf.setLineWidth(2);
+      pdf.line(margin, y, margin, y + 25); // Reduced from 35 to 30
       pdf.setLineWidth(0.5);
 
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(51, 51, 51);
-      const summaryLines = [
-        `${reportData.organizationName} has made a significant contribution to environmental`,
-        `sustainability through the EcoTayo platform.`,
-        ``,
-        `By collecting ${(reportData.totalKgCollected || 0).toLocaleString()} kg of recyclable materials, the organization has`,
-        `prevented ${(reportData.co2Prevented || 0).toLocaleString()} kg of CO2 emissions, the equivalent of saving ${reportData.treesSaved || 0} trees.`,
-        `These efforts have served ${reportData.uniqueHouseholds || 0} households and diverted ${reportData.landfillDiverted || 0} tons from landfills.`
+      const summaryText = `${reportData.organizationName} has made a significant contribution to environmental sustainability through the EcoTayo platform. By collecting ${(reportData.volume?.totalCollected || 0).toLocaleString()} kg of recyclable materials, the organization has prevented ${(reportData.impact?.co2Saved || 0).toLocaleString()} kg of CO2 emissions - the equivalent of saving ${reportData.impact?.treesEquivalent || 0} trees. These efforts have served ${reportData.impact?.householdsServed || 0} households across ${reportData.impact?.barrangaysCovered || 0} barangays.`;
+      const splitSummary = pdf.splitTextToSize(summaryText, contentWidth - 10);
+      pdf.text(splitSummary, margin + 5, y + 8); // Reduced from y + 10 to y + 8
+
+      addFooter(1, 2);
+
+      // ==================== PAGE 2: Detailed Analytics ====================
+      pdf.addPage();
+      y = addPageHeader('Detailed Analytics', 'Earnings, Materials & Insights');
+
+      // Earnings Dashboard Section
+      y = addSectionTitle('Earnings Dashboard', y);
+      const earningsMetrics = [
+        { value: `P${(reportData.earnings?.totalEarnings || 0).toLocaleString()}`, label: 'Total Earnings' },
+        { value: `P${(reportData.earnings?.thisMonth || 0).toLocaleString()}`, label: 'This Month' },
+        { value: `P${(reportData.earnings?.lastMonth || 0).toLocaleString()}`, label: 'Last Month' },
+        { value: `${reportData.earnings?.growthRate || 0}%`, label: 'Growth Rate' },
+        { value: `P${reportData.earnings?.avgPerPickup || 0}`, label: 'Avg Per Pickup' }
       ];
-      summaryLines.forEach((line, i) => {
-        pdf.text(line, margin + 5, y + 8 + i * 5.5);
+      const earningsColWidth = (contentWidth - 20) / 5;
+      earningsMetrics.forEach((metric, idx) => {
+        drawMetricBox(margin + idx * (earningsColWidth + 5), y, earningsColWidth, 25, metric.value, metric.label, idx === 0);
       });
+      y += 33;
 
-      y += 50;
+      // Material Breakdown Section
+      y = addSectionTitle('Material Breakdown', y);
+      const materials = reportData.materialBreakdown || [];
+      
+      if (materials.length > 0) {
+        // Draw material bars
+        const barMaxWidth = contentWidth - 80;
+        const maxAmount = Math.max(...materials.map(m => m.amount || 0), 1);
+        
+        materials.slice(0, 6).forEach((material, idx) => {
+          const barY = y + idx * 14;
+          const barWidth = ((material.amount || 0) / maxAmount) * barMaxWidth;
+          
+          // Material name
+          pdf.setFontSize(8);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(51, 51, 51);
+          const truncatedName = material.type.length > 18 ? material.type.substring(0, 16) + '...' : material.type;
+          pdf.text(truncatedName, margin, barY + 7);
+          
+          // Bar background
+          pdf.setFillColor(230, 230, 230);
+          pdf.roundedRect(margin + 50, barY + 2, barMaxWidth, 8, 2, 2, 'F');
+          
+          // Bar fill
+          if (barWidth > 0) {
+            const greenIntensity = Math.max(80, 180 - idx * 20);
+            pdf.setFillColor(59, greenIntensity, 53);
+            pdf.roundedRect(margin + 50, barY + 2, Math.max(barWidth, 4), 8, 2, 2, 'F');
+          }
+          
+          // Amount and percentage
+          pdf.setFontSize(7);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(59, 101, 53);
+          pdf.text(`${material.amount} kg (${material.percentage}%)`, margin + 53 + barMaxWidth, barY + 8);
+        });
+        y += materials.slice(0, 6).length * 14 + 8;
+      } else {
+        pdf.setFontSize(10);
+        pdf.setTextColor(153, 153, 153);
+        pdf.text('No material data available', margin, y + 10);
+        y += 20;
+      }
 
-      // --- Footer ---
-      pdf.setDrawColor(224, 224, 224);
-      pdf.line(margin, y, pageWidth - margin, y);
-      y += 8;
-      pdf.setFontSize(9);
-      pdf.setTextColor(153, 153, 153);
-      pdf.text(
-        `Generated on ${new Date(reportData.generatedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
-        pageWidth / 2, y, { align: 'center' }
-      );
-      pdf.text('Powered by EcoTayo - Building a Circular Economy Together', pageWidth / 2, y + 6, { align: 'center' });
+      // Platform Insights Section
+      y = addSectionTitle('Platform Insights', y);
+      const insights = reportData.insights || {};
+      
+      // Insights grid - 2 rows of 3
+      const insightItems = [
+        { label: 'Peak Collection Day', value: insights.peakCollectionDay || 'N/A' },
+        { label: 'Peak Collection Time', value: insights.peakCollectionTime || 'N/A' },
+        { label: 'Top Barangay', value: insights.topBarangay || 'N/A' },
+        { label: 'Total Initiatives', value: `${insights.totalInitiatives || 0}` },
+        { label: 'Completed Initiatives', value: `${insights.completedInitiatives || 0}` },
+        { label: 'Repeat Giver Rate', value: `${reportData.operations?.repeatGivers || 0}%` }
+      ];
+
+      const insightBoxWidth = (contentWidth - 10) / 3;
+      insightItems.forEach((item, idx) => {
+        const col = idx % 3;
+        const row = Math.floor(idx / 3);
+        const boxX = margin + col * (insightBoxWidth + 5);
+        const boxY = y + row * 22;
+        
+        pdf.setFillColor(248, 249, 250);
+        pdf.roundedRect(boxX, boxY, insightBoxWidth, 18, 2, 2, 'F');
+        pdf.setDrawColor(224, 224, 224);
+        pdf.roundedRect(boxX, boxY, insightBoxWidth, 18, 2, 2, 'S');
+        
+        pdf.setFontSize(7);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(102, 102, 102);
+        pdf.text(item.label, boxX + 4, boxY + 6);
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(51, 51, 51);
+        const truncatedValue = item.value.length > 18 ? item.value.substring(0, 16) + '...' : item.value;
+        pdf.text(truncatedValue, boxX + 4, boxY + 14);
+      });
+      y += 52;
+
+      // Final Note - Thank you box
+      pdf.setFillColor(59, 101, 53);
+      pdf.roundedRect(margin, y, contentWidth, 22, 3, 3, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Thank you for your commitment to a sustainable future!', pageWidth / 2, y + 9, { align: 'center' });
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Together, we are building a circular economy for the Philippines.', pageWidth / 2, y + 17, { align: 'center' });
+
+      addFooter(2, 2);
 
       // Save PDF
-      const fileName = `${(reportData.organizationName || 'Organization').replace(/\s+/g, '_')}_Impact_Report.pdf`;
+      const fileName = `${(reportData.organizationName || 'Organization').replace(/\s+/g, '_')}_Analytics_Report.pdf`;
       pdf.save(fileName);
 
     } catch (err) {
