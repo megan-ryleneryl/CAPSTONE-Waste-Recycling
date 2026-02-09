@@ -204,6 +204,185 @@ router.get('/my/organization/members', async (req, res) => {
 });
 
 // ============================================================
+// PUT /my/organization/members/:userID/role - Toggle admin role
+// ============================================================
+router.put('/my/organization/members/:userID/role', async (req, res) => {
+  try {
+    const targetUserID = req.params.userID;
+    const { isOrgAdmin } = req.body;
+
+    // Validate input
+    if (typeof isOrgAdmin !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'isOrgAdmin must be a boolean value'
+      });
+    }
+
+    // Get current user's organization
+    const user = await User.findById(req.user.userID);
+    const organizationID = user?.organizationID;
+
+    if (!organizationID) {
+      return res.status(404).json({
+        success: false,
+        message: 'User is not part of any organization'
+      });
+    }
+
+    const organization = await Organization.findById(organizationID);
+
+    if (!organization) {
+      return res.status(404).json({
+        success: false,
+        message: 'Organization not found'
+      });
+    }
+
+    // Only admins can change roles
+    if (!organization.isAdmin(req.user.userID)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only organization admins can change member roles'
+      });
+    }
+
+    // Check if target user is a member
+    if (!organization.isMember(targetUserID)) {
+      return res.status(404).json({
+        success: false,
+        message: 'User is not a member of this organization'
+      });
+    }
+
+    // Prevent users from demoting themselves if they're the only admin
+    if (req.user.userID === targetUserID && !isOrgAdmin) {
+      if (organization.admins.length === 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot remove admin role from the only admin. Promote another member first.'
+        });
+      }
+    }
+
+    // Update the role
+    if (isOrgAdmin) {
+      // Promote to admin
+      if (!organization.admins.includes(targetUserID)) {
+        organization.admins.push(targetUserID);
+      }
+    } else {
+      // Demote from admin
+      organization.admins = organization.admins.filter(id => id !== targetUserID);
+    }
+
+    // Save the updated organization
+    await Organization.update(organizationID, {
+      admins: organization.admins,
+      updatedAt: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: `Member ${isOrgAdmin ? 'promoted to' : 'demoted from'} admin role successfully`,
+      isOrgAdmin: isOrgAdmin
+    });
+  } catch (error) {
+    console.error('Toggle admin role error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================
+// DELETE /my/organization/members/:userID - Remove member from organization
+// ============================================================
+router.delete('/my/organization/members/:userID', async (req, res) => {
+  try {
+    const targetUserID = req.params.userID;
+
+    // Get current user's organization
+    const user = await User.findById(req.user.userID);
+    const organizationID = user?.organizationID;
+
+    if (!organizationID) {
+      return res.status(404).json({
+        success: false,
+        message: 'User is not part of any organization'
+      });
+    }
+
+    const organization = await Organization.findById(organizationID);
+
+    if (!organization) {
+      return res.status(404).json({
+        success: false,
+        message: 'Organization not found'
+      });
+    }
+
+    // Only admins can remove members
+    if (!organization.isAdmin(req.user.userID)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only organization admins can remove members'
+      });
+    }
+
+    // Check if target user is a member
+    if (!organization.isMember(targetUserID)) {
+      return res.status(404).json({
+        success: false,
+        message: 'User is not a member of this organization'
+      });
+    }
+
+    // Prevent removing yourself
+    if (req.user.userID === targetUserID) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot remove yourself from the organization'
+      });
+    }
+
+    // Prevent removing the last admin
+    if (organization.isAdmin(targetUserID) && organization.admins.length === 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot remove the only admin. Promote another member first.'
+      });
+    }
+
+    // Remove user from members array
+    organization.members = organization.members.filter(id => id !== targetUserID);
+    
+    // Remove from admins if they were an admin
+    organization.admins = organization.admins.filter(id => id !== targetUserID);
+
+    // Update the organization
+    await Organization.update(organizationID, {
+      members: organization.members,
+      admins: organization.admins,
+      updatedAt: new Date()
+    });
+
+    // Update the user's organizationID to null
+    await User.update(targetUserID, {
+      organizationID: null,
+      organizationName: null,
+      updatedAt: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: 'Member removed from organization successfully'
+    });
+  } catch (error) {
+    console.error('Remove member error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================
 // GET /my/organization/initiatives - Get initiatives from all members
 // ============================================================
 router.get('/my/organization/initiatives', async (req, res) => {

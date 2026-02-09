@@ -503,6 +503,99 @@ const MyOrganization = () => {
     }
   };
 
+  // Handle toggling admin role
+  const handleToggleAdminRole = async (member) => {
+    const newAdminStatus = !member.isOrgAdmin;
+    const action = newAdminStatus ? 'promote to admin' : 'remove admin role from';
+    
+    if (!window.confirm(`Are you sure you want to ${action} ${member.firstName} ${member.lastName}?`)) {
+      return;
+    }
+
+    try {
+      // Try the organization members role endpoint first
+      try {
+        const response = await axios.put(
+          `http://localhost:3001/api/organizations/my/organization/members/${member.userID}/role`,
+          { isOrgAdmin: newAdminStatus },
+          { headers: getAuthHeaders() }
+        );
+        
+        if (response.data.success) {
+          // Update local state
+          setMembers(prevMembers =>
+            prevMembers.map(m =>
+              m.userID === member.userID
+                ? { ...m, isOrgAdmin: newAdminStatus }
+                : m
+            )
+          );
+          
+          // Update selected member if it's the one being modified
+          if (selectedMember?.userID === member.userID) {
+            setSelectedMember(prev => ({ ...prev, isOrgAdmin: newAdminStatus }));
+          }
+          
+          alert(`Successfully ${newAdminStatus ? 'promoted' : 'demoted'} ${member.firstName} ${member.lastName}`);
+          return;
+        }
+      } catch (apiErr) {
+        console.warn('Organization member role endpoint failed:', apiErr.message);
+      }
+
+      // Fallback: try alternative endpoint
+      const response = await axios.put(
+        `http://localhost:3001/api/organizations/members/${member.userID}`,
+        { isOrgAdmin: newAdminStatus },
+        { headers: getAuthHeaders() }
+      );
+      
+      if (response.data.success) {
+        setMembers(prevMembers =>
+          prevMembers.map(m =>
+            m.userID === member.userID
+              ? { ...m, isOrgAdmin: newAdminStatus }
+              : m
+          )
+        );
+        
+        if (selectedMember?.userID === member.userID) {
+          setSelectedMember(prev => ({ ...prev, isOrgAdmin: newAdminStatus }));
+        }
+        
+        alert(`Successfully ${newAdminStatus ? 'promoted' : 'demoted'} ${member.firstName} ${member.lastName}`);
+      }
+    } catch (err) {
+      console.error('Error toggling admin role:', err);
+      alert(`Failed to ${action} ${member.firstName}. Please try again.`);
+    }
+  };
+
+  // Handle removing member from organization
+  const handleRemoveMember = async (member) => {
+    if (!window.confirm(`Are you sure you want to remove ${member.firstName} ${member.lastName} from the organization? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await axios.delete(
+        `http://localhost:3001/api/organizations/my/organization/members/${member.userID}`,
+        { headers: getAuthHeaders() }
+      );
+      
+      if (response.data.success) {
+        // Remove from local state
+        setMembers(prevMembers => prevMembers.filter(m => m.userID !== member.userID));
+        setShowMemberModal(false);
+        setSelectedMember(null);
+        alert(`Successfully removed ${member.firstName} ${member.lastName} from the organization`);
+      }
+    } catch (err) {
+      console.error('Error removing member:', err);
+      alert(`Failed to remove ${member.firstName}. Please try again.`);
+    }
+  };
+
   // Handle impact report download - Comprehensive Analytics Report
   const handleDownloadReport = async () => {
     setDownloadingReport(true);
@@ -1592,6 +1685,7 @@ const MyOrganization = () => {
             <div className={styles.memberModalFooter}>
               <button 
                 className={selectedMember.isOrgAdmin ? styles.demoteButton : styles.promoteButton}
+                onClick={() => handleToggleAdminRole(selectedMember)}
                 disabled={selectedMember.userID === currentUser?.userID}
               >
                 {selectedMember.isOrgAdmin ? (
@@ -1602,6 +1696,7 @@ const MyOrganization = () => {
               </button>
               <button 
                 className={styles.removeButton}
+                onClick={() => handleRemoveMember(selectedMember)}
                 disabled={selectedMember.userID === currentUser?.userID}
               >
                 Remove from Organization
