@@ -325,6 +325,7 @@
   background: #f0fdf4;
   border-radius: var(--border-radius-lg);
   border: 2px solid var(--success-color);
+  box-sizing: border-box;
 }
 
 .completeInfo {
