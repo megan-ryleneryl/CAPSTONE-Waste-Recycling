@@ -14,7 +14,6 @@ const User = require('../models/Users');
 const Message = require('../models/Message');  
 const Notification = require('../models/Notification');
 const Point = require('../models/Point');
-const GeocodingService = require('../services/geocodingService');
 const { verifyToken } = require('../middleware/auth');
 
 // Apply authentication
@@ -368,26 +367,14 @@ router.post('/create', verifyToken, (req, res, next) => {
       }
     }
 
-    if (postData.location && !postData.location.coordinates?.lat) {
-      console.log('🗺️ Geocoding location...');
-      const coords = await GeocodingService.getCoordinates(postData.location);
-
-      if (coords) {
-        postData.location.coordinates = {
-          lat: coords.lat,
-          lng: coords.lng
-        };
-        if (coords.isFallback) {
-          console.log(`✅ Coordinates added using ${coords.fallbackLevel} level fallback:`, coords);
-        } else {
-          console.log('✅ Coordinates added at barangay level:', coords);
-        }
-      } else {
-        console.log('⚠️ Geocoding failed at all levels, proceeding without coordinates');
-        console.log('⚠️ This post will not appear on the geographic heatmap');
-      }
+    // Note: Geocoding is now handled on the frontend before submission
+    // The location object should already contain coordinates if geocoding succeeded
+    if (postData.location?.coordinates?.lat) {
+      console.log('✅ Location has coordinates from frontend:', postData.location.coordinates);
+    } else {
+      console.log('⚠️ No coordinates in location data - post will not appear on heatmap');
     }
-    
+
     let post;
     const basePostData = {
       ...postData,

@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { BADGES } from '../config/badges';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
+import GeocodingService from '../services/geocodingService';
 import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
 import GuideLink from '../components/guide/GuideLink';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
@@ -435,7 +436,7 @@ const CreatePost = () => {
       addressLine: formData.addressLine
     };
 
-    return JSON.stringify(locationData);
+    return locationData;
   };
 
   // Get human-readable location string for display
@@ -531,6 +532,19 @@ const handleRemoveImage = (index) => {
     // Prepare location data
     const locationData = getLocationData();
 
+    // Geocode the location to get coordinates (frontend-side geocoding)
+    console.log('🗺️ Geocoding location...');
+    const coords = await GeocodingService.getCoordinates(locationData);
+    if (coords) {
+      locationData.coordinates = {
+        lat: coords.lat,
+        lng: coords.lng
+      };
+      console.log('✅ Coordinates added:', coords);
+    } else {
+      console.log('⚠️ Geocoding failed, proceeding without coordinates');
+    }
+
     // Prepare FormData for file upload
     const formDataToSend = new FormData();
 
@@ -538,7 +552,7 @@ const handleRemoveImage = (index) => {
     formDataToSend.append('postType', postType);
     formDataToSend.append('title', formData.title.trim());
     formDataToSend.append('description', formData.description.trim());
-    formDataToSend.append('location', locationData);
+    formDataToSend.append('location', JSON.stringify(locationData));
 
     // Add type-specific fields
     if (postType === 'Waste') {
