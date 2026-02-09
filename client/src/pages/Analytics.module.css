@@ -587,8 +587,11 @@
 
 .metricCard {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-sm, 0.5rem);
   padding: 1.5rem;
   background: var(--bg-secondary, #fbfbfb);
   border-radius: var(--border-radius-lg, 12px);

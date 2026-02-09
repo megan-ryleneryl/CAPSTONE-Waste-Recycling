@@ -1177,25 +1177,33 @@
 /* Tab Navigation */
 .tabNavigation {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 2rem;
+  gap: 0.25rem;
+  margin-top: 1.5rem;
   margin-bottom: 0;
   border-bottom: 2px solid #E5E7EB;
-  padding: 0 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabNavigation::-webkit-scrollbar {
+  display: none;
 }
 
 .tabButton {
-  padding: 1rem 2rem;
+  padding: 0.75rem 1.25rem;
   background: transparent;
   border: none;
   border-bottom: 3px solid transparent;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #6B7280;
   transition: all 0.3s ease;
   position: relative;
   bottom: -2px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tabButton:hover {
@@ -1211,14 +1219,15 @@
 
 /* Tab Content */
 .tabContent {
-  padding: 2rem 1.5rem;
+  padding: 1.5rem;
   background: white;
   border-radius: 0 0 12px 12px;
-  min-height: 400px;
+  min-height: 300px;
 }
 
 .preferencesTab,
-.statsTab {
+.statsTab,
+.badgesTab {
   animation: fadeIn 0.3s ease-in;
 }
 

@@ -241,8 +241,11 @@
 
 .statCard {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--spacing-md);
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-sm);
   padding: var(--spacing-lg);
   background: var(--bg-secondary);
   border-radius: var(--border-radius-lg);
@@ -268,12 +271,15 @@
 .statInfo {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .statValue {
   font-size: 1.75rem;
   font-weight: var(--font-weight-bold);
   color: var(--primary-color);
+  line-height: 1.2;
 }
 
 .statLabel {
@@ -1276,18 +1282,16 @@
 .downloadButton {
   padding: 0.75rem 2rem;
   background: var(--primary-color);
-  color: #ffffff;
+  color: var(--accent-color);
   border: none;
   border-radius: var(--border-radius-md);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: var(--spacing-sm);
   transition: var(--transition-all);
-  margin: 0 auto;
 }
 
 .downloadButton:hover {
@@ -1617,11 +1621,45 @@
     flex-wrap: wrap;
   }
 
+  /* Hide email column on mobile, keep actions visible */
   .membersTable th:nth-child(2),
-  .membersTable td:nth-child(2),
-  .membersTable th:nth-child(4),
-  .membersTable td:nth-child(4) {
+  .membersTable td:nth-child(2) {
     display: none;
+  }
+
+  .membersTable th,
+  .membersTable td {
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+  }
+
+  .membersTable th:last-child,
+  .membersTable td:last-child {
+    text-align: center;
+    width: 50px;
+  }
+
+  .memberCell {
+    gap: 0.5rem;
+  }
+
+  .memberAvatar {
+    width: 32px;
+    height: 32px;
+    font-size: var(--font-size-xs);
+  }
+
+  .memberName {
+    font-size: var(--font-size-sm);
+  }
+
+  .roleTag {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  .actionButton {
+    padding: 0.35rem;
   }
 
   .earningsHeader {
@@ -1666,114 +1704,4 @@
   .impactReportGrid {
     grid-template-columns: 1fr;
   }
-}
-
-/* ===== NEW STYLES FOR UPDATED MYORGANIZATION ===== */
-
-/* Mini spinner for upload button */
-.miniSpinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Initiative author text */
-.initiativeAuthor {
-  font-size: 0.8rem;
-  color: var(--text-secondary, #666);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-  font-style: italic;
-}
-
-/* Material Breakdown */
-.materialBreakdown {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.materialRow {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.materialInfo {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.materialName {
-  font-weight: 600;
-  color: var(--text-primary, #333);
-  font-size: 0.9rem;
-}
-
-.materialAmount {
-  font-size: 0.85rem;
-  color: var(--text-secondary, #666);
-}
-
-.materialBar {
-  width: 100%;
-  height: 8px;
-  background: var(--border-color, #e0e0e0);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.materialFill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--primary-color, #3B6535), var(--primary-light, #B3F2AC));
-  border-radius: 4px;
-  transition: width 0.5s ease;
-  min-width: 2px;
-}
-
-/* Download button enhancements */
-.downloadButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0.85rem 2rem;
-  background: var(--primary-color, #3B6535);
-  color: #ffffff;
-  border: none;
-  border-radius: var(--border-radius-md, 8px);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-family: var(--font-family-primary, 'Raleway', sans-serif);
-  margin: 0 auto;
-}
-
-.downloadButton:hover:not(:disabled) {
-  background: #2d4e29;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 101, 53, 0.3);
-}
-
-.downloadButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Camera button disabled state */
-.cameraButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
 }
