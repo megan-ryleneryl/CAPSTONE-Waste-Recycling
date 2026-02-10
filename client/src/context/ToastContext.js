@@ -25,6 +25,7 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
   const [pointsPopup, setPointsPopup] = useState(null);
   const [unlockedBadge, setUnlockedBadge] = useState(null);
+  const [pickupPopup, setPickupPopup] = useState(null);
   const audioContextRef = useRef(null);
 
   // Initialize AudioContext on first user interaction
@@ -229,6 +230,31 @@ export const ToastProvider = ({ children }) => {
     setUnlockedBadge(null);
   }, []);
 
+  // Show pickup status popup (animated popup for pickup events)
+  const showPickupPopup = useCallback((status, details = {}) => {
+    const popup = {
+      id: uuidv4(),
+      status,
+      pickupID: details.pickupID || null,
+      actorName: details.actorName || null,
+      location: details.location || null,
+      timestamp: new Date(),
+    };
+
+    setPickupPopup(popup);
+    playSound('pickup');
+
+    // Auto-hide after animation completes
+    setTimeout(() => {
+      setPickupPopup(null);
+    }, details.duration || 4000);
+  }, [playSound]);
+
+  // Hide pickup popup manually
+  const hidePickupPopup = useCallback(() => {
+    setPickupPopup(null);
+  }, []);
+
   // Convenience methods for common toast types
   const success = useCallback((message, options = {}) =>
     addToast(message, 'success', options), [addToast]);
@@ -254,12 +280,15 @@ export const ToastProvider = ({ children }) => {
     toasts,
     pointsPopup,
     unlockedBadge,
+    pickupPopup,
     addToast,
     removeToast,
     showPointsEarned,
     hidePointsPopup,
     showBadgeUnlocked,
     hideBadgePopup,
+    showPickupPopup,
+    hidePickupPopup,
     success,
     error,
     warning,

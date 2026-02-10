@@ -4,11 +4,13 @@ import { useAuth } from '../../../context/AuthContext';
 import axios from 'axios';
 import EcoTayoLogo from './EcoTayoLogo.svg';
 import QuickGuide from '../../guide/QuickGuide';
+import NotificationsModal from '../../notifications/NotificationsModal/NotificationsModal';
 import styles from './TopNav.module.css';
 
 const TopNav = ({ user: propUser }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [user, setUser] = useState(propUser);
   const [showGuide, setShowGuide] = useState(false);
@@ -385,6 +387,58 @@ const TopNav = ({ user: propUser }) => {
     </svg>
   );
 
+  // Get icon and color for notification based on type and title
+  const getNotificationIcon = (notification) => {
+    const title = (notification.title || '').toLowerCase();
+    const type = (notification.type || '').toLowerCase();
+
+    // Pickup-related notifications
+    if (type === 'pickup' || title.includes('pickup')) {
+      if (title.includes('request') || title.includes('proposed')) {
+        return { icon: '📦', color: '#f59e0b' }; // Package - orange
+      }
+      if (title.includes('confirmed')) {
+        return { icon: '✓', color: '#10b981' }; // Check - green
+      }
+      if (title.includes('on the way') || title.includes('transit')) {
+        return { icon: '🚚', color: '#3b82f6' }; // Truck - blue
+      }
+      if (title.includes('arrived')) {
+        return { icon: '📍', color: '#8b5cf6' }; // Pin - purple
+      }
+      if (title.includes('complete')) {
+        return { icon: '🎉', color: '#059669' }; // Party - dark green
+      }
+      if (title.includes('cancel')) {
+        return { icon: '✕', color: '#ef4444' }; // X - red
+      }
+      return { icon: '📦', color: '#3B6535' }; // Default pickup
+    }
+
+    // Badge notifications
+    if (type === 'badge' || title.includes('badge')) {
+      return { icon: '🏆', color: '#f59e0b' };
+    }
+
+    // Message notifications
+    if (type === 'message' || title.includes('message')) {
+      return { icon: '💬', color: '#3b82f6' };
+    }
+
+    // Application notifications
+    if (type === 'application' || title.includes('verification') || title.includes('approved')) {
+      return { icon: '📋', color: '#10b981' };
+    }
+
+    // Comment notifications
+    if (type === 'comment' || title.includes('comment')) {
+      return { icon: '💭', color: '#6b7280' };
+    }
+
+    // Default
+    return { icon: '🔔', color: '#3B6535' };
+  };
+
   return (
     <nav className={styles.navbar}>
       <div className={styles.navContent}>
@@ -412,9 +466,12 @@ const TopNav = ({ user: propUser }) => {
                 <div className={styles.dropdownHeader}>
                   <h3>Notifications</h3>
                   {unreadCount > 0 && (
-                    <button 
+                    <button
                       className={styles.markAllRead}
-                      onClick={markAllAsRead}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAllAsRead();
+                      }}
                     >
                       Mark all as read
                     </button>
@@ -426,67 +483,89 @@ const TopNav = ({ user: propUser }) => {
                       <p>No items to display</p>
                     </div>
                   ) : (
-                    notifications.slice(0, 5).map((notification) => (
-                      <div
-                        key={notification.notificationID}
-                        className={`${styles.notificationItem} ${
-                          !notification.isRead ? styles.unread : ''
-                        }`}
-                        onClick={() => {
-                          // Mark as read when clicked
-                          if (!notification.isRead) {
-                            markNotificationAsRead(notification.notificationID);
-                          }
-
-                          // Navigate based on notification type
-                          if (notification.actionURL) {
-                            // Use actionURL if provided
-                            navigate(notification.actionURL);
-                            setShowNotifications(false);
-                          } else if (notification.referenceID && notification.referenceType) {
-                            // Check if this is a pickup request notification with collector info
-                            const hasCollectorInfo = notification.metadata?.collectorID &&
-                                                    notification.metadata?.postID;
-
-                            // Navigate based on reference type
-                            if (notification.referenceType === 'post') {
-                              // If it's a pickup-related notification with collector info, open chat
-                              if (hasCollectorInfo && notification.type?.toLowerCase().includes('pickup')) {
-                                const collectorName = notification.metadata.collectorName || 'Collector';
-                                const nameParts = collectorName.split(' ');
-                                navigate('/chat', {
-                                  state: {
-                                    postID: notification.metadata.postID,
-                                    otherUser: {
-                                      userID: notification.metadata.collectorID,
-                                      firstName: nameParts[0] || 'Unknown',
-                                      lastName: nameParts.slice(1).join(' ') || 'User'
-                                    }
-                                  }
-                                });
-                              } else {
-                                // Otherwise navigate to the post
-                                navigate(`/posts/${notification.referenceID}`);
-                              }
-                            } else if (notification.referenceType === 'pickup') {
-                              navigate(`/tracking/${notification.referenceID}`);
-                            } else if (notification.referenceType === 'message') {
-                              navigate('/chat');
+                    notifications.slice(0, 5).map((notification) => {
+                      const { icon, color } = getNotificationIcon(notification);
+                      return (
+                        <div
+                          key={notification.notificationID}
+                          className={`${styles.notificationItem} ${
+                            !notification.isRead ? styles.unread : ''
+                          }`}
+                          onClick={() => {
+                            // Mark as read when clicked
+                            if (!notification.isRead) {
+                              markNotificationAsRead(notification.notificationID);
                             }
-                            setShowNotifications(false);
-                          }
-                        }}
-                      >
-                        <p>{notification.message}</p>
-                        <span className={styles.time}>
-                          {notification.createdAt 
-                            ? formatDate(notification.createdAt)
-                            : 'Just now'}
-                        </span>
-                      </div>
-                    ))
+
+                            // Navigate based on notification type
+                            if (notification.actionURL) {
+                              // Use actionURL if provided
+                              navigate(notification.actionURL);
+                              setShowNotifications(false);
+                            } else if (notification.referenceID && notification.referenceType) {
+                              // Check if this is a pickup request notification with collector info
+                              const hasCollectorInfo = notification.metadata?.collectorID &&
+                                                      notification.metadata?.postID;
+
+                              // Navigate based on reference type
+                              if (notification.referenceType === 'post') {
+                                // If it's a pickup-related notification with collector info, open chat
+                                if (hasCollectorInfo && notification.type?.toLowerCase().includes('pickup')) {
+                                  const collectorName = notification.metadata.collectorName || 'Collector';
+                                  const nameParts = collectorName.split(' ');
+                                  navigate('/chat', {
+                                    state: {
+                                      postID: notification.metadata.postID,
+                                      otherUser: {
+                                        userID: notification.metadata.collectorID,
+                                        firstName: nameParts[0] || 'Unknown',
+                                        lastName: nameParts.slice(1).join(' ') || 'User'
+                                      }
+                                    }
+                                  });
+                                } else {
+                                  // Otherwise navigate to the post
+                                  navigate(`/posts/${notification.referenceID}`);
+                                }
+                              } else if (notification.referenceType === 'pickup') {
+                                navigate(`/tracking/${notification.referenceID}`);
+                              } else if (notification.referenceType === 'message') {
+                                navigate('/chat');
+                              }
+                              setShowNotifications(false);
+                            }
+                          }}
+                        >
+                          <div className={styles.notificationIcon} style={{ backgroundColor: `${color}20`, color: color }}>
+                            {icon}
+                          </div>
+                          <div className={styles.notificationContent}>
+                            {notification.title && (
+                              <span className={styles.notificationTitle}>{notification.title}</span>
+                            )}
+                            <p className={styles.notificationMessage}>{notification.message}</p>
+                            <span className={styles.time}>
+                              {notification.createdAt
+                                ? formatDate(notification.createdAt)
+                                : 'Just now'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
+                {notifications.length > 5 && (
+                  <button
+                    className={styles.viewAll}
+                    onClick={() => {
+                      setShowNotifications(false);
+                      setShowNotificationsModal(true);
+                    }}
+                  >
+                    View all {notifications.length} notifications
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -604,6 +683,18 @@ const TopNav = ({ user: propUser }) => {
 
       {/* Quick Guide Modal */}
       <QuickGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
+
+      {/* Notifications Modal */}
+      {showNotificationsModal && (
+        <NotificationsModal
+          notifications={notifications}
+          onClose={() => setShowNotificationsModal(false)}
+          onMarkAsRead={markNotificationAsRead}
+          onMarkAllAsRead={markAllAsRead}
+          formatDate={formatDate}
+          getNotificationIcon={getNotificationIcon}
+        />
+      )}
     </nav>
   );
 };

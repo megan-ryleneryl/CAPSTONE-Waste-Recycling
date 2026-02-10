@@ -301,7 +301,7 @@ router.get('/:postId', verifyToken, async (req, res) => {
 
 // Create new post (unified endpoint) - with better multer handling
 router.post('/create', verifyToken, (req, res, next) => {
-  console.log('🔴🔴🔴 CREATE POST ENDPOINT HIT 🔴🔴🔴');
+  console.log('CREATE POST ENDPOINT HIT');
   // Use multer middleware conditionally
   const uploadMiddleware = upload.array('images', 5);
   uploadMiddleware(req, res, (err) => {
@@ -321,11 +321,11 @@ router.post('/create', verifyToken, (req, res, next) => {
     const user = req.user;
 
     // DEBUG: Log ALL received data
-    console.log('🚀 POST CREATE - Received request');
-    console.log('📋 Post Type:', postType);
-    console.log('📋 Full postData keys:', Object.keys(postData));
-    console.log('📦 Materials in postData:', postData.materials);
-    console.log('📦 Materials type:', typeof postData.materials);
+    console.log('POST CREATE - Received request');
+    console.log('Post Type:', postType);
+    console.log('Full postData keys:', Object.keys(postData));
+    console.log('Materials in postData:', postData.materials);
+    console.log('Materials type:', typeof postData.materials);
 
     // Validate required fields
     if (!postType || !postData.title || !postData.description) {
@@ -1156,8 +1156,8 @@ router.post('/:postId/claim', verifyToken, async (req, res) => {
     await Notification.create({
       userID: post.userID,
       type: 'Pickup',
-      title: 'Your post has been claimed!',
-      message: `${collectorName} wants to collect your "${post.title}"`,
+      title: 'A collector is interested!',
+      message: `${collectorName} wants to collect your "${post.title}". Start a conversation to arrange pickup details.`,
       referenceID: postId,
       referenceType: 'post',
       actionURL: `/chat?postId=${postId}&userId=${collectorID}`,

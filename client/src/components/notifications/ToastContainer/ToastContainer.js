@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { useToast } from '../../../context/ToastContext';
 import Toast from '../Toast/Toast';
 import PointsPopup from '../PointsPopup/PointsPopup';
+import PickupPopup from '../PickupPopup/PickupPopup';
 import { BadgeUnlocked } from '../../badges';
 import './ToastContainer.css';
 
@@ -11,9 +12,11 @@ const ToastContainer = () => {
     toasts,
     pointsPopup,
     unlockedBadge,
+    pickupPopup,
     removeToast,
     hidePointsPopup,
-    hideBadgePopup
+    hideBadgePopup,
+    hidePickupPopup
   } = useToast();
 
   // Create portal root if it doesn't exist
@@ -51,6 +54,14 @@ const ToastContainer = () => {
         <BadgeUnlocked
           badge={unlockedBadge}
           onClose={hideBadgePopup}
+        />
+      )}
+
+      {/* Pickup status popup */}
+      {pickupPopup && (
+        <PickupPopup
+          popup={pickupPopup}
+          onClose={hidePickupPopup}
         />
       )}
     </>,

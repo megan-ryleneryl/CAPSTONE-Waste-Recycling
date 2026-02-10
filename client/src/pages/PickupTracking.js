@@ -18,7 +18,7 @@ const PickupTracking = () => {
   const { pickupId } = useParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { pickupNotification, success, showPointsEarned, showBadgeUnlocked } = useToast();
+  const { pickupNotification, success, showPointsEarned, showBadgeUnlocked, showPickupPopup } = useToast();
   const [pickup, setPickup] = useState(null);
   const [postData, setPostData] = useState(null);
   const [supportData, setSupportData] = useState(null);
@@ -32,6 +32,10 @@ const PickupTracking = () => {
 
   // Ref to prevent multiple arrival updates
   const hasTriggeredArrival = useRef(false);
+  // Ref to track previous pickup status for popup notifications
+  const previousStatusRef = useRef(null);
+  // Ref to access latest pickup data in callbacks
+  const pickupRef = useRef(null);
 
   // Determine user role (needed early for hooks)
   const isGiver = currentUser?.userID === pickup?.giverID;
@@ -115,13 +119,76 @@ const PickupTracking = () => {
     const unsubscribe = onSnapshot(pickupRef, (pickupDoc) => {
       if (pickupDoc.exists()) {
         const pickupData = { id: pickupDoc.id, ...pickupDoc.data() };
+
+        // Check if status has changed and show popup
+        const previousStatus = previousStatusRef.current;
+        const newStatus = pickupData.status;
+        const userIsGiver = currentUser?.userID === pickupData.giverID;
+        const userIsCollector = currentUser?.userID === pickupData.collectorID;
+
+        if (previousStatus && previousStatus !== newStatus) {
+          // Show popup for giver when collector updates status
+          // Note: Don't show 'Completed' popup to giver - they initiated it and will see points popup
+          if (userIsGiver) {
+            const giverNotifyStatuses = ['In-Transit', 'ArrivedAtPickup'];
+            if (giverNotifyStatuses.includes(newStatus)) {
+              showPickupPopup(newStatus, {
+                pickupID: pickupData.id,
+                actorName: pickupData.collectorName,
+                location: pickupData.pickupLocation?.city?.name || pickupData.pickupLocation?.barangay?.name || null
+              });
+            }
+          }
+          // Show popup for collector when giver confirms or completes pickup
+          if (userIsCollector) {
+            if (newStatus === 'Confirmed') {
+              showPickupPopup(newStatus, {
+                pickupID: pickupData.id,
+                actorName: pickupData.giverName,
+                location: pickupData.pickupLocation?.city?.name || pickupData.pickupLocation?.barangay?.name || null
+              });
+            }
+            // Award collector points when pickup is completed (show points popup instead of pickup popup)
+            if (newStatus === 'Completed') {
+              showPointsEarned(15, 'Pickup Completed', {
+                bonus: null,
+                streak: null
+              });
+
+              // Check if this is the collector's first completed pickup
+              (async () => {
+                try {
+                  const collectorPickupsQuery = query(
+                    collection(db, 'pickups'),
+                    where('collectorID', '==', currentUser?.userID),
+                    where('status', '==', 'Completed')
+                  );
+                  const collectorPickupsSnap = await getDocs(collectorPickupsQuery);
+                  if (collectorPickupsSnap.size === 1) {
+                    setTimeout(() => {
+                      showBadgeUnlocked(BADGES.FIRST_PICKUP);
+                    }, 3500);
+                  }
+                } catch (err) {
+                  console.error('Error checking collector first pickup:', err);
+                }
+              })();
+            }
+          }
+        }
+
+        // Update the previous status ref
+        previousStatusRef.current = newStatus;
+
         setPickup(pickupData);
+        // Update pickup ref for use in callbacks
+        pickupRef.current = pickupData;
         // Post and support data remain static - no need to refetch
       }
     });
 
     return () => unsubscribe();
-  }, [pickupId, navigate]);
+  }, [pickupId, navigate, currentUser?.userID, showPickupPopup, showPointsEarned, showBadgeUnlocked]);
 
   const formatDate = (date) => {
     if (!date) return '';
@@ -365,15 +432,19 @@ const PickupTracking = () => {
         });
       }
 
-      // Create notification for the other party
+      // Create notification for BOTH parties
       try {
         const token = localStorage.getItem('token');
         const notificationData = {
           status: newStatus,
           pickupID: pickupId,
-          recipientID: isCollector ? pickup.giverID : pickup.collectorID,
-          actorName: `${currentUser.firstName} ${currentUser.lastName}`,
-          location: formatLocation(pickup.pickupLocation) || formatLocation(postData?.location)
+          giverID: pickup.giverID,
+          collectorID: pickup.collectorID,
+          giverName: pickup.giverName,
+          collectorName: pickup.collectorName,
+          location: formatLocation(pickup.pickupLocation) || formatLocation(postData?.location),
+          actorRole: isCollector ? 'Collector' : 'Giver',
+          postType: pickup.postType || postData?.postType || 'Waste'
         };
 
         await axios.post(
@@ -501,15 +572,18 @@ const PickupTracking = () => {
 
       setShowCompletionModal(false);
 
-      // Create notification for the collector
+      // Create notification for BOTH parties
       try {
         const token = localStorage.getItem('token');
         const notificationData = {
           status: 'Completed',
           pickupID: pickupId,
-          recipientID: pickup.collectorID,
-          actorName: `${currentUser.firstName} ${currentUser.lastName}`,
-          location: formatLocation(pickup.pickupLocation) || formatLocation(postData?.location)
+          giverID: pickup.giverID,
+          collectorID: pickup.collectorID,
+          giverName: pickup.giverName,
+          collectorName: pickup.collectorName,
+          location: formatLocation(pickup.pickupLocation) || formatLocation(postData?.location),
+          postType: pickup.postType || postData?.postType || 'Waste'
         };
 
         await axios.post(
@@ -596,14 +670,67 @@ const PickupTracking = () => {
     // Use async to avoid blocking
     (async () => {
       try {
-        const pickupRef = doc(db, 'pickups', pickupId);
+        const pickupDocRef = doc(db, 'pickups', pickupId);
         const updateData = {
           status: 'ArrivedAtPickup',
           arrivedAt: serverTimestamp(),
           locationTrackingActive: false,
           updatedAt: serverTimestamp()
         };
-        await updateDoc(pickupRef, updateData);
+        await updateDoc(pickupDocRef, updateData);
+
+        // Get current pickup data from ref
+        const currentPickup = pickupRef.current;
+        if (currentPickup) {
+          // Send system message to giver
+          const collectorName = currentPickup.collectorName || 'Collector';
+          const giverName = currentPickup.giverName || 'Giver';
+
+          const messagesRef = collection(db, 'messages');
+          await addDoc(messagesRef, {
+            messageID: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            senderID: currentPickup.collectorID,
+            senderName: collectorName,
+            receiverID: currentPickup.giverID,
+            receiverName: giverName,
+            postID: currentPickup.postID,
+            postTitle: currentPickup.postTitle || 'Pickup',
+            postType: currentPickup.postType || 'Waste',
+            message: `[Status] ${collectorName} [Collector] has arrived at the pickup location (auto-detected). Waiting for ${giverName} [Giver] to complete the pickup.`,
+            messageType: 'system',
+            metadata: {
+              pickupID: pickupId,
+              newStatus: 'ArrivedAtPickup',
+              statusLabel: 'Arrived at Pickup',
+              autoDetected: true
+            },
+            isRead: false,
+            isDeleted: false,
+            sentAt: serverTimestamp(),
+            createdAt: serverTimestamp()
+          });
+
+          // Send notification API call to BOTH parties
+          try {
+            const token = localStorage.getItem('token');
+            await axios.post(
+              'http://localhost:3001/api/protected/notifications/pickup-status',
+              {
+                status: 'ArrivedAtPickup',
+                pickupID: pickupId,
+                giverID: currentPickup.giverID,
+                collectorID: currentPickup.collectorID,
+                giverName: giverName,
+                collectorName: collectorName,
+                location: currentPickup.pickupLocation?.city?.name || currentPickup.pickupLocation?.barangay?.name || 'pickup location',
+                postType: currentPickup.postType || 'Waste'
+              },
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+          } catch (notifError) {
+            console.error('Error sending arrival notification:', notifError);
+          }
+        }
       } catch (error) {
         console.error('Error updating arrival status:', error);
       }

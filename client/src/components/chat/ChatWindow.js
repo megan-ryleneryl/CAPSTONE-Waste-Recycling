@@ -17,7 +17,7 @@ import styles from './ChatWindow.module.css';
 
 
 const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData }) => {
-  const { pickupNotification, success, error: showError } = useToast();
+  const { pickupNotification, success, error: showError, showPickupPopup } = useToast();
   const [messages, setMessages] = useState([]);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [showProposedPickupsModal, setShowProposedPickupsModal] = useState(false);
@@ -371,6 +371,39 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         'system'
       );
 
+      // Create database notification for the giver
+      const formatLocationString = (loc) => {
+        if (!loc) return 'pickup location';
+        if (typeof loc === 'string') return loc;
+        const parts = [];
+        if (loc.barangay?.name) parts.push(loc.barangay.name);
+        if (loc.city?.name) parts.push(loc.city.name);
+        return parts.length > 0 ? parts.join(', ') : 'pickup location';
+      };
+
+      try {
+        const token = localStorage.getItem('token');
+        await axios.post(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/protected/notifications/pickup-status`,
+          {
+            status: 'Proposed',
+            pickupID: pickupRef.id,
+            giverID: giverID,
+            collectorID: currentUser.userID,
+            giverName: giverName,
+            collectorName: collectorName,
+            location: formatLocationString(pickupData.pickupLocation),
+            postType: post?.postType || 'Waste'
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
+      } catch (notifError) {
+        console.error('Error sending pickup notification:', notifError);
+        // Don't fail the whole operation if notification fails
+      }
+
       // Update active pickup
       setActivePickup({ id: pickupRef.id, ...pickupData });
       setShowScheduleForm(false);
@@ -691,6 +724,42 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       }
 
       await sendMessage(statusMessage, 'system');
+
+      // Create database notification for both parties
+      if (status === 'Cancelled') {
+        const formatLocationString = (loc) => {
+          if (!loc) return 'pickup location';
+          if (typeof loc === 'string') return loc;
+          const parts = [];
+          if (loc.barangay?.name) parts.push(loc.barangay.name);
+          if (loc.city?.name) parts.push(loc.city.name);
+          return parts.length > 0 ? parts.join(', ') : 'pickup location';
+        };
+
+        try {
+          const token = localStorage.getItem('token');
+          await axios.post(
+            `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/protected/notifications/pickup-status`,
+            {
+              status: 'Cancelled',
+              pickupID: activePickup.id,
+              giverID: activePickup.giverID,
+              collectorID: activePickup.collectorID,
+              giverName: activePickup.giverName,
+              collectorName: activePickup.collectorName,
+              location: formatLocationString(activePickup.pickupLocation),
+              actorRole: isCollector ? 'Collector' : 'Giver',
+              postType: post?.postType || 'Waste'
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          );
+        } catch (notifError) {
+          console.error('Error sending cancellation notification:', notifError);
+          // Don't fail the whole operation if notification fails
+        }
+      }
     } catch (error) {
       console.error('Error updating pickup status:', error);
       alert('Failed to update pickup status.');
