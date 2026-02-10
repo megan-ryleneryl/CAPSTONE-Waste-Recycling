@@ -140,6 +140,7 @@ const analyticsController = {
         completedSupports,
         wasteTypes,
         topCollectors,
+        topRecyclers,
         topEarners,
         communityEarnings,
         userEarnings,
@@ -155,10 +156,11 @@ const analyticsController = {
         getCompletedSupportsInRange(startDate, endDate, locationFilter), // BOUNDED: Only this period
         getWasteDistribution(startDate, locationFilter),
         getTopCollectors(startDate, locationFilter),
+        getTopRecyclers(startDate, locationFilter),
         getTopEarners(startDate, locationFilter),
         getCommunityEarningsStats(startDate, locationFilter),
         getUserEarningsStats(userID, startDate),
-        getUserSpecificStats(userID, currentUser),
+        getUserSpecificStats(userID, currentUser, startDate, endDate),
         currentUser.isAdmin ? getPendingApplications() : { count: 0 },
         getUserRecentActivity(userID, startDate)
       ]);
@@ -211,6 +213,7 @@ const analyticsController = {
 
         communityImpact: environmentalImpact,
         topCollectors: topCollectors.slice(0, 3),
+        topRecyclers: topRecyclers.slice(0, 3),
         topEarners: topEarners.slice(0, 5),
         communityEarnings,
         userEarnings,
@@ -841,6 +844,58 @@ async function getTopCollectors(startDate, locationFilter = null) {
   }
 }
 
+// Get top recyclers (givers who posted and recycled the most waste)
+async function getTopRecyclers(startDate, locationFilter = null) {
+  try {
+    const allUsers = await getCachedData('allUsers', () => User.findAll());
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    // Calculate recycling stats for all users (as givers)
+    const recyclerMap = {};
+
+    allPickups.forEach(pickup => {
+      if (!pickup.giverID || pickup.status !== 'Completed' || !pickup.finalAmount) return;
+
+      const completedDate = toDate(pickup.completedAt);
+      if (!completedDate || isNaN(completedDate.getTime()) || completedDate < startDate) return;
+      if (!matchesLocationFilter(pickup.pickupLocation, locationFilter)) return;
+
+      if (!recyclerMap[pickup.giverID]) {
+        recyclerMap[pickup.giverID] = { totalRecycled: 0, pickupCount: 0 };
+      }
+      recyclerMap[pickup.giverID].totalRecycled += parseFloat(pickup.finalAmount);
+      recyclerMap[pickup.giverID].pickupCount += 1;
+    });
+
+    // Build ranked list with user details
+    const recyclerStats = Object.entries(recyclerMap)
+      .filter(([, stats]) => stats.totalRecycled > 0)
+      .map(([userID, stats]) => {
+        const user = allUsers.find(u => u.userID === userID);
+        return {
+          userID,
+          name: user
+            ? (user.organizationName || `${user.firstName} ${user.lastName}`)
+            : 'Unknown User',
+          amount: Math.round(stats.totalRecycled),
+          pickupCount: stats.pickupCount,
+          profilePicture: user?.profilePictureUrl || null
+        };
+      });
+
+    recyclerStats.sort((a, b) => b.amount - a.amount);
+
+    return recyclerStats.map((recycler, index) => ({
+      ...recycler,
+      badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : null,
+      rank: index + 1
+    }));
+  } catch (error) {
+    console.error('Error getting top recyclers:', error);
+    return [];
+  }
+}
+
 // Get top earners (users who earned the most from recycling) - only opted-in users
 async function getTopEarners(startDate, locationFilter = null) {
   try {
@@ -985,7 +1040,7 @@ async function getUserEarningsStats(userID, startDate) {
   }
 }
 
-async function getUserSpecificStats(userID, user) {
+async function getUserSpecificStats(userID, user, startDate = null, endDate = null) {
   const stats = {
     totalPosts: 0,
     activePickups: 0,
@@ -1003,39 +1058,48 @@ async function getUserSpecificStats(userID, user) {
     organization: null
   };
 
+  // Helper to check if a pickup falls within the selected time range
+  const isInTimeRange = (pickup) => {
+    if (!startDate) return true; // No filter = all time
+    const completedDate = toDate(pickup.completedAt);
+    if (!completedDate || isNaN(completedDate.getTime())) return false;
+    if (endDate) {
+      return completedDate >= startDate && completedDate < endDate;
+    }
+    return completedDate >= startDate;
+  };
+
   try {
-    // FIXED: Use correct method - findByUser with 'giver' role
     const userPickupsAsGiver = await Pickup.findByUser(userID, 'giver');
-    
-    stats.giver.activePickups = userPickupsAsGiver.filter(p => 
+
+    // Active pickups are current state, not time-filtered
+    stats.giver.activePickups = userPickupsAsGiver.filter(p =>
       ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(p.status)
     ).length;
-    
-    stats.giver.successfulPickups = userPickupsAsGiver.filter(p => 
-      p.status === 'Completed'
+
+    // Completed pickups and kg recycled are TIME-FILTERED
+    stats.giver.successfulPickups = userPickupsAsGiver.filter(p =>
+      p.status === 'Completed' && isInTimeRange(p)
     ).length;
-    
+
     userPickupsAsGiver.forEach(pickup => {
-      if (pickup.status === 'Completed' && pickup.finalAmount) {
-        // finalAmount is at root level, not inside actualWaste
+      if (pickup.status === 'Completed' && pickup.finalAmount && isInTimeRange(pickup)) {
         stats.giver.totalKgRecycled += parseFloat(pickup.finalAmount);
       }
     });
     stats.giver.totalKgRecycled = Math.round(stats.giver.totalKgRecycled);
-    
-    // FIXED: Use correct method - findByUserID
+
     const userPosts = await Post.findByUserID(userID);
-    
+
     stats.totalPosts = userPosts.length;
-    stats.giver.activeForumPosts = userPosts.filter(p => 
+    stats.giver.activeForumPosts = userPosts.filter(p =>
       p.postType === 'Forum' && p.status === 'Active'
     ).length;
-    
-    // FIXED: Use correct method - getTotalPointsByUser
+
     const userPoints = await Point.getTotalPointsByUser(userID);
     stats.totalPoints = userPoints || user.points || 0;
     stats.giver.totalPoints = stats.totalPoints;
-    
+
     stats.activePickups = stats.giver.activePickups;
     stats.completedPickups = stats.giver.successfulPickups;
     stats.totalKgRecycled = stats.giver.totalKgRecycled;
@@ -1060,15 +1124,14 @@ async function getUserSpecificStats(userID, user) {
         };
         
         collectorPickups.forEach(pickup => {
-          if (pickup.status === 'Completed' && pickup.finalAmount) {
-            // finalAmount is at root level, not inside actualWaste
+          if (pickup.status === 'Completed' && pickup.finalAmount && isInTimeRange(pickup)) {
             stats.collector.totalCollected += parseFloat(pickup.finalAmount);
           }
         });
         stats.collector.totalCollected = Math.round(stats.collector.totalCollected);
-        
-        const totalCollectorPickups = collectorPickups.length;
-        const completedPickups = collectorPickups.filter(p => p.status === 'Completed').length;
+
+        const totalCollectorPickups = collectorPickups.filter(p => isInTimeRange(p)).length;
+        const completedPickups = collectorPickups.filter(p => p.status === 'Completed' && isInTimeRange(p)).length;
         if (totalCollectorPickups > 0) {
           stats.collector.completionRate = Math.round((completedPickups / totalCollectorPickups) * 100);
         }
