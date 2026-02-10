@@ -4,24 +4,41 @@ import { useAuth } from '../context/AuthContext';
 import styles from './Leagues.module.css';
 import { TrendingUp, TrendingDown, Minus, Share2, Award, Clipboard } from 'lucide-react';
 
-// City tier icons as simple components (placeholder SVGs)
-const TierIcon = ({ tier, size = 24 }) => {
-  const getColor = () => {
+
+// Import tier images
+import tier1Image from '../assets/uploads/Tier1.svg';
+import tier2Image from '../assets/uploads/Tier2.svg';
+import tier3Image from '../assets/uploads/Tier3.svg';
+
+// City tier icons using images
+const TierIcon = ({ tier }) => {
+  // Determine width based on tier
+  const getWidth = () => {
     switch(tier) {
-      case 3: return '#3B6535'; // 500+ users - darkest green
-      case 2: return '#5A9A52'; // 101-500 users - medium green
-      case 1:
-      default: return '#8BC485'; // 1-100 users - light green
+      case 3: return 60; // Tier 3 width
+      case 2: return 40; // Tier 2 width
+      default: return 20; // Tier 1 / Default width
     }
   };
 
-  // Render buildings based on tier
+  const getImage = () => {
+    switch(tier) {
+      case 3: return tier3Image;
+      case 2: return tier2Image;
+      default: return tier1Image;
+    }
+  };
+
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={getColor()}>
-      {tier >= 1 && <rect x="2" y="14" width="6" height="10" rx="1" />}
-      {tier >= 2 && <rect x="9" y="10" width="6" height="14" rx="1" />}
-      {tier >= 3 && <rect x="16" y="6" width="6" height="18" rx="1" />}
-    </svg>
+    <img
+      src={getImage()}
+      alt={`Tier ${tier}`}
+      style={{ 
+        width: `${getWidth()}px`, 
+        height: 'auto', // Ensures the height scales proportionally
+        objectFit: 'contain' 
+      }}
+    />
   );
 };
 
@@ -108,79 +125,38 @@ const Leagues = () => {
         // Transform waste distribution
         if (wasteByType) {
           const total = Object.values(wasteByType).reduce((sum, val) => sum + val, 0);
-          const distribution = Object.entries(wasteByType).map(([type, value]) => ({
+          const distribution = Object.entries(wasteByType).map(([type, value], index) => ({
             type,
             percentage: total > 0 ? Math.round((value / total) * 100) : 0,
-            color: getWasteColor(type)
+            color: getWasteColor(index)
           }));
           setWasteDistribution(distribution);
         }
       }
     } catch (error) {
       console.error('Error loading leaderboard:', error);
-      // Use mock data for development
-      loadMockData();
+      // Set empty state on error
+      setCityLeaderboard([]);
+      setUserCity(null);
+      setHeavyLifters([]);
+      setWasteDistribution([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getWasteColor = (type) => {
-    const colors = {
-      'Plastic': '#F4A460',
-      'Paper': '#90EE90',
-      'Metal': '#87CEEB',
-      'Glass': '#DDA0DD',
-      'E-waste': '#FFD700',
-      'Organic': '#8FBC8F',
-      'Textile': '#FF6B6B',
-      'Other': '#D3D3D3'
-    };
-    return colors[type] || '#90EE90';
-  };
-
-  const loadMockData = () => {
-    // Mock city data
-    const mockCities = [
-      { cityCode: '1', cityName: 'Taguig City', totalPoints: 24000, userCount: 4, previousRank: 1 },
-      { cityCode: '2', cityName: 'Manila City', totalPoints: 5000, userCount: 676, previousRank: 3 },
-      { cityCode: '3', cityName: 'Caloocan City', totalPoints: 12000, userCount: 3, previousRank: 2 },
-    ].map(city => ({
-      ...city,
-      score: calculateCityScore(city.totalPoints, city.userCount),
-      tier: getCityTier(city.userCount)
-    })).sort((a, b) => b.score - a.score);
-
-    mockCities.forEach((city, index) => {
-      city.rank = index + 1;
-      city.rankChange = city.previousRank ? city.previousRank - city.rank : 0;
-    });
-
-    setCityLeaderboard(mockCities);
-
-    // Mock user city data
-    const userCityName = currentUser?.userLocation?.city?.name || 'Manila City';
-    const userCityData = mockCities.find(c => c.cityName === userCityName) || mockCities[1];
-    setUserCity({
-      ...userCityData,
-      pointsToOvertake: 1000,
-      nextCity: mockCities[0]?.cityName
-    });
-
-    // Mock heavy lifters
-    setHeavyLifters([
-      { rank: 1, name: 'Kenneth Vidal', points: 300 },
-      { rank: 2, name: 'Luke Aniago', points: 267 },
-      { rank: 3, name: 'Megan Sioco', points: 150 },
-    ]);
-
-    // Mock waste distribution
-    setWasteDistribution([
-      { type: 'Plastic', percentage: 45, color: '#F4A460' },
-      { type: 'Paper', percentage: 30, color: '#90EE90' },
-      { type: 'Metal', percentage: 15, color: '#87CEEB' },
-      { type: 'Glass', percentage: 10, color: '#DDA0DD' },
-    ]);
+  const getWasteColor = (index) => {
+    const colors = [
+      '#2E7D32', // Dark green
+      '#4CAF50', // Medium green
+      '#81C784', // Light green
+      '#A5D6A7', // Pale green
+      '#E65100', // Dark orange
+      '#FF9800', // Medium orange
+      '#FFB74D', // Light orange
+      '#FFCC80', // Pale orange
+    ];
+    return colors[index % colors.length];
   };
 
   const getRankChangeIcon = (change) => {
@@ -237,69 +213,132 @@ const Leagues = () => {
               <span className={styles.headerChange}></span>
             </div>
 
-            {cityLeaderboard.slice(0, 10).map((city) => (
-              <div
-                key={city.cityCode}
-                className={`${styles.leaderboardRow} ${
-                  city.cityName === userCity?.cityName ? styles.userCityRow : ''
-                }`}
-              >
-                <div className={styles.rankCell}>
-                  <span className={styles.rankNumber}>#{city.rank}</span>
-                </div>
-                <div className={styles.cityCell}>
-                  <span className={styles.cityName}>{city.cityName}</span>
-                </div>
-                <div className={styles.tierCell}>
-                  <TierIcon tier={city.tier} size={20} />
-                </div>
-                <div className={styles.pointsCell}>
-                  <span className={styles.scoreValue}>{city.score.toLocaleString()}</span>
-                </div>
-                <div className={styles.changeCell}>
-                  {getRankChangeIcon(city.rankChange)}
-                </div>
-              </div>
-            ))}
+            {[0, 1, 2, 3, 4].map((index) => {
+              const city = cityLeaderboard[index];
+              if (city) {
+                return (
+                  <div
+                    key={city.cityCode}
+                    className={`${styles.leaderboardRow} ${
+                      city.cityName === userCity?.cityName ? styles.userCityRow : ''
+                    }`}
+                  >
+                    <div className={styles.rankCell}>
+                      <span className={styles.rankNumber}>#{city.rank}</span>
+                    </div>
+                    <div className={styles.cityCell}>
+                      <span className={styles.cityName}>{city.cityName}</span>
+                    </div>
+                    <div className={styles.tierCell}>
+                      <TierIcon tier={city.tier} size={20} />
+                    </div>
+                    <div className={styles.pointsCell}>
+                      <span className={styles.scoreValue}>{city.score.toLocaleString()}</span>
+                    </div>
+                    <div className={styles.changeCell}>
+                      {getRankChangeIcon(city.rankChange)}
+                    </div>
+                  </div>
+                );
+              } else {
+                return (
+                  <div key={`empty-${index}`} className={`${styles.leaderboardRow} ${styles.emptyRow}`}>
+                    <div className={styles.rankCell}>
+                      <span className={styles.rankNumber}>#{index + 1}</span>
+                    </div>
+                    <div className={styles.cityCell}>
+                      <span className={styles.emptySlot}>—</span>
+                    </div>
+                    <div className={styles.tierCell}>
+                      <span className={styles.emptySlot}>—</span>
+                    </div>
+                    <div className={styles.pointsCell}>
+                      <span className={styles.emptySlot}>—</span>
+                    </div>
+                    <div className={styles.changeCell}>
+                      <span className={styles.emptySlot}></span>
+                    </div>
+                  </div>
+                );
+              }
+            })}
           </div>
 
-          {/* User's City Card */}
-          {userCity && (
-            <div className={styles.userCityCard}>
-              <div className={styles.userCityHeader}>
-                <span className={styles.userCityRank}>#{userCity.rank}</span>
-                <div className={styles.userCityTierInfo}>
-                  <TierIcon tier={userCity.tier} size={24} />
-                  <span className={styles.userCityUsers}>{userCity.userCount} users</span>
+          {/* User's City Card and Waste Distribution - Inline */}
+          <div className={styles.userCityAndWasteRow}>
+            {userCity && (
+              <div className={styles.userCityCard}>
+                <div className={styles.userCityHeader}>
+                  <span className={styles.userCityRank}>#{userCity.rank}</span>
+                  <div className={styles.userCityTierInfo}>
+                    <TierIcon tier={userCity.tier} size={24} />
+                    <span className={styles.userCityUsers}>{userCity.userCount} users</span>
+                  </div>
+                </div>
+
+                <div className={styles.userCityInfo}>
+                  <div className={styles.userCityName}>{userCity.cityName}</div>
+                  <div className={styles.userCityScore}>{userCity.score?.toLocaleString() || userCity.totalPoints?.toLocaleString()} points</div>
+                </div>
+                {userCity.pointsToOvertake > 0 && userCity.nextCity && (
+                  <div className={styles.overtakeMessage}>
+                    Only {userCity.pointsToOvertake.toLocaleString()} more points to overtake {userCity.nextCity}!
+                  </div>
+                )}
+
+                {/* Heavy Lifters */}
+                <div className={styles.heavyLiftersSection}>
+                  <h3 className={styles.heavyLiftersTitle}>Heavy Lifters</h3>
+                  <div className={styles.heavyLiftersList}>
+                    {heavyLifters.map((user) => (
+                      <div key={user.rank} className={styles.heavyLifterRow}>
+                        <span className={styles.lifterRank}>#{user.rank}</span>
+                        <span className={styles.lifterName}>{user.name}</span>
+                        <span className={styles.lifterPoints}>{user.points} points</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className={styles.userCityName}>{userCity.cityName}</div>
-              <div className={styles.userCityScore}>{userCity.score?.toLocaleString() || userCity.totalPoints?.toLocaleString()} points</div>
+            )}
 
-              {userCity.pointsToOvertake > 0 && userCity.nextCity && (
-                <div className={styles.overtakeMessage}>
-                  Only {userCity.pointsToOvertake.toLocaleString()} more points to overtake {userCity.nextCity}!
+            {/* Waste Distribution - Now inline with userCityCard */}
+            {wasteDistribution.length > 0 && (
+              <div className={styles.wasteDistributionCard}>
+                <h3 className={styles.wasteTitle}>Waste Distribution</h3>
+                <div className={styles.stackedBarContainer}>
+                  <div className={styles.stackedBar}>
+                    {wasteDistribution.map((item) => (
+                      <div
+                        key={item.type}
+                        className={styles.stackedBarSegment}
+                        style={{
+                          height: `${item.percentage}%`,
+                          backgroundColor: item.color
+                        }}
+                        title={`${item.type}: ${item.percentage}%`}
+                      >
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
-
-              {/* Heavy Lifters */}
-              <div className={styles.heavyLiftersSection}>
-                <h3 className={styles.heavyLiftersTitle}>Heavy Lifters</h3>
-                <div className={styles.heavyLiftersList}>
-                  {heavyLifters.map((user) => (
-                    <div key={user.rank} className={styles.heavyLifterRow}>
-                      <span className={styles.lifterRank}>#{user.rank}</span>
-                      <span className={styles.lifterName}>{user.name}</span>
-                      <span className={styles.lifterPoints}>{user.points} points</span>
+                <div className={styles.wasteLegend}>
+                  {wasteDistribution.map((item) => (
+                    <div key={item.type} className={styles.wasteLegendItem}>
+                      <span
+                        className={styles.wasteLegendColor}
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className={styles.wasteLegendLabel}>{item.type} ({item.percentage}%)</span>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Right Section - Waste Distribution and Scoring Info */}
+        {/* Right Section - Scoring Info */}
         <div className={styles.rightSection}>
           {/* Scoring Info Card */}
           <div className={styles.scoringInfoCard}>
@@ -350,37 +389,6 @@ const Leagues = () => {
               </div>
             </div>
           </div>
-
-          {/* Waste Distribution */}
-          {wasteDistribution.length > 0 && (
-            <div className={styles.wasteDistributionCard}>
-              <h3 className={styles.wasteTitle}>Waste Distribution</h3>
-              <div className={styles.wasteChart}>
-                {wasteDistribution.map((item) => (
-                  <div
-                    key={item.type}
-                    className={styles.wasteBar}
-                    style={{
-                      height: `${item.percentage}%`,
-                      backgroundColor: item.color
-                    }}
-                    title={`${item.type}: ${item.percentage}%`}
-                  />
-                ))}
-              </div>
-              <div className={styles.wasteLegend}>
-                {wasteDistribution.map((item) => (
-                  <div key={item.type} className={styles.wasteLegendItem}>
-                    <span
-                      className={styles.wasteLegendColor}
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className={styles.wasteLegendLabel}>{item.type}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
