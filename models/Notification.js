@@ -36,7 +36,16 @@ class Notification {
     // Post-related
     POST_CLAIMED: 'Post_Claimed',
     POST_SUPPORT: 'Post_Support',
-    
+    POST_COMMENT: 'Post_Comment',
+    POST_LIKE: 'Post_Like',
+    POST_COMPLETED: 'Post_Completed',
+
+    // Support-related
+    SUPPORT_ACCEPTED: 'Support_Accepted',
+    SUPPORT_DECLINED: 'Support_Declined',
+    SUPPORT_COMPLETED: 'Support_Completed',
+    SUPPORT_CANCELLED: 'Support_Cancelled',
+
     // System
     SYSTEM: 'System',
     MESSAGE: 'Message'

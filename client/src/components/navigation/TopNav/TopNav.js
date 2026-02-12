@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import axios from 'axios';
+import { Package, Check, Truck, MapPin, PartyPopper, X as XIcon, Trophy, MessageCircle, ClipboardList, MessageSquare, Bell, CheckCircle, XCircle, HandHelping, ThumbsUp } from 'lucide-react';
 import EcoTayoLogo from './EcoTayoLogo.svg';
 import QuickGuide from '../../guide/QuickGuide';
 import NotificationsModal from '../../notifications/NotificationsModal/NotificationsModal';
@@ -391,52 +392,75 @@ const TopNav = ({ user: propUser }) => {
   const getNotificationIcon = (notification) => {
     const title = (notification.title || '').toLowerCase();
     const type = (notification.type || '').toLowerCase();
+    const iconSize = 18;
 
     // Pickup-related notifications
     if (type === 'pickup' || title.includes('pickup')) {
-      if (title.includes('request') || title.includes('proposed')) {
-        return { icon: '📦', color: '#f59e0b' }; // Package - orange
+      if (title.includes('request') || title.includes('proposed') || title.includes('interested')) {
+        return { icon: <Package size={iconSize} />, color: '#f59e0b' };
       }
       if (title.includes('confirmed')) {
-        return { icon: '✓', color: '#10b981' }; // Check - green
+        return { icon: <Check size={iconSize} />, color: '#10b981' };
       }
       if (title.includes('on the way') || title.includes('transit')) {
-        return { icon: '🚚', color: '#3b82f6' }; // Truck - blue
+        return { icon: <Truck size={iconSize} />, color: '#3b82f6' };
       }
       if (title.includes('arrived')) {
-        return { icon: '📍', color: '#8b5cf6' }; // Pin - purple
+        return { icon: <MapPin size={iconSize} />, color: '#8b5cf6' };
       }
       if (title.includes('complete')) {
-        return { icon: '🎉', color: '#059669' }; // Party - dark green
+        return { icon: <PartyPopper size={iconSize} />, color: '#059669' };
       }
-      if (title.includes('cancel')) {
-        return { icon: '✕', color: '#ef4444' }; // X - red
+      if (title.includes('cancel') || title.includes('available again')) {
+        return { icon: <XIcon size={iconSize} />, color: '#ef4444' };
       }
-      return { icon: '📦', color: '#3B6535' }; // Default pickup
+      return { icon: <Package size={iconSize} />, color: '#3B6535' };
+    }
+
+    // Support-related notifications
+    if (type === 'support_accepted' || title.includes('support accepted') || title.includes('material accepted')) {
+      return { icon: <CheckCircle size={iconSize} />, color: '#10b981' };
+    }
+    if (type === 'support_declined' || title.includes('support declined') || title.includes('material declined')) {
+      return { icon: <XCircle size={iconSize} />, color: '#ef4444' };
+    }
+    if (type === 'support_completed') {
+      return { icon: <HandHelping size={iconSize} />, color: '#059669' };
+    }
+    if (type === 'support_cancelled') {
+      return { icon: <XIcon size={iconSize} />, color: '#ef4444' };
+    }
+
+    // Post-related notifications
+    if (type === 'post_completed' || title.includes('post completed') || title.includes('initiative completed')) {
+      return { icon: <PartyPopper size={iconSize} />, color: '#059669' };
+    }
+    if (type === 'post_like' || title.includes('liked')) {
+      return { icon: <ThumbsUp size={iconSize} />, color: '#ec4899' };
     }
 
     // Badge notifications
     if (type === 'badge' || title.includes('badge')) {
-      return { icon: '🏆', color: '#f59e0b' };
+      return { icon: <Trophy size={iconSize} />, color: '#f59e0b' };
     }
 
     // Message notifications
     if (type === 'message' || title.includes('message')) {
-      return { icon: '💬', color: '#3b82f6' };
+      return { icon: <MessageCircle size={iconSize} />, color: '#3b82f6' };
     }
 
     // Application notifications
     if (type === 'application' || title.includes('verification') || title.includes('approved')) {
-      return { icon: '📋', color: '#10b981' };
+      return { icon: <ClipboardList size={iconSize} />, color: '#10b981' };
     }
 
     // Comment notifications
-    if (type === 'comment' || title.includes('comment')) {
-      return { icon: '💭', color: '#6b7280' };
+    if (type === 'comment' || type === 'post_comment' || title.includes('comment')) {
+      return { icon: <MessageSquare size={iconSize} />, color: '#6b7280' };
     }
 
     // Default
-    return { icon: '🔔', color: '#3B6535' };
+    return { icon: <Bell size={iconSize} />, color: '#3B6535' };
   };
 
   return (

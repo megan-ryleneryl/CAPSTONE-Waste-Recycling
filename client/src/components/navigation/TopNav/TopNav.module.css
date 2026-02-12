@@ -269,6 +269,7 @@
 }
 
 .notificationTitle {
+  text-align: left;
   display: block;
   font-weight: 600;
   font-size: 0.85rem;
@@ -277,8 +278,9 @@
 }
 
 .notificationMessage {
+  text-align: left;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #555;
   line-height: 1.4;
   word-wrap: break-word;

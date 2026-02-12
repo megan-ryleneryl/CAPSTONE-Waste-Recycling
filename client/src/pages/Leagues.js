@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import styles from './Leagues.module.css';
-import { TrendingUp, TrendingDown, Minus, Share2, Award, Clipboard } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Share2, Award, Clipboard, Info } from 'lucide-react';
 
 
 // Import tier images
@@ -50,6 +50,7 @@ const Leagues = () => {
   const [wasteDistribution, setWasteDistribution] = useState([]);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0 });
+  const [showScoreTooltip, setShowScoreTooltip] = useState(false);
 
   // Calculate time until next Sunday midnight (weekly reset)
   const calculateCountdown = useCallback(() => {
@@ -278,7 +279,41 @@ const Leagues = () => {
 
                 <div className={styles.userCityInfo}>
                   <div className={styles.userCityName}>{userCity.cityName}</div>
-                  <div className={styles.userCityScore}>{userCity.score?.toLocaleString() || userCity.totalPoints?.toLocaleString()} points</div>
+                  <div
+                    className={styles.userCityScoreWrapper}
+                    onMouseEnter={() => setShowScoreTooltip(true)}
+                    onMouseLeave={() => setShowScoreTooltip(false)}
+                  >
+                    <div className={styles.userCityScore}>
+                      {userCity.score?.toLocaleString() || userCity.totalPoints?.toLocaleString()} points
+                      <Info size={14} className={styles.scoreInfoIcon} />
+                    </div>
+                    {showScoreTooltip && (
+                      <div className={styles.scoreTooltip}>
+                        <div className={styles.tooltipTitle}>City Score Calculation</div>
+                        <div className={styles.tooltipFormula}>
+                          <span>Total City Points</span>
+                          <span>÷</span>
+                          <span>Number of Users</span>
+                        </div>
+                        <div className={styles.tooltipDivider} />
+                        <div className={styles.tooltipValues}>
+                          <div className={styles.tooltipRow}>
+                            <span>Total Points</span>
+                            <span>{userCity.totalPoints?.toLocaleString()}</span>
+                          </div>
+                          <div className={styles.tooltipRow}>
+                            <span>Users</span>
+                            <span>{userCity.userCount}</span>
+                          </div>
+                          <div className={`${styles.tooltipRow} ${styles.tooltipResult}`}>
+                            <span>City Score</span>
+                            <span>{userCity.score?.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {userCity.pointsToOvertake > 0 && userCity.nextCity && (
                   <div className={styles.overtakeMessage}>

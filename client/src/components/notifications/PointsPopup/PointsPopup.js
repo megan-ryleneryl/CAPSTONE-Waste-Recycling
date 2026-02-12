@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Star, Zap, Trophy, TrendingUp, Sparkles } from 'lucide-react';
+import { Star, Zap, Trophy, TrendingUp, Sparkles, Flame } from 'lucide-react';
 import './PointsPopup.css';
 
 const PointsPopup = ({ popup, onClose }) => {
@@ -157,7 +157,7 @@ const PointsPopup = ({ popup, onClose }) => {
           {/* Streak indicator */}
           {popup.streak && (
             <div className="points-streak">
-              <span className="streak-fire">🔥</span>
+              <Flame size={16} className="streak-fire" />
               <span>{popup.streak} day streak!</span>
             </div>
           )}

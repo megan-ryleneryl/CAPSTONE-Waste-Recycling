@@ -8,7 +8,7 @@ import { db } from '../../../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../../context/AuthContext';
 // Lucide icon imports
-import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins } from 'lucide-react';
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins, Sparkles } from 'lucide-react';
 
 
 const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID, locationFilter = null }) => {
@@ -753,7 +753,7 @@ const handleMessageOwner = async (post, event) => {
                   )}
                   {post.condition && post.condition !== 'Good' && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailIcon}>✨</span>
+                      <span className={styles.detailIcon}><Sparkles size={18} /></span>
                       <span className={styles.detailText}>{post.condition}</span>
                     </div>
                   )}

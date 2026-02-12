@@ -703,9 +703,45 @@ router.patch('/:postId/status', verifyToken, async (req, res) => {
     }
     
     const updatedPost = await Post.update(req.params.postId, { status });
-    
+
     // Invalidate cache when status is updated
     invalidatePostsCache();
+
+    // Notify relevant parties when post is completed
+    if (status === 'Completed') {
+      if (post.postType === 'Waste' && post.claimedBy) {
+        // Notify the claiming collector
+        await Notification.create({
+          userID: post.claimedBy,
+          type: Notification.TYPES.POST_COMPLETED,
+          title: 'Post completed',
+          message: `The waste post "${post.title}" has been marked as completed`,
+          referenceID: req.params.postId,
+          referenceType: 'post',
+          priority: 'normal',
+          metadata: { postID: req.params.postId }
+        });
+      } else if (post.postType === 'Initiative') {
+        // Notify all supporters of the initiative
+        const Support = require('../models/Support');
+        const supports = await Support.findByInitiative(req.params.postId);
+        const supporterIDs = [...new Set(supports
+          .filter(s => s.giverID !== req.user.userID)
+          .map(s => s.giverID)
+        )];
+        if (supporterIDs.length > 0) {
+          await Notification.createBatch(supporterIDs, {
+            type: Notification.TYPES.POST_COMPLETED,
+            title: 'Initiative completed!',
+            message: `The initiative "${post.title}" has been completed. Thank you for your support!`,
+            referenceID: req.params.postId,
+            referenceType: 'post',
+            priority: 'normal',
+            metadata: { postID: req.params.postId }
+          });
+        }
+      }
+    }
 
     res.json({
       success: true,
@@ -820,8 +856,28 @@ router.post('/:postId/like', verifyToken, async (req, res) => {
         createdAt: new Date()
       });
       liked = true;
+
+      // Notify post owner about the like (skip if liker is the owner)
+      if (req.user.userID !== post.userID) {
+        const liker = await User.findById(req.user.userID);
+        const likerName = liker ? `${liker.firstName} ${liker.lastName}` : 'Someone';
+        await Notification.create({
+          userID: post.userID,
+          type: Notification.TYPES.POST_LIKE,
+          title: 'Someone liked your post',
+          message: `${likerName} liked your post "${post.title}"`,
+          referenceID: req.params.postId,
+          referenceType: 'post',
+          actionURL: `/forum/${req.params.postId}`,
+          priority: 'low',
+          metadata: {
+            likerID: req.user.userID,
+            postID: req.params.postId
+          }
+        });
+      }
     }
-    
+
     // Get updated like count
     const allLikes = await Like.findByPostID(req.params.postId);
     likeCount = allLikes.length;
@@ -884,11 +940,32 @@ router.post('/:postId/comment', verifyToken, async (req, res) => {
       content: content.trim(),
       createdAt: new Date()
     });
-    
+
+    // Notify post owner about the new comment (skip if commenter is the owner)
+    if (req.user.userID !== post.userID) {
+      const commenter = await User.findById(req.user.userID);
+      const commenterName = commenter ? `${commenter.firstName} ${commenter.lastName}` : 'Someone';
+      await Notification.create({
+        userID: post.userID,
+        type: Notification.TYPES.POST_COMMENT,
+        title: 'New comment on your post',
+        message: `${commenterName} commented on "${post.title}"`,
+        referenceID: req.params.postId,
+        referenceType: 'post',
+        actionURL: `/forum/${req.params.postId}`,
+        priority: 'normal',
+        metadata: {
+          commenterID: req.user.userID,
+          commentID: comment.commentID,
+          postID: req.params.postId
+        }
+      });
+    }
+
     // Get updated comment count
     const allComments = await Comment.findByPostID(req.params.postId);
     const commentCount = allComments.length;
-        
+
     res.status(201).json({
       success: true,
       message: 'Comment added successfully',
@@ -1335,6 +1412,24 @@ router.post('/:postId/cancel-claim', verifyToken, async (req, res) => {
       }
     });
 
+    // Notify other interested collectors that the post is available again
+    const otherCollectors = (post.interestedCollectors || []).filter(id => id !== collectorID);
+    if (otherCollectors.length > 0) {
+      await Notification.createBatch(otherCollectors, {
+        type: Notification.TYPES.POST_CLAIMED,
+        title: 'Post available again',
+        message: `The waste post "${post.title}" is available again. The previous claim was cancelled.`,
+        referenceID: postId,
+        referenceType: 'post',
+        actionURL: `/posts/${postId}`,
+        priority: 'normal',
+        metadata: {
+          postID: postId,
+          action: 'claim_cancelled_available'
+        }
+      });
+    }
+
     // Invalidate cache when claim is cancelled
     invalidatePostsCache();
 
@@ -1600,6 +1695,25 @@ router.post('/support/:supportID/accept-material', verifyToken, async (req, res)
     // Accept the specific material
     await support.acceptMaterial(collectorID, materialID);
 
+    // Notify the giver that their material was accepted
+    const acceptedMaterial = support.offeredMaterials.find(m => m.materialID === materialID);
+    const materialName = acceptedMaterial ? acceptedMaterial.materialName : 'material';
+    await Notification.create({
+      userID: support.giverID,
+      type: Notification.TYPES.SUPPORT_ACCEPTED,
+      title: 'Material accepted!',
+      message: `Your offered ${materialName} for "${support.initiativeTitle}" was accepted`,
+      referenceID: support.initiativeID,
+      referenceType: 'post',
+      actionURL: `/chat?postId=${support.initiativeID}&userId=${support.collectorID}`,
+      priority: 'normal',
+      metadata: {
+        supportID: support.supportID,
+        materialID: materialID,
+        initiativeID: support.initiativeID
+      }
+    });
+
     res.json({
       success: true,
       message: 'Material accepted!',
@@ -1645,6 +1759,22 @@ router.post('/support/:supportID/accept', verifyToken, async (req, res) => {
 
     // Accept the support (all materials)
     await support.accept(collectorID);
+
+    // Notify the giver that their support was accepted
+    await Notification.create({
+      userID: support.giverID,
+      type: Notification.TYPES.SUPPORT_ACCEPTED,
+      title: 'Support accepted!',
+      message: `Your support for "${support.initiativeTitle}" has been accepted!`,
+      referenceID: support.initiativeID,
+      referenceType: 'post',
+      actionURL: `/chat?postId=${support.initiativeID}&userId=${support.collectorID}`,
+      priority: 'high',
+      metadata: {
+        supportID: support.supportID,
+        initiativeID: support.initiativeID
+      }
+    });
 
     res.json({
       success: true,
@@ -1700,6 +1830,26 @@ router.post('/support/:supportID/decline-material', verifyToken, async (req, res
     // Decline the specific material
     await support.declineMaterial(collectorID, materialID, reason);
 
+    // Notify the giver that their material was declined
+    const declinedMaterial = support.offeredMaterials.find(m => m.materialID === materialID);
+    const materialName = declinedMaterial ? declinedMaterial.materialName : 'material';
+    await Notification.create({
+      userID: support.giverID,
+      type: Notification.TYPES.SUPPORT_DECLINED,
+      title: 'Material declined',
+      message: `Your offered ${materialName} for "${support.initiativeTitle}" was declined${reason ? ': ' + reason : ''}`,
+      referenceID: support.initiativeID,
+      referenceType: 'post',
+      actionURL: `/initiatives/${support.initiativeID}`,
+      priority: 'normal',
+      metadata: {
+        supportID: support.supportID,
+        materialID: materialID,
+        reason: reason || '',
+        initiativeID: support.initiativeID
+      }
+    });
+
     res.json({
       success: true,
       message: 'Material declined',
@@ -1746,6 +1896,23 @@ router.post('/support/:supportID/decline', verifyToken, async (req, res) => {
 
     // Decline the support (all materials)
     await support.decline(collectorID, reason);
+
+    // Notify the giver that their support was declined
+    await Notification.create({
+      userID: support.giverID,
+      type: Notification.TYPES.SUPPORT_DECLINED,
+      title: 'Support declined',
+      message: `Your support for "${support.initiativeTitle}" was declined${reason ? ': ' + reason : ''}`,
+      referenceID: support.initiativeID,
+      referenceType: 'post',
+      actionURL: `/initiatives/${support.initiativeID}`,
+      priority: 'normal',
+      metadata: {
+        supportID: support.supportID,
+        reason: reason || '',
+        initiativeID: support.initiativeID
+      }
+    });
 
     res.json({
       success: true,
@@ -1871,6 +2038,24 @@ router.post('/support/:supportID/cancel', verifyToken, async (req, res) => {
     // Cancel the support
     await support.cancel(userID, reason);
 
+    // Notify the other party about the cancellation
+    const otherUserID = userID === support.giverID ? support.collectorID : support.giverID;
+    await Notification.create({
+      userID: otherUserID,
+      type: Notification.TYPES.SUPPORT_CANCELLED,
+      title: 'Support cancelled',
+      message: `Support for "${support.initiativeTitle}" was cancelled${reason ? ': ' + reason : ''}`,
+      referenceID: support.initiativeID,
+      referenceType: 'post',
+      priority: 'normal',
+      metadata: {
+        supportID: support.supportID,
+        cancelledBy: userID,
+        reason: reason || '',
+        initiativeID: support.initiativeID
+      }
+    });
+
     res.json({
       success: true,
       message: 'Support request cancelled',
@@ -1918,6 +2103,22 @@ router.post('/support/:supportID/complete', verifyToken, async (req, res) => {
     await support.complete({
       completionNotes: completionNotes || '',
       actualMaterials: actualMaterials || []
+    });
+
+    // Notify the other party about the completion
+    const otherUserID = userID === support.giverID ? support.collectorID : support.giverID;
+    await Notification.create({
+      userID: otherUserID,
+      type: Notification.TYPES.SUPPORT_COMPLETED,
+      title: 'Support completed!',
+      message: `Support for "${support.initiativeTitle}" has been completed successfully`,
+      referenceID: support.initiativeID,
+      referenceType: 'post',
+      priority: 'normal',
+      metadata: {
+        supportID: support.supportID,
+        initiativeID: support.initiativeID
+      }
     });
 
     res.json({

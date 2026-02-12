@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { Check, X, AlertTriangle, Info, Package, Star } from 'lucide-react';
 
 const ToastContext = createContext();
 
@@ -13,12 +14,12 @@ export const useToast = () => {
 
 // Toast types with their default configurations
 const TOAST_TYPES = {
-  success: { icon: '✓', duration: 4000 },
-  error: { icon: '✕', duration: 5000 },
-  warning: { icon: '⚠', duration: 4500 },
-  info: { icon: 'ℹ', duration: 4000 },
-  pickup: { icon: '📦', duration: 5000 },
-  points: { icon: '⭐', duration: 0 }, // Points have special handling
+  success: { icon: <Check size={16} />, duration: 4000 },
+  error: { icon: <X size={16} />, duration: 5000 },
+  warning: { icon: <AlertTriangle size={16} />, duration: 4500 },
+  info: { icon: <Info size={16} />, duration: 4000 },
+  pickup: { icon: <Package size={16} />, duration: 5000 },
+  points: { icon: <Star size={16} />, duration: 0 }, // Points have special handling
 };
 
 export const ToastProvider = ({ children }) => {
