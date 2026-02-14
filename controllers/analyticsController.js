@@ -165,10 +165,16 @@ const analyticsController = {
         getUserRecentActivity(userID, startDate)
       ]);
 
-      const environmentalImpact = calculateEnvironmentalImpact(totalRecycled);
+      // Extract totalKg and materialBreakdown from the result
+      const recycledData = totalRecycled;
+      const totalRecycledKg = recycledData.totalKg;
+      const materialBreakdown = recycledData.materialBreakdown;
+
+      // Calculate environmental impact with per-material computation
+      const environmentalImpact = calculateEnvironmentalImpact(totalRecycledKg, materialBreakdown);
       const trends = await getRecyclingTrends(timeRange, startDate, locationFilter);
       const percentageChanges = await calculatePercentageChanges(timeRange, startDate, {
-        totalRecycled,
+        totalRecycled: totalRecycledKg,
         completedInitiatives,
         users,
         pickups,
@@ -176,7 +182,7 @@ const analyticsController = {
       }, locationFilter);
 
       console.log('Analytics Data Summary:', {
-        totalRecycled,
+        totalRecycled: totalRecycledKg,
         totalInitiatives: initiatives.count,
         completedInitiatives: completedInitiatives.count,
         activeUsers: users.count,
@@ -189,7 +195,7 @@ const analyticsController = {
 
       const analyticsData = {
         // Platform-wide stats
-        totalRecycled,
+        totalRecycled: totalRecycledKg,
         totalInitiatives: initiatives.count,
         completedInitiatives: completedInitiatives.count,
         activeUsers: users.count,
@@ -1663,12 +1669,63 @@ function formatOperatingHours(hours) {
   return hours[today] || 'Hours not available';
 }
 
-function calculateEnvironmentalImpact(totalKg) {
+// Material-specific environmental impact multipliers (per kg)
+const MATERIAL_IMPACT = {
+  'Aluminum': { co2: 9.0, water: 40, energy: 14, trees: 0 },
+  'Plastic': { co2: 1.5, water: 17, energy: 5.3, trees: 0 },
+  'Paper': { co2: 0.9, water: 26, energy: 4.0, trees: 0.017 },
+  'Cardboard': { co2: 0.9, water: 26, energy: 4.0, trees: 0.017 },
+  'Glass': { co2: 0.3, water: 2, energy: 0.3, trees: 0 },
+  'E-waste': { co2: 2.0, water: 10, energy: 8.0, trees: 0 },
+  'Electronic Waste': { co2: 2.0, water: 10, energy: 8.0, trees: 0 },
+  'Organic': { co2: 0.5, water: 5, energy: 0.5, trees: 0 },
+  'Metal': { co2: 9.0, water: 40, energy: 14, trees: 0 }, // Same as aluminum
+  'Mixed': { co2: 2.0, water: 15, energy: 5.0, trees: 0.005 }, // Average for mixed materials
+  'Other': { co2: 2.0, water: 15, energy: 5.0, trees: 0.005 }, // Average for other materials
+  'Default': { co2: 2.0, water: 15, energy: 5.0, trees: 0.005 } // Average for unknown materials
+};
+
+function calculateEnvironmentalImpact(totalKg, materialBreakdown = null) {
+  // If no material breakdown provided, use old flat multipliers
+  if (!materialBreakdown || Object.keys(materialBreakdown).length === 0) {
+    return {
+      co2Saved: Math.round(totalKg * 2.88),
+      treesEquivalent: Math.round(totalKg * 0.00264),
+      waterSaved: Math.round(totalKg * 15),
+      energySaved: Math.round(totalKg * 6)
+    };
+  }
+
+  // Calculate per-material impacts
+  let totalCO2 = 0;
+  let totalWater = 0;
+  let totalEnergy = 0;
+  let totalTrees = 0;
+
+  Object.entries(materialBreakdown).forEach(([material, kg]) => {
+    // Normalize material name for matching
+    const normalizedMaterial = material.trim();
+
+    // Find matching multiplier (case-insensitive partial match)
+    let multiplier = MATERIAL_IMPACT['Default'];
+    for (const [key, value] of Object.entries(MATERIAL_IMPACT)) {
+      if (key !== 'Default' && normalizedMaterial.toLowerCase().includes(key.toLowerCase())) {
+        multiplier = value;
+        break;
+      }
+    }
+
+    totalCO2 += kg * multiplier.co2;
+    totalWater += kg * multiplier.water;
+    totalEnergy += kg * multiplier.energy;
+    totalTrees += kg * multiplier.trees;
+  });
+
   return {
-    co2Saved: Math.round(totalKg * 2.88),      // kg CO2 equivalent saved
-    treesEquivalent: Math.round(totalKg * 0.00264),  // trees saved (50-year lifetime)
-    waterSaved: Math.round(totalKg * 15),       // liters of water saved
-    energySaved: Math.round(totalKg * 6)        // kWh energy saved
+    co2Saved: Math.round(totalCO2),
+    treesEquivalent: Math.round(totalTrees),
+    waterSaved: Math.round(totalWater),
+    energySaved: Math.round(totalEnergy)
   };
 }
 
@@ -1749,17 +1806,39 @@ async function getTotalRecycledInRange(startDate, endDate, locationFilter = null
     });
 
     let totalKg = 0;
+    const materialBreakdown = {};
+
     completedPickups.forEach(pickup => {
       if (pickup.finalAmount) {
-        totalKg += parseFloat(pickup.finalAmount);
+        const weight = parseFloat(pickup.finalAmount);
+        totalKg += weight;
+
+        // Extract material breakdown from actualWaste array
+        if (pickup.actualWaste && Array.isArray(pickup.actualWaste) && pickup.actualWaste.length > 0) {
+          // Distribute weight equally among materials (simple approach)
+          const weightPerMaterial = weight / pickup.actualWaste.length;
+          pickup.actualWaste.forEach(material => {
+            const materialName = material.materialName || material.type || 'Other';
+            materialBreakdown[materialName] = (materialBreakdown[materialName] || 0) + weightPerMaterial;
+          });
+        } else {
+          // If no material breakdown available, categorize as "Mixed/Other"
+          materialBreakdown['Mixed'] = (materialBreakdown['Mixed'] || 0) + weight;
+        }
       }
     });
 
     console.log(`DEBUG getTotalRecycledInRange: ${startDate.toISOString()} to ${endDate.toISOString()}, pickups=${completedPickups.length}, kg=${Math.round(totalKg)}`);
-    return Math.round(totalKg);
+    return {
+      totalKg: Math.round(totalKg),
+      materialBreakdown: materialBreakdown
+    };
   } catch (error) {
     console.error('Error getting total recycled in range:', error);
-    return 0;
+    return {
+      totalKg: 0,
+      materialBreakdown: {}
+    };
   }
 }
 
@@ -1909,12 +1988,15 @@ async function calculatePercentageChanges(timeRange, startDate, currentMetrics, 
     }
 
     // Fetch metrics for previous period with BOUNDED time window (start to end)
-    const [prevRecycled, prevPickups, prevCompletedInitiatives, prevCompletedSupports] = await Promise.all([
+    const [prevRecycledData, prevPickups, prevCompletedInitiatives, prevCompletedSupports] = await Promise.all([
       getTotalRecycledInRange(previousPeriodStart, previousPeriodEnd, locationFilter),
       getTotalPickupsInRange(previousPeriodStart, previousPeriodEnd, locationFilter),
       getCompletedInitiativesInRange(previousPeriodStart, previousPeriodEnd, locationFilter),
       getCompletedSupportsInRange(previousPeriodStart, previousPeriodEnd, locationFilter)
     ]);
+
+    // Extract totalKg from recycled data
+    const prevRecycled = prevRecycledData.totalKg;
 
     // For users, get the count as of the START of current period
     // This represents the baseline we're comparing growth against
