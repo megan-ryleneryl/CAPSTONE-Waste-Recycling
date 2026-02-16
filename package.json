@@ -13,7 +13,8 @@
     "clean": "rm -rf uploads/temp/*",
     "setup": "node scripts/setup.js",
     "start": "node server.js",
-    "dev": "nodemon server.js",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "dev:both": "concurrently \"npm run dev\" \"cd client && npm start\"",
     "build": "cd client && npm install && npm run build",
     "install-client": "cd client && npm install",
     "heroku-postbuild": "npm run build"
@@ -56,6 +57,7 @@
     "@types/express": "^4.17.21",
     "@types/multer": "^1.4.8",
     "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "eslint": "^8.55.0",
     "jest": "^29.7.0",
     "nodemon": "^3.0.0",
