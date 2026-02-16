@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import styles from './DisposalHubManagement.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const DisposalHubManagement = () => {
   const [hubs, setHubs] = useState([]);

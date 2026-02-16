@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import styles from './CommentsSection.module.css';
 import { Heart, MessageCircle, Trash2 } from 'lucide-react';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const CommentsSection = ({ post, currentUser }) => {
   const [comments, setComments] = useState([]);

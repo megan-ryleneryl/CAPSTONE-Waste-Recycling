@@ -37,6 +37,7 @@ import {
   X,
   Download
 } from 'lucide-react';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 // Tree icon component (not in lucide-react standard)
 const Trees = ({ size = 24, ...props }) => (

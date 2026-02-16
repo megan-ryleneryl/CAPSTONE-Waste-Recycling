@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import styles from './AllUsers.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const AllUsers = () => {
   const navigate = useNavigate();

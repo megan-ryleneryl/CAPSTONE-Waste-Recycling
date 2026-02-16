@@ -14,7 +14,7 @@ import MessageInput from './MessageInput';
 import ProposedPickupsModal from './ProposedPickupsModal';
 import geocodingService from '../../services/geocodingService';
 import styles from './ChatWindow.module.css';
-
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const ChatWindow = ({ postID, otherUser, currentUser, onClose, onBack, postData }) => {
   const { pickupNotification, success, error: showError, showPickupPopup } = useToast();

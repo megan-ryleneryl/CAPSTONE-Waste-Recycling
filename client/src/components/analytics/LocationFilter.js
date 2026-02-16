@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import styles from './LocationFilter.module.css';
 import { MapPin, X } from 'lucide-react';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
   const [regions, setRegions] = useState([]);

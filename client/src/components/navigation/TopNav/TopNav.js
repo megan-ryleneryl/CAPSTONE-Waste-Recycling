@@ -7,6 +7,7 @@ import EcoTayoLogo from './EcoTayoLogo.svg';
 import QuickGuide from '../../guide/QuickGuide';
 import NotificationsModal from '../../notifications/NotificationsModal/NotificationsModal';
 import styles from './TopNav.module.css';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const TopNav = ({ user: propUser }) => {
   const [showNotifications, setShowNotifications] = useState(false);

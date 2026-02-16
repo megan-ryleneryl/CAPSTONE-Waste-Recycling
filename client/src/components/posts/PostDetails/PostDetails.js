@@ -6,7 +6,7 @@ import ModalPortal from '../../modal/ModalPortal';
 import CommentsSection from '../CommentsSection/CommentsSection';
 import styles from './PostDetails.module.css';
 import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Info } from 'lucide-react';
-
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLiked, onLikeToggle, likingPost }) => {
   const navigate = useNavigate();

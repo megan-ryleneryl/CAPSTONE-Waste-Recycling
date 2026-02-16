@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import pickupService from '../services/pickupService';
 import PickupsList from '../components/pickup/PickupsList';
 import styles from './PickupManagement.module.css';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const PickupManagement = () => {
   const { currentUser } = useAuth();

@@ -6,6 +6,7 @@ import InitiativeSupportsModal from '../components/posts/InitiativeSupportsModal
 import styles from './SinglePost.module.css';
 // Lucide icon imports
 import { MessageCircle, Trash2 } from 'lucide-react';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const SinglePost = ({ onDataUpdate }) => {
   const { postId } = useParams();

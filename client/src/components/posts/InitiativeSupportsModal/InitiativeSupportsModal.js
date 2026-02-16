@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, Package, Clock, CheckCircle, XCircle, Calendar } from 'lucide-react';
 import ModalPortal from '../../modal/ModalPortal';
 import styles from './InitiativeSupportsModal.module.css';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const InitiativeSupportsModal = ({ isOpen, onClose, initiativeID, initiativeTitle }) => {
   const [supports, setSupports] = useState([]);

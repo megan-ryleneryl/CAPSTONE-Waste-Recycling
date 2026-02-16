@@ -4,7 +4,7 @@ import EcoTayoLogo from '../components/navigation/TopNav/EcoTayoLogo.svg';
 import styles from './Register.module.css';
 import axios from 'axios';
 import GoogleLoginButton from '../components/common/Button/GoogleLoginButton';
- || 'http://localhost:3001';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const SignUp = () => {
   const [step, setStep] = useState(1);

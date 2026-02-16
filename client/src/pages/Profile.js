@@ -13,7 +13,7 @@ import PreferredLocationsModal from '../components/profile/PreferredLocationsMod
 import UserLocationModal from '../components/profile/UserLocationModal';
 import { BadgesSection } from '../components/badges';
 import GuideLink from '../components/guide/GuideLink';
- || 'http://localhost:3001';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
