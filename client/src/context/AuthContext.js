@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import axios from 'axios';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const AuthContext = createContext();
 
@@ -40,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const response = await axios.get('http://localhost:3001/api/protected/profile');
+      const response = await axios.get('${API_BASE_URL}/api/protected/profile');
       if (response.data.success) {
         const userData = response.data.user;
         // Ensure profile picture URL is consistent

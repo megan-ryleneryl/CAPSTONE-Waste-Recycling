@@ -13,6 +13,7 @@ import PreferredLocationsModal from '../components/profile/PreferredLocationsMod
 import UserLocationModal from '../components/profile/UserLocationModal';
 import { BadgesSection } from '../components/badges';
 import GuideLink from '../components/guide/GuideLink';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
@@ -40,7 +41,7 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost:3001/api/protected/profile/organizations/list',
+        '${API_BASE_URL}/api/protected/profile/organizations/list',
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -382,7 +383,7 @@ const EditProfileForm = ({ user, onClose, onSubmit }) => {
       return pictureField;
     }
     
-    const baseUrl = 'http://localhost:3001';
+    const baseUrl = API_BASE_URL;
     const pictureUrl = pictureField.startsWith('/') 
       ? pictureField 
       : '/' + pictureField;
@@ -727,7 +728,7 @@ const Profile = ({ user: propsUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost:3001/api/protected/profile/applications',
+        '${API_BASE_URL}/api/protected/profile/applications',
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -747,7 +748,7 @@ const Profile = ({ user: propsUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
+        `${API_BASE_URL}/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -766,7 +767,7 @@ const Profile = ({ user: propsUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'http://localhost:3001/api/protected/profile/check-badges',
+        '${API_BASE_URL}/api/protected/profile/check-badges',
         {},
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -802,7 +803,7 @@ const Profile = ({ user: propsUser }) => {
       setError('');
 
       try {
-        const response = await axios.get('http://localhost:3001/api/protected/profile', {
+        const response = await axios.get('${API_BASE_URL}/api/protected/profile', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -843,7 +844,7 @@ const Profile = ({ user: propsUser }) => {
     }
     
     // If it's a relative path, prepend the server URL
-    const baseUrl = 'http://localhost:3001';
+    const baseUrl = API_BASE_URL;
     const pictureUrl = pictureField.startsWith('/') 
       ? pictureField 
       : '/' + pictureField;
@@ -862,7 +863,7 @@ const Profile = ({ user: propsUser }) => {
       
       // Call the delete endpoint
       const response = await axios.delete(
-        'http://localhost:3001/api/protected/profile/account',
+        '${API_BASE_URL}/api/protected/profile/account',
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -960,7 +961,7 @@ const Profile = ({ user: propsUser }) => {
         if (formData.get('profilePicture')) {
           try {
             const pictureResponse = await axios.post(
-              'http://localhost:3001/api/protected/upload/profile-picture',
+              '${API_BASE_URL}/api/protected/upload/profile-picture',
               formData,
               {
                 headers: {
@@ -1000,7 +1001,7 @@ const Profile = ({ user: propsUser }) => {
         };
         
         const response = await axios.put(
-          'http://localhost:3001/api/protected/profile',
+          '${API_BASE_URL}/api/protected/profile',
           updateData,
           {
             headers: {
@@ -1046,7 +1047,7 @@ const Profile = ({ user: propsUser }) => {
       }
       
       const response = await axios.post(
-        'http://localhost:3001/api/protected/profile/apply-collector',
+        '${API_BASE_URL}/api/protected/profile/apply-collector',
         uploadData,
         {
           headers: {
@@ -1102,7 +1103,7 @@ const Profile = ({ user: propsUser }) => {
       }
       
       const response = await axios.post(
-        'http://localhost:3001/api/protected/profile/apply-organization',
+        '${API_BASE_URL}/api/protected/profile/apply-organization',
         uploadData,
         {
           headers: {
@@ -1152,7 +1153,7 @@ const Profile = ({ user: propsUser }) => {
       }
       
       const response = await axios.post(
-        'http://localhost:3001/api/protected/profile/verification',
+        '${API_BASE_URL}/api/protected/profile/verification',
         uploadData,
         {
           headers: {
@@ -1198,7 +1199,7 @@ const Profile = ({ user: propsUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        'http://localhost:3001/api/protected/profile',
+        '${API_BASE_URL}/api/protected/profile',
         { preferredTimes: times },
         {
           headers: {
@@ -1242,7 +1243,7 @@ const Profile = ({ user: propsUser }) => {
 
       // Send to backend
       const response = await axios.put(
-        'http://localhost:3001/api/protected/profile',
+        '${API_BASE_URL}/api/protected/profile',
         { preferredLocations: locations },
         {
           headers: {
@@ -1283,7 +1284,7 @@ const Profile = ({ user: propsUser }) => {
 
       // Send to backend
       const response = await axios.put(
-        'http://localhost:3001/api/protected/profile',
+        '${API_BASE_URL}/api/protected/profile',
         { userLocation: locationData },
         {
           headers: {
@@ -1330,7 +1331,7 @@ const Profile = ({ user: propsUser }) => {
       }
 
       const response = await axios.put(
-        'http://localhost:3001/api/protected/profile',
+        '${API_BASE_URL}/api/protected/profile',
         { privacySettings: newPrivacySettings },
         {
           headers: {

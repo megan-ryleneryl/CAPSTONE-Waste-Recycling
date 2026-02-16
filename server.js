@@ -40,6 +40,25 @@ const { verifyToken } = require('./middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// CREATE UPLOADS DIRECTORIES ON STARTUP
+const uploadDirs = [
+  'uploads',
+  'uploads/profiles',
+  'uploads/applications',
+  'uploads/applications/collector',
+  'uploads/applications/organization',
+  'uploads/applications/verification',
+  'uploads/badges',
+  'uploads/pickups',
+  'uploads/temp'
+];
+uploadDirs.forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`Created directory: ${dir}`);
+  }
+});
+
 // Security middleware
 // Configure helmet with relaxed policies for development
 app.use(helmet({
@@ -55,7 +74,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3001'],
+  // origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3001'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -81,7 +101,8 @@ app.use('/api/', limiter);
 // Static file serving with CORS - CRITICAL: Headers MUST come BEFORE static middleware!
 app.use('/uploads', (req, res, next) => {
   // Set CORS headers for cross-origin requests
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  // res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');

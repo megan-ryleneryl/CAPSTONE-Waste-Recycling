@@ -6,14 +6,17 @@
   "scripts": {
     "server": "node server.js",
     "client": "npm start --prefix client",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
     "clean": "rm -rf uploads/temp/*",
     "setup": "node scripts/setup.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "cd client && npm install && npm run build",
+    "install-client": "cd client && npm install",
+    "heroku-postbuild": "npm run build"
   },
   "keywords": [
     "recycling",

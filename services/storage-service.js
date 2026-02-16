@@ -23,7 +23,8 @@ class StorageService {
       await fs.writeFile(filePath, file.buffer);
       
       // Return the full URL with server domain
-      const baseUrl = process.env.CLIENT_URL?.replace('3000', '3001') || 'http://localhost:3001';
+      // const baseUrl = process.env.CLIENT_URL?.replace('3000', '3001') || 'http://localhost:3001';
+      const baseUrl = process.env.BACKEND_URL || 'http://localhost:3001';
       const url = `${baseUrl}/uploads/${subfolder}/${filename}`.replace(/\\/g, '/');
       
       return {

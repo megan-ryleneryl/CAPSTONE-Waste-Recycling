@@ -2,6 +2,7 @@
 // This is the CLIENT-SIDE service that calls your backend API
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 class ChatService {
   // Helper method to get auth headers
@@ -16,7 +17,7 @@ class ChatService {
   // Get all conversations for the current user
   static async getUserConversations() {
     try {
-      const response = await fetch(`${API_URL}/messages/conversations`, {
+      const response = await fetch(`${API_BASE_URL}/messages/conversations`, {
         method: 'GET',
         headers: this.getAuthHeaders()
       });
@@ -37,7 +38,7 @@ class ChatService {
   static async getConversation(currentUserID, otherUserID, postID) {
     try {
       const response = await fetch(
-        `${API_URL}/messages/conversations/${postID}/${otherUserID}`,
+        `${API_BASE_URL}/messages/conversations/${postID}/${otherUserID}`,
         {
           method: 'GET',
           headers: this.getAuthHeaders()
@@ -59,7 +60,7 @@ class ChatService {
   // Send a message in a conversation
   static async sendMessage(senderData, receiverID, postID, messageText) {
     try {
-      const response = await fetch(`${API_URL}/messages/send`, {
+      const response = await fetch(`${API_BASE_URL}/messages/send`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify({
@@ -85,7 +86,7 @@ class ChatService {
   // Send pickup request with details
   static async sendPickupRequest(senderData, receiverID, postID, messageText, pickupDetails) {
     try {
-      const response = await fetch(`${API_URL}/messages/pickup-request`, {
+      const response = await fetch(`${API_BASE_URL}/messages/pickup-request`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify({
@@ -113,7 +114,7 @@ class ChatService {
   static async markConversationAsRead(currentUserID, otherUserID, postID) {
     try {
       const response = await fetch(
-        `${API_URL}/messages/conversations/${postID}/${otherUserID}/read`,
+        `${API_BASE_URL}/messages/conversations/${postID}/${otherUserID}/read`,
         {
           method: 'PUT',
           headers: this.getAuthHeaders()
@@ -135,7 +136,7 @@ class ChatService {
   // Get unread message count for user
   static async getUnreadCount() {
     try {
-      const response = await fetch(`${API_URL}/messages/unread-count`, {
+      const response = await fetch(`${API_BASE_URL}/messages/unread-count`, {
         method: 'GET',
         headers: this.getAuthHeaders()
       });
@@ -156,7 +157,7 @@ class ChatService {
   static async startConversation(postData, giverData, collectorData, initialMessage) {
     try {
       // The collector sends the first message to the giver
-      const response = await fetch(`${API_URL}/messages/send`, {
+      const response = await fetch(`${API_BASE_URL}/messages/send`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify({
