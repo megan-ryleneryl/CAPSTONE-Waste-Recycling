@@ -993,6 +993,54 @@
   font-size: var(--font-size-xs);
 }
 
+/* ==================== MATERIAL BREAKDOWN ==================== */
+
+.materialBreakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.materialRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.materialInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.materialName {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.materialAmount {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.materialBar {
+  height: 24px;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  position: relative;
+}
+
+.materialFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+  border-radius: var(--border-radius-md);
+  transition: width 0.6s ease;
+  position: relative;
+}
+
 /* ==================== PLATFORM INSIGHTS ==================== */
 
 .insightsSection {
