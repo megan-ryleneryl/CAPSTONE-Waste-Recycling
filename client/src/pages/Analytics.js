@@ -105,7 +105,7 @@ const Analytics = () => {
       if (locationFilter.barangay) params.append('barangay', locationFilter.barangay);
 
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/dashboard?${params.toString()}`,
+        `${API_BASE_URL}/api/analytics/dashboard?${params.toString()}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -134,7 +134,7 @@ const Analytics = () => {
 
             try {
               const regionalResponse = await axios.get(
-                `http://localhost:3001/api/analytics/dashboard?${regionalParams.toString()}`,
+                `${API_BASE_URL}/api/analytics/dashboard?${regionalParams.toString()}`,
                 {
                   headers: {
                     'Authorization': `Bearer ${token}`,
@@ -359,7 +359,7 @@ const Analytics = () => {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
       const response = await axios.get(
-        'http://localhost:3001/api/analytics/heatmap?type=geographic',
+        '${API_BASE_URL}/api/analytics/heatmap?type=geographic',
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -411,7 +411,7 @@ const Analytics = () => {
       const lng = searchLocation.lng;
 
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/disposal-sites?lat=${lat}&lng=${lng}&radius=${searchRadius}`,
+        `${API_BASE_URL}/api/analytics/disposal-sites?lat=${lat}&lng=${lng}&radius=${searchRadius}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

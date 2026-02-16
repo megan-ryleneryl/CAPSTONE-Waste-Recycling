@@ -57,8 +57,8 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
       // OPTIMIZED: Fetch interactions, but backend only loads them for Forum posts
       // This keeps Forum posts responsive while avoiding reads for Waste/Initiative posts
       const url = params.toString()
-        ? `http://localhost:3001/api/posts?${params.toString()}`
-        : 'http://localhost:3001/api/posts';
+        ? `${API_BASE_URL}/api/posts?${params.toString()}`
+        : '${API_BASE_URL}/api/posts';
 
       const response = await axios.get(url, {
         headers: {
@@ -121,7 +121,7 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
                 const userResponse = await axios.get(
 
 
-                  `http://localhost:3001/api/protected/users/${post.userID}`,
+                  `${API_BASE_URL}/api/protected/users/${post.userID}`,
                   {
                     headers: { 'Authorization': `Bearer ${token}` }
                   }
@@ -381,7 +381,7 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
   try {
     const token = localStorage.getItem('token');
     const response = await axios.post(
-      `http://localhost:3001/api/posts/${postId}/like`,
+      `${API_BASE_URL}/api/posts/${postId}/like`,
       {},
       {
         headers: { 'Authorization': `Bearer ${token}` }

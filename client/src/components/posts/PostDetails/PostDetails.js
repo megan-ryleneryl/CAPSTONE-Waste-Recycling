@@ -69,7 +69,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:3001/api/posts/${post.postID}/claim-status`,
+        `${API_BASE_URL}/api/posts/${post.postID}/claim-status`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -91,7 +91,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:3001/api/posts/${post.postID}/supports?status=active`,
+        `${API_BASE_URL}/api/posts/${post.postID}/supports?status=active`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -127,7 +127,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
       const collectorPromises = post.interestedCollectors.map(async (collectorID) => {
         try {
           const response = await axios.get(
-            `http://localhost:3001/api/protected/users/${collectorID}`,
+            `${API_BASE_URL}/api/protected/users/${collectorID}`,
             {
               headers: { 'Authorization': `Bearer ${token}` }
             }
@@ -165,7 +165,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
       const token = localStorage.getItem('token');
       
       const response = await axios.post(
-        `http://localhost:3001/api/posts/${post.postID}/claim`,
+        `${API_BASE_URL}/api/posts/${post.postID}/claim`,
         {},
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -263,7 +263,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
       }));
 
       const response = await axios.post(
-        `http://localhost:3001/api/posts/${post.postID}/support`,
+        `${API_BASE_URL}/api/posts/${post.postID}/support`,
         {
           offeredMaterials,  // NEW: Send multiple materials
           notes: supportData.notes

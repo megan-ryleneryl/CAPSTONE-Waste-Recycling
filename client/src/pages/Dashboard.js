@@ -128,7 +128,7 @@ const Dashboard = () => {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
+        `${API_BASE_URL}/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

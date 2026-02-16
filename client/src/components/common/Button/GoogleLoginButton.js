@@ -17,7 +17,7 @@ const GoogleLoginButton = ({
     setIsLoading(true);
     try {
       // Call your backend Google auth endpoint
-      const response = await axios.post('http://localhost:3001/api/auth/google', {
+      const response = await axios.post('${API_BASE_URL}/api/auth/google', {
         token: credentialResponse.credential
       });
 

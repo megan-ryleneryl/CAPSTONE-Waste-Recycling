@@ -26,7 +26,7 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
 
   const fetchMaterials = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/materials');
+      const response = await axios.get('${API_BASE_URL}/api/materials');
       if (response.data.success) {
         setAvailableMaterials(response.data.materials);
       }

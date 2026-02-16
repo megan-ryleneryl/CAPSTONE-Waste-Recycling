@@ -25,7 +25,7 @@ const InitiativeSupportsModal = ({ isOpen, onClose, initiativeID, initiativeTitl
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:3001/api/posts/${initiativeID}/supports`,
+        `${API_BASE_URL}/api/posts/${initiativeID}/supports`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }

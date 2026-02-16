@@ -1,8 +1,8 @@
 // client/src/services/chatService.js
 // This is the CLIENT-SIDE service that calls your backend API
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = process.env.REACT_APP_API_URLconst API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+ || 'http://localhost:3001';
 
 class ChatService {
   // Helper method to get auth headers

@@ -369,7 +369,7 @@ const AddDisposalHubForm = ({ onClose, onSuccess, userLocation }) => {
       };
 
       const response = await axios.post(
-        'http://localhost:3001/api/disposal-hubs/suggest',
+        '${API_BASE_URL}/api/disposal-hubs/suggest',
         submissionData,
         {
           headers: {

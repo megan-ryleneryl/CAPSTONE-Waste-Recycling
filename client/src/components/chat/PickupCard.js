@@ -20,7 +20,7 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onConfirmPickup, onRe
 
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/materials`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || '${API_BASE_URL}/api'}/materials`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

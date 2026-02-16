@@ -59,7 +59,7 @@ const Approvals = () => {
       
       // Fetch all applications with user details included
       const response = await axios.get(
-        'http://localhost:3001/api/admin/applications',
+        '${API_BASE_URL}/api/admin/applications',
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -102,7 +102,7 @@ const Approvals = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:3001/api/admin/applications/${applicationId}/review`,
+        `${API_BASE_URL}/api/admin/applications/${applicationId}/review`,
         {
           status: 'Approved',
           justification: 'Application meets all requirements'
@@ -135,7 +135,7 @@ const Approvals = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:3001/api/admin/applications/${applicationId}/review`,
+        `${API_BASE_URL}/api/admin/applications/${applicationId}/review`,
         {
           status: 'Rejected',
           justification: reason

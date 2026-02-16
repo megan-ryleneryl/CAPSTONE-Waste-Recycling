@@ -20,7 +20,7 @@ const CommentsSection = ({ post, currentUser }) => {
     try {
         const token = localStorage.getItem('token');
         const response = await axios.get(
-        `http://localhost:3001/api/posts/${post.postID}/comments`,
+        `${API_BASE_URL}/api/posts/${post.postID}/comments`,
         {
             headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -61,7 +61,7 @@ const CommentsSection = ({ post, currentUser }) => {
 
     try {
       const response = await axios.post(
-        `http://localhost:3001/api/posts/${post.postID}/comment`,
+        `${API_BASE_URL}/api/posts/${post.postID}/comment`,
         { content: newComment.trim() },
         {
           headers: { 
@@ -94,7 +94,7 @@ const CommentsSection = ({ post, currentUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.delete(
-        `http://localhost:3001/api/posts/comments/${commentID}`,
+        `${API_BASE_URL}/api/posts/comments/${commentID}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }

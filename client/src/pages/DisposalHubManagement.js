@@ -27,7 +27,7 @@ const DisposalHubManagement = () => {
 
       // Fetch all hubs (we'll filter client-side)
       const response = await axios.get(
-        'http://localhost:3001/api/disposal-hubs',
+        '${API_BASE_URL}/api/disposal-hubs',
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -69,7 +69,7 @@ const DisposalHubManagement = () => {
       const token = localStorage.getItem('token');
 
       const response = await axios.put(
-        `http://localhost:3001/api/disposal-hubs/${hubID}/verify`,
+        `${API_BASE_URL}/api/disposal-hubs/${hubID}/verify`,
         {},
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -101,7 +101,7 @@ const DisposalHubManagement = () => {
       const token = localStorage.getItem('token');
 
       const response = await axios.put(
-        `http://localhost:3001/api/disposal-hubs/${hubID}/status`,
+        `${API_BASE_URL}/api/disposal-hubs/${hubID}/status`,
         { status: newStatus },
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -134,7 +134,7 @@ const DisposalHubManagement = () => {
       const token = localStorage.getItem('token');
 
       const response = await axios.delete(
-        `http://localhost:3001/api/disposal-hubs/${hubID}`,
+        `${API_BASE_URL}/api/disposal-hubs/${hubID}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }

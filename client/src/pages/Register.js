@@ -4,7 +4,7 @@ import EcoTayoLogo from '../components/navigation/TopNav/EcoTayoLogo.svg';
 import styles from './Register.module.css';
 import axios from 'axios';
 import GoogleLoginButton from '../components/common/Button/GoogleLoginButton';
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+ || 'http://localhost:3001';
 
 const SignUp = () => {
   const [step, setStep] = useState(1);
@@ -49,7 +49,7 @@ const SignUp = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/register', {
+      const response = await axios.post('${API_BASE_URL}/api/auth/register', {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,

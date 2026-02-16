@@ -205,7 +205,7 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('http://localhost:3001/api/psgc/regions');
+      const response = await axios.get('${API_BASE_URL}/api/psgc/regions');
       if (response.data.success) {
         setRegions(response.data.data);
       }
@@ -221,7 +221,7 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`http://localhost:3001/api/psgc/regions/${regionCode}/provinces`);
+      const response = await axios.get(`${API_BASE_URL}/api/psgc/regions/${regionCode}/provinces`);
       if (response.data.success) {
         setProvinces(response.data.data);
       }
@@ -237,7 +237,7 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`http://localhost:3001/api/psgc/regions/${regionCode}/cities-municipalities`);
+      const response = await axios.get(`${API_BASE_URL}/api/psgc/regions/${regionCode}/cities-municipalities`);
       if (response.data.success) {
         setCities(response.data.data);
       }
@@ -253,7 +253,7 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`http://localhost:3001/api/psgc/provinces/${provinceCode}/cities-municipalities`);
+      const response = await axios.get(`${API_BASE_URL}/api/psgc/provinces/${provinceCode}/cities-municipalities`);
       if (response.data.success) {
         setCities(response.data.data);
       }
@@ -269,7 +269,7 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`http://localhost:3001/api/psgc/cities-municipalities/${cityCode}/barangays`);
+      const response = await axios.get(`${API_BASE_URL}/api/psgc/cities-municipalities/${cityCode}/barangays`);
       if (response.data.success) {
         setBarangays(response.data.data);
       }

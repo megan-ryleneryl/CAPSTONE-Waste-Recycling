@@ -96,7 +96,7 @@ const Leagues = () => {
 
       // Fetch city leaderboard data
       const response = await axios.get(
-        'http://localhost:3001/api/analytics/city-leaderboard',
+        '${API_BASE_URL}/api/analytics/city-leaderboard',
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }

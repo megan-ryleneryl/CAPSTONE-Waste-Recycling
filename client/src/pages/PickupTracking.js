@@ -45,7 +45,7 @@ const PickupTracking = () => {
   useEffect(() => {
     const fetchMaterials = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/materials');
+        const response = await axios.get('${API_BASE_URL}/api/materials');
         if (response.data.success) {
           setAvailableMaterials(response.data.materials);
         }
@@ -448,7 +448,7 @@ const PickupTracking = () => {
         };
 
         await axios.post(
-          'http://localhost:3001/api/protected/notifications/pickup-status',
+          '${API_BASE_URL}/api/protected/notifications/pickup-status',
           notificationData,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
@@ -478,7 +478,7 @@ const PickupTracking = () => {
         }));
 
         const pricingResponse = await axios.post(
-          'http://localhost:3001/api/protected/materials/update-pricing',
+          '${API_BASE_URL}/api/protected/materials/update-pricing',
           { materials: materialPricingData },
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
@@ -587,7 +587,7 @@ const PickupTracking = () => {
         };
 
         await axios.post(
-          'http://localhost:3001/api/protected/notifications/pickup-status',
+          '${API_BASE_URL}/api/protected/notifications/pickup-status',
           notificationData,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
@@ -714,7 +714,7 @@ const PickupTracking = () => {
           try {
             const token = localStorage.getItem('token');
             await axios.post(
-              'http://localhost:3001/api/protected/notifications/pickup-status',
+              '${API_BASE_URL}/api/protected/notifications/pickup-status',
               {
                 status: 'ArrivedAtPickup',
                 pickupID: pickupId,

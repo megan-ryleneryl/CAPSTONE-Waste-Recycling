@@ -119,7 +119,7 @@ const MyOrganization = () => {
       let orgData = null;
       try {
         const orgResponse = await axios.get(
-          'http://localhost:3001/api/organizations/my/organization',
+          '${API_BASE_URL}/api/organizations/my/organization',
           { headers }
         );
         
@@ -198,7 +198,7 @@ const MyOrganization = () => {
   const fetchMembers = async (headers) => {
     try {
       const response = await axios.get(
-        'http://localhost:3001/api/organizations/my/organization/members',
+        '${API_BASE_URL}/api/organizations/my/organization/members',
         { headers }
       );
       if (response.data.success) {
@@ -225,7 +225,7 @@ const MyOrganization = () => {
   const fetchInitiatives = async (headers) => {
     try {
       const response = await axios.get(
-        'http://localhost:3001/api/organizations/my/organization/initiatives',
+        '${API_BASE_URL}/api/organizations/my/organization/initiatives',
         { headers }
       );
       if (response.data.success) {
@@ -237,7 +237,7 @@ const MyOrganization = () => {
     // Fallback: fetch just the current user's initiatives
     try {
       const response = await axios.get(
-        `http://localhost:3001/api/posts?postType=Initiative&userID=${currentUser.userID}`,
+        `${API_BASE_URL}/api/posts?postType=Initiative&userID=${currentUser.userID}`,
         { headers }
       );
       if (response.data.success) {
@@ -253,7 +253,7 @@ const MyOrganization = () => {
   const fetchAnalyticsData = async (headers, timeRange) => {
     try {
       const response = await axios.get(
-        `http://localhost:3001/api/organizations/my/organization/analytics?timeRange=${timeRange || selectedTimeRange}`,
+        `${API_BASE_URL}/api/organizations/my/organization/analytics?timeRange=${timeRange || selectedTimeRange}`,
         { headers: headers || getAuthHeaders() }
       );
       if (response.data.success) {
@@ -265,7 +265,7 @@ const MyOrganization = () => {
     // Fallback: try the general analytics endpoint and normalize response
     try {
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/dashboard?timeRange=${timeRange || selectedTimeRange}`,
+        `${API_BASE_URL}/api/analytics/dashboard?timeRange=${timeRange || selectedTimeRange}`,
         { headers: headers || getAuthHeaders() }
       );
       if (response.data.success) {
@@ -411,7 +411,7 @@ const MyOrganization = () => {
       formData.append('profilePicture', file);
 
       const response = await axios.post(
-        'http://localhost:3001/api/organizations/my/organization/profile-picture',
+        '${API_BASE_URL}/api/organizations/my/organization/profile-picture',
         formData,
         {
           headers: {
@@ -446,7 +446,7 @@ const MyOrganization = () => {
       // Try the organization update endpoint first
       try {
         const response = await axios.put(
-          'http://localhost:3001/api/organizations/my/organization',
+          '${API_BASE_URL}/api/organizations/my/organization',
           {
             organizationName: editForm.name,
             description: editForm.description,
@@ -476,7 +476,7 @@ const MyOrganization = () => {
 
       // Fallback: update via profile endpoint
       const response = await axios.put(
-        'http://localhost:3001/api/protected/profile',
+        '${API_BASE_URL}/api/protected/profile',
         {
           organizationName: editForm.name,
           organizationDescription: editForm.description,
@@ -516,7 +516,7 @@ const MyOrganization = () => {
       // Try the organization members role endpoint first
       try {
         const response = await axios.put(
-          `http://localhost:3001/api/organizations/my/organization/members/${member.userID}/role`,
+          `${API_BASE_URL}/api/organizations/my/organization/members/${member.userID}/role`,
           { isOrgAdmin: newAdminStatus },
           { headers: getAuthHeaders() }
         );
@@ -545,7 +545,7 @@ const MyOrganization = () => {
 
       // Fallback: try alternative endpoint
       const response = await axios.put(
-        `http://localhost:3001/api/organizations/members/${member.userID}`,
+        `${API_BASE_URL}/api/organizations/members/${member.userID}`,
         { isOrgAdmin: newAdminStatus },
         { headers: getAuthHeaders() }
       );
@@ -579,7 +579,7 @@ const MyOrganization = () => {
 
     try {
       const response = await axios.delete(
-        `http://localhost:3001/api/organizations/my/organization/members/${member.userID}`,
+        `${API_BASE_URL}/api/organizations/my/organization/members/${member.userID}`,
         { headers: getAuthHeaders() }
       );
       
@@ -604,7 +604,7 @@ const MyOrganization = () => {
       let reportData;
       try {
         const response = await axios.get(
-          'http://localhost:3001/api/organizations/my/organization/impact-report',
+          '${API_BASE_URL}/api/organizations/my/organization/impact-report',
           { headers: getAuthHeaders() }
         );
         if (response.data.success) {

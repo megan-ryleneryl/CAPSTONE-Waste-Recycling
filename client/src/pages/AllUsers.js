@@ -74,7 +74,7 @@ const AllUsers = () => {
     
       const token = localStorage.getItem('token');
       
-      const response = await axios.get('http://localhost:3001/api/admin/users', {
+      const response = await axios.get('${API_BASE_URL}/api/admin/users', {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
 
@@ -106,7 +106,7 @@ const AllUsers = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:3001/api/admin/users/${userId}/suspend`,
+        `${API_BASE_URL}/api/admin/users/${userId}/suspend`,
         { 
           status: 'Suspended',
           reason: suspendReason 
@@ -133,7 +133,7 @@ const AllUsers = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:3001/api/admin/users/${userId}/unsuspend`,
+        `${API_BASE_URL}/api/admin/users/${userId}/unsuspend`,
         {},
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -160,7 +160,7 @@ const AllUsers = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:3001/api/admin/users/${userId}/make-admin`,
+        `${API_BASE_URL}/api/admin/users/${userId}/make-admin`,
         {},
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -187,7 +187,7 @@ const AllUsers = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        `http://localhost:3001/api/admin/users/${userId}/revoke-admin`,
+        `${API_BASE_URL}/api/admin/users/${userId}/revoke-admin`,
         {},
         {
           headers: { 'Authorization': `Bearer ${token}` }

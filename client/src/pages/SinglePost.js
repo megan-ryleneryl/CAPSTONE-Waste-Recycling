@@ -46,7 +46,7 @@ const SinglePost = ({ onDataUpdate }) => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:3001/api/protected/profile', {
+      const response = await axios.get('${API_BASE_URL}/api/protected/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setUser(response.data.user);
@@ -65,7 +65,7 @@ const SinglePost = ({ onDataUpdate }) => {
       }
 
       const response = await axios.get(
-        `http://localhost:3001/api/protected/posts/${postId}`,
+        `${API_BASE_URL}/api/protected/posts/${postId}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -103,7 +103,7 @@ const SinglePost = ({ onDataUpdate }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `http://localhost:3001/api/posts/${postId}/like`,
+        `${API_BASE_URL}/api/posts/${postId}/like`,
         {},
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -177,7 +177,7 @@ const SinglePost = ({ onDataUpdate }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.delete(
-        `http://localhost:3001/api/posts/${postId}`,
+        `${API_BASE_URL}/api/posts/${postId}`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }

@@ -1,5 +1,5 @@
 // client/src/services/psgcService.js
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 class PSGCService {
   static async getRegions() {
