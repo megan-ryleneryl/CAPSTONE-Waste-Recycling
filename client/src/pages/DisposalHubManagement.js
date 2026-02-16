@@ -28,7 +28,7 @@ const DisposalHubManagement = () => {
 
       // Fetch all hubs (we'll filter client-side)
       const response = await axios.get(
-        '${API_BASE_URL}/api/disposal-hubs',
+        `${API_BASE_URL}/api/disposal-hubs`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }

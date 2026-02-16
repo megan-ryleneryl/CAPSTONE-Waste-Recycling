@@ -1,12 +1,18 @@
 // server.js - Express server setup with local file storage
-require('dotenv').config();
+// require('dotenv').config();
+const path = require('path');
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+require('dotenv').config({ path: path.join(__dirname, envFile) });
+console.log('ENV loaded from:', envFile);
+console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 

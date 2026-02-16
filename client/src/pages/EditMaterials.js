@@ -93,7 +93,7 @@ const EditMaterials = () => {
 
       const token = localStorage.getItem('token');
 
-      const response = await axios.get('${API_BASE_URL}/api/admin/materials', {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/materials`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
 
@@ -160,7 +160,7 @@ const EditMaterials = () => {
       const token = localStorage.getItem('token');
       const url = isEditMode
         ? `${API_BASE_URL}/api/admin/materials/${selectedMaterial.materialID}`
-        : '${API_BASE_URL}/api/admin/materials';
+        : `${API_BASE_URL}/api/admin/materials`;
 
       const method = isEditMode ? 'put' : 'post';
 

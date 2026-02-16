@@ -7,6 +7,7 @@ import styles from './AddDisposalHubForm.module.css';
 import { MapPin, X, Plus, Trash2, Navigation } from 'lucide-react';
 import PSGCService from '../../services/psgcService';
 import ModalPortal from '../modal/ModalPortal';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -369,7 +370,7 @@ const AddDisposalHubForm = ({ onClose, onSuccess, userLocation }) => {
       };
 
       const response = await axios.post(
-        '${API_BASE_URL}/api/disposal-hubs/suggest',
+        `${API_BASE_URL}/api/disposal-hubs/suggest`,
         submissionData,
         {
           headers: {

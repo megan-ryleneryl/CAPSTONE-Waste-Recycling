@@ -3,6 +3,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import styles from './GoogleLoginButton.module.css';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const GoogleLoginButton = ({ 
   onSuccess, 
@@ -17,7 +18,7 @@ const GoogleLoginButton = ({
     setIsLoading(true);
     try {
       // Call your backend Google auth endpoint
-      const response = await axios.post('${API_BASE_URL}/api/auth/google', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/google`, {
         token: credentialResponse.credential
       });
 

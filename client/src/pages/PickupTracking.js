@@ -13,6 +13,7 @@ import useLocationTracking from '../hooks/useLocationTracking';
 import { formatDistance } from '../utils/geoUtils';
 import axios from 'axios';
 import styles from './PickupTracking.module.css';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const PickupTracking = () => {
   const { pickupId } = useParams();
@@ -45,7 +46,7 @@ const PickupTracking = () => {
   useEffect(() => {
     const fetchMaterials = async () => {
       try {
-        const response = await axios.get('${API_BASE_URL}/api/materials');
+        const response = await axios.get(`${API_BASE_URL}/api/materials`);
         if (response.data.success) {
           setAvailableMaterials(response.data.materials);
         }
@@ -448,7 +449,7 @@ const PickupTracking = () => {
         };
 
         await axios.post(
-          '${API_BASE_URL}/api/protected/notifications/pickup-status',
+          `${API_BASE_URL}/api/protected/notifications/pickup-status`,
           notificationData,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
@@ -478,7 +479,7 @@ const PickupTracking = () => {
         }));
 
         const pricingResponse = await axios.post(
-          '${API_BASE_URL}/api/protected/materials/update-pricing',
+          `${API_BASE_URL}/api/protected/materials/update-pricing`,
           { materials: materialPricingData },
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
@@ -587,7 +588,7 @@ const PickupTracking = () => {
         };
 
         await axios.post(
-          '${API_BASE_URL}/api/protected/notifications/pickup-status',
+          `${API_BASE_URL}/api/protected/notifications/pickup-status`,
           notificationData,
           { headers: { 'Authorization': `Bearer ${token}` } }
         );
@@ -714,7 +715,7 @@ const PickupTracking = () => {
           try {
             const token = localStorage.getItem('token');
             await axios.post(
-              '${API_BASE_URL}/api/protected/notifications/pickup-status',
+              `${API_BASE_URL}/api/protected/notifications/pickup-status`,
               {
                 status: 'ArrivedAtPickup',
                 pickupID: pickupId,

@@ -35,7 +35,7 @@ const TopNav = ({ user: propUser }) => {
           setUser(parsedUser);
 
           // Then fetch fresh data from backend
-          const response = await axios.get('${API_BASE_URL}/api/protected/profile', {
+          const response = await axios.get(`${API_BASE_URL}/api/protected/profile`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -183,7 +183,7 @@ const TopNav = ({ user: propUser }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('${API_BASE_URL}/api/protected/notifications', {
+      const response = await axios.get(`${API_BASE_URL}/api/protected/notifications`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -239,7 +239,7 @@ const TopNav = ({ user: propUser }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.patch(
-        '${API_BASE_URL}/api/protected/notifications/read-all',
+        `${API_BASE_URL}/api/protected/notifications/read-all`,
         {},
         { headers: { 'Authorization': `Bearer ${token}` } }
       );

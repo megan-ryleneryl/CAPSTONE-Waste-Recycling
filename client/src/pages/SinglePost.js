@@ -47,7 +47,7 @@ const SinglePost = ({ onDataUpdate }) => {
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('${API_BASE_URL}/api/protected/profile', {
+      const response = await axios.get(`${API_BASE_URL}/api/protected/profile`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setUser(response.data.user);

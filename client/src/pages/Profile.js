@@ -41,7 +41,7 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        '${API_BASE_URL}/api/protected/profile/organizations/list',
+        `${API_BASE_URL}/api/protected/profile/organizations/list`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -728,7 +728,7 @@ const Profile = ({ user: propsUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        '${API_BASE_URL}/api/protected/profile/applications',
+        `${API_BASE_URL}/api/protected/profile/applications`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -767,7 +767,7 @@ const Profile = ({ user: propsUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        '${API_BASE_URL}/api/protected/profile/check-badges',
+        `${API_BASE_URL}/api/protected/profile/check-badges`,
         {},
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -803,7 +803,7 @@ const Profile = ({ user: propsUser }) => {
       setError('');
 
       try {
-        const response = await axios.get('${API_BASE_URL}/api/protected/profile', {
+        const response = await axios.get(`${API_BASE_URL}/api/protected/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -863,7 +863,7 @@ const Profile = ({ user: propsUser }) => {
       
       // Call the delete endpoint
       const response = await axios.delete(
-        '${API_BASE_URL}/api/protected/profile/account',
+        `${API_BASE_URL}/api/protected/profile/account`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -961,7 +961,7 @@ const Profile = ({ user: propsUser }) => {
         if (formData.get('profilePicture')) {
           try {
             const pictureResponse = await axios.post(
-              '${API_BASE_URL}/api/protected/upload/profile-picture',
+              `${API_BASE_URL}/api/protected/upload/profile-picture`,
               formData,
               {
                 headers: {
@@ -1001,7 +1001,7 @@ const Profile = ({ user: propsUser }) => {
         };
         
         const response = await axios.put(
-          '${API_BASE_URL}/api/protected/profile',
+          `${API_BASE_URL}/api/protected/profile`,
           updateData,
           {
             headers: {
@@ -1047,7 +1047,7 @@ const Profile = ({ user: propsUser }) => {
       }
       
       const response = await axios.post(
-        '${API_BASE_URL}/api/protected/profile/apply-collector',
+        `${API_BASE_URL}/api/protected/profile/apply-collector`,
         uploadData,
         {
           headers: {
@@ -1103,7 +1103,7 @@ const Profile = ({ user: propsUser }) => {
       }
       
       const response = await axios.post(
-        '${API_BASE_URL}/api/protected/profile/apply-organization',
+        `${API_BASE_URL}/api/protected/profile/apply-organization`,
         uploadData,
         {
           headers: {
@@ -1153,7 +1153,7 @@ const Profile = ({ user: propsUser }) => {
       }
       
       const response = await axios.post(
-        '${API_BASE_URL}/api/protected/profile/verification',
+        `${API_BASE_URL}/api/protected/profile/verification`,
         uploadData,
         {
           headers: {
@@ -1199,7 +1199,7 @@ const Profile = ({ user: propsUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        '${API_BASE_URL}/api/protected/profile',
+        `${API_BASE_URL}/api/protected/profile`,
         { preferredTimes: times },
         {
           headers: {
@@ -1243,7 +1243,7 @@ const Profile = ({ user: propsUser }) => {
 
       // Send to backend
       const response = await axios.put(
-        '${API_BASE_URL}/api/protected/profile',
+        `${API_BASE_URL}/api/protected/profile`,
         { preferredLocations: locations },
         {
           headers: {
@@ -1284,7 +1284,7 @@ const Profile = ({ user: propsUser }) => {
 
       // Send to backend
       const response = await axios.put(
-        '${API_BASE_URL}/api/protected/profile',
+        `${API_BASE_URL}/api/protected/profile`,
         { userLocation: locationData },
         {
           headers: {
@@ -1331,7 +1331,7 @@ const Profile = ({ user: propsUser }) => {
       }
 
       const response = await axios.put(
-        '${API_BASE_URL}/api/protected/profile',
+        `${API_BASE_URL}/api/protected/profile`,
         { privacySettings: newPrivacySettings },
         {
           headers: {

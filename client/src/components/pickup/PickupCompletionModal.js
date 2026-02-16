@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import axios from 'axios';
 import { Plus, Trash2, AlertCircle } from 'lucide-react';
 import styles from './PickupCompletionModal.module.css';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
   const [materials, setMaterials] = useState([]);
@@ -26,7 +27,7 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
 
   const fetchMaterials = async () => {
     try {
-      const response = await axios.get('${API_BASE_URL}/api/materials');
+      const response = await axios.get(`${API_BASE_URL}/api/materials`);
       if (response.data.success) {
         setAvailableMaterials(response.data.materials);
       }

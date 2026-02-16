@@ -4,6 +4,7 @@ import EcoTayoLogo from '../components/navigation/TopNav/EcoTayoLogo.svg';
 import styles from './Login.module.css';
 import axios from 'axios';
 import GoogleLoginButton from '../components/common/Button/GoogleLoginButton';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -39,7 +40,7 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post('${API_BASE_URL}/api/auth/login', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email: formData.email,
         password: formData.password
       });

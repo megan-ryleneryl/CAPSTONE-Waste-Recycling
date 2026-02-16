@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Truck, Calendar, Clock, MapPin, User, Phone, FileText, CheckCircle, X, MapPinned, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
 import ModalPortal from '../modal/ModalPortal';
 import styles from './PickupCard.module.css';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const PickupCard = ({ pickup, currentUser, onUpdateStatus, onConfirmPickup, onRejectPickup }) => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onConfirmPickup, onRe
 
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.REACT_APP_API_URL || '${API_BASE_URL}/api'}/materials`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || `${API_BASE_URL}/api`}/materials`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

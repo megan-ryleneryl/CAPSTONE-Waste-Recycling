@@ -206,7 +206,7 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('${API_BASE_URL}/api/psgc/regions');
+      const response = await axios.get(`${API_BASE_URL}/api/psgc/regions`);
       if (response.data.success) {
         setRegions(response.data.data);
       }

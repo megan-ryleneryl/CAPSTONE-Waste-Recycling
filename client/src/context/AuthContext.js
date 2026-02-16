@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const response = await axios.get('${API_BASE_URL}/api/protected/profile');
+      const response = await axios.get(`${API_BASE_URL}/api/protected/profile`);
       if (response.data.success) {
         const userData = response.data.user;
         // Ensure profile picture URL is consistent

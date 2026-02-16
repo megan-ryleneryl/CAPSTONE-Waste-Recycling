@@ -360,7 +360,7 @@ const Analytics = () => {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
 
       const response = await axios.get(
-        '${API_BASE_URL}/api/analytics/heatmap?type=geographic',
+        `${API_BASE_URL}/api/analytics/heatmap?type=geographic`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

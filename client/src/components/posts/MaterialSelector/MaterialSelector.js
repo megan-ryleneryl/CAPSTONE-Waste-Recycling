@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Trash2 } from 'lucide-react';
 import styles from './MaterialSelector.module.css';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const MaterialSelector = ({ selectedMaterials, onChange }) => {
   const [availableMaterials, setAvailableMaterials] = useState([]);
@@ -14,7 +15,7 @@ const MaterialSelector = ({ selectedMaterials, onChange }) => {
 
   const fetchMaterials = async () => {
     try {
-      const response = await axios.get('${API_BASE_URL}/api/materials');
+      const response = await axios.get(`${API_BASE_URL}/api/materials`);
       if (response.data.success) {
         setAvailableMaterials(response.data.materials);
       }

@@ -60,7 +60,7 @@ const Approvals = () => {
       
       // Fetch all applications with user details included
       const response = await axios.get(
-        '${API_BASE_URL}/api/admin/applications',
+        `${API_BASE_URL}/api/admin/applications`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }

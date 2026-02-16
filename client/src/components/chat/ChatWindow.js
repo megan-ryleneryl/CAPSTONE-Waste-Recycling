@@ -384,7 +384,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
       try {
         const token = localStorage.getItem('token');
         await axios.post(
-          `${process.env.REACT_APP_API_URL || '${API_BASE_URL}/api'}/protected/notifications/pickup-status`,
+          `${process.env.REACT_APP_API_URL || `${API_BASE_URL}/api`}/protected/notifications/pickup-status`,
           {
             status: 'Proposed',
             pickupID: pickupRef.id,
@@ -739,7 +739,7 @@ const sendMessage = async (messageText, messageType = 'text', metadata = {}) => 
         try {
           const token = localStorage.getItem('token');
           await axios.post(
-            `${process.env.REACT_APP_API_URL || '${API_BASE_URL}/api'}/protected/notifications/pickup-status`,
+            `${process.env.REACT_APP_API_URL || `${API_BASE_URL}/api`}/protected/notifications/pickup-status`,
             {
               status: 'Cancelled',
               pickupID: activePickup.id,

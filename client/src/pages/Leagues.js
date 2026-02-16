@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import styles from './Leagues.module.css';
 import { TrendingUp, TrendingDown, Minus, Share2, Award, Clipboard, Info } from 'lucide-react';
-
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 // Import tier images
 import tier1Image from '../assets/uploads/Tier1.svg';
@@ -96,7 +96,7 @@ const Leagues = () => {
 
       // Fetch city leaderboard data
       const response = await axios.get(
-        '${API_BASE_URL}/api/analytics/city-leaderboard',
+        `${API_BASE_URL}/api/analytics/city-leaderboard`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }

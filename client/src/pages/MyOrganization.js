@@ -120,7 +120,7 @@ const MyOrganization = () => {
       let orgData = null;
       try {
         const orgResponse = await axios.get(
-          '${API_BASE_URL}/api/organizations/my/organization',
+          `${API_BASE_URL}/api/organizations/my/organization`,
           { headers }
         );
         
@@ -199,7 +199,7 @@ const MyOrganization = () => {
   const fetchMembers = async (headers) => {
     try {
       const response = await axios.get(
-        '${API_BASE_URL}/api/organizations/my/organization/members',
+        `${API_BASE_URL}/api/organizations/my/organization/members`,
         { headers }
       );
       if (response.data.success) {
@@ -226,7 +226,7 @@ const MyOrganization = () => {
   const fetchInitiatives = async (headers) => {
     try {
       const response = await axios.get(
-        '${API_BASE_URL}/api/organizations/my/organization/initiatives',
+        `${API_BASE_URL}/api/organizations/my/organization/initiatives`,
         { headers }
       );
       if (response.data.success) {
@@ -412,7 +412,7 @@ const MyOrganization = () => {
       formData.append('profilePicture', file);
 
       const response = await axios.post(
-        '${API_BASE_URL}/api/organizations/my/organization/profile-picture',
+        `${API_BASE_URL}/api/organizations/my/organization/profile-picture`,
         formData,
         {
           headers: {
@@ -447,7 +447,7 @@ const MyOrganization = () => {
       // Try the organization update endpoint first
       try {
         const response = await axios.put(
-          '${API_BASE_URL}/api/organizations/my/organization',
+          `${API_BASE_URL}/api/organizations/my/organization`,
           {
             organizationName: editForm.name,
             description: editForm.description,
@@ -477,7 +477,7 @@ const MyOrganization = () => {
 
       // Fallback: update via profile endpoint
       const response = await axios.put(
-        '${API_BASE_URL}/api/protected/profile',
+        `${API_BASE_URL}/api/protected/profile`,
         {
           organizationName: editForm.name,
           organizationDescription: editForm.description,
@@ -605,7 +605,7 @@ const MyOrganization = () => {
       let reportData;
       try {
         const response = await axios.get(
-          '${API_BASE_URL}/api/organizations/my/organization/impact-report',
+          `${API_BASE_URL}/api/organizations/my/organization/impact-report`,
           { headers: getAuthHeaders() }
         );
         if (response.data.success) {

@@ -11,6 +11,7 @@ import GuideLink from '../components/guide/GuideLink';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { Image, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ const CreatePost = () => {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('${API_BASE_URL}/api/protected/profile', {
+        const response = await axios.get(`${API_BASE_URL}/api/protected/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         setIsVerified(response.data.user.status === "Verified" || false);
@@ -584,7 +585,7 @@ const handleRemoveImage = (index) => {
 
     // Make API call
     const response = await axios.post(
-      '${API_BASE_URL}/api/posts/create',
+      `${API_BASE_URL}/api/posts/create`,
       formDataToSend,
       {
         headers: {

@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import { Calendar } from 'lucide-react';
 import styles from './PickupScheduleForm.module.css';
 import PSGCService from '../../services/psgcService';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const PickupScheduleForm = ({ post, support, giverPreferences, onSubmit, onCancel }) => {
   // Initialize material prices - collector specifies how much they'll pay per kilo for each material
@@ -203,7 +204,7 @@ const PickupScheduleForm = ({ post, support, giverPreferences, onSubmit, onCance
 
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${process.env.REACT_APP_API_URL || '${API_BASE_URL}/api'}/materials`, {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || `${API_BASE_URL}/api`}/materials`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

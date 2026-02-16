@@ -8,6 +8,7 @@ import {
   Recycle,
   AlertCircle
 } from 'lucide-react';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 const PostsAnalytics = ({ user, onLocationFilterChange }) => {
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,7 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
       }
 
       const response = await axios.get(
-        '${API_BASE_URL}/api/analytics/dashboard?timeRange=all',
+        `${API_BASE_URL}/api/analytics/dashboard?timeRange=all`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -70,7 +71,7 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
 
       // Try fetching area activity data
       const response = await axios.get(
-        '${API_BASE_URL}/api/analytics/heatmap?type=geographic',
+        `${API_BASE_URL}/api/analytics/heatmap?type=geographic`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

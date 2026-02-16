@@ -75,7 +75,7 @@ const AllUsers = () => {
     
       const token = localStorage.getItem('token');
       
-      const response = await axios.get('${API_BASE_URL}/api/admin/users', {
+      const response = await axios.get(`${API_BASE_URL}/api/admin/users`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
 

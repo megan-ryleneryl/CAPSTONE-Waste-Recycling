@@ -58,7 +58,7 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
       // This keeps Forum posts responsive while avoiding reads for Waste/Initiative posts
       const url = params.toString()
         ? `${API_BASE_URL}/api/posts?${params.toString()}`
-        : '${API_BASE_URL}/api/posts';
+        : `${API_BASE_URL}/api/posts`;
 
       const response = await axios.get(url, {
         headers: {
