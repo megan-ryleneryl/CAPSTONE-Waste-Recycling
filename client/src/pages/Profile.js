@@ -686,6 +686,7 @@ const ApplicationSelector = ({ applications, onSelect, onClose }) => {
 
 // Main Profile Component
 const Profile = ({ user: propsUser }) => {
+  const badgeCheckRan = useRef(false);
   const { success, showPointsEarned } = useToast();
   const [user, setUser] = useState(propsUser || null);
   const [profilePictureUrl, setProfilePictureUrl] = useState(null);
@@ -762,7 +763,7 @@ const Profile = ({ user: propsUser }) => {
   };
 
   // Check and award eligible badges
-  const checkAndAwardBadges = async () => {
+  const checkAndAwardBadges = async ({ showToast = true } = {}) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
@@ -778,11 +779,13 @@ const Profile = ({ user: propsUser }) => {
         await fetchUserProfile();
 
         // Show notification for each new badge
-        response.data.newBadges.forEach((badge, index) => {
-          setTimeout(() => {
-            success(`Badge unlocked: ${badge.badgeId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`);
-          }, index * 1000);
-        });
+        if (showToast) {
+          response.data.newBadges.forEach((badge, index) => {
+            setTimeout(() => {
+              success(`Badge unlocked: ${badge.badgeId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`);
+            }, index * 1000);
+          });
+        }
       }
     } catch (error) {
       console.error('Error checking badges:', error);
@@ -892,8 +895,11 @@ const Profile = ({ user: propsUser }) => {
     fetchUserProfile();
     fetchUserApplications();
     fetchAnalyticsData();
-    // Check and award any eligible badges on profile load
-    checkAndAwardBadges();
+    // Check and award any eligible badges on profile load (only once)
+    if (!badgeCheckRan.current) {
+      badgeCheckRan.current = true;
+      checkAndAwardBadges();
+    }
   }, [fetchUserProfile]);
 
   // Fetch analytics when time range changes
