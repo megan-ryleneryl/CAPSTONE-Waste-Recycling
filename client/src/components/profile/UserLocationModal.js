@@ -456,18 +456,18 @@ const UserLocationModal = ({ onClose, onSubmit, currentLocation = null }) => {
                     <div className={geocodingResult.success ? styles.geocodingSuccess : styles.geocodingError}>
                       {geocodingResult.success ? (
                         <>
-                          <div>✅ Location found!</div>
+                          <div>Location found!</div>
                           <div className={styles.coordinates}>
                             Coordinates: {geocodingResult.coordinates.lat.toFixed(6)}, {geocodingResult.coordinates.lng.toFixed(6)}
                           </div>
                           {geocodingResult.isFallback && (
                             <div className={styles.fallbackNotice}>
-                              ℹ️ Using {geocodingResult.fallbackLevel}-level coordinates
+                              Using {geocodingResult.fallbackLevel}-level coordinates
                             </div>
                           )}
                         </>
                       ) : (
-                        <div>❌ {geocodingResult.error}</div>
+                        <div> {geocodingResult.error}</div>
                       )}
                     </div>
                   )}

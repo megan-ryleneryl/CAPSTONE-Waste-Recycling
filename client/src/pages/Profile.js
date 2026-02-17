@@ -699,7 +699,6 @@ const Profile = ({ user: propsUser }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showApplicationSelector, setShowApplicationSelector] = useState(false);
   const [activeTab, setActiveTab] = useState('preferences');
-  const [selectedTimeRange, setSelectedTimeRange] = useState('month');
   const [analyticsData, setAnalyticsData] = useState({
     giverStats: {
       totalKgRecycled: 0,
@@ -748,7 +747,7 @@ const Profile = ({ user: propsUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
+        `http://localhost:3001/api/analytics/dashboard?timeRange=all`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -901,13 +900,6 @@ const Profile = ({ user: propsUser }) => {
       checkAndAwardBadges();
     }
   }, [fetchUserProfile]);
-
-  // Fetch analytics when time range changes
-  useEffect(() => {
-    if (user) {
-      fetchAnalyticsData();
-    }
-  }, [selectedTimeRange]);
 
   // Handle body scroll lock
   useEffect(() => {
@@ -1542,11 +1534,23 @@ const Profile = ({ user: propsUser }) => {
 
             {/* Stats - Quick Overview */}
             <div className={styles.stats}>
-              <div className={styles.statItem}>
-                <span>Points: {user.points || 0}</span>
+              <div className={styles.quickStatCard}>
+                <div className={styles.quickStatIcon} style={{ background: 'rgba(59, 101, 53, 0.1)', color: '#3B6535' }}>
+                  <TrendingUp size={22} />
+                </div>
+                <div className={styles.quickStatInfo}>
+                  <span className={styles.quickStatNumber}>{user.points || 0}</span>
+                  <span className={styles.quickStatLabel}>Points</span>
+                </div>
               </div>
-              <div className={styles.statItem}>
-                <strong>{user.totalDonations || '0'}</strong> kg Donations
+              <div className={styles.quickStatCard}>
+                <div className={styles.quickStatIcon} style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>
+                  <Recycle size={22} />
+                </div>
+                <div className={styles.quickStatInfo}>
+                  <span className={styles.quickStatNumber}>{analyticsData.giverStats.totalKgRecycled || 0} kg</span>
+                  <span className={styles.quickStatLabel}>Total Recycled</span>
+                </div>
               </div>
             </div>
 
@@ -1844,17 +1848,6 @@ const Profile = ({ user: propsUser }) => {
                   <div className={styles.detailedStatsSection}>
                     <div className={styles.sectionHeader}>
                       <h3 className={styles.sectionTitle}>My Activity Stats</h3>
-                      <div className={styles.timeRangeSelector}>
-                        {['week', 'month', 'year', 'all'].map(range => (
-                          <button
-                            key={range}
-                            className={`${styles.timeButton} ${selectedTimeRange === range ? styles.activeTimeButton : ''}`}
-                            onClick={() => setSelectedTimeRange(range)}
-                          >
-                            {range === 'all' ? 'All' : range.charAt(0).toUpperCase() + range.slice(1)}
-                          </button>
-                        ))}
-                      </div>
                     </div>
 
                     {/* Giver Stats - Everyone has this */}
@@ -1892,7 +1885,7 @@ const Profile = ({ user: propsUser }) => {
                           </div>
                           <div className={styles.statRow}>
                             <span className={styles.statLabel}>Total Points</span>
-                            <span className={styles.statValue}>{analyticsData.giverStats.totalPoints || 0}</span>
+                            <span className={styles.statValue}>{user.points || 0}</span>
                           </div>
                         </div>
                       </div>
