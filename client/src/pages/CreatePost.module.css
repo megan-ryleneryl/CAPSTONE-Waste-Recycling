@@ -110,6 +110,16 @@
   border-left: 4px solid #c33;
 }
 
+.materialsError {
+  background-color: #fee;
+  color: #c33;
+  padding: 0.6rem 0.9rem;
+  margin-top: 0.5rem;
+  border-radius: 6px;
+  border-left: 4px solid #c33;
+  font-size: 0.875rem;
+}
+
 /* Form */
 .form {
   padding: 2rem;

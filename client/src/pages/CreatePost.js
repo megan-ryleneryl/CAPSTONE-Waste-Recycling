@@ -17,6 +17,7 @@ const CreatePost = () => {
   const { success, showPointsEarned, showBadgeUnlocked } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [materialsError, setMaterialsError] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [isCollector, setIsCollector] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -384,6 +385,14 @@ const CreatePost = () => {
             return false;
           }
         }
+
+        // Enforce minimum total quantity of 5 kg
+        const totalQuantity = formData.materials.reduce((sum, m) => sum + parseFloat(m.quantity || 0), 0);
+        if (totalQuantity < 5) {
+          setMaterialsError('Total recyclable quantity must be at least 5 kg');
+          return false;
+        }
+        setMaterialsError('');
       } else if (postType === 'Initiative') {
       // Validate materials array (new format)
       if (!formData.materials || formData.materials.length === 0) {
@@ -983,8 +992,13 @@ const handleRemoveImage = (index) => {
               {/* Use Material Selector instead of text input */}
               <MaterialSelector
                 selectedMaterials={formData.materials}
-                onChange={(materials) => setFormData({ ...formData, materials })}
+                onChange={(materials) => { setMaterialsError(''); setFormData({ ...formData, materials }); }}
               />
+              {materialsError && (
+                <div className={styles.materialsError}>
+                  {materialsError}
+                </div>
+              )}
               
               
               {/* Keep pickupDate and pickupTime */}
