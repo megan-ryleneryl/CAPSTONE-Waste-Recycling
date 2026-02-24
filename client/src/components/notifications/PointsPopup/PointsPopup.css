@@ -18,7 +18,7 @@
 }
 
 .points-popup-overlay.show {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .points-popup-overlay.exit {
@@ -124,7 +124,7 @@
 }
 
 .points-popup-overlay.enter .points-popup-card {
-  animation: cardEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: cardEnter 0.3s ease-out forwards;
 }
 
 .points-popup-overlay.show .points-popup-card {
@@ -138,14 +138,11 @@
 
 @keyframes cardEnter {
   0% {
-    transform: scale(0.3) rotate(-10deg);
+    transform: scale(0.88);
     opacity: 0;
   }
-  50% {
-    transform: scale(1.1) rotate(2deg);
-  }
   100% {
-    transform: scale(1) rotate(0deg);
+    transform: scale(1);
     opacity: 1;
   }
 }
@@ -156,7 +153,7 @@
     opacity: 1;
   }
   100% {
-    transform: scale(0.8) translateY(-50px);
+    transform: scale(0.92) translateY(-24px);
     opacity: 0;
   }
 }
@@ -176,11 +173,11 @@
 @keyframes glowPulse {
   0%, 100% {
     transform: translate(-50%, -50%) scale(1);
-    opacity: 0.6;
+    opacity: 0.3;
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.3);
-    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.5;
   }
 }
 
@@ -192,7 +189,7 @@
   width: 100%;
   height: 100%;
   transform: translate(-50%, -50%);
-  animation: burstRotate 20s linear infinite;
+  animation: burstRotate 40s linear infinite;
 }
 
 .star-ray {
@@ -247,7 +244,7 @@
   justify-content: center;
   box-shadow: 0 4px 20px rgba(240, 146, 76, 0.5),
               inset 0 2px 4px rgba(255, 255, 255, 0.3);
-  animation: badgePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+  animation: badgePop 0.35s ease-out 0.1s both;
 }
 
 .points-badge-inner {
@@ -258,7 +255,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: badgeSpin 0.8s ease-out 0.3s both;
+  animation: none;
 }
 
 .points-star-icon {
@@ -268,13 +265,12 @@
 
 @keyframes badgePop {
   0% {
-    transform: translate(-50%, -50%) scale(0);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.2);
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
   }
   100% {
     transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
   }
 }
 
@@ -320,7 +316,7 @@
   align-items: baseline;
   gap: 4px;
   margin-bottom: 8px;
-  animation: amountPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both;
+  animation: amountPop 0.3s ease-out 0.2s both;
 }
 
 .points-plus {
@@ -339,7 +335,7 @@
   background-clip: text;
   text-shadow: none;
   filter: drop-shadow(0 2px 4px rgba(240, 146, 76, 0.3));
-  animation: numberPulse 1s ease-in-out infinite;
+  animation: none;
 }
 
 .points-label {
@@ -417,7 +413,7 @@
   font-size: 13px;
   font-weight: 600;
   margin-top: 8px;
-  animation: bonusPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both;
+  animation: bonusPop 0.25s ease-out 0.4s both;
 }
 
 @keyframes bonusPop {
@@ -441,12 +437,12 @@
   font-size: 13px;
   font-weight: 600;
   margin-top: 8px;
-  animation: streakPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.9s both;
+  animation: streakPop 0.25s ease-out 0.5s both;
 }
 
 .streak-fire {
   font-size: 16px;
-  animation: fireWiggle 0.5s ease-in-out infinite;
+  animation: none;
 }
 
 @keyframes streakPop {
@@ -479,7 +475,7 @@
   font-size: 12px;
   font-weight: 600;
   margin-top: 12px;
-  animation: achievementSlide 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1s both;
+  animation: achievementSlide 0.3s ease-out 0.5s both;
   box-shadow: 0 4px 15px rgba(59, 101, 53, 0.4);
 }
 
@@ -504,10 +500,10 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.05),
     transparent
   );
-  animation: shimmer 2s ease-in-out infinite;
+  animation: shimmer 4s ease-in-out infinite;
 }
 
 @keyframes shimmer {

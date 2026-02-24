@@ -28,7 +28,7 @@ const BadgeUnlocked = ({ badge, onClose }) => {
     const particles = [];
     const colors = [rarity.color, '#fbbf24', '#10b981', '#3b82f6', '#f43f5e'];
 
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 25; i++) {
       particles.push({
         id: i,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -114,11 +114,11 @@ const BadgeUnlocked = ({ badge, onClose }) => {
 
           {/* Radial burst background */}
           <div className="badge-radial-burst">
-            {[...Array(16)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <div
                 key={i}
                 className="radial-ray"
-                style={{ '--rotation': `${i * 22.5}deg` }}
+                style={{ '--rotation': `${i * 45}deg` }}
               />
             ))}
           </div>

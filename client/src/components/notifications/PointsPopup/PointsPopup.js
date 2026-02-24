@@ -11,7 +11,7 @@ const PointsPopup = ({ popup, onClose }) => {
     const particles = [];
     const colors = ['#fbbf24', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444'];
 
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 20; i++) {
       particles.push({
         id: i,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -29,7 +29,7 @@ const PointsPopup = ({ popup, onClose }) => {
   // Generate floating coins
   const floatingCoins = useMemo(() => {
     const coins = [];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 4; i++) {
       coins.push({
         id: i,
         left: 20 + Math.random() * 60,

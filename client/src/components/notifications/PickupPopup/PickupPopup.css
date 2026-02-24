@@ -18,7 +18,7 @@
 }
 
 .pickup-popup-overlay.show {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .pickup-popup-overlay.exit {
@@ -121,7 +121,7 @@
 }
 
 .pickup-popup-overlay.enter .pickup-popup-card {
-  animation: pickupCardEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: pickupCardEnter 0.3s ease-out forwards;
 }
 
 .pickup-popup-overlay.show .pickup-popup-card {
@@ -135,14 +135,11 @@
 
 @keyframes pickupCardEnter {
   0% {
-    transform: scale(0.3) rotate(-5deg);
+    transform: scale(0.9);
     opacity: 0;
   }
-  50% {
-    transform: scale(1.05) rotate(1deg);
-  }
   100% {
-    transform: scale(1) rotate(0deg);
+    transform: scale(1);
     opacity: 1;
   }
 }
@@ -153,7 +150,7 @@
     opacity: 1;
   }
   100% {
-    transform: scale(0.8) translateY(-50px);
+    transform: scale(0.93) translateY(-24px);
     opacity: 0;
   }
 }
@@ -172,11 +169,11 @@
 @keyframes pickupGlowPulse {
   0%, 100% {
     transform: translate(-50%, -50%) scale(1);
-    opacity: 0.6;
+    opacity: 0.3;
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.3);
-    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.5;
   }
 }
 
@@ -188,7 +185,7 @@
   width: 100%;
   height: 100%;
   transform: translate(-50%, -50%);
-  animation: pickupBurstRotate 25s linear infinite;
+  animation: pickupBurstRotate 50s linear infinite;
 }
 
 .pickup-ray {
@@ -240,7 +237,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  animation: pickupBadgePop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+  animation: pickupBadgePop 0.3s ease-out 0.1s both;
 }
 
 .pickup-badge-inner {
@@ -251,7 +248,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: pickupBadgePulse 2s ease-in-out infinite;
+  animation: none;
 }
 
 .pickup-icon {
@@ -261,23 +258,18 @@
 
 @keyframes pickupBadgePop {
   0% {
-    transform: translate(-50%, -50%) scale(0);
-  }
-  50% {
-    transform: translate(-50%, -50%) scale(1.15);
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
   }
   100% {
     transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
   }
 }
 
 @keyframes pickupBadgePulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
 }
 
 .pickup-ring {
@@ -298,11 +290,11 @@
 
 @keyframes pickupRingExpand {
   0% {
-    transform: translate(-50%, -50%) scale(0.8);
-    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0.7;
   }
   100% {
-    transform: translate(-50%, -50%) scale(1.5);
+    transform: translate(-50%, -50%) scale(1.3);
     opacity: 0;
   }
 }
@@ -313,16 +305,16 @@
   font-weight: 700;
   color: #1e293b;
   margin: 0 0 8px 0;
-  animation: pickupTitlePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both;
+  animation: pickupTitlePop 0.3s ease-out 0.2s both;
 }
 
 @keyframes pickupTitlePop {
   0% {
-    transform: scale(0) translateY(10px);
+    transform: translateY(8px);
     opacity: 0;
   }
   100% {
-    transform: scale(1) translateY(0);
+    transform: translateY(0);
     opacity: 1;
   }
 }
@@ -431,10 +423,10 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.4),
+    rgba(255, 255, 255, 0.15),
     transparent
   );
-  animation: pickupShimmer 2.5s ease-in-out infinite;
+  animation: pickupShimmer 5s ease-in-out infinite;
 }
 
 @keyframes pickupShimmer {

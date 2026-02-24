@@ -63,7 +63,7 @@ const PickupPopup = ({ popup, onClose }) => {
     const particles = [];
     const colors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#3B6535'];
 
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 15; i++) {
       particles.push({
         id: i,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -82,7 +82,7 @@ const PickupPopup = ({ popup, onClose }) => {
   const floatingIcons = useMemo(() => {
     if (popup.status !== 'In-Transit') return [];
     const icons = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       icons.push({
         id: i,
         left: 15 + Math.random() * 70,
