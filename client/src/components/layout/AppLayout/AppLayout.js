@@ -15,7 +15,7 @@ const AppLayout = ({ children }) => {
   const [rightSectionData, setRightSectionData] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatCounts, setChatCounts] = useState({ all: 0, waste: 0, initiative: 0, forum: 0 });
-  const [postCounts, setPostCounts] = useState({ all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 });
+  const [postCounts, setPostCounts] = useState({ all: 0, Claimable: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 });
   const [showFirstLoginGuide, setShowFirstLoginGuide] = useState(false);
   const [hasCheckedGuide, setHasCheckedGuide] = useState(false);
   const location = useLocation();

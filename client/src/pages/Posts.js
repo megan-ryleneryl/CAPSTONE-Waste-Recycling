@@ -50,6 +50,8 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
   // Map filter IDs from SideNav to PostCard postType values
   const getPostTypeFromFilter = (filter) => {
     switch(filter) {
+      case 'Claimable':
+        return 'Claimable';
       case 'Waste':
         return 'Waste';
       case 'Initiatives':

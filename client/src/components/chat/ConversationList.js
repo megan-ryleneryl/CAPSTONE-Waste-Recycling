@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { MessageCircle, RefreshCw, User, Users } from 'lucide-react';
+import { MessageCircle, RefreshCw, User, Users, ChevronDown, ChevronRight } from 'lucide-react';
 import ConversationListItem from './ConversationListItem';
 import GuideLink from '../guide/GuideLink';
 import styles from './ConversationList.module.css';
@@ -11,6 +11,8 @@ const ConversationList = ({ currentUser, onSelectConversation, selectedConversat
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [myPostsCollapsed, setMyPostsCollapsed] = useState(false);
+  const [othersPostsCollapsed, setOthersPostsCollapsed] = useState(false);
   const previousCountsRef = useRef(null);
 
   useEffect(() => {
@@ -357,14 +359,20 @@ const loadConversations = async () => {
                 {/* My Posts Section */}
                 {myConversations.length > 0 && (
                   <>
-                    <div className={styles.sectionHeader}>
+                    <button
+                      className={styles.sectionHeader}
+                      onClick={() => setMyPostsCollapsed(prev => !prev)}
+                    >
                       <h3 className={styles.sectionTitle}>
+                        <span className={styles.sectionChevron}>
+                          {myPostsCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                        </span>
                         <User size={16} className={styles.sectionIcon} />
                         {'My Posts'}
                       </h3>
                       <span className={styles.sectionCount}>{myConversations.length}</span>
-                    </div>
-                    {myConversations.map((conversation) => (
+                    </button>
+                    {!myPostsCollapsed && myConversations.map((conversation) => (
                       <ConversationListItem
                         key={conversation.id}
                         conversation={conversation}
@@ -379,14 +387,20 @@ const loadConversations = async () => {
                 {/* Others' Posts Section */}
                 {othersConversations.length > 0 && (
                   <>
-                    <div className={styles.sectionHeader}>
+                    <button
+                      className={styles.sectionHeader}
+                      onClick={() => setOthersPostsCollapsed(prev => !prev)}
+                    >
                       <h3 className={styles.sectionTitle}>
+                        <span className={styles.sectionChevron}>
+                          {othersPostsCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                        </span>
                         <Users size={16} className={styles.sectionIcon} />
                         {'Others Posts'}
                       </h3>
                       <span className={styles.sectionCount}>{othersConversations.length}</span>
-                    </div>
-                    {othersConversations.map((conversation) => (
+                    </button>
+                    {!othersPostsCollapsed && othersConversations.map((conversation) => (
                       <ConversationListItem
                         key={conversation.id}
                         conversation={conversation}

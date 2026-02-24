@@ -89,17 +89,26 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
 
         // Filter by post type if not 'all' and no userID filter
         if (postType && postType !== 'all' && !userID) {
-          // Map component prop values to database values
-          const typeMap = {
-            'Waste Post': 'Waste',
-            'Initiative Post': 'Initiative',
-            'Forum Post': 'Forum',
-            'Waste': 'Waste',
-            'Initiative': 'Initiative',
-            'Forum': 'Forum'
-          };
-          const mappedType = typeMap[postType] || postType;
-          filteredPosts = filteredPosts.filter(post => post.postType === mappedType);
+          if (postType === 'Claimable') {
+            // Show Active Waste and Active Initiative posts not owned by current user
+            filteredPosts = filteredPosts.filter(post =>
+              post.status === 'Active' &&
+              post.userID !== currentUser?.userID &&
+              (post.postType === 'Waste' || post.postType === 'Initiative')
+            );
+          } else {
+            // Map component prop values to database values
+            const typeMap = {
+              'Waste Post': 'Waste',
+              'Initiative Post': 'Initiative',
+              'Forum Post': 'Forum',
+              'Waste': 'Waste',
+              'Initiative': 'Initiative',
+              'Forum': 'Forum'
+            };
+            const mappedType = typeMap[postType] || postType;
+            filteredPosts = filteredPosts.filter(post => post.postType === mappedType);
+          }
         }
 
         // Limit posts based on maxPosts prop
@@ -159,6 +168,7 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
         if (onCountsUpdate && currentUserID) {
           const counts = {
             all: activePosts.length,
+            Claimable: 0,
             Waste: 0,
             Initiatives: 0,
             Forum: 0,
@@ -172,6 +182,12 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
               counts.Initiatives++;
             } else if (post.postType === 'Forum') {
               counts.Forum++;
+            }
+
+            // Count claimable: Active Waste/Initiative posts not owned by current user
+            if (post.status === 'Active' && post.userID !== currentUserID &&
+                (post.postType === 'Waste' || post.postType === 'Initiative')) {
+              counts.Claimable++;
             }
 
             if (post.userID === currentUserID) {

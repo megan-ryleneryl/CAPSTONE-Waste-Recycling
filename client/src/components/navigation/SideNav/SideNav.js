@@ -18,7 +18,8 @@ import {
   ClipboardPenLine,
   MapPin,
   Trophy,
-  Building2 }
+  Building2,
+  HandHelping }
   from 'lucide-react';
 
 const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = { all: 0, waste: 0, initiative: 0, forum: 0 }, postCounts = { all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 } }) => {
@@ -79,6 +80,7 @@ const SideNav = ({ activeFilter, onFilterChange, isMobile, isOpen, chatCounts = 
 
   const filterOptions = [
     { id: 'all', label: 'All Posts', icon: <Layers size={20} /> },
+    { id: 'Claimable', label: 'Claimable', icon: <HandHelping size={20} /> },
     { id: 'Waste', label: 'Recycle', icon: <Recycle size={20} /> },
     { id: 'Initiatives', label: 'Initiatives', icon: <Sprout size={20} /> },
     { id: 'Forum', label: 'Forum', icon: <MessagesSquare size={20} /> },
