@@ -6,6 +6,7 @@ import ModalPortal from '../../modal/ModalPortal';
 import CommentsSection from '../CommentsSection/CommentsSection';
 import styles from './PostDetails.module.css';
 import { Users, Coins, Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Info } from 'lucide-react';
+import GuideLink from '../../guide/GuideLink';
 
 
 const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLiked, onLikeToggle, likingPost }) => {
@@ -173,26 +174,24 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
       );
 
       if (response.data.success) {
-        alert('Pickup request sent successfully! You can now chat with the giver to arrange pickup details.');
         setShowRequestModal(false);
-        
-        if (response.data.data?.chatURL) {
-          navigate(response.data.data.chatURL);
-        } else {
-          navigate(`/chat`, { 
-            state: { 
-              postID: post.postID, 
-              otherUser: post.user,
-              postData: post
-            } 
-          });
-        }
-        
-        checkClaimStatus();
-        
-        if (window.location.pathname.includes('/posts/')) {
-          window.location.reload();
-        }
+        success('Pickup request sent! Opening chat to arrange pickup details...');
+
+        const chatState = {
+          postID: post.postID,
+          otherUser: {
+            userID: post.userID,
+            firstName: post.user?.firstName || 'Unknown',
+            lastName: post.user?.lastName || 'User',
+            profilePictureUrl: post.user?.profilePictureUrl || null,
+            isCollector: post.user?.isCollector || false,
+            isAdmin: post.user?.isAdmin || false,
+            organizationID: post.user?.organizationID || null,
+          },
+          postData: post,
+        };
+
+        navigate('/chat', { state: chatState });
       }
     } catch (error) {
       console.error('Error requesting pickup:', error);
@@ -515,6 +514,7 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
                 >
                   {isRequestingPickup ? 'Requesting...' : 'Request Pickup'}
                 </button>
+                <GuideLink text="How to claim a waste post" targetPage={6} />
               </div>
             )}
 
@@ -558,7 +558,18 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
                     <p>You can schedule a pickup proposal through the chat. The giver will review all proposals before selecting one.</p>
                     <button
                       className={styles.linkButton}
-                      onClick={() => navigate(`/chat?postId=${post.postID}&userId=${post.userID}`)}
+                      onClick={() => navigate('/chat', {
+                        state: {
+                          postID: post.postID,
+                          otherUser: {
+                            userID: post.userID,
+                            firstName: post.user?.firstName || 'Unknown',
+                            lastName: post.user?.lastName || 'User',
+                            profilePictureUrl: post.user?.profilePictureUrl || null,
+                          },
+                          postData: post,
+                        }
+                      })}
                     >
                       Go to Chat
                     </button>
@@ -577,7 +588,18 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
                     <p>Coordinate with the giver to schedule a pickup time.</p>
                     <button
                       className={styles.linkButton}
-                      onClick={() => navigate(`/chat?postId=${post.postID}&userId=${post.userID}`)}
+                      onClick={() => navigate('/chat', {
+                        state: {
+                          postID: post.postID,
+                          otherUser: {
+                            userID: post.userID,
+                            firstName: post.user?.firstName || 'Unknown',
+                            lastName: post.user?.lastName || 'User',
+                            profilePictureUrl: post.user?.profilePictureUrl || null,
+                          },
+                          postData: post,
+                        }
+                      })}
                     >
                       Go to Chat
                     </button>
@@ -724,9 +746,19 @@ const PostDetails = ({ post, user: currentUser, onViewSupports, likeCount, isLik
                     <p>Status: {existingSupport.status}</p>
                     <button
                       className={styles.linkButton}
-                      onClick={() => navigate(`/chat?postId=${post.postID}&userId=${post.userID}`)}
+                      onClick={() => navigate('/chat', {
+                        state: {
+                          postID: post.postID,
+                          otherUser: {
+                            userID: post.userID,
+                            firstName: post.user?.firstName || 'Unknown',
+                            lastName: post.user?.lastName || 'User',
+                            profilePictureUrl: post.user?.profilePictureUrl || null,
+                          },
+                          postData: post,
+                        }
+                      })}
                     >
-
                       View in Chat
                     </button>
                   </div>

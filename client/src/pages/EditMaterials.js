@@ -25,16 +25,24 @@ const EditMaterials = () => {
   });
 
   const materialTypes = [
-    'cardboard',
-    'paper',
-    'wooden_utensils',
+    'cartons_corrugated',
+    'white_paper_used',
+    'newspaper',
+    'mixed_paper',
     'pet_bottles',
-    'plastic_utensils',
+    'plastic_hdpe',
+    'plastic_ldpe',
     'glass_bottles',
-    'metals',
-    'organic_waste',
-    'textiles',
-    'electronics'
+    'glass_cullets',
+    'aluminum_cans',
+    'copper_wire_a',
+    'copper_wire_b',
+    'copper_wire_c',
+    'gi_sheet',
+    'stainless_steel',
+    'steel',
+    'tin_can',
+    'electronic_waste'
   ];
 
   const categories = ['Recyclable', 'Metal', 'Plastic', 'Paper', 'Glass', 'Organic', 'Textile', 'Electronics'];

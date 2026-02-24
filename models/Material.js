@@ -17,10 +17,12 @@ class Material {
   // Validation
   validate() {
     const validTypes = [
-      'cardboard', 'paper', 'wooden_utensils', 
-      'pet_bottles', 'plastic_utensils', 'glass_bottles', 
-      'metals', 'organic_waste', 
-      'textiles', 'electronics'
+      'cartons_corrugated', 'white_paper_used', 'newspaper', 'mixed_paper',
+      'pet_bottles', 'plastic_hdpe', 'plastic_ldpe',
+      'glass_bottles', 'glass_cullets',
+      'aluminum_cans', 'copper_wire_a', 'copper_wire_b', 'copper_wire_c',
+      'gi_sheet', 'stainless_steel', 'steel', 'tin_can',
+      'electronic_waste'
     ];
     
     const errors = [];

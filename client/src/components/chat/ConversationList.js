@@ -345,7 +345,7 @@ const loadConversations = async () => {
 
       {/* Guide Link - Always visible */}
       <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid #e5e7eb' }}>
-        <GuideLink text="How to coordinate pickups using chat" targetPage={4} />
+        <GuideLink text="How to coordinate pickups using chat" targetPage={7} />
       </div>
 
       <div className={styles.conversationItems}>

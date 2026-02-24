@@ -988,12 +988,15 @@ const handleRemoveImage = (index) => {
               <h3 className={styles.sectionTitle}>
                 <Package size={20} /> Waste Details
               </h3>
-              
+
               {/* Use Material Selector instead of text input */}
               <MaterialSelector
                 selectedMaterials={formData.materials}
                 onChange={(materials) => { setMaterialsError(''); setFormData({ ...formData, materials }); }}
               />
+              <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
+                <GuideLink text="Don't know which material to select? Click here!" targetPage={5} />
+              </div>
               {materialsError && (
                 <div className={styles.materialsError}>
                   {materialsError}
@@ -1111,6 +1114,9 @@ const handleRemoveImage = (index) => {
                     quantity: 'Target Quantity'
                   }}
                 />
+                <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
+                  <GuideLink text="Don't know which material to select? Click here!" targetPage={5} />
+                </div>
               </div>
 
               {/* Show calculated target amount */}
