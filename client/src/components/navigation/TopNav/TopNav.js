@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
 import axios from 'axios';
-import { Package, Check, Truck, MapPin, PartyPopper, X as XIcon, Trophy, MessageCircle, ClipboardList, MessageSquare, Bell, CheckCircle, XCircle, HandHelping, ThumbsUp } from 'lucide-react';
+import { Package, Check, Truck, MapPin, PartyPopper, X as XIcon, Trophy, MessageCircle, ClipboardList, MessageSquare, Bell, CheckCircle, XCircle, HandHelping, ThumbsUp, HelpCircle } from 'lucide-react';
 import EcoTayoLogo from './EcoTayoLogo.svg';
 import QuickGuide from '../../guide/QuickGuide';
 import NotificationsModal from '../../notifications/NotificationsModal/NotificationsModal';
@@ -364,30 +363,6 @@ const TopNav = ({ user: propUser }) => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const profilePictureUrl = getProfilePictureUrl();
 
-  // Notification Bell Icon Component
-  const BellIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-
-  // Chat/Message Icon Component
-  const ChatIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-
-  // Help/Info Icon Component
-  const HelpIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-
   // Get icon and color for notification based on type and title
   const getNotificationIcon = (notification) => {
     const title = (notification.title || '').toLowerCase();
@@ -477,7 +452,7 @@ const TopNav = ({ user: propUser }) => {
               onClick={toggleNotifications}
               aria-label="Notifications"
             >
-              <BellIcon />
+              <Bell size={20} />
               {unreadCount > 0 && (
                 <span className={`${styles.badge} ${styles.animatePulse}`}>
                   {unreadCount > 9 ? '9+' : unreadCount}
@@ -600,7 +575,7 @@ const TopNav = ({ user: propUser }) => {
             onClick={() => setShowGuide(true)}
             aria-label="Help Guide"
           >
-            <HelpIcon />
+            <HelpCircle size={20} />
           </button>
 
           {/* Messages */}
@@ -609,7 +584,7 @@ const TopNav = ({ user: propUser }) => {
             onClick={() => navigate('/chat')}
             aria-label="Messages"
           >
-            <ChatIcon />
+            <MessageSquare size={20} />
           </button>
 
           {/* User Menu */}
