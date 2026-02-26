@@ -5,7 +5,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0 0 12px 0;
+  margin: 12px 0 12px 0;
   padding: 0 2px;
 }
 
@@ -34,11 +34,11 @@
 }
 
 .viewToggleBtn:hover {
-  color: #166534;
+  color: var(--primary-color);
 }
 
 .viewToggleBtn.active {
-  background: #166534;
+  background: var(--primary-color);
   color: #ffffff;
   box-shadow: 0 1px 4px rgba(22, 101, 52, 0.25);
 }
@@ -60,12 +60,12 @@
 }
 
 .groupByDateBtn:hover {
-  border-color: #166534;
+  border-color: var(--primary-color);
   color: #166534;
 }
 
 .groupByDateBtn.active {
   background: #dcfce7;
-  color: #166534;
+  color: var(--primary-color);
   border-color: #166534;
 }

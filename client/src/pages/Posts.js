@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom';
 import PostCard from '../components/posts/PostCard/PostCard';
 import WastePostsMap from '../components/posts/WastePostsMap/WastePostsMap';
 import LocationFilter from '../components/analytics/LocationFilter';
-import GuideLink from '../components/guide/GuideLink';
 import { useAuth } from '../context/AuthContext';
 import { List, Map, CalendarDays } from 'lucide-react';
 import styles from './Posts.module.css';
@@ -84,11 +83,6 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
         currentFilter={locationFilter}
         userLocation={currentUser?.userLocation}
       />
-
-      {/* Getting Started Guide Link */}
-      <div style={{ textAlign: 'center', margin: '-0.25rem 0 0.75rem 0' }}>
-        <GuideLink text="Don't know where to start? Click here!" targetPage={4} />
-      </div>
 
       {/* Collector view controls — only on Claimable / Waste filters */}
       {isCollectorFilter && (
