@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 // import PickupRequests from '../components/posts/PickupRequests/PickupRequests';
 import InitiativeSupportsModal from '../components/posts/InitiativeSupportsModal/InitiativeSupportsModal';
 import styles from './SinglePost.module.css';
 // Lucide icon imports
-import { MessageCircle, Trash2 } from 'lucide-react';
+import { MessageCircle, Trash2, MapPin, Package, Calendar, Coins, Route } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useCollectionRun } from '../context/CollectionRunContext';
 
 const SinglePost = ({ onDataUpdate }) => {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { addToRun, removeFromRun, isInRun } = useCollectionRun();
   const [post, setPost] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [nearbyPosts, setNearbyPosts] = useState([]);
   const [error, setError] = useState('');
   const [imageIndex, setImageIndex] = useState(0);
   const [likeCount, setLikeCount] = useState(0);
@@ -81,6 +86,11 @@ const SinglePost = ({ onDataUpdate }) => {
         }
 
         setPost(fetchedPost);
+
+        // Fetch nearby posts for Waste type
+        if (fetchedPost.postType === 'Waste') {
+          fetchNearbyPosts(fetchedPost);
+        }
       } else {
         setError('Post not found');
       }
@@ -93,6 +103,37 @@ const SinglePost = ({ onDataUpdate }) => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNearbyPosts = async (currentPost) => {
+    try {
+      const token = localStorage.getItem('token');
+      const loc = currentPost.location;
+      const params = new URLSearchParams();
+
+      // Use most specific location code available
+      if (loc?.barangay?.code) params.append('barangay', loc.barangay.code);
+      else if (loc?.city?.code) params.append('city', loc.city.code);
+      else return; // No location to query
+
+      const response = await axios.get(
+        `http://localhost:3001/api/posts?${params.toString()}`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        const nearby = response.data.posts
+          .filter(p =>
+            p.postID !== currentPost.postID &&
+            p.postType === 'Waste' &&
+            p.status === 'Active'
+          )
+          .slice(0, 5);
+        setNearbyPosts(nearby);
+      }
+    } catch (err) {
+      console.error('Error fetching nearby posts:', err);
     }
   };
 
@@ -406,6 +447,60 @@ const SinglePost = ({ onDataUpdate }) => {
             requests={post.pickupRequests || []}
           />
         )} */}
+
+        {/* Add to Run — collectors only on active Waste posts they don't own */}
+        {post.postType === 'Waste' && post.status === 'Active' && !isOwner && currentUser?.isCollector && (
+          <div className={styles.addToRunSection}>
+            <button
+              className={isInRun(post.postID) ? styles.inRunBtn : styles.addToRunBtn}
+              onClick={() => isInRun(post.postID) ? removeFromRun(post.postID) : addToRun(post)}
+            >
+              <Route size={18} />
+              {isInRun(post.postID) ? '✓ Added to Collection Run' : '+ Add to Collection Run'}
+            </button>
+          </div>
+        )}
+
+        {/* Nearby Posts — below the post card, inside the same column */}
+        {nearbyPosts.length > 0 && (
+          <div className={styles.nearbySection}>
+            <h2 className={styles.nearbyTitle}>
+              <MapPin size={18} /> Other posts nearby
+            </h2>
+            <div className={styles.nearbyGrid}>
+              {nearbyPosts.map(p => (
+                <Link key={p.postID} to={`/posts/${p.postID}`} className={styles.nearbyCard}>
+                  <div className={styles.nearbyCardTitle}>{p.title}</div>
+                  <div className={styles.nearbyCardDetail}>
+                    <MapPin size={12} />
+                    {p.location?.barangay?.name || p.location?.city?.name || 'Unknown area'}
+                  </div>
+                  {p.materials?.length > 0 && (
+                    <div className={styles.nearbyCardDetail}>
+                      <Package size={12} />
+                      {p.materials.slice(0, 2).map(m => m.materialName || m.materialID).join(', ')}
+                      {p.materials.length > 2 ? ` +${p.materials.length - 2}` : ''}
+                      {` · ${p.quantity || 0} kg`}
+                    </div>
+                  )}
+                  {p.pickupDate && (
+                    <div className={styles.nearbyCardDetail}>
+                      <Calendar size={12} />
+                      {new Date(p.pickupDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}
+                      {p.pickupTime ? ` at ${p.pickupTime}` : ''}
+                    </div>
+                  )}
+                  {p.price > 0 && (
+                    <div className={styles.nearbyCardDetail}>
+                      <Coins size={12} />
+                      ₱{parseFloat(p.price).toFixed(2)}
+                    </div>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Initiative Supports Modal */}

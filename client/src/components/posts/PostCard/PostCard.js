@@ -7,13 +7,15 @@ import styles from './PostCard.module.css';
 import { db } from '../../../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../../context/AuthContext';
+import { useCollectionRun } from '../../../context/CollectionRunContext';
 // Lucide icon imports
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins, Sparkles } from 'lucide-react';
 
 
-const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID, locationFilter = null }) => {
+const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID, locationFilter = null, groupByDate = false }) => {
 
   const { currentUser } = useAuth();
+  const { addToRun, removeFromRun, isInRun } = useCollectionRun();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -519,9 +521,7 @@ const handleMessageOwner = async (post, event) => {
     );
   }
 
-  return (
-    <div className={styles.container}>
-      {Array.isArray(posts) && posts.map((post) => {
+  const renderPostCard = (post) => {
         const currentImageIndex = imageIndexes[post.postID] || 0;
         const postImages = post.images || [];
         
@@ -883,6 +883,19 @@ const handleMessageOwner = async (post, event) => {
                 </button>
               )}
 
+              {/* Add to Run button — collectors only, on available Waste posts they don't own */}
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && currentUser?.isCollector && (
+                <button
+                  className={`${styles.actionButton} ${isInRun(post.postID) ? styles.inRunButton : styles.addToRunButton}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    isInRun(post.postID) ? removeFromRun(post.postID) : addToRun(post);
+                  }}
+                >
+                  {isInRun(post.postID) ? '✓ In Run' : '+ Add to Run'}
+                </button>
+              )}
+
               
               {post.postType === 'Initiative' && post.userID !== currentUser?.userID && post.status === 'Active' && (
                 <button
@@ -913,7 +926,38 @@ const handleMessageOwner = async (post, event) => {
             </div>
           </div>
         );
-      })}
+  };
+
+  const renderGroupedByDate = () => {
+    const sorted = [...posts].sort((a, b) => {
+      if (!a.pickupDate) return 1;
+      if (!b.pickupDate) return -1;
+      return new Date(a.pickupDate) - new Date(b.pickupDate);
+    });
+
+    const groups = {};
+    sorted.forEach(post => {
+      const key = post.pickupDate || '__nodate__';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(post);
+    });
+
+    return Object.keys(groups).flatMap(key => [
+      <div key={`date-header-${key}`} className={styles.dateGroupHeader}>
+        {key === '__nodate__'
+          ? 'No Date Set'
+          : new Date(key).toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+      </div>,
+      ...groups[key].map(post => renderPostCard(post))
+    ]);
+  };
+
+  return (
+    <div className={styles.container}>
+      {groupByDate
+        ? renderGroupedByDate()
+        : Array.isArray(posts) && posts.map(post => renderPostCard(post))
+      }
     </div>
   );
 };

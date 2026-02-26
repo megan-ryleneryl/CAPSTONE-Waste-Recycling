@@ -1,0 +1,192 @@
+.mapWrapper {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+}
+
+.map {
+  width: 100%;
+  height: 560px;
+}
+
+.stateBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 300px;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #166534;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.geocodingNote {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+/* Popup styles */
+.popupContent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+  padding: 2px 0;
+}
+
+.popupTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.popupRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.popupIcon {
+  flex-shrink: 0;
+  color: #166534;
+  margin-top: 1px;
+}
+
+.popupActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.addBtn,
+.removeBtn,
+.viewBtn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.addBtn {
+  background: linear-gradient(135deg, #166534, #22c55e);
+  color: white;
+}
+
+.removeBtn {
+  background: #166534;
+  color: white;
+  opacity: 0.85;
+}
+
+.viewBtn {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.addBtn:hover,
+.removeBtn:hover { opacity: 0.88; }
+.viewBtn:hover { background: #e5e7eb; }
+
+/* ── Cluster popup ── */
+.clusterPopup {
+  padding: 2px 0;
+  min-width: 240px;
+}
+
+.clusterHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #374151;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 4px;
+}
+
+.clusterList {
+  max-height: 320px;
+  overflow-y: auto;
+  /* thin scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.clusterItem {
+  padding: 8px 0;
+}
+
+.clusterItemBorder {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.clusterItemTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.inRunBadge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: #166534;
+  color: white;
+  padding: 1px 6px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.clusterItemDetails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.clusterItemDetails span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}

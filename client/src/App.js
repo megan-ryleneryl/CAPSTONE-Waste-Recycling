@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { CollectionRunProvider } from './context/CollectionRunContext';
 import { ToastContainer } from './components/notifications';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -70,6 +71,7 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+        <CollectionRunProvider>
         <Router>
           <ToastContainer />
           <div className="App">
@@ -222,6 +224,7 @@ function App() {
             </Routes>
           </div>
         </Router>
+        </CollectionRunProvider>
       </ToastProvider>
     </AuthProvider>
   );

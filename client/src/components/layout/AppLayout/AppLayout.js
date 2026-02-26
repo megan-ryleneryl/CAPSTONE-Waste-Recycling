@@ -5,6 +5,7 @@ import TopNav from '../../navigation/TopNav/TopNav';
 import SideNav from '../../navigation/SideNav/SideNav';
 import RightSection from '../RightSection/RightSection';
 import QuickGuide from '../../guide/QuickGuide';
+import CollectionRunPanel from '../../posts/CollectionRunPanel/CollectionRunPanel';
 import styles from './AppLayout.module.css';
 
 const AppLayout = ({ children }) => {
@@ -209,6 +210,9 @@ const AppLayout = ({ children }) => {
         onClose={() => setShowFirstLoginGuide(false)}
         initialPage={1}
       />
+
+      {/* Collection Run Panel — fixed bottom bar for collectors */}
+      <CollectionRunPanel />
     </div>
   );
 };

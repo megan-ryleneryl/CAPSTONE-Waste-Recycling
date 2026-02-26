@@ -12,7 +12,8 @@
       "Bash(rm:*)",
       "Bash(taskkill:*)",
       "Bash(nul)",
-      "Bash(npx kill-port 3001)"
+      "Bash(npx kill-port 3001)",
+      "Bash(xargs grep -l -i \"map\\\\|leaflet\\\\|google\\\\|mapbox\")"
     ],
     "deny": [],
     "ask": []
