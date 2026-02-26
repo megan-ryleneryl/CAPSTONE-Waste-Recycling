@@ -190,6 +190,7 @@
 }
 
 .runItemTitle {
+  text-align: left;
   font-size: 0.9rem;
   font-weight: 600;
   color: #111827;

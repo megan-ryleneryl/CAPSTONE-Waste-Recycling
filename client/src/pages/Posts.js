@@ -6,6 +6,7 @@ import LocationFilter from '../components/analytics/LocationFilter';
 import GuideLink from '../components/guide/GuideLink';
 import { useAuth } from '../context/AuthContext';
 import { List, Map, CalendarDays } from 'lucide-react';
+import styles from './Posts.module.css';
 
 const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
   const { currentUser } = useAuth();
@@ -91,52 +92,18 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
 
       {/* Collector view controls — only on Claimable / Waste filters */}
       {isCollectorFilter && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '8px',
-          margin: '0 0 12px 0',
-          padding: '0 2px',
-        }}>
+        <div className={styles.collectorControls}>
           {/* View mode toggle */}
-          <div style={{ display: 'flex', gap: '6px' }}>
+          <div className={styles.viewToggleGroup}>
             <button
               onClick={() => setViewMode('list')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                background: viewMode === 'list' ? '#166534' : '#f3f4f6',
-                color: viewMode === 'list' ? 'white' : '#374151',
-                transition: 'all 0.15s',
-              }}
+              className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.active : ''}`}
             >
               <List size={14} /> List View
             </button>
             <button
               onClick={() => setViewMode('map')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                background: viewMode === 'map' ? '#166534' : '#f3f4f6',
-                color: viewMode === 'map' ? 'white' : '#374151',
-                transition: 'all 0.15s',
-              }}
+              className={`${styles.viewToggleBtn} ${viewMode === 'map' ? styles.active : ''}`}
             >
               <Map size={14} /> Map View
             </button>
@@ -146,20 +113,7 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
           {viewMode === 'list' && (
             <button
               onClick={() => setGroupByDate(prev => !prev)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 14px',
-                borderRadius: '20px',
-                border: `1.5px solid ${groupByDate ? '#166534' : '#d1d5db'}`,
-                cursor: 'pointer',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                background: groupByDate ? '#dcfce7' : 'white',
-                color: groupByDate ? '#166534' : '#374151',
-                transition: 'all 0.15s',
-              }}
+              className={`${styles.groupByDateBtn} ${groupByDate ? styles.active : ''}`}
             >
               <CalendarDays size={14} />
               {groupByDate ? 'Grouped by Date' : 'Group by Date'}

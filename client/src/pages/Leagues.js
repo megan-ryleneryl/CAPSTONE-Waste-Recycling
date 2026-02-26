@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import styles from './Leagues.module.css';
-import { TrendingUp, TrendingDown, Minus, Share2, Award, Clipboard, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Share2, Award, Clipboard, Info, BarChart2, ArrowRight, Users, Recycle } from 'lucide-react';
 
 
 // Import tier images
@@ -44,6 +45,7 @@ const TierIcon = ({ tier }) => {
 
 const Leagues = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [cityLeaderboard, setCityLeaderboard] = useState([]);
   const [userCity, setUserCity] = useState(null);
   const [heavyLifters, setHeavyLifters] = useState([]);
@@ -375,6 +377,32 @@ const Leagues = () => {
 
         {/* Right Section - Scoring Info */}
         <div className={styles.rightSection}>
+          {/* Community Stats CTA Card */}
+          <div className={styles.communityStatsCard} onClick={() => navigate('/analytics')}>
+            <div className={styles.communityStatsHeader}>
+              <div className={styles.communityStatsIconWrapper}>
+                <BarChart2 size={22} className={styles.communityStatsIcon} />
+              </div>
+              <h3 className={styles.communityStatsTitle}>Community Stats</h3>
+            </div>
+            <p className={styles.communityStatsDesc}>
+              See how your city stacks up across recycling metrics, active users, and waste trends.
+            </p>
+            <div className={styles.communityStatsHighlights}>
+              <div className={styles.communityStatsPill}>
+                <Users size={13} />
+                <span>Active Users</span>
+              </div>
+              <div className={styles.communityStatsPill}>
+                <Recycle size={13} />
+                <span>Waste Recycled</span>
+              </div>
+            </div>
+            <button className={styles.communityStatsBtn}>
+              Deep Dive My Stats <ArrowRight size={15} />
+            </button>
+          </div>
+
           {/* Scoring Info Card */}
           <div className={styles.scoringInfoCard}>
             <h3 className={styles.scoringTitle}>Scoring Info</h3>

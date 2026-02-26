@@ -10,7 +10,7 @@ import styles from './AppLayout.module.css';
 
 const AppLayout = ({ children }) => {
   const { currentUser, loading } = useAuth();
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('Claimable');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [rightSectionData, setRightSectionData] = useState(null);
@@ -74,7 +74,7 @@ const AppLayout = ({ children }) => {
   useEffect(() => {
     // Only reset if we're not on a page that uses filters
     if (location.pathname !== '/posts' && location.pathname !== '/chat') {
-      setActiveFilter('all');
+      setActiveFilter('Claimable');
     }
 
     // Close mobile sidebar on navigation
