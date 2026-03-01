@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styles from './PreferredModal.module.css';
 import PSGCService from '../../services/psgcService';
 import { MapPin } from 'lucide-react';
+import SearchableSelect from '../common/SearchableSelect/SearchableSelect';
 
 const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) => {
   const [locations, setLocations] = useState([]);
@@ -338,23 +339,16 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
                         <label htmlFor="region" className={styles.label}>
                           Region *
                         </label>
-                        <select
+                        <SearchableSelect
                           id="region"
                           value={newLocation.region}
                           onChange={handleRegionChange}
-                          className={styles.select}
-                          required
+                          options={regions}
+                          getOptionValue={(r) => r.code}
+                          getOptionLabel={(r) => r.name}
+                          placeholder={loadingLocations ? 'Loading...' : 'Select Region'}
                           disabled={loadingLocations || regions.length === 0}
-                        >
-                          <option value="">
-                            {loadingLocations ? 'Loading...' : 'Select Region'}
-                          </option>
-                          {regions.map((region) => (
-                            <option key={region.code} value={region.code}>
-                              {region.name}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </div>
 
                       {newLocation.region && !isNCR && (
@@ -362,23 +356,16 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
                           <label htmlFor="province" className={styles.label}>
                             Province *
                           </label>
-                          <select
+                          <SearchableSelect
                             id="province"
                             value={newLocation.province}
                             onChange={handleProvinceChange}
-                            className={styles.select}
-                            required
+                            options={provinces}
+                            getOptionValue={(p) => p.code}
+                            getOptionLabel={(p) => p.name}
+                            placeholder={loadingLocations ? 'Loading...' : 'Select Province'}
                             disabled={!newLocation.region || loadingLocations}
-                          >
-                            <option value="">
-                              {loadingLocations ? 'Loading...' : 'Select Province'}
-                            </option>
-                            {provinces.map((province) => (
-                              <option key={province.code} value={province.code}>
-                                {province.name}
-                              </option>
-                            ))}
-                          </select>
+                          />
                         </div>
                       )}
                     </div>
@@ -388,46 +375,32 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
                         <label htmlFor="city" className={styles.label}>
                           City/Municipality *
                         </label>
-                        <select
+                        <SearchableSelect
                           id="city"
                           value={newLocation.city}
                           onChange={handleCityChange}
-                          className={styles.select}
-                          required
+                          options={cities}
+                          getOptionValue={(c) => c.code}
+                          getOptionLabel={(c) => c.name}
+                          placeholder={loadingLocations ? 'Loading...' : 'Select City/Municipality'}
                           disabled={!newLocation.region || (!isNCR && !newLocation.province) || loadingLocations}
-                        >
-                          <option value="">
-                            {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
-                          </option>
-                          {cities.map((city) => (
-                            <option key={city.code} value={city.code}>
-                              {city.name}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </div>
 
                       <div className={styles.formGroup}>
                         <label htmlFor="barangay" className={styles.label}>
                           Barangay *
                         </label>
-                        <select
+                        <SearchableSelect
                           id="barangay"
                           value={newLocation.barangay}
                           onChange={handleBarangayChange}
-                          className={styles.select}
-                          required
+                          options={barangays}
+                          getOptionValue={(b) => b.code}
+                          getOptionLabel={(b) => b.name}
+                          placeholder={loadingLocations ? 'Loading...' : 'Select Barangay'}
                           disabled={!newLocation.city || loadingLocations}
-                        >
-                          <option value="">
-                            {loadingLocations ? 'Loading...' : 'Select Barangay'}
-                          </option>
-                          {barangays.map((barangay) => (
-                            <option key={barangay.code} value={barangay.code}>
-                              {barangay.name}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </div>
                     </div>
                   </div>

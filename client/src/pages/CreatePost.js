@@ -7,6 +7,7 @@ import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
 import GeocodingService from '../services/geocodingService';
 import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
+import SearchableSelect from '../components/common/SearchableSelect/SearchableSelect';
 import GuideLink from '../components/guide/GuideLink';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { Image, X } from 'lucide-react';
@@ -841,23 +842,16 @@ const handleRemoveImage = (index) => {
                 <label htmlFor="region" className={styles.label}>
                   Region *
                 </label>
-                <select
+                <SearchableSelect
                   id="region"
                   value={formData.region}
                   onChange={handleRegionChange}
-                  className={styles.select}
-                  required
+                  options={regions}
+                  getOptionValue={(r) => r.code}
+                  getOptionLabel={(r) => r.name}
+                  placeholder={loadingLocations ? 'Loading...' : 'Select Region'}
                   disabled={loadingLocations || regions.length === 0}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select Region'}
-                  </option>
-                  {regions.map((region) => (
-                    <option key={region.code} value={region.code}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               {/* Only show province dropdown if NOT NCR */}
@@ -874,23 +868,16 @@ const handleRemoveImage = (index) => {
                     <label htmlFor="province" className={styles.label}>
                       Province *
                     </label>
-                    <select
+                    <SearchableSelect
                       id="province"
                       value={formData.province}
                       onChange={handleProvinceChange}
-                      className={styles.select}
-                      required
+                      options={provinces}
+                      getOptionValue={(p) => p.code}
+                      getOptionLabel={(p) => p.name}
+                      placeholder={loadingLocations ? 'Loading...' : 'Select Province'}
                       disabled={!formData.region || loadingLocations}
-                    >
-                      <option value="">
-                        {loadingLocations ? 'Loading...' : 'Select Province'}
-                      </option>
-                      {provinces.map((province) => (
-                        <option key={province.code} value={province.code}>
-                          {province.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 );
               })()}
@@ -901,54 +888,40 @@ const handleRemoveImage = (index) => {
                 <label htmlFor="city" className={styles.label}>
                   City/Municipality *
                 </label>
-                <select
+                <SearchableSelect
                   id="city"
                   value={formData.city}
                   onChange={handleCityChange}
-                  className={styles.select}
-                  required
+                  options={cities}
+                  getOptionValue={(c) => c.code}
+                  getOptionLabel={(c) => c.name}
+                  placeholder={loadingLocations ? 'Loading...' : 'Select City/Municipality'}
                   disabled={(() => {
                     const selectedRegion = regions.find(r => r.code === formData.region);
                     const isNCR = selectedRegion && (
-                      selectedRegion.name.includes('NCR') || 
+                      selectedRegion.name.includes('NCR') ||
                       selectedRegion.name.includes('National Capital Region') ||
                       formData.region === '130000000'
                     );
                     return (!formData.region || (!isNCR && !formData.province) || loadingLocations);
                   })()}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
-                  </option>
-                  {cities.map((city) => (
-                    <option key={city.code} value={city.code}>
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div className={styles.formGroup}>
                 <label htmlFor="barangay" className={styles.label}>
                   Barangay *
                 </label>
-                <select
+                <SearchableSelect
                   id="barangay"
                   value={formData.barangay}
                   onChange={handleBarangayChange}
-                  className={styles.select}
-                  required
+                  options={barangays}
+                  getOptionValue={(b) => b.code}
+                  getOptionLabel={(b) => b.name}
+                  placeholder={loadingLocations ? 'Loading...' : 'Select Barangay'}
                   disabled={!formData.city || loadingLocations}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select Barangay'}
-                  </option>
-                  {barangays.map((barangay) => (
-                    <option key={barangay.code} value={barangay.code}>
-                      {barangay.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
 

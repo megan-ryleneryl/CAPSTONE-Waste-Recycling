@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Trash2 } from 'lucide-react';
 import styles from './MaterialSelector.module.css';
+import SearchableSelect from '../../common/SearchableSelect/SearchableSelect';
 
 const MaterialSelector = ({ selectedMaterials, onChange }) => {
   const [availableMaterials, setAvailableMaterials] = useState([]);
@@ -85,19 +86,14 @@ const MaterialSelector = ({ selectedMaterials, onChange }) => {
         return (
           <div key={index} className={styles.materialRow}>
             <div className={styles.selectWrapper}>
-              <select
+              <SearchableSelect
                 value={item.materialID}
                 onChange={(e) => updateMaterial(index, 'materialID', e.target.value)}
-                className={styles.select}
-                required
-              >
-                <option value="">Select Material</option>
-                {availableMaterials.map(material => (
-                  <option key={material.materialID} value={material.materialID}>
-                    {material.displayName || material.type}
-                  </option>
-                ))}
-              </select>
+                options={availableMaterials}
+                getOptionValue={(m) => m.materialID}
+                getOptionLabel={(m) => m.displayName || m.type}
+                placeholder="Select Material"
+              />
             </div>
 
             <div className={styles.quantityWrapper}>

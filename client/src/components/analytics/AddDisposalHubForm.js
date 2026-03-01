@@ -7,6 +7,7 @@ import styles from './AddDisposalHubForm.module.css';
 import { MapPin, X, Plus, Trash2, Navigation } from 'lucide-react';
 import PSGCService from '../../services/psgcService';
 import ModalPortal from '../modal/ModalPortal';
+import SearchableSelect from '../common/SearchableSelect/SearchableSelect';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -549,76 +550,56 @@ const AddDisposalHubForm = ({ onClose, onSuccess, userLocation }) => {
 
             <div className={styles.formGroup}>
               <label className={styles.required}>Region</label>
-              <select
+              <SearchableSelect
                 value={formData.address.region}
                 onChange={handleRegionChange}
-                className={styles.select}
+                options={regions}
+                getOptionValue={(r) => r.code}
+                getOptionLabel={(r) => r.name}
+                placeholder="Select Region"
                 disabled={loadingLocations}
-                required
-              >
-                <option value="">Select Region</option>
-                {regions.map(region => (
-                  <option key={region.code} value={region.code}>
-                    {region.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             {formData.address.region && !regions.find(r => r.code === formData.address.region)?.name.includes('NCR') && (
               <div className={styles.formGroup}>
                 <label className={styles.required}>Province</label>
-                <select
+                <SearchableSelect
                   value={formData.address.province}
                   onChange={handleProvinceChange}
-                  className={styles.select}
+                  options={provinces}
+                  getOptionValue={(p) => p.code}
+                  getOptionLabel={(p) => p.name}
+                  placeholder="Select Province"
                   disabled={loadingLocations || !formData.address.region}
-                  required
-                >
-                  <option value="">Select Province</option>
-                  {provinces.map(province => (
-                    <option key={province.code} value={province.code}>
-                      {province.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             )}
 
             <div className={styles.formGroup}>
               <label className={styles.required}>City/Municipality</label>
-              <select
+              <SearchableSelect
                 value={formData.address.city}
                 onChange={handleCityChange}
-                className={styles.select}
+                options={cities}
+                getOptionValue={(c) => c.code}
+                getOptionLabel={(c) => c.name}
+                placeholder="Select City/Municipality"
                 disabled={loadingLocations || !formData.address.region || (!formData.address.province && formData.address.region !== '130000000')}
-                required
-              >
-                <option value="">Select City/Municipality</option>
-                {cities.map(city => (
-                  <option key={city.code} value={city.code}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className={styles.formGroup}>
               <label className={styles.required}>Barangay</label>
-              <select
+              <SearchableSelect
                 value={formData.address.barangay}
                 onChange={handleBarangayChange}
-                className={styles.select}
+                options={barangays}
+                getOptionValue={(b) => b.code}
+                getOptionLabel={(b) => b.name}
+                placeholder="Select Barangay"
                 disabled={loadingLocations || !formData.address.city}
-                required
-              >
-                <option value="">Select Barangay</option>
-                {barangays.map(barangay => (
-                  <option key={barangay.code} value={barangay.code}>
-                    {barangay.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className={styles.formGroup}>
@@ -640,16 +621,14 @@ const AddDisposalHubForm = ({ onClose, onSuccess, userLocation }) => {
             <h3 className={styles.sectionTitle}>Accepted Materials</h3>
 
             <div className={styles.materialSelector}>
-              <select
+              <SearchableSelect
                 value={newMaterial}
                 onChange={(e) => setNewMaterial(e.target.value)}
-                className={styles.select}
-              >
-                <option value="">Select a material</option>
-                {materialOptions.map(material => (
-                  <option key={material} value={material}>{material}</option>
-                ))}
-              </select>
+                options={materialOptions}
+                getOptionValue={(m) => m}
+                getOptionLabel={(m) => m}
+                placeholder="Select a material"
+              />
               <button
                 type="button"
                 onClick={() => handleAddMaterial(newMaterial)}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import styles from './LocationFilter.module.css';
 import { MapPin, X } from 'lucide-react';
+import SearchableSelect from '../common/SearchableSelect/SearchableSelect';
 
 const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
   const [regions, setRegions] = useState([]);
@@ -388,38 +389,32 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
           {/* Region Dropdown */}
           <div className={styles.dropdownGroup}>
             <label>Region</label>
-            <select
+            <SearchableSelect
               value={selectedRegion}
               onChange={(e) => setSelectedRegion(e.target.value)}
+              options={regions}
+              getOptionValue={(r) => r.code}
+              getOptionLabel={(r) => r.name}
+              placeholder="All Regions"
+              emptyOption="All Regions"
               disabled={loading}
-              className={styles.dropdown}
-            >
-              <option value="">All Regions</option>
-              {regions.map((region) => (
-                <option key={region.code} value={region.code}>
-                  {region.name}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Province Dropdown (hidden for NCR) */}
           {selectedRegion && selectedRegion !== '130000000' && (
             <div className={styles.dropdownGroup}>
               <label>Province</label>
-              <select
+              <SearchableSelect
                 value={selectedProvince}
                 onChange={(e) => setSelectedProvince(e.target.value)}
+                options={provinces}
+                getOptionValue={(p) => p.code}
+                getOptionLabel={(p) => p.name}
+                placeholder="All Provinces"
+                emptyOption="All Provinces"
                 disabled={loading || provinces.length === 0}
-                className={styles.dropdown}
-              >
-                <option value="">All Provinces</option>
-                {provinces.map((province) => (
-                  <option key={province.code} value={province.code}>
-                    {province.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           )}
 
@@ -427,19 +422,16 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
           {(selectedProvince || selectedRegion === '130000000') && (
             <div className={styles.dropdownGroup}>
               <label>City/Municipality</label>
-              <select
+              <SearchableSelect
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
+                options={cities}
+                getOptionValue={(c) => c.code}
+                getOptionLabel={(c) => c.name}
+                placeholder="All Cities"
+                emptyOption="All Cities"
                 disabled={loading || cities.length === 0}
-                className={styles.dropdown}
-              >
-                <option value="">All Cities</option>
-                {cities.map((city) => (
-                  <option key={city.code} value={city.code}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           )}
 
@@ -447,19 +439,16 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
           {selectedCity && (
             <div className={styles.dropdownGroup}>
               <label>Barangay</label>
-              <select
+              <SearchableSelect
                 value={selectedBarangay}
                 onChange={(e) => setSelectedBarangay(e.target.value)}
+                options={barangays}
+                getOptionValue={(b) => b.code}
+                getOptionLabel={(b) => b.name}
+                placeholder="All Barangays"
+                emptyOption="All Barangays"
                 disabled={loading || barangays.length === 0}
-                className={styles.dropdown}
-              >
-                <option value="">All Barangays</option>
-                {barangays.map((barangay) => (
-                  <option key={barangay.code} value={barangay.code}>
-                    {barangay.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           )}
         </div>
