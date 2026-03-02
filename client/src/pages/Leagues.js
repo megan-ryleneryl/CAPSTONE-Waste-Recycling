@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import styles from './Leagues.module.css';
-import { TrendingUp, TrendingDown, Minus, Share2, Award, Clipboard, Info, BarChart2, ArrowRight, Users, Recycle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Share2, Award, Clipboard, Info, BarChart2, ArrowRight, Users, Recycle, MapPin, Package, Trophy, Crown } from 'lucide-react';
 
 
 // Import tier images
@@ -53,6 +53,7 @@ const Leagues = () => {
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0 });
   const [showScoreTooltip, setShowScoreTooltip] = useState(false);
+  const [ecoChampion, setEcoChampion] = useState(null);
 
   // Calculate time until next Sunday midnight (weekly reset)
   const calculateCountdown = useCallback(() => {
@@ -84,12 +85,28 @@ const Leagues = () => {
 
   useEffect(() => {
     loadLeaderboardData();
+    loadEcoChampion();
     calculateCountdown();
 
     // Update countdown every minute
     const interval = setInterval(calculateCountdown, 60000);
     return () => clearInterval(interval);
   }, [calculateCountdown]);
+
+  const loadEcoChampion = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        'http://localhost:3001/api/analytics/eco-champion',
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        setEcoChampion(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error loading eco champion:', error);
+    }
+  };
 
   const loadLeaderboardData = async () => {
     setLoading(true);
@@ -377,13 +394,111 @@ const Leagues = () => {
 
         {/* Right Section - Scoring Info */}
         <div className={styles.rightSection}>
+          {/* Eco Champion of the Month Card */}
+          <div className={styles.ecoChampionCard}>
+            <div className={styles.ecoChampionBadgeRow}>
+              <span className={styles.ecoChampionBadge}><Trophy size={13} className={styles.ecoChampionBadgeIcon} /> Eco Champion of the Month</span>
+              {ecoChampion && (
+                <span className={styles.ecoChampionMonth}>
+                  {ecoChampion.month} {ecoChampion.year}
+                </span>
+              )}
+            </div>
+
+            {ecoChampion ? (
+              <div className={styles.ecoChampionBody}>
+                <div className={styles.ecoChampionAvatar}>
+                  {ecoChampion.profilePictureUrl ? (
+                    <img
+                      src={ecoChampion.profilePictureUrl}
+                      alt={ecoChampion.name}
+                      className={styles.ecoChampionPhoto}
+                    />
+                  ) : (
+                    <div className={styles.ecoChampionAvatarFallback}>
+                      {ecoChampion.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className={styles.ecoChampionCrown}><Crown size={14} className={styles.ecoChampionCrownIcon} /></div>
+                </div>
+
+                <div className={styles.ecoChampionInfo}>
+                  <div className={styles.ecoChampionName}>{ecoChampion.name}</div>
+                  {ecoChampion.city && (
+                    <div className={styles.ecoChampionCity}>
+                      <MapPin size={12} />
+                      <span>{ecoChampion.city}</span>
+                    </div>
+                  )}
+                  <div className={styles.ecoChampionStats}>
+                    <div className={styles.ecoChampionStat}>
+                      <Recycle size={14} className={styles.ecoStatIcon} />
+                      <div>
+                        <span className={styles.ecoStatValue}>{ecoChampion.totalKgRecycled} kg</span>
+                        <span className={styles.ecoStatLabel}>Recycled</span>
+                      </div>
+                    </div>
+                    <div className={styles.ecoChampionStat}>
+                      <Package size={14} className={styles.ecoStatIcon} />
+                      <div>
+                        <span className={styles.ecoStatValue}>{ecoChampion.pickupCount}</span>
+                        <span className={styles.ecoStatLabel}>Pickups</span>
+                      </div>
+                    </div>
+                    <div className={styles.ecoChampionStat}>
+                      <Award size={14} className={styles.ecoStatIcon} />
+                      <div>
+                        <span className={styles.ecoStatValue}>{ecoChampion.points.toLocaleString()}</span>
+                        <span className={styles.ecoStatLabel}>Points</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className={styles.ecoChampionBody}>
+                <div className={styles.ecoChampionAvatar}>
+                  <div className={styles.ecoChampionAvatarEmpty}>
+                    <Users size={28} className={styles.ecoChampionAvatarEmptyIcon} />
+                  </div>
+                  <div className={styles.ecoChampionCrown}><Crown size={14} className={styles.ecoChampionCrownIcon} /></div>
+                </div>
+                <div className={styles.ecoChampionInfo}>
+                  <div className={`${styles.ecoChampionName} ${styles.ecoChampionNameEmpty}`}>
+                    Could be you!
+                  </div>
+                  <div className={styles.ecoChampionCity}>
+                    <MapPin size={12} />
+                    <span>Your city</span>
+                  </div>
+                  <div className={styles.ecoChampionStats}>
+                    <div className={`${styles.ecoChampionStat} ${styles.ecoChampionStatEmpty}`}>
+                      <Recycle size={14} className={styles.ecoStatIconEmpty} />
+                      <div>
+                        <span className={styles.ecoStatValueEmpty}>— kg</span>
+                        <span className={styles.ecoStatLabel}>Recycled</span>
+                      </div>
+                    </div>
+                    <div className={`${styles.ecoChampionStat} ${styles.ecoChampionStatEmpty}`}>
+                      <Package size={14} className={styles.ecoStatIconEmpty} />
+                      <div>
+                        <span className={styles.ecoStatValueEmpty}>—</span>
+                        <span className={styles.ecoStatLabel}>Pickups</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className={styles.ecoChampionEmptyHint}>
+                    No champion yet — complete pickups this month to claim the title!
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Community Stats CTA Card */}
           <div className={styles.communityStatsCard} onClick={() => navigate('/analytics')}>
             <div className={styles.communityStatsHeader}>
-              <div className={styles.communityStatsIconWrapper}>
-                <BarChart2 size={22} className={styles.communityStatsIcon} />
-              </div>
-              <h3 className={styles.communityStatsTitle}>Community Stats</h3>
+                  <h3 className={styles.communityStatsTitle}>Community Stats</h3>
             </div>
             <p className={styles.communityStatsDesc}>
               See how your city stacks up across recycling metrics, active users, and waste trends.
@@ -458,7 +573,15 @@ const Leagues = () => {
       {/* No User Location Warning */}
       {!currentUser?.userLocation && (
         <div className={styles.noLocationWarning}>
-          <p>Set your recycling community in your Profile to join the city competition!</p>
+          <p>
+            Set your recycling community to join the city competition!{' '}
+            <span
+              className={styles.noLocationLink}
+              onClick={() => navigate('/profile')}
+            >
+              Go to Profile &rarr;
+            </span>
+          </p>
         </div>
       )}
     </div>

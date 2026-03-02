@@ -5,7 +5,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 12px 0 12px 0;
+  margin: 0 0 12px 0;
   padding: 0 2px;
 }
 
@@ -19,6 +19,7 @@
 }
 
 .viewToggleBtn {
+  font-family: Raleway, sans-serif;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -45,6 +46,7 @@
 
 /* ── Group-by-date toggle ────────────────────────────────────────────── */
 .groupByDateBtn {
+  font-family: Raleway, sans-serif;
   display: flex;
   align-items: center;
   gap: 5px;

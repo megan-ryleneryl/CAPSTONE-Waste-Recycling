@@ -12,7 +12,34 @@ import { useCollectionRun } from '../../../context/CollectionRunContext';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins, Sparkles } from 'lucide-react';
 
 
-const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID, locationFilter = null, groupByDate = false }) => {
+// Maps material display names (as stored on posts) → waste category chip value
+const MATERIAL_NAME_TO_CATEGORY = {
+  // Paper
+  'White Paper (used)': 'Paper',
+  'Cartons (corrugated, brown)': 'Paper',
+  'Newspaper': 'Paper',
+  'Assorted/Mixed waste paper': 'Paper',
+  // Plastic
+  'PET Bottles': 'Plastic',
+  'Plastic (HDPE)': 'Plastic',
+  'Plastic (LDPE)': 'Plastic',
+  // Glass
+  'Glass Bottles': 'Glass',
+  'Glass Cullets (Broken glass)': 'Glass',
+  // Metal
+  'Aluminum Cans': 'Metal',
+  'Copper Wire_Class A': 'Metal',
+  'Copper Wire_Class B': 'Metal',
+  'Copper Wire_Class C': 'Metal',
+  'GI Sheet': 'Metal',
+  'Stainless Steel': 'Metal',
+  'Steel (Iron alloys)': 'Metal',
+  'Tin Can': 'Metal',
+  // Electronics
+  'Electronic Waste': 'Electronics',
+};
+
+const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID, locationFilter = null, wasteTypeFilter = [], groupByDate = false }) => {
 
   const { currentUser } = useAuth();
   const { addToRun, removeFromRun, isInRun } = useCollectionRun();
@@ -30,7 +57,7 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
       setPosts([]);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postType, userID, locationFilter?.region, locationFilter?.province, locationFilter?.city, locationFilter?.barangay]); // Add location filter dependencies
+  }, [postType, userID, locationFilter?.region, locationFilter?.province, locationFilter?.city, locationFilter?.barangay, wasteTypeFilter]); // Add location + waste type filter dependencies
 
   // REMOVED: This was causing double fetching - we now calculate counts from existing posts
   // The counts are calculated once in fetchPosts() instead of re-fetching all posts
@@ -111,6 +138,18 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
             const mappedType = typeMap[postType] || postType;
             filteredPosts = filteredPosts.filter(post => post.postType === mappedType);
           }
+        }
+
+        // Filter by waste material category (applies only to Waste posts)
+        if (wasteTypeFilter && wasteTypeFilter.length > 0) {
+          filteredPosts = filteredPosts.filter(post => {
+            if (post.postType !== 'Waste') return true; // keep non-waste posts unaffected
+            if (!Array.isArray(post.materials) || post.materials.length === 0) return false;
+            return post.materials.some(m => {
+              const category = MATERIAL_NAME_TO_CATEGORY[m.materialName];
+              return category && wasteTypeFilter.includes(category);
+            });
+          });
         }
 
         // Limit posts based on maxPosts prop

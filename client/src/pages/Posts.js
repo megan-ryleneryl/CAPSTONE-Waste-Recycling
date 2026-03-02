@@ -18,6 +18,7 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
     barangay: null
   });
 
+  const [wasteTypeFilter, setWasteTypeFilter] = useState([]);
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
   const [groupByDate, setGroupByDate] = useState(false);
 
@@ -77,11 +78,13 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
 
   return (
     <div>
-      {/* Location Filter */}
+      {/* Location + Waste Type Filter */}
       <LocationFilter
         onFilterChange={handleLocationFilterChange}
         currentFilter={locationFilter}
         userLocation={currentUser?.userLocation}
+        wasteTypeFilter={wasteTypeFilter}
+        onWasteTypeFilterChange={setWasteTypeFilter}
       />
 
       {/* Collector view controls — only on Claimable / Waste filters */}
@@ -131,6 +134,7 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
           onCountsUpdate={handleCountsUpdate}
           currentUserID={currentUser?.userID}
           locationFilter={locationFilter}
+          wasteTypeFilter={wasteTypeFilter}
           groupByDate={isCollectorFilter ? groupByDate : false}
         />
       )}

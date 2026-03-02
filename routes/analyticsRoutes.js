@@ -21,4 +21,7 @@ router.get('/disposal-sites', analyticsController.getNearbyDisposalSites);
 // City leaderboard endpoint for Leagues page
 router.get('/city-leaderboard', analyticsController.getCityLeaderboard);
 
+// Eco Champion of the Month endpoint for Leagues page
+router.get('/eco-champion', analyticsController.getEcoChampion);
+
 module.exports = router;

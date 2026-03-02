@@ -397,6 +397,201 @@
   color: #48bb78;
 }
 
+/* Eco Champion of the Month Card */
+.ecoChampionCard {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #f6d860;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.ecoChampionBadgeRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.ecoChampionBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #92400e;
+  letter-spacing: 0.01em;
+}
+
+.ecoChampionBadgeIcon {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+.ecoChampionMonth {
+  font-size: 0.75rem;
+  color: #b45309;
+  font-weight: 500;
+  background: #fde68a;
+  border-radius: 20px;
+  padding: 0.2rem 0.6rem;
+}
+
+.ecoChampionBody {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.ecoChampionAvatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ecoChampionPhoto {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #f59e0b;
+}
+
+.ecoChampionAvatarFallback {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: 3px solid #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ecoChampionCrown {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  line-height: 1;
+}
+
+.ecoChampionCrownIcon {
+  color: #f59e0b;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.18));
+}
+
+.ecoChampionInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.ecoChampionName {
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #78350f;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ecoChampionCity {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #b45309;
+  margin-bottom: 0.75rem;
+}
+
+.ecoChampionStats {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ecoChampionStat {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  padding: 0.35rem 0.625rem;
+}
+
+.ecoStatIcon {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+.ecoChampionStat > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.ecoStatValue {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #78350f;
+  line-height: 1.2;
+}
+
+.ecoStatLabel {
+  font-size: 0.6875rem;
+  color: #b45309;
+  line-height: 1.2;
+}
+
+.ecoChampionAvatarEmpty {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  border: 3px dashed #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ecoChampionAvatarEmptyIcon {
+  color: #9ca3af;
+}
+
+.ecoChampionNameEmpty {
+  color: #9ca3af !important;
+  font-style: italic;
+}
+
+.ecoChampionStatEmpty {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border: 1px dashed #d1d5db;
+}
+
+.ecoStatIconEmpty {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.ecoStatValueEmpty {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #9ca3af;
+  line-height: 1.2;
+}
+
+.ecoChampionEmptyHint {
+  font-size: 0.72rem;
+  color: #b45309;
+  margin: 0.625rem 0 0 0;
+  line-height: 1.45;
+  font-style: italic;
+}
+
 /* Community Stats CTA Card */
 .communityStatsCard {
   background: linear-gradient(135deg, #f0fff4 0%, #e6ffed 100%);
@@ -419,21 +614,6 @@
   margin-bottom: 0.625rem;
 }
 
-.communityStatsIconWrapper {
-  width: 38px;
-  height: 38px;
-  background: var(--primary-color);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.communityStatsIcon {
-  color: #fff;
-}
-
 .communityStatsTitle {
   font-size: 1.0625rem;
   font-weight: 700;
@@ -442,6 +622,7 @@
 }
 
 .communityStatsDesc {
+  text-align: left;
   font-size: 0.8125rem;
   color: #276749;
   line-height: 1.5;
@@ -661,6 +842,18 @@
 .noLocationWarning p {
   color: #744210;
   margin: 0;
+}
+
+.noLocationLink {
+  color: #b45309;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.noLocationLink:hover {
+  color: #78350f;
 }
 
 /* Empty State */

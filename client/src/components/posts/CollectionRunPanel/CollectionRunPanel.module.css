@@ -36,6 +36,7 @@
 }
 
 .panelTitle {
+  text-align: left;
   font-size: 0.92rem;
   font-weight: 700;
   white-space: nowrap;

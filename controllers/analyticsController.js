@@ -441,6 +441,68 @@ const analyticsController = {
         error: error.message
       });
     }
+  },
+
+  // Get Eco Champion of the Month - user with most kg recycled this month
+  async getEcoChampion(req, res) {
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const allUsers = await getCachedData('allUsers', () => User.findAll());
+      const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+      // Sum kg recycled (as giver) for completed pickups this month
+      const recyclerMap = {};
+
+      allPickups.forEach(pickup => {
+        if (!pickup.giverID || pickup.status !== 'Completed' || !pickup.finalAmount) return;
+
+        const completedDate = toDate(pickup.completedAt);
+        if (!completedDate || isNaN(completedDate.getTime()) || completedDate < startOfMonth) return;
+
+        if (!recyclerMap[pickup.giverID]) {
+          recyclerMap[pickup.giverID] = { totalRecycled: 0, pickupCount: 0 };
+        }
+        recyclerMap[pickup.giverID].totalRecycled += parseFloat(pickup.finalAmount);
+        recyclerMap[pickup.giverID].pickupCount += 1;
+      });
+
+      if (Object.keys(recyclerMap).length === 0) {
+        return res.json({ success: true, data: null });
+      }
+
+      // Find top recycler
+      const topEntry = Object.entries(recyclerMap).sort((a, b) => b[1].totalRecycled - a[1].totalRecycled)[0];
+      const [championID, stats] = topEntry;
+
+      const champion = allUsers.find(u => u.userID === championID);
+      if (!champion) {
+        return res.json({ success: true, data: null });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          userID: champion.userID,
+          name: champion.organizationName || `${champion.firstName} ${champion.lastName}`,
+          profilePictureUrl: champion.profilePictureUrl || null,
+          city: champion.userLocation?.city?.name || null,
+          totalKgRecycled: Math.round(stats.totalRecycled * 10) / 10,
+          pickupCount: stats.pickupCount,
+          points: champion.points || 0,
+          month: now.toLocaleString('default', { month: 'long' }),
+          year: now.getFullYear()
+        }
+      });
+    } catch (error) {
+      console.error('Eco champion error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch eco champion',
+        error: error.message
+      });
+    }
   }
 };
 

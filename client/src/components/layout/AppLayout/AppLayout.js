@@ -70,10 +70,11 @@ const AppLayout = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Reset activeFilter to 'all' when navigating away from pages that use filters
+  // Reset activeFilter when navigating between pages
   useEffect(() => {
-    // Only reset if we're not on a page that uses filters
-    if (location.pathname !== '/posts' && location.pathname !== '/chat') {
+    if (location.pathname === '/chat') {
+      setActiveFilter('all');
+    } else if (location.pathname === '/posts') {
       setActiveFilter('Claimable');
     }
 
