@@ -971,7 +971,7 @@ const handleMessageOwner = async (post, event) => {
     const sorted = [...posts].sort((a, b) => {
       if (!a.pickupDate) return 1;
       if (!b.pickupDate) return -1;
-      return new Date(a.pickupDate) - new Date(b.pickupDate);
+      return new Date(b.pickupDate) - new Date(a.pickupDate);
     });
 
     const groups = {};

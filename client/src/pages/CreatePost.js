@@ -9,7 +9,8 @@ import GeocodingService from '../services/geocodingService';
 import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
 import SearchableSelect from '../components/common/SearchableSelect/SearchableSelect';
 import GuideLink from '../components/guide/GuideLink';
-import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
+import QuickGuide from '../components/guide/QuickGuide';
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { Image, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -17,6 +18,7 @@ const CreatePost = () => {
   const navigate = useNavigate();
   const { success, showPointsEarned, showBadgeUnlocked } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showPostTypeGuide, setShowPostTypeGuide] = useState(false);
   const [error, setError] = useState('');
   const [materialsError, setMaterialsError] = useState('');
   const [isVerified, setIsVerified] = useState(false);
@@ -689,7 +691,22 @@ const handleRemoveImage = (index) => {
           <Link to="/posts" className={styles.backButton}>
             ← Back to Posts
           </Link>
-          <h1 className={styles.title}>Create New Post</h1>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Create New Post</h1>
+            <button
+              type="button"
+              className={styles.tooltipButton}
+              aria-label="Post type info"
+              onClick={() => setShowPostTypeGuide(true)}
+            >
+              <Info size={16} />
+            </button>
+          </div>
+          <QuickGuide
+            isOpen={showPostTypeGuide}
+            onClose={() => setShowPostTypeGuide(false)}
+            initialPage={1}
+          />
         </div>
 
         {/* Error Display */}
@@ -737,11 +754,6 @@ const handleRemoveImage = (index) => {
             <span><MessageCircle size={16} /> Forum Post</span>
             <small>{'Share and discuss'}</small>
           </button>
-        </div>
-
-        {/* Guide Link */}
-        <div style={{ textAlign: 'center', margin: '1rem 0' }}>
-          <GuideLink text="Learn more about post types" targetPage={1} />
         </div>
 
         {/* Form - Only show if user can create posts */}
@@ -960,6 +972,9 @@ const handleRemoveImage = (index) => {
             <div className={styles.wasteSpecific}>
               <h3 className={styles.sectionTitle}>
                 <Package size={20} /> Waste Details
+              <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
+                <GuideLink text="Don't know which material to select?" targetPage={5} />
+              </div>
               </h3>
 
               {/* Use Material Selector instead of text input */}
@@ -967,9 +982,6 @@ const handleRemoveImage = (index) => {
                 selectedMaterials={formData.materials}
                 onChange={(materials) => { setMaterialsError(''); setFormData({ ...formData, materials }); }}
               />
-              <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
-                <GuideLink text="Don't know which material to select? Click here!" targetPage={5} />
-              </div>
               {materialsError && (
                 <div className={styles.materialsError}>
                   {materialsError}
@@ -978,7 +990,71 @@ const handleRemoveImage = (index) => {
               
               
               {/* Keep pickupDate and pickupTime */}
-              <div className={styles.formRow}>
+              
+                  {/* Preferred Times - Weekly Calendar */}
+                  {preferredTimes && preferredTimes.length > 0 && (() => {
+                    const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const today = new Date();
+                    const todayIdx = today.getDay();
+
+                    // Map each day to its preferred times
+                    const byDay = FULL_DAYS.reduce((acc, d) => { acc[d] = []; return acc; }, {});
+                    preferredTimes.forEach(t => { if (t.day && byDay[t.day]) byDay[t.day].push(t); });
+
+                    return (
+                      <div className={styles.weekCalendar}>
+                        <label className={styles.suggestionsLabel}>Your Preferred Times:</label>
+                        <div className={styles.weekGrid}>
+                          {FULL_DAYS.map((fullDay, dayIdx) => {
+                            const slots = byDay[fullDay];
+                            const isToday = dayIdx === todayIdx;
+                            let daysUntil = dayIdx - todayIdx;
+                            if (daysUntil <= 0) daysUntil += 7;
+                            const nextDate = new Date(today);
+                            nextDate.setDate(today.getDate() + daysUntil);
+                            const dateLabel = nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                            return (
+                              <div
+                                key={fullDay}
+                                className={`${styles.weekDay} ${isToday ? styles.weekDayToday : ''} ${slots.length === 0 ? styles.weekDayEmpty : ''}`}
+                              >
+                                <div className={styles.weekDayHeader}>
+                                  <span className={styles.weekDayName}>{WEEK_DAYS[dayIdx]}</span>
+                                  <span className={styles.weekDayDate}>{dateLabel}</span>
+                                </div>
+                                <div className={styles.weekDaySlots}>
+                                  {slots.length === 0 ? (
+                                    <span className={styles.noSlot}>—</span>
+                                  ) : (
+                                    slots.map((time, i) => (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        className={styles.weekSlotButton}
+                                        onClick={() => handleSelectPreferredTime(time)}
+                                        title={`Set pickup: ${time.startTime || ''}${time.endTime ? ' – ' + time.endTime : ''}`}
+                                      >
+                                        <span className={styles.slotName}>{time.slot || 'Custom'}</span>
+                                        {time.startTime && (
+                                          <span className={styles.slotTime}>
+                                            {time.startTime}{time.endTime ? `–${time.endTime}` : ''}
+                                          </span>
+                                        )}
+                                      </button>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label htmlFor="pickupDate" className={styles.label}>
                     Preferred Pickup Date
@@ -1009,54 +1085,6 @@ const handleRemoveImage = (index) => {
 
                 </div>
               </div>
-                  {/* Preferred Times Suggestions */}
-                  {preferredTimes && preferredTimes.length > 0 && (
-                    <div className={styles.timeSuggestionsSection}>
-                      <label className={styles.suggestionsLabel}>
-                        Your Preferred Times:
-                      </label>
-                      <div className={styles.suggestionsList}>
-                        {preferredTimes.map((time, index) => {
-                          // Calculate the next matching date for display
-                          let nextDate = '';
-                          if (time.day) {
-                            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                            const targetDay = daysOfWeek.indexOf(time.day);
-                            if (targetDay !== -1) {
-                              const today = new Date();
-                              const currentDay = today.getDay();
-                              let daysUntilTarget = targetDay - currentDay;
-                              if (daysUntilTarget <= 0) {
-                                daysUntilTarget += 7;
-                              }
-                              const targetDate = new Date(today);
-                              targetDate.setDate(today.getDate() + daysUntilTarget);
-                              nextDate = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                            }
-                          }
-
-                          // Display format: "Day - Slot (StartTime - EndTime) [Next: Date]"
-                          // Example: "Monday - Morning (08:00 - 12:00) [Next: Jan 20]"
-                          const displayText = time.day && time.slot
-                            ? `${time.day} - ${time.slot}${time.startTime ? ` (${time.startTime}${time.endTime ? ` - ${time.endTime}` : ''})` : ''}${nextDate ? ` [Next: ${nextDate}]` : ''}`
-                            : time.slot || time.startTime || 'Preferred Time';
-
-                          return (
-                            <button
-                              key={index}
-                              type="button"
-                              className={styles.suggestionButton}
-                              onClick={() => handleSelectPreferredTime(time)}
-                              title={nextDate ? `Click to set pickup for ${nextDate}` : 'Click to set pickup time'}
-                            >
-                              <Clock size={14} />
-                              {displayText}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
             </div>
           )}
 
