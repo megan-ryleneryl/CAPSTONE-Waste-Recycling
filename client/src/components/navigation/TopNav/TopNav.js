@@ -498,7 +498,28 @@ const TopNav = ({ user: propUser }) => {
 
                             // Navigate based on notification type
                             if (notification.actionURL) {
-                              // Use actionURL if provided
+                              // If the actionURL targets /chat, open the conversation directly via state
+                              if (notification.actionURL.startsWith('/chat')) {
+                                const url = new URL(notification.actionURL, window.location.origin);
+                                const postID = url.searchParams.get('postId');
+                                const otherUserID = url.searchParams.get('userId');
+
+                                if (postID && otherUserID) {
+                                  const nameParts = (notification.metadata?.collectorName || '').split(' ');
+                                  navigate('/chat', {
+                                    state: {
+                                      postID,
+                                      otherUser: {
+                                        userID: otherUserID,
+                                        firstName: nameParts[0] || 'Unknown',
+                                        lastName: nameParts.slice(1).join(' ') || 'User',
+                                      },
+                                    }
+                                  });
+                                  setShowNotifications(false);
+                                  return;
+                                }
+                              }
                               navigate(notification.actionURL);
                               setShowNotifications(false);
                             } else if (notification.referenceID && notification.referenceType) {
