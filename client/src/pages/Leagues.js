@@ -284,6 +284,21 @@ const Leagues = () => {
             })}
           </div>
 
+          {/* No User Location Warning */}
+      {!currentUser?.userLocation && (
+        <div className={styles.noLocationWarning}>
+          <p>
+            Set your recycling community to join the city competition!{' '}
+            <span
+              className={styles.noLocationLink}
+              onClick={() => navigate('/profile')}
+            >
+              Go to Profile &rarr;
+            </span>
+          </p>
+        </div>
+      )}
+
           {/* User's City Card and Waste Distribution - Inline */}
           <div className={styles.userCityAndWasteRow}>
             {userCity && (
@@ -570,20 +585,6 @@ const Leagues = () => {
         </div>
       </div>
 
-      {/* No User Location Warning */}
-      {!currentUser?.userLocation && (
-        <div className={styles.noLocationWarning}>
-          <p>
-            Set your recycling community to join the city competition!{' '}
-            <span
-              className={styles.noLocationLink}
-              onClick={() => navigate('/profile')}
-            >
-              Go to Profile &rarr;
-            </span>
-          </p>
-        </div>
-      )}
     </div>
   );
 };

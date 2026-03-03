@@ -195,7 +195,7 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
         </div> */}
         <div className={styles.heroContent}>
           <h2 className={styles.heroValue}>{(analyticsData?.totalRecycled || 0).toLocaleString()} kg</h2>
-          <p className={styles.heroLabel}>Your Total Waste Recycled</p>
+          <p className={styles.heroLabel}>Total Waste Recycled</p>
         </div>
       </div>
 
