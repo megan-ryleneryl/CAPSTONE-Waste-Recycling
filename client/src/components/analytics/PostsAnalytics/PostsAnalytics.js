@@ -201,7 +201,7 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
 
       {/* Getting Started Guide Link */}
       <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
-        <GuideLink text="Don't know where to start? Click here!" targetPage={4} />
+        <GuideLink text="Don't know where to start? Click here!" targetPage={1} />
       </div>
 
       {/* Waste Distribution by Type */}

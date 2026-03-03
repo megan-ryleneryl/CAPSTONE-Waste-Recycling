@@ -1156,7 +1156,7 @@ const Analytics = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
               <h1 className={styles.welcomeTitle}>Community Stats</h1>
-              <GuideLink text="Understanding these analytics" targetPage={2} icon={<Info size={16} />} />
+              <GuideLink text="Understanding these analytics" targetPage={3} icon={<Info size={16} />} />
             </div>
             <p className={styles.welcomeSubtitle}>
               This is what's happening within our community's recycling activities.

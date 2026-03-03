@@ -705,7 +705,7 @@ const handleRemoveImage = (index) => {
           <QuickGuide
             isOpen={showPostTypeGuide}
             onClose={() => setShowPostTypeGuide(false)}
-            initialPage={1}
+            initialPage={2}
           />
         </div>
 

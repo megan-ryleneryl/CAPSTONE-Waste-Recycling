@@ -1640,7 +1640,7 @@ const Profile = ({ user: propsUser }) => {
                   <div className={styles.preferencesSection}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                       <h3 className={styles.sectionTitle} style={{ margin: 0 }}>Pickup Preferences</h3>
-                      <GuideLink text="How to set up preferences" targetPage={3} icon={<HelpCircle size={16} />} />
+                      <GuideLink text="How to set up preferences" targetPage={4} icon={<HelpCircle size={16} />} />
                     </div>
 
                     <div className={styles.preferencesContent}>
