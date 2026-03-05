@@ -491,12 +491,34 @@ export const getGuidePages = (onClose) => [
 
   // PAGE 5: Material Types Guide
   {
-    title: 'What Do the Material Options Mean?',
+    title: 'Materials & Pricing Guide',
     content: (
       <>
-        <p style={{ fontSize: '1.05rem', marginBottom: '1rem' }}>
-          When creating a post, select the recyclable material type(s) you have. Here's a quick reference:
+        <p style={{ fontSize: '1.05rem', marginBottom: '0.75rem' }}>
+          When creating a post, select the recyclable material type(s) you have. Estimated prices are based on Philippine junk shop rates.
         </p>
+
+        {/* Legend */}
+        <div style={{
+          display: 'flex',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          marginBottom: '0.75rem',
+          padding: '0.5rem 0.75rem',
+          background: '#F9FAFB',
+          borderRadius: '6px',
+          fontSize: '0.75rem',
+          color: '#6B7280',
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: '#3B6535', display: 'inline-block' }}></span>
+            Est. Price/kg
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: '#F0924C', display: 'inline-block' }}></span>
+            Max/kg (factory cap)
+          </span>
+        </div>
 
         {[
           {
@@ -505,10 +527,10 @@ export const getGuidePages = (onClose) => [
             color: '#E8F5E9',
             border: '#A5D6A7',
             items: [
-              { label: 'Cartons (corrugated, brown)', desc: 'Brown cardboard boxes and packaging' },
-              { label: 'White Paper (used)', desc: 'Used office/printer paper, bond paper' },
-              { label: 'Newspaper', desc: 'Old newspapers and newsprint' },
-              { label: 'Assorted/Mixed waste paper', desc: 'Mixed paper scraps, magazines, junk mail' },
+              { label: 'Cartons (corrugated, brown)', desc: 'Brown cardboard boxes and packaging', est: '₱0.40', max: '₱2.50' },
+              { label: 'White Paper (used)', desc: 'Used office/printer paper, bond paper', est: '₱1.20', max: '₱8.00' },
+              { label: 'Newspaper', desc: 'Old newspapers and newsprint', est: '₱0.60', max: '₱5.00' },
+              { label: 'Assorted/Mixed waste paper', desc: 'Mixed paper scraps, magazines, junk mail', est: '₱0.20', max: '₱1.50' },
             ],
           },
           {
@@ -517,9 +539,9 @@ export const getGuidePages = (onClose) => [
             color: '#E3F2FD',
             border: '#90CAF9',
             items: [
-              { label: 'PET Bottles', desc: 'Clear water/soda bottles (marked #1 PET)' },
-              { label: 'Plastic (HDPE)', desc: 'Milk jugs, shampoo bottles, containers (marked #2)' },
-              { label: 'Plastic (LDPE)', desc: 'Plastic bags, cling wrap, squeeze bottles (marked #4)' },
+              { label: 'PET Bottles', desc: 'Clear water/soda bottles (marked #1 PET)', est: '₱1.60', max: '₱15.00' },
+              { label: 'Plastic (HDPE)', desc: 'Milk jugs, shampoo bottles (marked #2)', est: '₱1.40', max: '₱10.00' },
+              { label: 'Plastic (LDPE)', desc: 'Plastic bags, cling wrap (marked #4)', est: '₱0.70', max: '₱8.00' },
             ],
           },
           {
@@ -528,8 +550,8 @@ export const getGuidePages = (onClose) => [
             color: '#FBE9E7',
             border: '#FFAB91',
             items: [
-              { label: 'Glass Bottles', desc: 'Whole glass jars and bottles (any color)' },
-              { label: 'Glass Cullets (Broken glass)', desc: 'Crushed or broken glass pieces' },
+              { label: 'Glass Bottles', desc: 'Whole glass jars and bottles (any color)', est: '₱0.30', max: '₱2.50' },
+              { label: 'Glass Cullets (Broken glass)', desc: 'Crushed or broken glass pieces', est: '₱0.15', max: '₱4.00' },
             ],
           },
           {
@@ -538,14 +560,14 @@ export const getGuidePages = (onClose) => [
             color: '#ECEFF1',
             border: '#B0BEC5',
             items: [
-              { label: 'Aluminum Cans', desc: 'Soda and beverage cans' },
-              { label: 'Copper Wire – Class A', desc: 'Bare/bright copper wire (highest grade)' },
-              { label: 'Copper Wire – Class B', desc: 'Insulated copper wire (medium grade)' },
-              { label: 'Copper Wire – Class C', desc: 'Mixed/low-grade copper wire' },
-              { label: 'GI Sheet', desc: 'Galvanized iron sheets and roofing' },
-              { label: 'Stainless Steel', desc: 'Stainless steel scrap, cookware, sinks' },
-              { label: 'Steel (Iron alloys)', desc: 'General scrap iron and steel' },
-              { label: 'Tin Can', desc: 'Food cans, aerosol cans (steel-based)' },
+              { label: 'Aluminum Cans', desc: 'Soda and beverage cans', est: '₱7.00', max: '₱50.00' },
+              { label: 'Copper Wire – Class A', desc: 'Bare/bright copper wire (highest grade)', est: '₱44.00', max: '₱280.00' },
+              { label: 'Copper Wire – Class B', desc: 'Insulated copper wire (medium grade)', est: '₱36.00', max: '₱240.00' },
+              { label: 'Copper Wire – Class C', desc: 'Mixed/low-grade copper wire', est: '₱22.00', max: '₱160.00' },
+              { label: 'GI Sheet', desc: 'Galvanized iron sheets and roofing', est: '₱1.00', max: '₱8.00' },
+              { label: 'Stainless Steel', desc: 'Stainless steel scrap, cookware, sinks', est: '₱9.00', max: '₱56.00' },
+              { label: 'Steel (Iron alloys)', desc: 'General scrap iron and steel', est: '₱1.40', max: '₱10.00' },
+              { label: 'Tin Can', desc: 'Food cans, aerosol cans (steel-based)', est: '₱0.70', max: '₱7.00' },
             ],
           },
           {
@@ -554,7 +576,7 @@ export const getGuidePages = (onClose) => [
             color: '#F3E5F5',
             border: '#CE93D8',
             items: [
-              { label: 'Electronic Waste', desc: 'Old phones, cables, boards, batteries, appliances (e-waste)' },
+              { label: 'Electronic Waste', desc: 'Old phones, cables, boards, batteries, appliances', est: '₱1.20', max: '₱8.00' },
             ],
           },
         ].map(({ category, icon, color, border, items }) => (
@@ -570,16 +592,42 @@ export const getGuidePages = (onClose) => [
             }}>
               {icon} {category}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.4rem' }}>
-              {items.map(({ label, desc }) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              {items.map(({ label, desc, est, max }) => (
                 <div key={label} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto auto',
+                  gap: '0.5rem',
+                  alignItems: 'center',
                   background: color,
                   border: `1px solid ${border}`,
                   borderRadius: '6px',
                   padding: '0.4rem 0.6rem',
                 }}>
-                  <strong style={{ fontSize: '0.8rem', display: 'block' }}>{label}</strong>
-                  <span style={{ fontSize: '0.75rem', color: '#4B5563' }}>{desc}</span>
+                  <div>
+                    <strong style={{ fontSize: '0.8rem', display: 'block' }}>{label}</strong>
+                    <span style={{ fontSize: '0.7rem', color: '#4B5563' }}>{desc}</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#3B6535',
+                    whiteSpace: 'nowrap',
+                    textAlign: 'right',
+                    minWidth: '50px',
+                  }}>
+                    {est}
+                  </span>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 500,
+                    color: '#F0924C',
+                    whiteSpace: 'nowrap',
+                    textAlign: 'right',
+                    minWidth: '55px',
+                  }}>
+                    {max}
+                  </span>
                 </div>
               ))}
             </div>
@@ -587,18 +635,35 @@ export const getGuidePages = (onClose) => [
         ))}
 
         <div style={{
-          background: '#FEF3C7',
-          border: '1px solid #F59E0B',
+          background: '#F0FDF4',
+          border: '1px solid #B3F2AC',
           borderRadius: '8px',
-          padding: '0.875rem',
-          marginTop: '0.75rem',
+          padding: '0.75rem',
+          marginTop: '0.5rem',
           display: 'flex',
           gap: '0.75rem'
         }}>
-          <div style={{ minWidth: '24px' }}>
-            <AlertCircle size={20} color="#92400E" />
+          <div style={{ minWidth: '20px' }}>
+            <TrendingUp size={18} color="#3B6535" />
           </div>
-          <p style={{ margin: 0, color: '#92400E', fontWeight: 500, fontSize: '0.875rem' }}>
+          <p style={{ margin: 0, color: '#3B6535', fontWeight: 500, fontSize: '0.8rem' }}>
+            <strong>About pricing:</strong> The green price blends the standard market rate (70%) with community transaction data (30%). The orange "Max" is the factory price cap. Actual junk shop prices vary by location and condition.
+          </p>
+        </div>
+
+        <div style={{
+          background: '#FEF3C7',
+          border: '1px solid #F59E0B',
+          borderRadius: '8px',
+          padding: '0.75rem',
+          marginTop: '0.5rem',
+          display: 'flex',
+          gap: '0.75rem'
+        }}>
+          <div style={{ minWidth: '20px' }}>
+            <AlertCircle size={18} color="#92400E" />
+          </div>
+          <p style={{ margin: 0, color: '#92400E', fontWeight: 500, fontSize: '0.8rem' }}>
             <strong>Not sure?</strong> Pick the closest match — you can always add more details in your post description!
           </p>
         </div>

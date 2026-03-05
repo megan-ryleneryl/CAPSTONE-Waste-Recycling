@@ -117,7 +117,6 @@ app.use('/api/protected/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/disposal-hubs', disposalHubRoutes);
-// app.use('/api/protected/organizations', organizationRoutes);
 app.use('/api/organizations', organizationRoutes)
 
 app.use('/api/admin', (req, res, next) => {

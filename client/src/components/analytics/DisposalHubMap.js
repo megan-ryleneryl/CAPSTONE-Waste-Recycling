@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Circle } 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styles from './DisposalHubMap.module.css';
+import GuideLink from '../guide/GuideLink';
 import { MapPin, Navigation, Phone, Mail, Globe, Clock, Star, Filter, Plus, Crosshair, Target } from 'lucide-react';
 
 // Custom marker icons removed - using custom divIcon instead
@@ -191,6 +192,9 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
             <MapPin size={24} />
             Disposal Hub Locator
           </h2>
+        </div>
+        <div style={{ textAlign: 'left', marginTop: '0.25rem' }}>
+          <h3 className={styles.helpText}>Tip: Set your map location to view nearby hubs</h3>
         </div>
 
         <div className={styles.headerActions}>

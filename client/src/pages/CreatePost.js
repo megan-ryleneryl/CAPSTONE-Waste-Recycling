@@ -13,6 +13,7 @@ import QuickGuide from '../components/guide/QuickGuide';
 import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { Image, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import MaterialPricingInfo from '../components/posts/MaterialPricingInfo/MaterialPricingInfo';
 
 const CreatePost = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const CreatePost = () => {
   const [isLocationExpanded, setIsLocationExpanded] = useState(true);
   const [preferredLocations, setPreferredLocations] = useState([]);
   const [preferredTimes, setPreferredTimes] = useState([]);
+  const [materialPricingData, setMaterialPricingData] = useState([]);
 
   const location = useLocation();
 
@@ -104,6 +106,21 @@ const CreatePost = () => {
   // Load regions on component mount
   useEffect(() => {
     loadRegions();
+  }, []);
+
+  // Fetch material pricing data for display
+  useEffect(() => {
+    const fetchMaterialPricing = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/api/materials');
+        if (response.data.success) {
+          setMaterialPricingData(response.data.materials);
+        }
+      } catch (error) {
+        console.error('Error fetching material pricing:', error);
+      }
+    };
+    fetchMaterialPricing();
   }, []);
 
   const loadRegions = async () => {
@@ -982,6 +999,10 @@ const handleRemoveImage = (index) => {
                 selectedMaterials={formData.materials}
                 onChange={(materials) => { setMaterialsError(''); setFormData({ ...formData, materials }); }}
               />
+              <MaterialPricingInfo
+                selectedMaterials={formData.materials}
+                pricingData={materialPricingData}
+              />
               {materialsError && (
                 <div className={styles.materialsError}>
                   {materialsError}
@@ -1100,6 +1121,9 @@ const handleRemoveImage = (index) => {
                 <label className={styles.label}>
                   <span className={styles.hint}>Select the materials you need for this initiative</span>
                 </label>
+                <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
+                  <GuideLink text="Don't know which material to select?" targetPage={5} />
+                </div>
                 <MaterialSelector
                   selectedMaterials={formData.materials}
                   onChange={(materials) => {
@@ -1115,9 +1139,10 @@ const handleRemoveImage = (index) => {
                     quantity: 'Target Quantity'
                   }}
                 />
-                <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
-                  <GuideLink text="Don't know which material to select? Click here!" targetPage={5} />
-                </div>
+                <MaterialPricingInfo
+                  selectedMaterials={formData.materials}
+                  pricingData={materialPricingData}
+                />
               </div>
 
               {/* Show calculated target amount */}
@@ -1193,10 +1218,6 @@ const handleRemoveImage = (index) => {
               </p>
             </div>
           </div>
-
-
-
-          
 
           {/* Forum-specific Fields */}
           {postType === 'Forum' && (

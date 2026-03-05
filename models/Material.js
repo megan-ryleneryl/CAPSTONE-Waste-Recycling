@@ -9,6 +9,8 @@ class Material {
     this.type = data.type || '';
     this.displayName = data.displayName || data.type || '';
     this.averagePricePerKg = data.averagePricePerKg || 0;
+    this.standardMarketPrice = data.standardMarketPrice || 0; // Standard market price (1/4-1/5 of junk shop)
+    this.maxPricePerKg = data.maxPricePerKg || 0; // Price cap per material (factory price)
     this.pricingHistory = data.pricingHistory || []; // Array of {price, date}
     this.createdAt = data.createdAt || new Date();
     this.updatedAt = data.updatedAt || new Date();
@@ -32,6 +34,9 @@ class Material {
     if (typeof this.averagePricePerKg !== 'number' || this.averagePricePerKg < 0) {
       errors.push('Valid average price per kg is required');
     }
+    if (typeof this.maxPricePerKg !== 'number' || this.maxPricePerKg < 0) {
+      errors.push('Valid max price per kg is required');
+    }
 
     return {
       isValid: errors.length === 0,
@@ -47,6 +52,8 @@ class Material {
       type: this.type,
       displayName: this.displayName,
       averagePricePerKg: this.averagePricePerKg,
+      standardMarketPrice: this.standardMarketPrice,
+      maxPricePerKg: this.maxPricePerKg,
       pricingHistory: this.pricingHistory,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
@@ -178,7 +185,15 @@ class Material {
   }
 
   // Update material price and add to history
+  // Enforces maxPricePerKg cap if set
   async updatePrice(newPrice) {
+    // Enforce price cap if maxPricePerKg is set
+    if (this.maxPricePerKg > 0 && newPrice > this.maxPricePerKg) {
+      throw new Error(
+        `Price ₱${newPrice}/kg exceeds the cap of ₱${this.maxPricePerKg}/kg for ${this.displayName || this.type}`
+      );
+    }
+
     // Add current price to history before updating
     this.pricingHistory.push({
       price: this.averagePricePerKg,
@@ -191,6 +206,7 @@ class Material {
     
     await this.update({
       averagePricePerKg: this.averagePricePerKg,
+      maxPricePerKg: this.maxPricePerKg,
       pricingHistory: this.pricingHistory,
       updatedAt: this.updatedAt
     });
@@ -209,24 +225,95 @@ class Material {
     return 'stable';
   }
 
-  // Get average price over time period
-  getAveragePriceInPeriod(days = 30) {
+  // Helper: convert a Firestore Timestamp or date-like value to a JS Date
+  static _toDate(val) {
+    if (!val) return null;
+    // Firestore Timestamp object (has toDate method)
+    if (typeof val.toDate === 'function') return val.toDate();
+    // Firestore Timestamp with _seconds (serialized)
+    if (val._seconds != null) return new Date(val._seconds * 1000);
+    // Already a Date
+    if (val instanceof Date) return val;
+    // ISO string or epoch number
+    return new Date(val);
+  }
+
+  // Get quantity-weighted market average from community transaction data
+  // Excludes 0-price entries; weights by quantity so larger transactions count more
+  getMarketAverage(days = 180) {
     const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const recentPrices = this.pricingHistory.filter(entry => entry.date >= cutoffDate);
-    
-    if (recentPrices.length === 0) return this.averagePricePerKg;
-    
-    const sum = recentPrices.reduce((total, entry) => total + entry.price, 0);
-    return sum / recentPrices.length;
+    const recentEntries = this.pricingHistory.filter(entry => {
+      if (!entry.price || entry.price <= 0) return false;
+      const entryDate = Material._toDate(entry.date);
+      return entryDate && entryDate >= cutoffDate;
+    });
+
+    if (recentEntries.length === 0) return null; // No market data available
+
+    let totalWeightedPrice = 0;
+    let totalQuantity = 0;
+
+    for (const entry of recentEntries) {
+      const qty = parseFloat(entry.quantity) || 1; // Default to 1 if no quantity
+      totalWeightedPrice += entry.price * qty;
+      totalQuantity += qty;
+    }
+
+    if (totalQuantity === 0) return null;
+
+    return totalWeightedPrice / totalQuantity;
+  }
+
+  // Get the display price shown to users
+  // Formula: (base value × 70%) + (market average × 30%)
+  // base = standardMarketPrice (falls back to averagePricePerKg if not set)
+  // market = quantity-weighted community average from transactions
+  // If no market data, falls back to base value only
+  getDisplayPrice(days = 180) {
+    const BASE_WEIGHT = 0.7;
+    const MARKET_WEIGHT = 0.3;
+
+    // Use standardMarketPrice as base; fall back to averagePricePerKg
+    const basePrice = this.standardMarketPrice > 0
+      ? this.standardMarketPrice
+      : this.averagePricePerKg;
+    const marketAvg = this.getMarketAverage(days);
+
+    // No market data — just use the base value
+    if (marketAvg === null) return basePrice;
+
+    return (basePrice * BASE_WEIGHT) + (marketAvg * MARKET_WEIGHT);
+  }
+
+  // Get average price over time period (kept for backward compatibility)
+  // Now uses the weighted display price formula
+  getAveragePriceInPeriod(days = 180) {
+    return this.getDisplayPrice(days);
   }
 
   // Get price change percentage
-  getPriceChangePercentage(days = 30) {
-    const oldAverage = this.getAveragePriceInPeriod(days);
-    const currentPrice = this.averagePricePerKg;
+  getPriceChangePercentage(days = 180) {
+    const displayPrice = this.getDisplayPrice(days);
+    const basePrice = this.standardMarketPrice > 0
+      ? this.standardMarketPrice
+      : this.averagePricePerKg;
     
-    if (oldAverage === 0) return 0;
-    return ((currentPrice - oldAverage) / oldAverage) * 100;
+    if (basePrice === 0) return 0;
+    return ((displayPrice - basePrice) / basePrice) * 100;
+  }
+
+  // Get computed pricing info (useful for API responses)
+  getPricingInfo() {
+    const marketAvg = this.getMarketAverage(180);
+    return {
+      averagePricePerKg: this.averagePricePerKg,
+      standardMarketPrice: this.standardMarketPrice,
+      maxPricePerKg: this.maxPricePerKg,
+      displayPrice: parseFloat(this.getDisplayPrice(180).toFixed(2)),
+      marketAverage: marketAvg !== null ? parseFloat(marketAvg.toFixed(2)) : null,
+      trend: this.getPriceTrend(),
+      changePercent: parseFloat(this.getPriceChangePercentage(180).toFixed(2))
+    };
   }
 }
 

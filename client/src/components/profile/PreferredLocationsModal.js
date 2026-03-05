@@ -270,13 +270,13 @@ const PreferredLocationsModal = ({ onClose, onSubmit, currentLocations = [] }) =
               {locations.length === 0 && !isAddingLocation ? (
                 <div className={styles.emptyState}>
                   <p>No pickup locations added yet</p>
-                  <button 
+                  {/* <button 
                     type="button"
                     onClick={() => setIsAddingLocation(true)}
                     className={styles.ctaButton}
                   >
                     Add Your First Location
-                  </button>
+                  </button> */}
                 </div>
               ) : (
                 <div className={styles.locationsList}>

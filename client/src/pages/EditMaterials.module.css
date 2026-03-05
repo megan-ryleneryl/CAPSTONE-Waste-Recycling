@@ -592,6 +592,166 @@
   background: var(--bg-secondary);
 }
 
+/* Pricing section header in form */
+.formSectionHeader {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-secondary, #666);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 1rem 0 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border-light, #f0f0f0);
+}
+
+/* Two-column row for pricing inputs */
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Small hint text under label */
+.fieldHint {
+  display: block;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-normal, 400);
+  color: var(--text-muted, #999);
+  margin-top: 0.15rem;
+}
+
+/* Live price preview */
+.pricePreview {
+  background: var(--primary-alpha-10, rgba(59, 101, 53, 0.1));
+  border: 1px solid var(--primary-alpha-20, rgba(59, 101, 53, 0.2));
+  border-radius: var(--border-radius-md, 8px);
+  padding: 0.625rem 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.pricePreviewLabel {
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-secondary, #666);
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.pricePreviewValue {
+  font-size: var(--font-size-base, 1rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--primary-color, #3B6535);
+}
+
+.pricePreviewNote {
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-normal, 400);
+  color: var(--text-muted, #999);
+}
+
+/* Display price column in table */
+.displayPriceCell {
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--primary-color, #3B6535);
+}
+
+/* Max price column in table */
+.maxPriceCell {
+  color: var(--secondary-color, #F0924C);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+/* "No data" placeholder */
+.noData {
+  color: var(--text-light, #ccc);
+  font-style: italic;
+}
+
+/* ──── View Details: pricing grid ──── */
+.pricingDetailsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+  margin: 0.75rem 0;
+}
+
+@media (max-width: 480px) {
+  .pricingDetailsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricingDetailCard {
+  background: var(--bg-light, #f5f5f5);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: var(--border-radius-md, 8px);
+  padding: 0.625rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pricingDetailLabel {
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-muted, #999);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pricingDetailValue {
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--text-primary, #333);
+}
+
+.pricingDetailHint {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-muted, #999);
+}
+
+.highlightGreen {
+  color: var(--primary-color, #3B6535);
+}
+
+.highlightOrange {
+  color: var(--secondary-color, #F0924C);
+}
+
+/* ──── History items with quantity ──── */
+.historyItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-light, #f0f0f0);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.historyItem:last-child {
+  border-bottom: none;
+}
+
+.historyQty {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-muted, #999);
+  background: var(--bg-light, #f5f5f5);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--border-radius-sm, 4px);
+}
+
+.historyDate {
+  margin-left: auto;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--text-muted, #999);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .editMaterialsContainer {

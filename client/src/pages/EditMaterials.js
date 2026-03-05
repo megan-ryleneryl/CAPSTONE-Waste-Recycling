@@ -17,7 +17,9 @@ const EditMaterials = () => {
     displayName: '',
     type: '',
     category: '',
-    averagePricePerKg: ''
+    averagePricePerKg: '',
+    standardMarketPrice: '',
+    maxPricePerKg: ''
   });
   const [filters, setFilters] = useState({
     category: 'all',
@@ -48,7 +50,6 @@ const EditMaterials = () => {
   const categories = ['Recyclable', 'Metal', 'Plastic', 'Paper', 'Glass', 'Organic', 'Textile', 'Electronics'];
 
   useEffect(() => {
-    // Check if user is admin before fetching
     if (!authLoading && currentUser) {
       if (!currentUser.isAdmin) {
         alert('You do not have permission to view this page');
@@ -66,7 +67,6 @@ const EditMaterials = () => {
 
     let dateObj;
 
-    // Handle different date formats from Firestore
     if (date?.seconds) {
       dateObj = new Date(date.seconds * 1000);
     } else if (date?.toDate && typeof date.toDate === 'function') {
@@ -97,9 +97,7 @@ const EditMaterials = () => {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-
       const token = localStorage.getItem('token');
-
       const response = await axios.get('http://localhost:3001/api/admin/materials', {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
@@ -122,14 +120,18 @@ const EditMaterials = () => {
     }
   };
 
+  const resetFormData = () => ({
+    displayName: '',
+    type: '',
+    category: '',
+    averagePricePerKg: '',
+    standardMarketPrice: '',
+    maxPricePerKg: ''
+  });
+
   const handleAddMaterial = () => {
     setIsEditMode(false);
-    setFormData({
-      displayName: '',
-      type: '',
-      category: '',
-      averagePricePerKg: ''
-    });
+    setFormData(resetFormData());
     setSelectedMaterial(null);
     setShowModal(true);
   };
@@ -141,7 +143,9 @@ const EditMaterials = () => {
       displayName: material.displayName,
       type: material.type,
       category: material.category,
-      averagePricePerKg: material.averagePricePerKg.toString()
+      averagePricePerKg: (material.averagePricePerKg || 0).toString(),
+      standardMarketPrice: (material.standardMarketPrice || 0).toString(),
+      maxPricePerKg: (material.maxPricePerKg || 0).toString()
     });
     setShowModal(true);
   };
@@ -153,14 +157,25 @@ const EditMaterials = () => {
   };
 
   const handleSaveMaterial = async () => {
-    if (!formData.displayName || !formData.type || !formData.category || !formData.averagePricePerKg) {
-      alert('Please fill in all fields');
+    if (!formData.displayName || !formData.type || !formData.category) {
+      alert('Please fill in Display Name, Type, and Category');
       return;
     }
 
-    if (isNaN(parseFloat(formData.averagePricePerKg)) || parseFloat(formData.averagePricePerKg) < 0) {
-      alert('Average price must be a valid positive number');
+    const avgPrice = parseFloat(formData.averagePricePerKg) || 0;
+    const stdPrice = parseFloat(formData.standardMarketPrice) || 0;
+    const maxPrice = parseFloat(formData.maxPricePerKg) || 0;
+
+    if (avgPrice < 0 || stdPrice < 0 || maxPrice < 0) {
+      alert('Prices cannot be negative');
       return;
+    }
+
+    // Warn if standard market price is higher than max
+    if (maxPrice > 0 && stdPrice > maxPrice) {
+      if (!window.confirm('Standard market price is higher than the max price cap. Continue anyway?')) {
+        return;
+      }
     }
 
     try {
@@ -177,7 +192,9 @@ const EditMaterials = () => {
           displayName: formData.displayName,
           type: formData.type,
           category: formData.category,
-          averagePricePerKg: parseFloat(formData.averagePricePerKg)
+          averagePricePerKg: avgPrice,
+          standardMarketPrice: stdPrice,
+          maxPricePerKg: maxPrice
         },
         {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -191,7 +208,7 @@ const EditMaterials = () => {
       }
     } catch (error) {
       console.error('Error saving material:', error);
-      alert(error.response?.data?.error || 'Failed to save material');
+      alert(error.response?.data?.error || error.response?.data?.message || 'Failed to save material');
     }
   };
 
@@ -224,12 +241,7 @@ const EditMaterials = () => {
     setShowModal(false);
     setSelectedMaterial(null);
     setIsEditMode(false);
-    setFormData({
-      displayName: '',
-      type: '',
-      category: '',
-      averagePricePerKg: ''
-    });
+    setFormData(resetFormData());
   };
 
   const filteredMaterials = materials.filter(material => {
@@ -240,6 +252,18 @@ const EditMaterials = () => {
 
     return categoryMatch && searchMatch;
   });
+
+  // Compute display price for a material (mirrors backend logic)
+  const getDisplayPrice = (material) => {
+    const base = material.standardMarketPrice > 0
+      ? material.standardMarketPrice
+      : material.averagePricePerKg || 0;
+    // If pricing info from API is available, use it
+    if (material.pricing?.displayPrice != null) {
+      return material.pricing.displayPrice;
+    }
+    return base;
+  };
 
   if (loading) {
     return (
@@ -272,7 +296,6 @@ const EditMaterials = () => {
 
       {/* Filters */}
       <div className={styles.filters}>
-        {/* Search Bar */}
         <div className={styles.searchBar}>
           <input
             type="text"
@@ -283,7 +306,6 @@ const EditMaterials = () => {
           />
         </div>
 
-        {/* Filter Buttons */}
         <div className={styles.filterRow}>
           <div className={styles.filterGroup}>
             <span className={styles.filterLabel}>Category:</span>
@@ -318,9 +340,9 @@ const EditMaterials = () => {
               <thead>
                 <tr>
                   <th>Display Name</th>
-                  <th>Type</th>
                   <th>Category</th>
-                  <th>Price/kg</th>
+                  <th>Std. Market</th>
+                  <th>Max (Cap)</th>
                   <th>Updated</th>
                   <th>Actions</th>
                 </tr>
@@ -331,16 +353,22 @@ const EditMaterials = () => {
                     <td className={styles.displayNameCell}>
                       {material.displayName}
                     </td>
-                    <td className={styles.typeCell}>
-                      {material.type.replace(/_/g, ' ')}
-                    </td>
                     <td>
                       <span className={styles.categoryBadge}>
                         {material.category}
                       </span>
                     </td>
                     <td className={styles.priceCell}>
-                      ₱{material.averagePricePerKg.toFixed(2)}
+                      {material.standardMarketPrice > 0
+                        ? `₱${material.standardMarketPrice.toFixed(2)}`
+                        : <span className={styles.noData}>—</span>
+                      }
+                    </td>
+                    <td className={styles.maxPriceCell}>
+                      {material.maxPricePerKg > 0
+                        ? `₱${material.maxPricePerKg.toFixed(2)}`
+                        : <span className={styles.noData}>—</span>
+                      }
                     </td>
                     <td className={styles.dateCell}>
                       {formatDate(material.updatedAt)}
@@ -382,8 +410,8 @@ const EditMaterials = () => {
       {showModal && (
         <ModalPortal>
           <div className={styles.modalBackdrop} onClick={closeModal}>
-            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-              <div className={styles.modalContent}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()} style={{ maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+              <div className={styles.modalContent} style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <div className={styles.modalHeader}>
                   <h2>{isEditMode ? 'Edit Material' : selectedMaterial ? 'Material Details' : 'Add New Material'}</h2>
                   <button className={styles.closeButton} onClick={closeModal}>
@@ -391,8 +419,9 @@ const EditMaterials = () => {
                   </button>
                 </div>
 
-                <div className={styles.detailsContent}>
+                <div className={styles.detailsContent} style={{ overflowY: 'auto', flex: 1 }}>
                   {isEditMode || !selectedMaterial ? (
+                    /* ──── ADD / EDIT FORM ──── */
                     <>
                       <div className={styles.formGroup}>
                         <label htmlFor="displayName">Display Name *</label>
@@ -440,8 +469,50 @@ const EditMaterials = () => {
                         </select>
                       </div>
 
+                      {/* Pricing section header */}
+                      <div className={styles.formSectionHeader}>Pricing</div>
+
+                      <div className={styles.formRow}>
+                        <div className={styles.formGroup}>
+                          <label htmlFor="standardMarketPrice">
+                            Standard Market Price/kg
+                            <span className={styles.fieldHint}>Base rate (1/5 of junk shop price)</span>
+                          </label>
+                          <input
+                            id="standardMarketPrice"
+                            type="number"
+                            className={styles.formInput}
+                            value={formData.standardMarketPrice}
+                            onChange={(e) => setFormData({ ...formData, standardMarketPrice: e.target.value })}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                          <label htmlFor="maxPricePerKg">
+                            Max Price/kg (Cap)
+                            <span className={styles.fieldHint}>Factory price ceiling</span>
+                          </label>
+                          <input
+                            id="maxPricePerKg"
+                            type="number"
+                            className={styles.formInput}
+                            value={formData.maxPricePerKg}
+                            onChange={(e) => setFormData({ ...formData, maxPricePerKg: e.target.value })}
+                            placeholder="0.00"
+                            step="0.01"
+                            min="0"
+                          />
+                        </div>
+                      </div>
+
                       <div className={styles.formGroup}>
-                        <label htmlFor="price">Average Price Per KG *</label>
+                        <label htmlFor="price">
+                          Community Avg Price/kg
+                          <span className={styles.fieldHint}>Updated via transactions (averagePricePerKg)</span>
+                        </label>
                         <input
                           id="price"
                           type="number"
@@ -453,22 +524,86 @@ const EditMaterials = () => {
                           min="0"
                         />
                       </div>
+
+                      {/* Live preview of display price */}
+                      {(parseFloat(formData.standardMarketPrice) > 0 || parseFloat(formData.averagePricePerKg) > 0) && (
+                        <div className={styles.pricePreview}>
+                          <span className={styles.pricePreviewLabel}>Display Price Preview:</span>
+                          <span className={styles.pricePreviewValue}>
+                            ₱{(() => {
+                              const base = parseFloat(formData.standardMarketPrice) > 0
+                                ? parseFloat(formData.standardMarketPrice)
+                                : parseFloat(formData.averagePricePerKg) || 0;
+                              // Without live market data, show base only
+                              return base.toFixed(2);
+                            })()}
+                            <span className={styles.pricePreviewNote}> (base only — market avg applied at runtime)</span>
+                          </span>
+                        </div>
+                      )}
                     </>
                   ) : (
+                    /* ──── VIEW DETAILS ──── */
                     <>
                       <p><strong>Display Name:</strong> {selectedMaterial.displayName}</p>
                       <p><strong>Material Type:</strong> {selectedMaterial.type.replace(/_/g, ' ')}</p>
                       <p><strong>Category:</strong> {selectedMaterial.category}</p>
-                      <p><strong>Average Price/kg:</strong> ₱{selectedMaterial.averagePricePerKg.toFixed(2)}</p>
+
+                      <div className={styles.pricingDetailsGrid}>
+                        <div className={styles.pricingDetailCard}>
+                          <span className={styles.pricingDetailLabel}>Standard Market</span>
+                          <span className={styles.pricingDetailValue}>
+                            {selectedMaterial.standardMarketPrice > 0
+                              ? `₱${selectedMaterial.standardMarketPrice.toFixed(2)}`
+                              : '—'}
+                          </span>
+                          <span className={styles.pricingDetailHint}>Base (70%)</span>
+                        </div>
+                        <div className={styles.pricingDetailCard}>
+                          <span className={styles.pricingDetailLabel}>Community Avg</span>
+                          <span className={styles.pricingDetailValue}>
+                            ₱{(selectedMaterial.averagePricePerKg || 0).toFixed(2)}
+                          </span>
+                          <span className={styles.pricingDetailHint}>From transactions</span>
+                        </div>
+                        <div className={styles.pricingDetailCard}>
+                          <span className={styles.pricingDetailLabel}>Display Price</span>
+                          <span className={`${styles.pricingDetailValue} ${styles.highlightGreen}`}>
+                            ₱{getDisplayPrice(selectedMaterial).toFixed(2)}
+                          </span>
+                          <span className={styles.pricingDetailHint}>Shown to users</span>
+                        </div>
+                        <div className={styles.pricingDetailCard}>
+                          <span className={styles.pricingDetailLabel}>Max (Cap)</span>
+                          <span className={`${styles.pricingDetailValue} ${styles.highlightOrange}`}>
+                            {selectedMaterial.maxPricePerKg > 0
+                              ? `₱${selectedMaterial.maxPricePerKg.toFixed(2)}`
+                              : '—'}
+                          </span>
+                          <span className={styles.pricingDetailHint}>Factory ceiling</span>
+                        </div>
+                      </div>
+
+                      {/* Market average from API if available */}
+                      {selectedMaterial.pricing?.marketAverage != null && (
+                        <p style={{ marginTop: '0.5rem' }}>
+                          <strong>Market Avg (qty-weighted, 180d):</strong> ₱{selectedMaterial.pricing.marketAverage.toFixed(2)}
+                        </p>
+                      )}
+
                       <p><strong>Created:</strong> {formatDate(selectedMaterial.createdAt)}</p>
                       <p><strong>Last Updated:</strong> {formatDate(selectedMaterial.updatedAt)}</p>
 
                       {selectedMaterial.pricingHistory && selectedMaterial.pricingHistory.length > 0 && (
                         <div className={styles.pricingHistorySection}>
-                          <strong>Pricing History</strong>
+                          <strong>Recent Transaction History</strong>
                           {selectedMaterial.pricingHistory.slice(-5).reverse().map((entry, index) => (
                             <div key={index} className={styles.historyItem}>
-                              ₱{entry.price.toFixed(2)} - {formatDate(entry.date)}
+                              <span>₱{(entry.price || 0).toFixed(2)}</span>
+                              {entry.quantity && (
+                                <span className={styles.historyQty}>{entry.quantity} kg</span>
+                              )}
+                              <span className={styles.historyDate}>{formatDate(entry.date)}</span>
                             </div>
                           ))}
                         </div>
