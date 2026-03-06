@@ -1,0 +1,251 @@
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  min-width: 300px;
+  max-width: 420px;
+  position: relative;
+  overflow: hidden;
+  transform-origin: bottom right;
+}
+
+/* Entry animation */
+.toast-enter {
+  animation: toastSlideIn 0.25s ease-out forwards;
+}
+
+@keyframes toastSlideIn {
+  0% {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Exit animation */
+.toast-exit {
+  animation: toastSlideOut 0.2s ease-in forwards;
+}
+
+@keyframes toastSlideOut {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+}
+
+/* Icon wrapper */
+.toast-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.toast-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Content */
+.toast-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #1a1a2e;
+  margin-bottom: 2px;
+}
+
+.toast-message {
+  font-size: 13px;
+  color: #4a5568;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.toast-action {
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* Close button */
+.toast-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: all 0.2s;
+}
+
+.toast-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #4a5568;
+}
+
+/* Progress bar */
+.toast-progress-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.toast-progress {
+  height: 100%;
+  transition: width 0.1s linear;
+}
+
+/* Type-specific styles */
+.toast-success {
+  border-left: 4px solid #3B6535;
+}
+
+.toast-success .toast-icon-wrapper {
+  background: rgba(179, 242, 172, 0.3);
+  color: #3B6535;
+}
+
+.toast-success .toast-progress {
+  background: #3B6535;
+}
+
+.toast-success .toast-action {
+  background: rgba(179, 242, 172, 0.3);
+  color: #2d4e29;
+}
+
+.toast-success .toast-action:hover {
+  background: rgba(179, 242, 172, 0.5);
+}
+
+.toast-error {
+  border-left: 4px solid #ef4444;
+}
+
+.toast-error .toast-icon-wrapper {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.toast-error .toast-progress {
+  background: #ef4444;
+}
+
+.toast-error .toast-action {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.toast-error .toast-action:hover {
+  background: #fecaca;
+}
+
+.toast-warning {
+  border-left: 4px solid #F0924C;
+}
+
+.toast-warning .toast-icon-wrapper {
+  background: rgba(240, 146, 76, 0.15);
+  color: #F0924C;
+}
+
+.toast-warning .toast-progress {
+  background: #F0924C;
+}
+
+.toast-warning .toast-action {
+  background: rgba(240, 146, 76, 0.15);
+  color: #d97f3b;
+}
+
+.toast-warning .toast-action:hover {
+  background: rgba(240, 146, 76, 0.25);
+}
+
+.toast-info {
+  border-left: 4px solid #3b82f6;
+}
+
+.toast-info .toast-icon-wrapper {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.toast-info .toast-progress {
+  background: #3b82f6;
+}
+
+.toast-info .toast-action {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.toast-info .toast-action:hover {
+  background: #bfdbfe;
+}
+
+.toast-pickup {
+  border-left: 4px solid #4a7c42;
+}
+
+.toast-pickup .toast-icon-wrapper {
+  background: rgba(179, 242, 172, 0.3);
+  color: #4a7c42;
+}
+
+.toast-pickup .toast-progress {
+  background: #4a7c42;
+}
+
+.toast-pickup .toast-action {
+  background: rgba(179, 242, 172, 0.3);
+  color: #3B6535;
+}
+
+.toast-pickup .toast-action:hover {
+  background: rgba(179, 242, 172, 0.5);
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .toast {
+    min-width: auto;
+    max-width: none;
+    width: 100%;
+  }
+}

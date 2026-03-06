@@ -58,6 +58,12 @@ class WastePost extends Post {
         }
         // materialName is optional but recommended
       }
+
+      // Enforce minimum total quantity of 5 kg across all materials
+      const totalQuantity = this.materials.reduce((sum, m) => sum + (parseFloat(m.quantity) || 0), 0);
+      if (totalQuantity < 5) {
+        errors.push('Total recyclable quantity must be at least 5 kg');
+      }
     }
 
     // Set defaults for optional fields
@@ -94,7 +100,7 @@ class WastePost extends Post {
       // User flags
       isCollector: this.isCollector,
       isAdmin: this.isAdmin,
-      isOrganization: this.isOrganization
+      organizationID: this.organizationID
     };
   }
 

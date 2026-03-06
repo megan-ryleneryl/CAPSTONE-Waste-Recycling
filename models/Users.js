@@ -13,8 +13,8 @@ class User {
     this.status = data.status || 'Pending'; // Suspended, Pending, Verified, Submitted
     this.isCollector = data.isCollector || false;
     this.isAdmin = data.isAdmin || false; 
-    this.isOrganization = data.isOrganization || false;
     this.organizationName = data.organizationName || null;
+    this.organizationID = data.organizationID || null;
     this.preferredTimes = data.preferredTimes || [];
     // Array of structured location objects matching Pickup.pickupLocation format
     // Each location: { name, region: {code, name}, province: {code, name} | null,
@@ -27,6 +27,10 @@ class User {
     this.userLocation = data.userLocation || null;
     this.points = data.points || 0;
     this.badges = data.badges || []; // Array of {badgeId, earnedAt}
+    this.privacySettings = data.privacySettings || {
+      showEarnings: false,        // Consent to show earnings on leaderboard
+      showNameOnLeaderboard: false // Consent to show real name (vs "Anonymous User")
+    };
     this.profilePictureUrl = data.profilePictureUrl || '';
     this.createdAt = data.createdAt || new Date();
     this.deletedAt = null;
@@ -46,9 +50,11 @@ class User {
     if (!this.email) errors.push('Email is required');
     if (typeof this.isCollector !== 'boolean') errors.push('isCollector must be boolean');
     if (typeof this.isAdmin !== 'boolean') errors.push('isAdmin must be boolean');
-    if (typeof this.isOrganization !== 'boolean') errors.push('isOrganization must be boolean');
     if (!['Pending', 'Verified', 'Submitted', 'Rejected'].includes(this.status)) {
       errors.push('Valid status is required');
+    }
+    if (this.organizationID !== null && typeof this.organizationID !== 'string') {
+      errors.push('organizationID must be a string or null');
     }
 
     return {
@@ -69,17 +75,17 @@ class User {
       status: this.status,
       isCollector: this.isCollector,
       isAdmin: this.isAdmin,
-      isOrganization: this.isOrganization,
       organizationName: this.organizationName,
+      organizationID: this.organizationID,
       preferredTimes: this.preferredTimes,
       preferredLocations: this.preferredLocations,
       userLocation: this.userLocation,
       points: this.points,
       badges: this.badges,
+      privacySettings: this.privacySettings,
       createdAt: this.createdAt,
       profilePictureUrl: this.profilePictureUrl,
       deletedAt: this.deletedAt,
-      status: this.status,
       suspensionReason: this.suspensionReason,
       suspendedAt: this.suspendedAt,
       suspendedBy: this.suspendedBy,
@@ -136,38 +142,6 @@ class User {
       return null;
     } catch (error) {
       throw new Error(`Failed to find user by email: ${error.message}`);
-    }
-  }
-
-  static async findByFlags(filters = {}) {
-    const db = getFirestore();
-    try {
-      const usersRef = collection(db, 'users');
-      const conditions = [];
-      
-      if (filters.isAdmin !== undefined) {
-        conditions.push(where('isAdmin', '==', filters.isAdmin));
-      }
-      if (filters.isCollector !== undefined) {
-        conditions.push(where('isCollector', '==', filters.isCollector));
-      }
-      if (filters.isOrganization !== undefined) {
-        conditions.push(where('isOrganization', '==', filters.isOrganization));
-      }
-      
-      const q = conditions.length > 0 
-        ? query(usersRef, ...conditions) 
-        : usersRef;
-      const querySnapshot = await getDocs(q);
-      
-      const users = [];
-      querySnapshot.forEach((doc) => {
-        users.push(new User(doc.data()));
-      });
-      
-      return users;
-    } catch (error) {
-      throw new Error(`Failed to find users by flags: ${error.message}`);
     }
   }
 

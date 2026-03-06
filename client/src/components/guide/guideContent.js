@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Megaphone, MessageSquare, MapPin, TrendingUp, Clock, Navigation, MessageCircle, Calendar, AlertCircle } from 'lucide-react';
+import { Trash2, Megaphone, MessageSquare, MapPin, TrendingUp, Clock, Navigation, MessageCircle, Calendar, AlertCircle, Search, CheckCircle, Recycle, Cpu, Layers } from 'lucide-react';
 
 // Shortcut Button Component
 const ShortcutButton = ({ to, children, icon: Icon, onClose }) => {
@@ -51,7 +51,134 @@ const ShortcutButton = ({ to, children, icon: Icon, onClose }) => {
 
 // Guide Pages Content - Function that accepts onClose callback
 export const getGuidePages = (onClose) => [
-  // PAGE 1: Post Types & How They Work
+  // PAGE 1: Getting Started
+  {
+    title: 'Getting Started with EcoTayo',
+    content: (
+      <>
+        <p style={{ fontSize: '1.125rem', marginBottom: '1.5rem' }}>
+          New here? Here's how to start recycling smarter in just a few steps:
+        </p>
+
+        <ul>
+          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{
+              background: '#B3F2AC',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '48px',
+              height: '48px',
+              flexShrink: 0,
+            }}>
+              <Search size={24} color="#3B6535" />
+            </div>
+            <div>
+              <strong style={{ fontSize: '1.125rem', display: 'block', marginBottom: '0.5rem' }}>
+                Step 1: Browse the Feed
+              </strong>
+              <p style={{ margin: '0 0 0.5rem 0' }}>Scroll through posts in the feed to see what recyclables are available in your area.</p>
+            </div>
+          </li>
+
+          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{
+              background: '#B3F2AC',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '48px',
+              height: '48px',
+              flexShrink: 0,
+            }}>
+              <MapPin size={24} color="#3B6535" />
+            </div>
+            <div>
+              <strong style={{ fontSize: '1.125rem', display: 'block', marginBottom: '0.5rem' }}>
+                Step 2: Filter by Location
+              </strong>
+              <p style={{ margin: '0 0 0.5rem 0' }}>Use the location filter at the top of the feed to find posts near you - by region, city, or barangay.</p>
+            </div>
+          </li>
+
+          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{
+              background: '#B3F2AC',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '48px',
+              height: '48px',
+              flexShrink: 0,
+            }}>
+              <Trash2 size={24} color="#3B6535" />
+            </div>
+            <div>
+              <strong style={{ fontSize: '1.125rem', display: 'block', marginBottom: '0.5rem' }}>
+                Step 3: Claim or Post
+              </strong>
+              <p style={{ margin: '0 0 0.5rem 0' }}>
+                <strong>Collectors</strong> - click a Waste post to request a pickup.<br/>
+                <strong>Givers</strong> - create a Waste post to share your recyclables.
+              </p>
+            </div>
+          </li>
+
+          <li style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <div style={{
+              background: '#B3F2AC',
+              padding: '0.75rem',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '48px',
+              height: '48px',
+              flexShrink: 0,
+            }}>
+              <MessageCircle size={24} color="#3B6535" />
+            </div>
+            <div>
+              <strong style={{ fontSize: '1.125rem', display: 'block', marginBottom: '0.5rem' }}>
+                Step 4: Coordinate via Chat
+              </strong>
+              <p style={{ margin: '0 0 0.5rem 0' }}>Use the built-in chat to propose a pickup schedule, confirm details, and complete the exchange.</p>
+            </div>
+          </li>
+        </ul>
+
+        <div style={{
+          background: '#F0FDF4',
+          border: '1px solid #B3F2AC',
+          borderRadius: '8px',
+          padding: '1rem',
+          marginTop: '1.5rem',
+          display: 'flex',
+          gap: '0.75rem'
+        }}>
+          <div style={{ minWidth: '24px' }}>
+            <CheckCircle size={24} color="#3B6535" />
+          </div>
+          <p style={{ margin: 0, color: '#3B6535', fontWeight: 500 }}>
+            <strong>Tip:</strong> Use the page navigation below to explore more guides - learn about post types, materials, and how to claim a waste post!
+          </p>
+        </div>
+      </>
+    ),
+    shortcutButton: (
+      <ShortcutButton to="/create-post" icon={Trash2} onClose={onClose}>
+        Create Your First Post
+      </ShortcutButton>
+    ),
+  },
+
+  // PAGE 2: Post Types & How They Work
   {
     title: 'Understanding Post Types',
     content: (
@@ -148,7 +275,7 @@ export const getGuidePages = (onClose) => [
     ),
   },
 
-  // PAGE 2: Community Stats & Analytics
+  // PAGE 3: Community Stats & Analytics
   {
     title: 'Making Data-Driven Decisions',
     content: (
@@ -262,7 +389,7 @@ export const getGuidePages = (onClose) => [
     ),
   },
 
-  // PAGE 3: Profile Preferences Setup
+  // PAGE 4: Profile Preferences Setup
   {
     title: 'Set Up Your Preferences',
     content: (
@@ -362,7 +489,299 @@ export const getGuidePages = (onClose) => [
     ),
   },
 
-  // PAGE 4: Pickup Coordination via Chat
+  // PAGE 5: Material Types Guide
+  {
+    title: 'Materials & Pricing Guide',
+    content: (
+      <>
+        <p style={{ fontSize: '1.05rem', marginBottom: '0.75rem' }}>
+          When creating a post, select the recyclable material type(s) you have. Estimated prices are based on Philippine junk shop rates.
+        </p>
+
+        {/* Legend */}
+        <div style={{
+          display: 'flex',
+          gap: '1rem',
+          flexWrap: 'wrap',
+          marginBottom: '0.75rem',
+          padding: '0.5rem 0.75rem',
+          background: '#F9FAFB',
+          borderRadius: '6px',
+          fontSize: '0.75rem',
+          color: '#6B7280',
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: '#3B6535', display: 'inline-block' }}></span>
+            Est. Price/kg
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: '#F0924C', display: 'inline-block' }}></span>
+            Max/kg (factory cap)
+          </span>
+        </div>
+
+        {[
+          {
+            category: 'Paper',
+            icon: <Layers size={16} color="#3B6535" />,
+            color: '#E8F5E9',
+            border: '#A5D6A7',
+            items: [
+              { label: 'Cartons (corrugated, brown)', desc: 'Brown cardboard boxes and packaging', est: '₱0.40', max: '₱2.50' },
+              { label: 'White Paper (used)', desc: 'Used office/printer paper, bond paper', est: '₱1.20', max: '₱8.00' },
+              { label: 'Newspaper', desc: 'Old newspapers and newsprint', est: '₱0.60', max: '₱5.00' },
+              { label: 'Assorted/Mixed waste paper', desc: 'Mixed paper scraps, magazines, junk mail', est: '₱0.20', max: '₱1.50' },
+            ],
+          },
+          {
+            category: 'Plastic',
+            icon: <Recycle size={16} color="#1565C0" />,
+            color: '#E3F2FD',
+            border: '#90CAF9',
+            items: [
+              { label: 'PET Bottles', desc: 'Clear water/soda bottles (marked #1 PET)', est: '₱1.60', max: '₱15.00' },
+              { label: 'Plastic (HDPE)', desc: 'Milk jugs, shampoo bottles (marked #2)', est: '₱1.40', max: '₱10.00' },
+              { label: 'Plastic (LDPE)', desc: 'Plastic bags, cling wrap (marked #4)', est: '₱0.70', max: '₱8.00' },
+            ],
+          },
+          {
+            category: 'Glass',
+            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6D4C41" strokeWidth="2"><path d="M8 2h8l2 6-2 12H8L6 8z"/></svg>,
+            color: '#FBE9E7',
+            border: '#FFAB91',
+            items: [
+              { label: 'Glass Bottles', desc: 'Whole glass jars and bottles (any color)', est: '₱0.30', max: '₱2.50' },
+              { label: 'Glass Cullets (Broken glass)', desc: 'Crushed or broken glass pieces', est: '₱0.15', max: '₱4.00' },
+            ],
+          },
+          {
+            category: 'Metal',
+            icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#37474F" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>,
+            color: '#ECEFF1',
+            border: '#B0BEC5',
+            items: [
+              { label: 'Aluminum Cans', desc: 'Soda and beverage cans', est: '₱7.00', max: '₱50.00' },
+              { label: 'Copper Wire – Class A', desc: 'Bare/bright copper wire (highest grade)', est: '₱44.00', max: '₱280.00' },
+              { label: 'Copper Wire – Class B', desc: 'Insulated copper wire (medium grade)', est: '₱36.00', max: '₱240.00' },
+              { label: 'Copper Wire – Class C', desc: 'Mixed/low-grade copper wire', est: '₱22.00', max: '₱160.00' },
+              { label: 'GI Sheet', desc: 'Galvanized iron sheets and roofing', est: '₱1.00', max: '₱8.00' },
+              { label: 'Stainless Steel', desc: 'Stainless steel scrap, cookware, sinks', est: '₱9.00', max: '₱56.00' },
+              { label: 'Steel (Iron alloys)', desc: 'General scrap iron and steel', est: '₱1.40', max: '₱10.00' },
+              { label: 'Tin Can', desc: 'Food cans, aerosol cans (steel-based)', est: '₱0.70', max: '₱7.00' },
+            ],
+          },
+          {
+            category: 'Electronics',
+            icon: <Cpu size={16} color="#4A148C" />,
+            color: '#F3E5F5',
+            border: '#CE93D8',
+            items: [
+              { label: 'Electronic Waste', desc: 'Old phones, cables, boards, batteries, appliances', est: '₱1.20', max: '₱8.00' },
+            ],
+          },
+        ].map(({ category, icon, color, border, items }) => (
+          <div key={category} style={{ marginBottom: '0.75rem' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.375rem',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              color: '#1F2937',
+            }}>
+              {icon} {category}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              {items.map(({ label, desc, est, max }) => (
+                <div key={label} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto auto',
+                  gap: '0.5rem',
+                  alignItems: 'center',
+                  background: color,
+                  border: `1px solid ${border}`,
+                  borderRadius: '6px',
+                  padding: '0.4rem 0.6rem',
+                }}>
+                  <div>
+                    <strong style={{ fontSize: '0.8rem', display: 'block' }}>{label}</strong>
+                    <span style={{ fontSize: '0.7rem', color: '#4B5563' }}>{desc}</span>
+                  </div>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: '#3B6535',
+                    whiteSpace: 'nowrap',
+                    textAlign: 'right',
+                    minWidth: '50px',
+                  }}>
+                    {est}
+                  </span>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 500,
+                    color: '#F0924C',
+                    whiteSpace: 'nowrap',
+                    textAlign: 'right',
+                    minWidth: '55px',
+                  }}>
+                    {max}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <div style={{
+          background: '#F0FDF4',
+          border: '1px solid #B3F2AC',
+          borderRadius: '8px',
+          padding: '0.75rem',
+          marginTop: '0.5rem',
+          display: 'flex',
+          gap: '0.75rem'
+        }}>
+          <div style={{ minWidth: '20px' }}>
+            <TrendingUp size={18} color="#3B6535" />
+          </div>
+          <p style={{ margin: 0, color: '#3B6535', fontWeight: 500, fontSize: '0.8rem' }}>
+            <strong>About pricing:</strong> The green price blends the standard market rate (70%) with community transaction data (30%). The orange "Max" is the factory price cap. Actual junk shop prices vary by location and condition.
+          </p>
+        </div>
+
+        <div style={{
+          background: '#FEF3C7',
+          border: '1px solid #F59E0B',
+          borderRadius: '8px',
+          padding: '0.75rem',
+          marginTop: '0.5rem',
+          display: 'flex',
+          gap: '0.75rem'
+        }}>
+          <div style={{ minWidth: '20px' }}>
+            <AlertCircle size={18} color="#92400E" />
+          </div>
+          <p style={{ margin: 0, color: '#92400E', fontWeight: 500, fontSize: '0.8rem' }}>
+            <strong>Not sure?</strong> Pick the closest match — you can always add more details in your post description!
+          </p>
+        </div>
+      </>
+    ),
+    shortcutButton: (
+      <ShortcutButton to="/create-post" icon={Recycle} onClose={onClose}>
+        Create a Waste Post
+      </ShortcutButton>
+    ),
+  },
+
+  // PAGE 6: How to Claim a Waste Post
+  {
+    title: 'How to Claim a Waste Post',
+    content: (
+      <>
+        <p style={{ fontSize: '1.125rem', marginBottom: '1.5rem' }}>
+          Ready to collect recyclables? Follow these steps to claim a waste post:
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+          {[
+            {
+              step: '1',
+              icon: <Search size={20} color="#3B6535" />,
+              title: 'Find a Claimable Post',
+              desc: 'Browse the feed and click on a Waste post that shows the "Collect" button.',
+            },
+            {
+              step: '2',
+              icon: <CheckCircle size={20} color="#3B6535" />,
+              title: 'Request Pickup & Confirm Interest',
+              desc: 'On the post page, click the "Request Pickup" button and confirm your interest.',
+            },
+            {
+              step: '3',
+              icon: <MessageCircle size={20} color="#3B6535" />,
+              title: 'Propose a Schedule via Chat',
+              desc: 'A chat thread opens automatically. Use it to propose a pickup date, time, and location.',
+            },
+            {
+              step: '4',
+              icon: <Calendar size={20} color="#3B6535" />,
+              title: 'Wait for the Giver\'s Confirmation',
+              desc: 'The giver will review your proposed schedule and confirm or suggest a different time.',
+            },
+            {
+              step: '5',
+              icon: <Trash2 size={20} color="#3B6535" />,
+              title: 'Collect Your Recyclables!',
+              desc: 'Show up at the agreed time and place to collect the materials. Mark the pickup as complete once done.',
+            },
+          ].map(({ step, icon, title, desc }) => (
+            <div key={step} style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.875rem',
+            }}>
+              <div style={{
+                background: '#3B6535',
+                color: 'white',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                flexShrink: 0,
+                marginTop: '2px',
+              }}>
+                {step}
+              </div>
+              <div style={{
+                flex: 1,
+                background: '#F0FDF4',
+                border: '1px solid #B3F2AC',
+                borderRadius: '8px',
+                padding: '0.625rem 0.875rem',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  {icon}
+                  <strong style={{ fontSize: '0.9375rem' }}>{title}</strong>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}>{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{
+          background: '#FEF3C7',
+          border: '1px solid #F59E0B',
+          borderRadius: '8px',
+          padding: '1rem',
+          marginTop: '1.25rem',
+          display: 'flex',
+          gap: '0.75rem'
+        }}>
+          <div style={{ minWidth: '24px' }}>
+            <AlertCircle size={24} color="#92400E" />
+          </div>
+          <p style={{ margin: 0, color: '#92400E', fontWeight: 500 }}>
+            <strong>Reminder:</strong> Cancel at least 5 hours before the scheduled pickup if you can no longer make it.
+          </p>
+        </div>
+      </>
+    ),
+    shortcutButton: (
+      <ShortcutButton to="/posts" icon={Search} onClose={onClose}>
+        Browse Waste Posts
+      </ShortcutButton>
+    ),
+  },
+
+  // PAGE 7: Pickup Coordination via Chat
   {
     title: 'Coordinating Your Pickups',
     content: (

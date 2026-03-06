@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import GuideLink from '../../guide/GuideLink';
 import axios from 'axios';
 import styles from './PostsAnalytics.module.css';
 import {
@@ -196,6 +197,11 @@ const PostsAnalytics = ({ user, onLocationFilterChange }) => {
           <h2 className={styles.heroValue}>{(analyticsData?.totalRecycled || 0).toLocaleString()} kg</h2>
           <p className={styles.heroLabel}>Total Waste Recycled</p>
         </div>
+      </div>
+
+      {/* Getting Started Guide Link */}
+      <div style={{ textAlign: 'center', margin: '0.5rem 0' }}>
+        <GuideLink text="Don't know where to start? Click here!" targetPage={1} />
       </div>
 
       {/* Waste Distribution by Type */}

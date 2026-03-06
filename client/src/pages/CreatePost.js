@@ -1,25 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { useToast } from '../context/ToastContext';
+import { BADGES } from '../config/badges';
 import styles from './CreatePost.module.css';
 import PSGCService from '../services/psgcService';
+import GeocodingService from '../services/geocodingService';
 import MaterialSelector from '../components/posts/MaterialSelector/MaterialSelector';
+import SearchableSelect from '../components/common/SearchableSelect/SearchableSelect';
 import GuideLink from '../components/guide/GuideLink';
-import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
+import QuickGuide from '../components/guide/QuickGuide';
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { Image, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import MaterialPricingInfo from '../components/posts/MaterialPricingInfo/MaterialPricingInfo';
 
 const CreatePost = () => {
   const navigate = useNavigate();
+  const { success, showPointsEarned, showBadgeUnlocked } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showPostTypeGuide, setShowPostTypeGuide] = useState(false);
   const [error, setError] = useState('');
+  const [materialsError, setMaterialsError] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [isCollector, setIsCollector] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isOrganization, setIsOrganization] = useState(false);
+  const [organizationID, setOrganizationID] = useState(null)
   const [isLocationExpanded, setIsLocationExpanded] = useState(true);
   const [preferredLocations, setPreferredLocations] = useState([]);
   const [preferredTimes, setPreferredTimes] = useState([]);
+  const [materialPricingData, setMaterialPricingData] = useState([]);
 
   const location = useLocation();
 
@@ -82,7 +92,7 @@ const CreatePost = () => {
         setIsVerified(response.data.user.status === "Verified" || false);
         setIsCollector(response.data.user.isCollector || false);
         setIsAdmin(response.data.user.isAdmin || false);
-        setIsOrganization(response.data.user.isOrganization || false);
+        setOrganizationID(response.data.user.organizationID || null);
         setPreferredLocations(response.data.user.preferredLocations || []);
         setPreferredTimes(response.data.user.preferredTimes || []);
       } catch (error) {
@@ -96,6 +106,21 @@ const CreatePost = () => {
   // Load regions on component mount
   useEffect(() => {
     loadRegions();
+  }, []);
+
+  // Fetch material pricing data for display
+  useEffect(() => {
+    const fetchMaterialPricing = async () => {
+      try {
+        const response = await axios.get('http://localhost:3001/api/materials');
+        if (response.data.success) {
+          setMaterialPricingData(response.data.materials);
+        }
+      } catch (error) {
+        console.error('Error fetching material pricing:', error);
+      }
+    };
+    fetchMaterialPricing();
   }, []);
 
   const loadRegions = async () => {
@@ -380,6 +405,14 @@ const CreatePost = () => {
             return false;
           }
         }
+
+        // Enforce minimum total quantity of 5 kg
+        const totalQuantity = formData.materials.reduce((sum, m) => sum + parseFloat(m.quantity || 0), 0);
+        if (totalQuantity < 5) {
+          setMaterialsError('Total recyclable quantity must be at least 5 kg');
+          return false;
+        }
+        setMaterialsError('');
       } else if (postType === 'Initiative') {
       // Validate materials array (new format)
       if (!formData.materials || formData.materials.length === 0) {
@@ -432,7 +465,7 @@ const CreatePost = () => {
       addressLine: formData.addressLine
     };
 
-    return JSON.stringify(locationData);
+    return locationData;
   };
 
   // Get human-readable location string for display
@@ -528,6 +561,19 @@ const handleRemoveImage = (index) => {
     // Prepare location data
     const locationData = getLocationData();
 
+    // Geocode the location to get coordinates (frontend-side geocoding)
+    console.log('🗺️ Geocoding location...');
+    const coords = await GeocodingService.getCoordinates(locationData);
+    if (coords) {
+      locationData.coordinates = {
+        lat: coords.lat,
+        lng: coords.lng
+      };
+      console.log('✅ Coordinates added:', coords);
+    } else {
+      console.log('⚠️ Geocoding failed, proceeding without coordinates');
+    }
+
     // Prepare FormData for file upload
     const formDataToSend = new FormData();
 
@@ -535,7 +581,7 @@ const handleRemoveImage = (index) => {
     formDataToSend.append('postType', postType);
     formDataToSend.append('title', formData.title.trim());
     formDataToSend.append('description', formData.description.trim());
-    formDataToSend.append('location', locationData);
+    formDataToSend.append('location', JSON.stringify(locationData));
 
     // Add type-specific fields
     if (postType === 'Waste') {
@@ -581,11 +627,33 @@ const handleRemoveImage = (index) => {
     console.log('Response received:', response.data);
     
     if (response.data.success) {
-      // Show success message if you have a toast/notification system
-      console.log(response.data.message);
-      
-      // Redirect to posts page or the created post
-      navigate('/posts');
+      // Show success toast
+      success(`${postType} post created successfully!`, {
+        title: 'Post Created'
+      });
+
+      // Check if this is the first post (badge unlock)
+      const isFirstPost = response.data.isFirstPost;
+
+      // Show points earned popup for waste posts
+      if (postType === 'Waste') {
+        showPointsEarned(10, 'Waste Post Created', {
+          bonus: null,
+          streak: null
+        });
+      }
+
+      // If first post, show badge unlock after points popup
+      if (isFirstPost && postType === 'Waste') {
+        setTimeout(() => {
+          showBadgeUnlocked(BADGES.FIRST_POST);
+        }, 3500); // After points popup closes
+      }
+
+      // Redirect to posts page after popups
+      setTimeout(() => {
+        navigate('/posts');
+      }, isFirstPost ? 7000 : (postType === 'Waste' ? 2000 : 500));
     }
   } catch (err) {
     // Enhanced error logging
@@ -640,7 +708,22 @@ const handleRemoveImage = (index) => {
           <Link to="/posts" className={styles.backButton}>
             ← Back to Posts
           </Link>
-          <h1 className={styles.title}>Create New Post</h1>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>Create New Post</h1>
+            <button
+              type="button"
+              className={styles.tooltipButton}
+              aria-label="Post type info"
+              onClick={() => setShowPostTypeGuide(true)}
+            >
+              <Info size={16} />
+            </button>
+          </div>
+          <QuickGuide
+            isOpen={showPostTypeGuide}
+            onClose={() => setShowPostTypeGuide(false)}
+            initialPage={2}
+          />
         </div>
 
         {/* Error Display */}
@@ -688,11 +771,6 @@ const handleRemoveImage = (index) => {
             <span><MessageCircle size={16} /> Forum Post</span>
             <small>{'Share and discuss'}</small>
           </button>
-        </div>
-
-        {/* Guide Link */}
-        <div style={{ textAlign: 'center', margin: '1rem 0' }}>
-          <GuideLink text="Learn more about post types" targetPage={1} />
         </div>
 
         {/* Form - Only show if user can create posts */}
@@ -793,23 +871,16 @@ const handleRemoveImage = (index) => {
                 <label htmlFor="region" className={styles.label}>
                   Region *
                 </label>
-                <select
+                <SearchableSelect
                   id="region"
                   value={formData.region}
                   onChange={handleRegionChange}
-                  className={styles.select}
-                  required
+                  options={regions}
+                  getOptionValue={(r) => r.code}
+                  getOptionLabel={(r) => r.name}
+                  placeholder={loadingLocations ? 'Loading...' : 'Select Region'}
                   disabled={loadingLocations || regions.length === 0}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select Region'}
-                  </option>
-                  {regions.map((region) => (
-                    <option key={region.code} value={region.code}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               {/* Only show province dropdown if NOT NCR */}
@@ -826,23 +897,16 @@ const handleRemoveImage = (index) => {
                     <label htmlFor="province" className={styles.label}>
                       Province *
                     </label>
-                    <select
+                    <SearchableSelect
                       id="province"
                       value={formData.province}
                       onChange={handleProvinceChange}
-                      className={styles.select}
-                      required
+                      options={provinces}
+                      getOptionValue={(p) => p.code}
+                      getOptionLabel={(p) => p.name}
+                      placeholder={loadingLocations ? 'Loading...' : 'Select Province'}
                       disabled={!formData.region || loadingLocations}
-                    >
-                      <option value="">
-                        {loadingLocations ? 'Loading...' : 'Select Province'}
-                      </option>
-                      {provinces.map((province) => (
-                        <option key={province.code} value={province.code}>
-                          {province.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 );
               })()}
@@ -853,54 +917,40 @@ const handleRemoveImage = (index) => {
                 <label htmlFor="city" className={styles.label}>
                   City/Municipality *
                 </label>
-                <select
+                <SearchableSelect
                   id="city"
                   value={formData.city}
                   onChange={handleCityChange}
-                  className={styles.select}
-                  required
+                  options={cities}
+                  getOptionValue={(c) => c.code}
+                  getOptionLabel={(c) => c.name}
+                  placeholder={loadingLocations ? 'Loading...' : 'Select City/Municipality'}
                   disabled={(() => {
                     const selectedRegion = regions.find(r => r.code === formData.region);
                     const isNCR = selectedRegion && (
-                      selectedRegion.name.includes('NCR') || 
+                      selectedRegion.name.includes('NCR') ||
                       selectedRegion.name.includes('National Capital Region') ||
                       formData.region === '130000000'
                     );
                     return (!formData.region || (!isNCR && !formData.province) || loadingLocations);
                   })()}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select City/Municipality'}
-                  </option>
-                  {cities.map((city) => (
-                    <option key={city.code} value={city.code}>
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div className={styles.formGroup}>
                 <label htmlFor="barangay" className={styles.label}>
                   Barangay *
                 </label>
-                <select
+                <SearchableSelect
                   id="barangay"
                   value={formData.barangay}
                   onChange={handleBarangayChange}
-                  className={styles.select}
-                  required
+                  options={barangays}
+                  getOptionValue={(b) => b.code}
+                  getOptionLabel={(b) => b.name}
+                  placeholder={loadingLocations ? 'Loading...' : 'Select Barangay'}
                   disabled={!formData.city || loadingLocations}
-                >
-                  <option value="">
-                    {loadingLocations ? 'Loading...' : 'Select Barangay'}
-                  </option>
-                  {barangays.map((barangay) => (
-                    <option key={barangay.code} value={barangay.code}>
-                      {barangay.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
 
@@ -939,17 +989,93 @@ const handleRemoveImage = (index) => {
             <div className={styles.wasteSpecific}>
               <h3 className={styles.sectionTitle}>
                 <Package size={20} /> Waste Details
+              <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
+                <GuideLink text="Don't know which material to select?" targetPage={5} />
+              </div>
               </h3>
-              
+
               {/* Use Material Selector instead of text input */}
               <MaterialSelector
                 selectedMaterials={formData.materials}
-                onChange={(materials) => setFormData({ ...formData, materials })}
+                onChange={(materials) => { setMaterialsError(''); setFormData({ ...formData, materials }); }}
               />
+              <MaterialPricingInfo
+                selectedMaterials={formData.materials}
+                pricingData={materialPricingData}
+              />
+              {materialsError && (
+                <div className={styles.materialsError}>
+                  {materialsError}
+                </div>
+              )}
               
               
               {/* Keep pickupDate and pickupTime */}
-              <div className={styles.formRow}>
+              
+                  {/* Preferred Times - Weekly Calendar */}
+                  {preferredTimes && preferredTimes.length > 0 && (() => {
+                    const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    const FULL_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const today = new Date();
+                    const todayIdx = today.getDay();
+
+                    // Map each day to its preferred times
+                    const byDay = FULL_DAYS.reduce((acc, d) => { acc[d] = []; return acc; }, {});
+                    preferredTimes.forEach(t => { if (t.day && byDay[t.day]) byDay[t.day].push(t); });
+
+                    return (
+                      <div className={styles.weekCalendar}>
+                        <label className={styles.suggestionsLabel}>Your Preferred Times:</label>
+                        <div className={styles.weekGrid}>
+                          {FULL_DAYS.map((fullDay, dayIdx) => {
+                            const slots = byDay[fullDay];
+                            const isToday = dayIdx === todayIdx;
+                            let daysUntil = dayIdx - todayIdx;
+                            if (daysUntil <= 0) daysUntil += 7;
+                            const nextDate = new Date(today);
+                            nextDate.setDate(today.getDate() + daysUntil);
+                            const dateLabel = nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+                            return (
+                              <div
+                                key={fullDay}
+                                className={`${styles.weekDay} ${isToday ? styles.weekDayToday : ''} ${slots.length === 0 ? styles.weekDayEmpty : ''}`}
+                              >
+                                <div className={styles.weekDayHeader}>
+                                  <span className={styles.weekDayName}>{WEEK_DAYS[dayIdx]}</span>
+                                  <span className={styles.weekDayDate}>{dateLabel}</span>
+                                </div>
+                                <div className={styles.weekDaySlots}>
+                                  {slots.length === 0 ? (
+                                    <span className={styles.noSlot}>—</span>
+                                  ) : (
+                                    slots.map((time, i) => (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        className={styles.weekSlotButton}
+                                        onClick={() => handleSelectPreferredTime(time)}
+                                        title={`Set pickup: ${time.startTime || ''}${time.endTime ? ' – ' + time.endTime : ''}`}
+                                      >
+                                        <span className={styles.slotName}>{time.slot || 'Custom'}</span>
+                                        {time.startTime && (
+                                          <span className={styles.slotTime}>
+                                            {time.startTime}{time.endTime ? `–${time.endTime}` : ''}
+                                          </span>
+                                        )}
+                                      </button>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <div className={styles.formRow}>
                 <div className={styles.formGroup}>
                   <label htmlFor="pickupDate" className={styles.label}>
                     Preferred Pickup Date
@@ -980,54 +1106,6 @@ const handleRemoveImage = (index) => {
 
                 </div>
               </div>
-                  {/* Preferred Times Suggestions */}
-                  {preferredTimes && preferredTimes.length > 0 && (
-                    <div className={styles.timeSuggestionsSection}>
-                      <label className={styles.suggestionsLabel}>
-                        Your Preferred Times:
-                      </label>
-                      <div className={styles.suggestionsList}>
-                        {preferredTimes.map((time, index) => {
-                          // Calculate the next matching date for display
-                          let nextDate = '';
-                          if (time.day) {
-                            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                            const targetDay = daysOfWeek.indexOf(time.day);
-                            if (targetDay !== -1) {
-                              const today = new Date();
-                              const currentDay = today.getDay();
-                              let daysUntilTarget = targetDay - currentDay;
-                              if (daysUntilTarget <= 0) {
-                                daysUntilTarget += 7;
-                              }
-                              const targetDate = new Date(today);
-                              targetDate.setDate(today.getDate() + daysUntilTarget);
-                              nextDate = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                            }
-                          }
-
-                          // Display format: "Day - Slot (StartTime - EndTime) [Next: Date]"
-                          // Example: "Monday - Morning (08:00 - 12:00) [Next: Jan 20]"
-                          const displayText = time.day && time.slot
-                            ? `${time.day} - ${time.slot}${time.startTime ? ` (${time.startTime}${time.endTime ? ` - ${time.endTime}` : ''})` : ''}${nextDate ? ` [Next: ${nextDate}]` : ''}`
-                            : time.slot || time.startTime || 'Preferred Time';
-
-                          return (
-                            <button
-                              key={index}
-                              type="button"
-                              className={styles.suggestionButton}
-                              onClick={() => handleSelectPreferredTime(time)}
-                              title={nextDate ? `Click to set pickup for ${nextDate}` : 'Click to set pickup time'}
-                            >
-                              <Clock size={14} />
-                              {displayText}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
             </div>
           )}
 
@@ -1043,6 +1121,9 @@ const handleRemoveImage = (index) => {
                 <label className={styles.label}>
                   <span className={styles.hint}>Select the materials you need for this initiative</span>
                 </label>
+                <div style={{ textAlign: 'center', marginTop: '0.25rem' }}>
+                  <GuideLink text="Don't know which material to select?" targetPage={5} />
+                </div>
                 <MaterialSelector
                   selectedMaterials={formData.materials}
                   onChange={(materials) => {
@@ -1057,6 +1138,10 @@ const handleRemoveImage = (index) => {
                   labelOverride={{
                     quantity: 'Target Quantity'
                   }}
+                />
+                <MaterialPricingInfo
+                  selectedMaterials={formData.materials}
+                  pricingData={materialPricingData}
                 />
               </div>
 
@@ -1133,10 +1218,6 @@ const handleRemoveImage = (index) => {
               </p>
             </div>
           </div>
-
-
-
-          
 
           {/* Forum-specific Fields */}
           {postType === 'Forum' && (

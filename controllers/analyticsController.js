@@ -140,6 +140,10 @@ const analyticsController = {
         completedSupports,
         wasteTypes,
         topCollectors,
+        topRecyclers,
+        topEarners,
+        communityEarnings,
+        userEarnings,
         userSpecificStats,
         pendingApplications,
         recentActivity
@@ -152,15 +156,25 @@ const analyticsController = {
         getCompletedSupportsInRange(startDate, endDate, locationFilter), // BOUNDED: Only this period
         getWasteDistribution(startDate, locationFilter),
         getTopCollectors(startDate, locationFilter),
-        getUserSpecificStats(userID, currentUser),
+        getTopRecyclers(startDate, locationFilter),
+        getTopEarners(startDate, locationFilter),
+        getCommunityEarningsStats(startDate, locationFilter),
+        getUserEarningsStats(userID, startDate),
+        getUserSpecificStats(userID, currentUser, startDate, endDate),
         currentUser.isAdmin ? getPendingApplications() : { count: 0 },
         getUserRecentActivity(userID, startDate)
       ]);
 
-      const environmentalImpact = calculateEnvironmentalImpact(totalRecycled);
+      // Extract totalKg and materialBreakdown from the result
+      const recycledData = totalRecycled;
+      const totalRecycledKg = recycledData.totalKg;
+      const materialBreakdown = recycledData.materialBreakdown;
+
+      // Calculate environmental impact with per-material computation
+      const environmentalImpact = calculateEnvironmentalImpact(totalRecycledKg, materialBreakdown);
       const trends = await getRecyclingTrends(timeRange, startDate, locationFilter);
       const percentageChanges = await calculatePercentageChanges(timeRange, startDate, {
-        totalRecycled,
+        totalRecycled: totalRecycledKg,
         completedInitiatives,
         users,
         pickups,
@@ -168,7 +182,7 @@ const analyticsController = {
       }, locationFilter);
 
       console.log('Analytics Data Summary:', {
-        totalRecycled,
+        totalRecycled: totalRecycledKg,
         totalInitiatives: initiatives.count,
         completedInitiatives: completedInitiatives.count,
         activeUsers: users.count,
@@ -181,7 +195,7 @@ const analyticsController = {
 
       const analyticsData = {
         // Platform-wide stats
-        totalRecycled,
+        totalRecycled: totalRecycledKg,
         totalInitiatives: initiatives.count,
         completedInitiatives: completedInitiatives.count,
         activeUsers: users.count,
@@ -205,6 +219,10 @@ const analyticsController = {
 
         communityImpact: environmentalImpact,
         topCollectors: topCollectors.slice(0, 3),
+        topRecyclers: topRecyclers.slice(0, 3),
+        topEarners: topEarners.slice(0, 5),
+        communityEarnings,
+        userEarnings,
         wasteByType: wasteTypes,
         recyclingTrends: trends,
         recentActivity,
@@ -298,8 +316,230 @@ const analyticsController = {
         error: error.message
       });
     }
+  },
+
+  // Get city leaderboard for Leagues page
+  async getCityLeaderboard(req, res) {
+    try {
+      const userID = req.user.userID;
+      const currentUser = await User.findById(userID);
+
+      if (!currentUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      // Get all users with their location and points
+      const allUsers = await getCachedData('allUsers', () => User.findAll());
+
+      // Group users by city
+      const cityMap = new Map();
+
+      allUsers.forEach(user => {
+        if (user.status === 'Suspended' || user.status === 'Deleted') return;
+
+        const cityCode = user.userLocation?.city?.code;
+        const cityName = user.userLocation?.city?.name;
+
+        if (!cityCode || !cityName) return;
+
+        if (!cityMap.has(cityCode)) {
+          cityMap.set(cityCode, {
+            cityCode,
+            cityName,
+            totalPoints: 0,
+            userCount: 0,
+            users: []
+          });
+        }
+
+        const cityData = cityMap.get(cityCode);
+        cityData.totalPoints += user.points || 0;
+        cityData.userCount += 1;
+        cityData.users.push({
+          userID: user.userID,
+          name: user.organizationName || `${user.firstName} ${user.lastName}`,
+          points: user.points || 0
+        });
+      });
+
+      // Convert to array and calculate scores
+      const cities = Array.from(cityMap.values()).map(city => ({
+        cityCode: city.cityCode,
+        cityName: city.cityName,
+        totalPoints: city.totalPoints,
+        userCount: city.userCount,
+        score: city.userCount > 0 ? Math.round(city.totalPoints / city.userCount) : 0,
+        users: city.users.sort((a, b) => b.points - a.points).slice(0, 10) // Top 10 users
+      }));
+
+      // Sort by score (engagement score = total points / users)
+      cities.sort((a, b) => b.score - a.score);
+
+      // Add rank to each city
+      cities.forEach((city, index) => {
+        city.rank = index + 1;
+      });
+
+      // Get current user's city data
+      const userCityCode = currentUser.userLocation?.city?.code;
+      let userCityData = null;
+      let topUsersInCity = [];
+
+      if (userCityCode) {
+        const userCity = cities.find(c => c.cityCode === userCityCode);
+        if (userCity) {
+          userCityData = {
+            ...userCity,
+            pointsToOvertake: 0,
+            nextCity: null
+          };
+
+          // Calculate points needed to overtake next city
+          if (userCity.rank > 1) {
+            const nextCity = cities[userCity.rank - 2]; // City above in ranking
+            const pointsDiff = nextCity.score - userCity.score;
+            userCityData.pointsToOvertake = Math.max(0, pointsDiff * userCity.userCount + 1);
+            userCityData.nextCity = nextCity.cityName;
+          }
+
+          // Get top users in the user's city (Heavy Lifters)
+          topUsersInCity = userCity.users.slice(0, 3).map((u, idx) => ({
+            rank: idx + 1,
+            name: u.name,
+            points: u.points
+          }));
+        }
+      }
+
+      // Get waste distribution for user's city
+      const wasteByType = await getWasteDistributionForCity(userCityCode);
+
+      res.json({
+        success: true,
+        data: {
+          cities: cities.map(c => ({
+            cityCode: c.cityCode,
+            cityName: c.cityName,
+            totalPoints: c.totalPoints,
+            userCount: c.userCount,
+            score: c.score,
+            rank: c.rank
+          })),
+          userCityData,
+          topUsersInCity,
+          wasteByType
+        }
+      });
+    } catch (error) {
+      console.error('City leaderboard error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch city leaderboard',
+        error: error.message
+      });
+    }
+  },
+
+  // Get Eco Champion of the Month - user with most kg recycled this month
+  async getEcoChampion(req, res) {
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const allUsers = await getCachedData('allUsers', () => User.findAll());
+      const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+      // Sum kg recycled (as giver) for completed pickups this month
+      const recyclerMap = {};
+
+      allPickups.forEach(pickup => {
+        if (!pickup.giverID || pickup.status !== 'Completed' || !pickup.finalAmount) return;
+
+        const completedDate = toDate(pickup.completedAt);
+        if (!completedDate || isNaN(completedDate.getTime()) || completedDate < startOfMonth) return;
+
+        if (!recyclerMap[pickup.giverID]) {
+          recyclerMap[pickup.giverID] = { totalRecycled: 0, pickupCount: 0 };
+        }
+        recyclerMap[pickup.giverID].totalRecycled += parseFloat(pickup.finalAmount);
+        recyclerMap[pickup.giverID].pickupCount += 1;
+      });
+
+      if (Object.keys(recyclerMap).length === 0) {
+        return res.json({ success: true, data: null });
+      }
+
+      // Find top recycler
+      const topEntry = Object.entries(recyclerMap).sort((a, b) => b[1].totalRecycled - a[1].totalRecycled)[0];
+      const [championID, stats] = topEntry;
+
+      const champion = allUsers.find(u => u.userID === championID);
+      if (!champion) {
+        return res.json({ success: true, data: null });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          userID: champion.userID,
+          name: champion.organizationName || `${champion.firstName} ${champion.lastName}`,
+          profilePictureUrl: champion.profilePictureUrl || null,
+          city: champion.userLocation?.city?.name || null,
+          totalKgRecycled: Math.round(stats.totalRecycled * 10) / 10,
+          pickupCount: stats.pickupCount,
+          points: champion.points || 0,
+          month: now.toLocaleString('default', { month: 'long' }),
+          year: now.getFullYear()
+        }
+      });
+    } catch (error) {
+      console.error('Eco champion error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch eco champion',
+        error: error.message
+      });
+    }
   }
 };
+
+// Get waste distribution for a specific city
+async function getWasteDistributionForCity(cityCode) {
+  try {
+    if (!cityCode) return {};
+
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    const completedPickups = allPickups.filter(pickup => {
+      return pickup.status === 'Completed' &&
+             pickup.pickupLocation?.city?.code === cityCode;
+    });
+
+    const distribution = {};
+    let totalWeight = 0;
+
+    completedPickups.forEach(pickup => {
+      if (pickup.actualWaste && Array.isArray(pickup.actualWaste)) {
+        const weight = parseFloat(pickup.finalAmount) || 0;
+
+        pickup.actualWaste.forEach(material => {
+          const materialType = material.materialName || material.type || 'Other';
+          const materialWeight = weight / pickup.actualWaste.length;
+          distribution[materialType] = (distribution[materialType] || 0) + materialWeight;
+          totalWeight += materialWeight;
+        });
+      }
+    });
+
+    return distribution;
+  } catch (error) {
+    console.error('Error getting waste distribution for city:', error);
+    return {};
+  }
+}
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -672,7 +912,203 @@ async function getTopCollectors(startDate, locationFilter = null) {
   }
 }
 
-async function getUserSpecificStats(userID, user) {
+// Get top recyclers (givers who posted and recycled the most waste)
+async function getTopRecyclers(startDate, locationFilter = null) {
+  try {
+    const allUsers = await getCachedData('allUsers', () => User.findAll());
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    // Calculate recycling stats for all users (as givers)
+    const recyclerMap = {};
+
+    allPickups.forEach(pickup => {
+      if (!pickup.giverID || pickup.status !== 'Completed' || !pickup.finalAmount) return;
+
+      const completedDate = toDate(pickup.completedAt);
+      if (!completedDate || isNaN(completedDate.getTime()) || completedDate < startDate) return;
+      if (!matchesLocationFilter(pickup.pickupLocation, locationFilter)) return;
+
+      if (!recyclerMap[pickup.giverID]) {
+        recyclerMap[pickup.giverID] = { totalRecycled: 0, pickupCount: 0 };
+      }
+      recyclerMap[pickup.giverID].totalRecycled += parseFloat(pickup.finalAmount);
+      recyclerMap[pickup.giverID].pickupCount += 1;
+    });
+
+    // Build ranked list with user details
+    const recyclerStats = Object.entries(recyclerMap)
+      .filter(([, stats]) => stats.totalRecycled > 0)
+      .map(([userID, stats]) => {
+        const user = allUsers.find(u => u.userID === userID);
+        return {
+          userID,
+          name: user
+            ? (user.organizationName || `${user.firstName} ${user.lastName}`)
+            : 'Unknown User',
+          amount: Math.round(stats.totalRecycled),
+          pickupCount: stats.pickupCount,
+          profilePicture: user?.profilePictureUrl || null
+        };
+      });
+
+    recyclerStats.sort((a, b) => b.amount - a.amount);
+
+    return recyclerStats.map((recycler, index) => ({
+      ...recycler,
+      badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : null,
+      rank: index + 1
+    }));
+  } catch (error) {
+    console.error('Error getting top recyclers:', error);
+    return [];
+  }
+}
+
+// Get top earners (users who earned the most from recycling) - only opted-in users
+async function getTopEarners(startDate, locationFilter = null) {
+  try {
+    const allUsers = await getCachedData('allUsers', () => User.findAll());
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    // Filter users who have opted in to show earnings
+    const optedInUsers = allUsers.filter(user =>
+      user.privacySettings?.showEarnings === true
+    );
+
+    const earnerStats = await Promise.all(
+      optedInUsers.map(async (user) => {
+        try {
+          // Get pickups where this user is the giver (received payment)
+          const userPickups = allPickups.filter(pickup =>
+            pickup.giverID === user.userID &&
+            pickup.status === 'Completed' &&
+            pickup.paymentReceived > 0 &&
+            matchesLocationFilter(pickup.pickupLocation, locationFilter)
+          );
+
+          // Apply time filter
+          const filteredPickups = userPickups.filter(pickup => {
+            const completedDate = toDate(pickup.completedAt);
+            return completedDate && !isNaN(completedDate.getTime()) && completedDate >= startDate;
+          });
+
+          const totalEarnings = filteredPickups.reduce(
+            (sum, pickup) => sum + (parseFloat(pickup.paymentReceived) || 0), 0
+          );
+
+          const pickupCount = filteredPickups.length;
+
+          return {
+            userID: user.userID,
+            name: user.privacySettings?.showNameOnLeaderboard
+              ? (user.organizationName || `${user.firstName} ${user.lastName}`)
+              : 'Anonymous User',
+            totalEarnings: Math.round(totalEarnings * 100) / 100,
+            pickupCount,
+            profilePicture: user.privacySettings?.showNameOnLeaderboard
+              ? user.profilePictureUrl
+              : null,
+            isAnonymous: !user.privacySettings?.showNameOnLeaderboard
+          };
+        } catch (error) {
+          console.error(`Error getting earnings for user ${user.userID}:`, error);
+          return null;
+        }
+      })
+    );
+
+    // Filter out nulls and users with no earnings, then sort by earnings
+    const validEarners = earnerStats.filter(e => e && e.totalEarnings > 0);
+    validEarners.sort((a, b) => b.totalEarnings - a.totalEarnings);
+
+    return validEarners.map((earner, index) => ({
+      ...earner,
+      badge: index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : null,
+      rank: index + 1
+    }));
+  } catch (error) {
+    console.error('Error getting top earners:', error);
+    return [];
+  }
+}
+
+// Get community-wide earnings statistics (aggregate data, no privacy filter needed)
+async function getCommunityEarningsStats(startDate, locationFilter = null) {
+  try {
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    // Get all completed pickups with payment
+    const completedPickups = allPickups.filter(pickup => {
+      const completedDate = toDate(pickup.completedAt);
+      return pickup.status === 'Completed' &&
+             pickup.paymentReceived > 0 &&
+             completedDate &&
+             !isNaN(completedDate.getTime()) &&
+             completedDate >= startDate &&
+             matchesLocationFilter(pickup.pickupLocation, locationFilter);
+    });
+
+    const totalEarnings = completedPickups.reduce(
+      (sum, pickup) => sum + (parseFloat(pickup.paymentReceived) || 0), 0
+    );
+
+    const pickupCount = completedPickups.length;
+    const averagePerPickup = pickupCount > 0 ? totalEarnings / pickupCount : 0;
+
+    // Get unique earners count
+    const uniqueEarners = new Set(completedPickups.map(p => p.giverID)).size;
+
+    return {
+      totalCommunityEarnings: Math.round(totalEarnings * 100) / 100,
+      pickupCount,
+      averagePerPickup: Math.round(averagePerPickup * 100) / 100,
+      uniqueEarners
+    };
+  } catch (error) {
+    console.error('Error getting community earnings stats:', error);
+    return {
+      totalCommunityEarnings: 0,
+      pickupCount: 0,
+      averagePerPickup: 0,
+      uniqueEarners: 0
+    };
+  }
+}
+
+// Get earnings stats for a specific user (for personal context)
+async function getUserEarningsStats(userID, startDate) {
+  try {
+    const allPickups = await getCachedData('allPickups', () => Pickup.findAll());
+
+    // Get user's completed pickups with payment (as giver)
+    const userPickups = allPickups.filter(pickup => {
+      const completedDate = toDate(pickup.completedAt);
+      return pickup.giverID === userID &&
+             pickup.status === 'Completed' &&
+             pickup.paymentReceived > 0 &&
+             completedDate &&
+             !isNaN(completedDate.getTime()) &&
+             completedDate >= startDate;
+    });
+
+    const totalEarnings = userPickups.reduce(
+      (sum, pickup) => sum + (parseFloat(pickup.paymentReceived) || 0), 0
+    );
+
+    return {
+      totalEarnings: Math.round(totalEarnings * 100) / 100,
+      pickupCount: userPickups.length,
+      averagePerPickup: userPickups.length > 0
+        ? Math.round((totalEarnings / userPickups.length) * 100) / 100
+        : 0
+    };
+  } catch (error) {
+    console.error('Error getting user earnings stats:', error);
+    return { totalEarnings: 0, pickupCount: 0, averagePerPickup: 0 };
+  }
+}
+
+async function getUserSpecificStats(userID, user, startDate = null, endDate = null) {
   const stats = {
     totalPosts: 0,
     activePickups: 0,
@@ -690,39 +1126,48 @@ async function getUserSpecificStats(userID, user) {
     organization: null
   };
 
+  // Helper to check if a pickup falls within the selected time range
+  const isInTimeRange = (pickup) => {
+    if (!startDate) return true; // No filter = all time
+    const completedDate = toDate(pickup.completedAt);
+    if (!completedDate || isNaN(completedDate.getTime())) return false;
+    if (endDate) {
+      return completedDate >= startDate && completedDate < endDate;
+    }
+    return completedDate >= startDate;
+  };
+
   try {
-    // FIXED: Use correct method - findByUser with 'giver' role
     const userPickupsAsGiver = await Pickup.findByUser(userID, 'giver');
-    
-    stats.giver.activePickups = userPickupsAsGiver.filter(p => 
+
+    // Active pickups are current state, not time-filtered
+    stats.giver.activePickups = userPickupsAsGiver.filter(p =>
       ['Proposed', 'Confirmed', 'In-Transit', 'ArrivedAtPickup'].includes(p.status)
     ).length;
-    
-    stats.giver.successfulPickups = userPickupsAsGiver.filter(p => 
-      p.status === 'Completed'
+
+    // Completed pickups and kg recycled are TIME-FILTERED
+    stats.giver.successfulPickups = userPickupsAsGiver.filter(p =>
+      p.status === 'Completed' && isInTimeRange(p)
     ).length;
-    
+
     userPickupsAsGiver.forEach(pickup => {
-      if (pickup.status === 'Completed' && pickup.finalAmount) {
-        // finalAmount is at root level, not inside actualWaste
+      if (pickup.status === 'Completed' && pickup.finalAmount && isInTimeRange(pickup)) {
         stats.giver.totalKgRecycled += parseFloat(pickup.finalAmount);
       }
     });
     stats.giver.totalKgRecycled = Math.round(stats.giver.totalKgRecycled);
-    
-    // FIXED: Use correct method - findByUserID
+
     const userPosts = await Post.findByUserID(userID);
-    
+
     stats.totalPosts = userPosts.length;
-    stats.giver.activeForumPosts = userPosts.filter(p => 
+    stats.giver.activeForumPosts = userPosts.filter(p =>
       p.postType === 'Forum' && p.status === 'Active'
     ).length;
-    
-    // FIXED: Use correct method - getTotalPointsByUser
+
     const userPoints = await Point.getTotalPointsByUser(userID);
     stats.totalPoints = userPoints || user.points || 0;
     stats.giver.totalPoints = stats.totalPoints;
-    
+
     stats.activePickups = stats.giver.activePickups;
     stats.completedPickups = stats.giver.successfulPickups;
     stats.totalKgRecycled = stats.giver.totalKgRecycled;
@@ -747,15 +1192,14 @@ async function getUserSpecificStats(userID, user) {
         };
         
         collectorPickups.forEach(pickup => {
-          if (pickup.status === 'Completed' && pickup.finalAmount) {
-            // finalAmount is at root level, not inside actualWaste
+          if (pickup.status === 'Completed' && pickup.finalAmount && isInTimeRange(pickup)) {
             stats.collector.totalCollected += parseFloat(pickup.finalAmount);
           }
         });
         stats.collector.totalCollected = Math.round(stats.collector.totalCollected);
-        
-        const totalCollectorPickups = collectorPickups.length;
-        const completedPickups = collectorPickups.filter(p => p.status === 'Completed').length;
+
+        const totalCollectorPickups = collectorPickups.filter(p => isInTimeRange(p)).length;
+        const completedPickups = collectorPickups.filter(p => p.status === 'Completed' && isInTimeRange(p)).length;
         if (totalCollectorPickups > 0) {
           stats.collector.completionRate = Math.round((completedPickups / totalCollectorPickups) * 100);
         }
@@ -765,7 +1209,7 @@ async function getUserSpecificStats(userID, user) {
     }
     
     // ORGANIZATION STATS
-    if (user.isOrganization) {
+    if (user.organizationID !== null) {
       try {
         const orgInitiatives = userPosts.filter(p => p.postType === 'Initiative');
         const activeInitiatives = orgInitiatives.filter(p => 
@@ -1287,12 +1731,63 @@ function formatOperatingHours(hours) {
   return hours[today] || 'Hours not available';
 }
 
-function calculateEnvironmentalImpact(totalKg) {
+// Material-specific environmental impact multipliers (per kg)
+const MATERIAL_IMPACT = {
+  'Aluminum': { co2: 9.0, water: 40, energy: 14, trees: 0 },
+  'Plastic': { co2: 1.5, water: 17, energy: 5.3, trees: 0 },
+  'Paper': { co2: 0.9, water: 26, energy: 4.0, trees: 0.017 },
+  'Cardboard': { co2: 0.9, water: 26, energy: 4.0, trees: 0.017 },
+  'Glass': { co2: 0.3, water: 2, energy: 0.3, trees: 0 },
+  'E-waste': { co2: 2.0, water: 10, energy: 8.0, trees: 0 },
+  'Electronic Waste': { co2: 2.0, water: 10, energy: 8.0, trees: 0 },
+  'Organic': { co2: 0.5, water: 5, energy: 0.5, trees: 0 },
+  'Metal': { co2: 9.0, water: 40, energy: 14, trees: 0 }, // Same as aluminum
+  'Mixed': { co2: 2.0, water: 15, energy: 5.0, trees: 0.005 }, // Average for mixed materials
+  'Other': { co2: 2.0, water: 15, energy: 5.0, trees: 0.005 }, // Average for other materials
+  'Default': { co2: 2.0, water: 15, energy: 5.0, trees: 0.005 } // Average for unknown materials
+};
+
+function calculateEnvironmentalImpact(totalKg, materialBreakdown = null) {
+  // If no material breakdown provided, use old flat multipliers
+  if (!materialBreakdown || Object.keys(materialBreakdown).length === 0) {
+    return {
+      co2Saved: Math.round(totalKg * 2.88),
+      treesEquivalent: Math.round(totalKg * 0.00264),
+      waterSaved: Math.round(totalKg * 15),
+      energySaved: Math.round(totalKg * 6)
+    };
+  }
+
+  // Calculate per-material impacts
+  let totalCO2 = 0;
+  let totalWater = 0;
+  let totalEnergy = 0;
+  let totalTrees = 0;
+
+  Object.entries(materialBreakdown).forEach(([material, kg]) => {
+    // Normalize material name for matching
+    const normalizedMaterial = material.trim();
+
+    // Find matching multiplier (case-insensitive partial match)
+    let multiplier = MATERIAL_IMPACT['Default'];
+    for (const [key, value] of Object.entries(MATERIAL_IMPACT)) {
+      if (key !== 'Default' && normalizedMaterial.toLowerCase().includes(key.toLowerCase())) {
+        multiplier = value;
+        break;
+      }
+    }
+
+    totalCO2 += kg * multiplier.co2;
+    totalWater += kg * multiplier.water;
+    totalEnergy += kg * multiplier.energy;
+    totalTrees += kg * multiplier.trees;
+  });
+
   return {
-    co2Saved: Math.round(totalKg * 2.88),      // kg CO2 equivalent saved
-    treesEquivalent: Math.round(totalKg * 0.00264),  // trees saved (50-year lifetime)
-    waterSaved: Math.round(totalKg * 15),       // liters of water saved
-    energySaved: Math.round(totalKg * 6)        // kWh energy saved
+    co2Saved: Math.round(totalCO2),
+    treesEquivalent: Math.round(totalTrees),
+    waterSaved: Math.round(totalWater),
+    energySaved: Math.round(totalEnergy)
   };
 }
 
@@ -1373,17 +1868,39 @@ async function getTotalRecycledInRange(startDate, endDate, locationFilter = null
     });
 
     let totalKg = 0;
+    const materialBreakdown = {};
+
     completedPickups.forEach(pickup => {
       if (pickup.finalAmount) {
-        totalKg += parseFloat(pickup.finalAmount);
+        const weight = parseFloat(pickup.finalAmount);
+        totalKg += weight;
+
+        // Extract material breakdown from actualWaste array
+        if (pickup.actualWaste && Array.isArray(pickup.actualWaste) && pickup.actualWaste.length > 0) {
+          // Distribute weight equally among materials (simple approach)
+          const weightPerMaterial = weight / pickup.actualWaste.length;
+          pickup.actualWaste.forEach(material => {
+            const materialName = material.materialName || material.type || 'Other';
+            materialBreakdown[materialName] = (materialBreakdown[materialName] || 0) + weightPerMaterial;
+          });
+        } else {
+          // If no material breakdown available, categorize as "Mixed/Other"
+          materialBreakdown['Mixed'] = (materialBreakdown['Mixed'] || 0) + weight;
+        }
       }
     });
 
     console.log(`DEBUG getTotalRecycledInRange: ${startDate.toISOString()} to ${endDate.toISOString()}, pickups=${completedPickups.length}, kg=${Math.round(totalKg)}`);
-    return Math.round(totalKg);
+    return {
+      totalKg: Math.round(totalKg),
+      materialBreakdown: materialBreakdown
+    };
   } catch (error) {
     console.error('Error getting total recycled in range:', error);
-    return 0;
+    return {
+      totalKg: 0,
+      materialBreakdown: {}
+    };
   }
 }
 
@@ -1533,12 +2050,15 @@ async function calculatePercentageChanges(timeRange, startDate, currentMetrics, 
     }
 
     // Fetch metrics for previous period with BOUNDED time window (start to end)
-    const [prevRecycled, prevPickups, prevCompletedInitiatives, prevCompletedSupports] = await Promise.all([
+    const [prevRecycledData, prevPickups, prevCompletedInitiatives, prevCompletedSupports] = await Promise.all([
       getTotalRecycledInRange(previousPeriodStart, previousPeriodEnd, locationFilter),
       getTotalPickupsInRange(previousPeriodStart, previousPeriodEnd, locationFilter),
       getCompletedInitiativesInRange(previousPeriodStart, previousPeriodEnd, locationFilter),
       getCompletedSupportsInRange(previousPeriodStart, previousPeriodEnd, locationFilter)
     ]);
+
+    // Extract totalKg from recycled data
+    const prevRecycled = prevRecycledData.totalKg;
 
     // For users, get the count as of the START of current period
     // This represents the baseline we're comparing growth against

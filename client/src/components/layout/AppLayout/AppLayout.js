@@ -5,17 +5,18 @@ import TopNav from '../../navigation/TopNav/TopNav';
 import SideNav from '../../navigation/SideNav/SideNav';
 import RightSection from '../RightSection/RightSection';
 import QuickGuide from '../../guide/QuickGuide';
+import CollectionRunPanel from '../../posts/CollectionRunPanel/CollectionRunPanel';
 import styles from './AppLayout.module.css';
 
 const AppLayout = ({ children }) => {
   const { currentUser, loading } = useAuth();
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('Claimable');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [rightSectionData, setRightSectionData] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatCounts, setChatCounts] = useState({ all: 0, waste: 0, initiative: 0, forum: 0 });
-  const [postCounts, setPostCounts] = useState({ all: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 });
+  const [postCounts, setPostCounts] = useState({ all: 0, Claimable: 0, Waste: 0, Initiatives: 0, Forum: 0, myPosts: 0 });
   const [showFirstLoginGuide, setShowFirstLoginGuide] = useState(false);
   const [hasCheckedGuide, setHasCheckedGuide] = useState(false);
   const location = useLocation();
@@ -69,11 +70,12 @@ const AppLayout = ({ children }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Reset activeFilter to 'all' when navigating away from pages that use filters
+  // Reset activeFilter when navigating between pages
   useEffect(() => {
-    // Only reset if we're not on a page that uses filters
-    if (location.pathname !== '/posts' && location.pathname !== '/chat') {
+    if (location.pathname === '/chat') {
       setActiveFilter('all');
+    } else if (location.pathname === '/posts') {
+      setActiveFilter('Claimable');
     }
 
     // Close mobile sidebar on navigation
@@ -209,6 +211,9 @@ const AppLayout = ({ children }) => {
         onClose={() => setShowFirstLoginGuide(false)}
         initialPage={1}
       />
+
+      {/* Collection Run Panel — fixed bottom bar for collectors */}
+      <CollectionRunPanel />
     </div>
   );
 };

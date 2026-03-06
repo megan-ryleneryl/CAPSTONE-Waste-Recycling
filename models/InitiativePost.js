@@ -92,7 +92,7 @@ class InitiativePost extends Post {
       // User flags
       isCollector: this.isCollector,
       isAdmin: this.isAdmin,
-      isOrganization: this.isOrganization
+      organizationID: this.organizationID
     };
   }
 

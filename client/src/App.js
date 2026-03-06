@@ -1,6 +1,9 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import { CollectionRunProvider } from './context/CollectionRunContext';
+import { ToastContainer } from './components/notifications';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -17,6 +20,8 @@ import PickupManagement from './pages/PickupManagement';
 import PickupTracking from './pages/PickupTracking';
 import EditMaterials from './pages/EditMaterials';
 import DisposalHubManagement from './pages/DisposalHubManagement';
+import Leagues from './pages/Leagues';
+import MyOrganization from './pages/MyOrganization';
 import './App.css';
 
 // Protected Route Component
@@ -65,9 +70,12 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
+      <ToastProvider>
+        <CollectionRunProvider>
+        <Router>
+          <ToastContainer />
+          <div className="App">
+            <Routes>
             {/* Public routes - No AppLayout */}
             <Route path="/" element={<Landing />} />
             
@@ -128,6 +136,16 @@ function App() {
               } 
             />
 
+            {/* Organization Route - Only accessible if user has organizationID */}
+            <Route 
+              path="/my-organization" 
+              element={
+                <ProtectedRoute>
+                  <MyOrganization />
+                </ProtectedRoute>
+              } 
+            />
+
             <Route 
               path="/chat" 
               element={
@@ -137,13 +155,22 @@ function App() {
               } 
             />
 
-            <Route 
-              path="/pickups" 
+            <Route
+              path="/pickups"
               element={
                 <ProtectedRoute>
                   <PickupManagement />
                 </ProtectedRoute>
-              } 
+              }
+            />
+
+            <Route
+              path="/leagues"
+              element={
+                <ProtectedRoute>
+                  <Leagues />
+                </ProtectedRoute>
+              }
             />
 
             {/* Admin Routes */}
@@ -194,9 +221,11 @@ function App() {
 
 
             <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </div>
-      </Router>
+            </Routes>
+          </div>
+        </Router>
+        </CollectionRunProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }

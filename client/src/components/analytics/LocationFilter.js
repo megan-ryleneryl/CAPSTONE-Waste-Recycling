@@ -1,9 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import styles from './LocationFilter.module.css';
-import { MapPin, X } from 'lucide-react';
+import { SlidersHorizontal, X, ChevronDown, ChevronUp, Package, MapPin } from 'lucide-react';
+import SearchableSelect from '../common/SearchableSelect/SearchableSelect';
 
-const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
+const WASTE_CATEGORIES = [
+  { value: 'Paper', label: 'Paper' },
+  { value: 'Plastic', label: 'Plastic' },
+  { value: 'Metal', label: 'Metal' },
+  { value: 'Glass', label: 'Glass' },
+  { value: 'Electronics', label: 'Electronics' },
+];
+
+const LocationFilter = ({ onFilterChange, currentFilter, userLocation, wasteTypeFilter = [], onWasteTypeFilterChange }) => {
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [regions, setRegions] = useState([]);
   const [provinces, setProvinces] = useState([]);
   const [cities, setCities] = useState([]);
@@ -359,124 +369,174 @@ const LocationFilter = ({ onFilterChange, currentFilter, userLocation }) => {
     );
   };
 
+  const hasActiveFilters =
+    !!(selectedRegion || selectedProvince || selectedCity || selectedBarangay) ||
+    wasteTypeFilter.length > 0;
+
+  const handleWasteTypeToggle = (value) => {
+    if (!onWasteTypeFilterChange) return;
+    const updated = wasteTypeFilter.includes(value)
+      ? wasteTypeFilter.filter((v) => v !== value)
+      : [...wasteTypeFilter, value];
+    onWasteTypeFilterChange(updated);
+  };
+
+  const handleClearAll = () => {
+    handleClearFilter();
+    if (onWasteTypeFilterChange) onWasteTypeFilterChange([]);
+  };
+
   return (
     <div className={styles.locationFilter}>
-      <div className={styles.filterHeader}>
-        <MapPin className={styles.filterIcon} size={20} />
-        <h3>Filter by Location</h3>
-      </div>
+      {/* Header — always visible, toggles collapse */}
+      <button
+        className={styles.filterHeader}
+        onClick={() => setIsCollapsed((prev) => !prev)}
+        aria-expanded={!isCollapsed}
+      >
+        <div className={styles.filterHeaderLeft}>
+          <SlidersHorizontal className={styles.filterIcon} size={20} />
+          <h3>Filters</h3>
+          {hasActiveFilters && <span className={styles.activeIndicator} />}
+        </div>
+        {isCollapsed ? <ChevronDown size={18} className={styles.chevron} /> : <ChevronUp size={18} className={styles.chevron} />}
+      </button>
 
-      {error && <div className={styles.error}>{error}</div>}
+      {!isCollapsed && (
+        <div className={styles.filterBody}>
+          {error && <div className={styles.error}>{error}</div>}
 
-      {/* User Location Suggestion */}
-      {userLocation && !isUserLocationActive() && getUserLocationLabel() && (
-        <div className={styles.userLocationSuggestion}>
-          <span className={styles.suggestionText}>
-            Want to see posts from your community?
-          </span>
-          <button
-            onClick={handleApplyUserLocation}
-            className={styles.suggestionButton}
-          >
-            View {getUserLocationLabel()}
-          </button>
+          {/* User Location Suggestion */}
+          {userLocation && !isUserLocationActive() && getUserLocationLabel() && (
+            <div className={styles.userLocationSuggestion}>
+              <span className={styles.suggestionText}>
+                Want to see posts from your community?
+              </span>
+              <button
+                onClick={handleApplyUserLocation}
+                className={styles.suggestionButton}
+              >
+                View {getUserLocationLabel()}
+              </button>
+            </div>
+          )}
+
+          {/* ── Location section ── */}
+          <div className={styles.sectionLabel}>
+            <MapPin size={14} />
+            Location
+          </div>
+
+          <div className={styles.filterControls}>
+            <div className={styles.dropdownRow}>
+              {/* Region Dropdown */}
+              <div className={styles.dropdownGroup}>
+                <label>Region</label>
+                <SearchableSelect
+                  value={selectedRegion}
+                  onChange={(e) => setSelectedRegion(e.target.value)}
+                  options={regions}
+                  getOptionValue={(r) => r.code}
+                  getOptionLabel={(r) => r.name}
+                  placeholder="All Regions"
+                  emptyOption="All Regions"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Province Dropdown (hidden for NCR) */}
+              {selectedRegion && selectedRegion !== '130000000' && (
+                <div className={styles.dropdownGroup}>
+                  <label>Province</label>
+                  <SearchableSelect
+                    value={selectedProvince}
+                    onChange={(e) => setSelectedProvince(e.target.value)}
+                    options={provinces}
+                    getOptionValue={(p) => p.code}
+                    getOptionLabel={(p) => p.name}
+                    placeholder="All Provinces"
+                    emptyOption="All Provinces"
+                    disabled={loading || provinces.length === 0}
+                  />
+                </div>
+              )}
+
+              {/* City/Municipality Dropdown */}
+              {(selectedProvince || selectedRegion === '130000000') && (
+                <div className={styles.dropdownGroup}>
+                  <label>City/Municipality</label>
+                  <SearchableSelect
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    options={cities}
+                    getOptionValue={(c) => c.code}
+                    getOptionLabel={(c) => c.name}
+                    placeholder="All Cities"
+                    emptyOption="All Cities"
+                    disabled={loading || cities.length === 0}
+                  />
+                </div>
+              )}
+
+              {/* Barangay Dropdown */}
+              {selectedCity && (
+                <div className={styles.dropdownGroup}>
+                  <label>Barangay</label>
+                  <SearchableSelect
+                    value={selectedBarangay}
+                    onChange={(e) => setSelectedBarangay(e.target.value)}
+                    options={barangays}
+                    getOptionValue={(b) => b.code}
+                    getOptionLabel={(b) => b.name}
+                    placeholder="All Barangays"
+                    emptyOption="All Barangays"
+                    disabled={loading || barangays.length === 0}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className={styles.filterActions}>
+              <div className={styles.selectedLocation}>
+                <span className={styles.locationLabel}>Viewing:</span>
+                <span className={styles.locationValue}>{getSelectedLocationLabel()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Waste Type section ── */}
+          {onWasteTypeFilterChange && (
+            <>
+              <div className={styles.sectionDivider} />
+              <div className={styles.sectionLabel}>
+                <Package size={14} />
+                Waste Type
+              </div>
+              <div className={styles.wasteTypeRow}>
+                {WASTE_CATEGORIES.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => handleWasteTypeToggle(value)}
+                    className={`${styles.wasteTypeChip} ${wasteTypeFilter.includes(value) ? styles.wasteTypeChipActive : ''}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Clear all */}
+          {hasActiveFilters && (
+            <div className={styles.clearRow}>
+              <button onClick={handleClearAll} className={styles.clearButton}>
+                <X size={16} />
+                Clear All Filters
+              </button>
+            </div>
+          )}
         </div>
       )}
-
-      <div className={styles.filterControls}>
-        <div className={styles.dropdownRow}>
-          {/* Region Dropdown */}
-          <div className={styles.dropdownGroup}>
-            <label>Region</label>
-            <select
-              value={selectedRegion}
-              onChange={(e) => setSelectedRegion(e.target.value)}
-              disabled={loading}
-              className={styles.dropdown}
-            >
-              <option value="">All Regions</option>
-              {regions.map((region) => (
-                <option key={region.code} value={region.code}>
-                  {region.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Province Dropdown (hidden for NCR) */}
-          {selectedRegion && selectedRegion !== '130000000' && (
-            <div className={styles.dropdownGroup}>
-              <label>Province</label>
-              <select
-                value={selectedProvince}
-                onChange={(e) => setSelectedProvince(e.target.value)}
-                disabled={loading || provinces.length === 0}
-                className={styles.dropdown}
-              >
-                <option value="">All Provinces</option>
-                {provinces.map((province) => (
-                  <option key={province.code} value={province.code}>
-                    {province.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* City/Municipality Dropdown */}
-          {(selectedProvince || selectedRegion === '130000000') && (
-            <div className={styles.dropdownGroup}>
-              <label>City/Municipality</label>
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                disabled={loading || cities.length === 0}
-                className={styles.dropdown}
-              >
-                <option value="">All Cities</option>
-                {cities.map((city) => (
-                  <option key={city.code} value={city.code}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Barangay Dropdown */}
-          {selectedCity && (
-            <div className={styles.dropdownGroup}>
-              <label>Barangay</label>
-              <select
-                value={selectedBarangay}
-                onChange={(e) => setSelectedBarangay(e.target.value)}
-                disabled={loading || barangays.length === 0}
-                className={styles.dropdown}
-              >
-                <option value="">All Barangays</option>
-                {barangays.map((barangay) => (
-                  <option key={barangay.code} value={barangay.code}>
-                    {barangay.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-
-        <div className={styles.filterActions}>
-          <div className={styles.selectedLocation}>
-            <span className={styles.locationLabel}>Viewing:</span>
-            <span className={styles.locationValue}>{getSelectedLocationLabel()}</span>
-          </div>
-          {(selectedRegion || selectedProvince || selectedCity || selectedBarangay) && (
-            <button onClick={handleClearFilter} className={styles.clearButton}>
-              <X size={16} />
-              Clear Filter
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   );
 };

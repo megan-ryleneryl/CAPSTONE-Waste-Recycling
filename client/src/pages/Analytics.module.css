@@ -587,8 +587,11 @@
 
 .metricCard {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-sm, 0.5rem);
   padding: 1.5rem;
   background: var(--bg-secondary, #fbfbfb);
   border-radius: var(--border-radius-lg, 12px);
@@ -1327,5 +1330,366 @@
   .lightTip {
     font-size: 0.8125rem;
     padding: 0.625rem 0.875rem;
+  }
+}
+
+/* ==================== */
+/* Community Earnings Section */
+/* ==================== */
+.earningsSection {
+  background: linear-gradient(135deg, #f9fafb 0%, #f0fdf4 100%);
+  border-radius: var(--border-radius-lg, 12px);
+  padding: 1.5rem;
+  margin-top: 2rem;
+  border: 1px solid #e5e7eb;
+}
+
+.earningsHeader {
+  margin-bottom: 1.5rem;
+}
+
+.earningsHeader h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.earningsIcon {
+  color: #3B6535;
+}
+
+.earningsSubtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.earningsStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.earningStat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.earningStatIcon {
+  color: #3B6535;
+  flex-shrink: 0;
+}
+
+.earningValue {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #3B6535;
+}
+
+.earningLabel {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.125rem;
+}
+
+.yourEarnings {
+  padding: 1.25rem;
+  background: linear-gradient(135deg, #3B6535 0%, #4a7d44 100%);
+  border-radius: 8px;
+  color: white;
+  margin-bottom: 1.5rem;
+}
+
+.yourEarnings h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.yourEarningsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.yourEarningsValue {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.yourEarningsLabel {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+.topEarnersSection h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.anonymousName {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.noEarnersMessage {
+  text-align: center;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+}
+
+.noEarnersMessage p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.noEarnersHint {
+  margin-top: 0.5rem !important;
+  font-size: 0.85rem;
+  color: #9ca3af !important;
+}
+
+/* ==================== */
+/* Personal Contribution Section */
+/* ==================== */
+.personalContribution {
+  background: linear-gradient(135deg, #3B6535 0%, #4a7d44 100%);
+  border-radius: var(--border-radius-lg, 12px);
+  padding: 1.5rem;
+  color: white;
+  margin-top: 1.5rem;
+}
+
+.contributionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.contributionHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.contributionIcon {
+  flex-shrink: 0;
+}
+
+.contributionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.contributionStat {
+  text-align: center;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+
+.contributionValue {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.contributionLabel {
+  display: block;
+  font-size: 0.75rem;
+  opacity: 0.85;
+  margin-top: 0.25rem;
+}
+
+.contributionEmpty {
+  text-align: center;
+  padding: 1rem;
+}
+
+.contributionEmpty p {
+  margin: 0 0 1rem 0;
+  opacity: 0.9;
+}
+
+.contributionAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-family: var(--font-family-primary, 'Raleway', sans-serif);
+}
+
+.contributionAction:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ==================== */
+/* Real-World Equivalency Text */
+/* ==================== */
+.equivalencyText {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #6b7280;
+  line-height: 1.3;
+}
+
+/* ==================== */
+/* Actionable Recommendations Section */
+/* ==================== */
+.recommendationsSection {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #fffbeb;
+  border-radius: var(--border-radius-lg, 12px);
+  border: 1px solid #fde68a;
+}
+
+.recommendationsSection h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.recommendationsIcon {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.recommendationsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recommendationCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+
+.recommendationCard:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transform: translateX(4px);
+}
+
+.recommendationIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #f0fdf4;
+  border-radius: 8px;
+  color: #3B6535;
+  flex-shrink: 0;
+}
+
+.recommendationContent {
+  flex: 1;
+}
+
+.recommendationContent h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.recommendationContent p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.recommendationAction {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: #3B6535;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-family: var(--font-family-primary, 'Raleway', sans-serif);
+}
+
+.recommendationAction:hover {
+  background: #2d4e29;
+}
+
+/* Responsive styles for new sections */
+@media (max-width: 768px) {
+  .earningsStats {
+    grid-template-columns: 1fr;
+  }
+
+  .yourEarningsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .yourEarningsValue {
+    font-size: 1.5rem;
+  }
+
+  .contributionGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .contributionValue {
+    font-size: 1.25rem;
+  }
+
+  .recommendationCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .recommendationIconWrapper {
+    width: 32px;
+    height: 32px;
   }
 }

@@ -20,7 +20,11 @@ import {
   Trees,
   Droplets,
   Zap,
-  Info
+  Info,
+  Wallet,
+  DollarSign,
+  Award,
+  Lightbulb
 } from 'lucide-react';
 
 const Analytics = () => {
@@ -218,7 +222,7 @@ const Analytics = () => {
   const formatPeriodDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getPeriodLabel = (percentageChanges) => {
@@ -238,6 +242,116 @@ const Analytics = () => {
       case 'all': return 'All Time';
       default: return 'Current Year';
     }
+  };
+
+  // Real-world equivalency helper for environmental impact
+  const getEquivalency = (type, value) => {
+    if (!value || value === 0) return null;
+    switch(type) {
+      case 'co2': {
+        const cars = value / 4600;
+        return cars >= 1
+          ? `Like taking ${Math.round(cars)} car${Math.round(cars) > 1 ? 's' : ''} off the road for a year`
+          : `Like removing a car from the road for ${Math.round(cars * 365)} days`;
+      }
+      case 'trees': {
+        const sqm = Math.round(value * 25);
+        return sqm > 0 ? `Covering about ${sqm.toLocaleString()} sq meters of forest` : null;
+      }
+      case 'water': {
+        const bathtubs = Math.round(value / 250);
+        return bathtubs > 0
+          ? `Enough to fill ${bathtubs.toLocaleString()} bathtub${bathtubs > 1 ? 's' : ''}`
+          : `About ${Math.round(value)} glasses of water`;
+      }
+      case 'energy': {
+        const homes = value / 30;
+        return homes >= 1
+          ? `Powers ${Math.round(homes)} home${Math.round(homes) > 1 ? 's' : ''} for a day`
+          : `About ${Math.round(value)} hours of air conditioning`;
+      }
+      default: return null;
+    }
+  };
+
+  // Icon map for recommendations
+  const recommendationIcons = {
+    Plus: <Plus size={20} />,
+    Heart: <Heart size={20} />,
+    TrendingUp: <TrendingUp size={20} />,
+    Trophy: <Trophy size={20} />,
+    Users: <Users size={20} />
+  };
+
+  // Generate smart actionable recommendations based on user data
+  const generateRecommendations = () => {
+    if (!analyticsData) return [];
+
+    const recommendations = [];
+    const stats = analyticsData.userStats || {};
+    const wasteTypes = analyticsData.wasteByType || {};
+
+    // 1. User has never recycled
+    if (!stats.totalKgRecycled || stats.totalKgRecycled === 0) {
+      recommendations.push({
+        icon: 'Plus',
+        title: 'Start Your Recycling Journey',
+        text: 'Post your first recyclable waste and earn points!',
+        action: { label: 'Create Post', route: '/create-post', state: { postType: 'Waste' } }
+      });
+    }
+
+    // 2. User recycles but hasn't supported initiatives
+    if (stats.totalKgRecycled > 0 && (!analyticsData.completedSupports || analyticsData.completedSupports === 0)) {
+      recommendations.push({
+        icon: 'Heart',
+        title: 'Support an Initiative',
+        text: `There are ${analyticsData.totalInitiatives || 0} active initiatives. Join one to multiply your impact!`,
+        action: { label: 'Browse Initiatives', route: '/posts' }
+      });
+    }
+
+    // 3. Low activity waste type - suggest posting it
+    const sortedTypes = Object.entries(wasteTypes).sort(([, a], [, b]) => a - b);
+    if (sortedTypes.length > 0) {
+      const [lowestType, lowestPct] = sortedTypes[0];
+      if (lowestPct < 15) {
+        recommendations.push({
+          icon: 'TrendingUp',
+          title: `${lowestType} is Under-recycled`,
+          text: `Only ${lowestPct}% of recycling is ${lowestType}. Got some? Post it to help balance the mix!`,
+          action: { label: 'Post Recyclables', route: '/create-post', state: { postType: 'Waste' } }
+        });
+      }
+    }
+
+    // 4. User is doing well - encourage them
+    if (stats.totalKgRecycled > 0 && stats.completedPickups >= 3) {
+      const userPct = analyticsData.totalRecycled > 0
+        ? Math.round((stats.totalKgRecycled / analyticsData.totalRecycled) * 100)
+        : 0;
+      if (userPct >= 5) {
+        recommendations.push({
+          icon: 'Trophy',
+          title: "You're a Top Contributor!",
+          text: `You've contributed ${userPct}% of all recycling. Keep the momentum going!`,
+          action: null
+        });
+      }
+    }
+
+    // 5. Community is growing
+    const growthPct = parseInt(analyticsData.percentageChanges?.users || '0');
+    if (growthPct > 0) {
+      recommendations.push({
+        icon: 'Users',
+        title: 'Community is Growing',
+        text: `${growthPct}% more users joined recently. Share EcoTayo with friends to keep the momentum!`,
+        action: null
+      });
+    }
+
+    return recommendations.slice(0, 3);
   };
 
   const fetchHeatMapData = async () => {
@@ -507,6 +621,9 @@ const Analytics = () => {
       pickups: '+0%'
     };
 
+    // Don't show comparisons for "All Time" since there's no meaningful previous period
+    const showComparisons = selectedTimeRange !== 'all';
+
     return (
       <div className={styles.impactDashboard}>
         {dataLoading && (
@@ -557,9 +674,11 @@ const Analytics = () => {
             <div className={styles.metricContent}>
               <h3>{(analyticsData.totalRecycled || 0).toLocaleString()} kg</h3>
               <p>Total Recycled</p>
-              <span className={`${styles.trend} ${getTrendClass(changes.recycled)}`}>
-                {changes.recycled || '+0%'}
-              </span>
+              {showComparisons && (
+                <span className={`${styles.trend} ${getTrendClass(changes.recycled)}`}>
+                  {changes.recycled || '+0%'}
+                </span>
+              )}
             </div>
           </div>
 
@@ -570,9 +689,11 @@ const Analytics = () => {
             <div className={styles.metricContent}>
               <h3>{analyticsData.completedInitiatives || 0}</h3>
               <p>Completed Initiatives</p>
-              <span className={`${styles.trend} ${getTrendClass(changes.initiatives)}`}>
-                {changes.initiatives || '+0%'}
-              </span>
+              {showComparisons && (
+                <span className={`${styles.trend} ${getTrendClass(changes.initiatives)}`}>
+                  {changes.initiatives || '+0%'}
+                </span>
+              )}
             </div>
           </div>
 
@@ -583,9 +704,11 @@ const Analytics = () => {
             <div className={styles.metricContent}>
               <h3>{(analyticsData.activeUsers || 0).toLocaleString()}</h3>
               <p>{getActiveUsersLabel()}</p>
-              <span className={`${styles.trend} ${getTrendClass(changes.users)}`}>
-                {changes.users || '+0%'} growth
-              </span>
+              {showComparisons && (
+                <span className={`${styles.trend} ${getTrendClass(changes.users)}`}>
+                  {changes.users || '+0%'} growth
+                </span>
+              )}
             </div>
           </div>
 
@@ -596,9 +719,11 @@ const Analytics = () => {
             <div className={styles.metricContent}>
               <h3>{analyticsData.totalPickups || 0}</h3>
               <p>Successful Pickups</p>
-              <span className={`${styles.trend} ${getTrendClass(changes.pickups)}`}>
-                {changes.pickups || '+0%'}
-              </span>
+              {showComparisons && (
+                <span className={`${styles.trend} ${getTrendClass(changes.pickups)}`}>
+                  {changes.pickups || '+0%'}
+                </span>
+              )}
             </div>
           </div>
 
@@ -609,19 +734,69 @@ const Analytics = () => {
             <div className={styles.metricContent}>
               <h3>{analyticsData.completedSupports || 0}</h3>
               <p>Completed Supports</p>
-              <span className={`${styles.trend} ${getTrendClass(changes.supports)}`}>
-                {changes.supports || '+0%'}
-              </span>
+              {showComparisons && (
+                <span className={`${styles.trend} ${getTrendClass(changes.supports)}`}>
+                  {changes.supports || '+0%'}
+                </span>
+              )}
             </div>
           </div>
         </div>
         
-        {/* Period Comparison Label */}
-        {getPeriodLabel(changes) && (
+        {/* Period Comparison Label - hidden for All Time */}
+        {showComparisons && getPeriodLabel(changes) && (
           <div className={styles.periodComparisonLabel}>
             Comparing: {getPeriodLabel(changes)}
           </div>
         )}
+
+        {/* Personal Contribution Context */}
+        <div className={styles.personalContribution}>
+          <div className={styles.contributionHeader}>
+            <Award size={20} className={styles.contributionIcon} />
+            <h3>Your Contribution</h3>
+          </div>
+          {stats.totalKgRecycled > 0 ? (
+            <div className={styles.contributionGrid}>
+              <div className={styles.contributionStat}>
+                <span className={styles.contributionValue}>
+                  {(stats.totalKgRecycled || 0).toLocaleString()} kg
+                </span>
+                <span className={styles.contributionLabel}>You Recycled</span>
+              </div>
+              <div className={styles.contributionStat}>
+                <span className={styles.contributionValue}>
+                  {analyticsData.totalRecycled > 0
+                    ? `${Math.round((stats.totalKgRecycled / analyticsData.totalRecycled) * 100)}%`
+                    : '0%'}
+                </span>
+                <span className={styles.contributionLabel}>of Community Total</span>
+              </div>
+              <div className={styles.contributionStat}>
+                <span className={styles.contributionValue}>
+                  {stats.completedPickups || 0}
+                </span>
+                <span className={styles.contributionLabel}>Successful Pickups</span>
+              </div>
+              <div className={styles.contributionStat}>
+                <span className={styles.contributionValue}>
+                  {stats.totalPoints || 0}
+                </span>
+                <span className={styles.contributionLabel}>Points Earned</span>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.contributionEmpty}>
+              <p>Start recycling to see your contribution here!</p>
+              <button
+                className={styles.contributionAction}
+                onClick={() => navigate('/create-post', { state: { postType: 'Waste' } })}
+              >
+                <Plus size={16} /> Post Your First Recyclable
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Educational Tip Box */}
         <div className={styles.tipBox}>
@@ -684,6 +859,119 @@ const Analytics = () => {
               )}
             </div>
           </div>
+
+          <div className={styles.chartCard}>
+            <h3>Top Recyclers</h3>
+            <div className={styles.leaderboard}>
+              {analyticsData.topRecyclers && analyticsData.topRecyclers.length > 0 ? (
+                analyticsData.topRecyclers.map((recycler, index) => (
+                  <div key={index} className={styles.leaderboardItem}>
+                    <div className={styles.rank}>
+                      <Trophy className={`${styles.trophy} ${styles[recycler.badge]}`} />
+                      <span>#{index + 1}</span>
+                    </div>
+                    <div className={styles.collectorInfo}>
+                      <h4>{recycler.name}</h4>
+                      <p>{(recycler.amount || 0).toLocaleString()} kg recycled</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className={styles.noDataMessage}>No recycler data available</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Community Earnings Section */}
+        <div className={styles.earningsSection}>
+          <div className={styles.earningsHeader}>
+            <h3>
+              <Wallet size={20} className={styles.earningsIcon} />
+              Community Earnings
+            </h3>
+            <p className={styles.earningsSubtitle}>
+              See how much our community earns from recycling
+            </p>
+          </div>
+
+          {/* Community Stats */}
+          <div className={styles.earningsStats}>
+            <div className={styles.earningStat}>
+              <DollarSign size={24} className={styles.earningStatIcon} />
+              <div>
+                <span className={styles.earningValue}>
+                  ₱{(analyticsData.communityEarnings?.totalCommunityEarnings || 0).toLocaleString()}
+                </span>
+                <span className={styles.earningLabel}>Total Earned by Community</span>
+              </div>
+            </div>
+            <div className={styles.earningStat}>
+              <div>
+                <span className={styles.earningValue}>
+                  ₱{(analyticsData.communityEarnings?.averagePerPickup || 0).toFixed(2)}
+                </span>
+                <span className={styles.earningLabel}>Avg. per Pickup</span>
+              </div>
+            </div>
+            <div className={styles.earningStat}>
+              <div>
+                <span className={styles.earningValue}>
+                  {analyticsData.communityEarnings?.uniqueEarners || 0}
+                </span>
+                <span className={styles.earningLabel}>People Earning</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Your Earnings Context */}
+          <div className={styles.yourEarnings}>
+            <h4>Your Earnings ({getTimeRangeLabel()})</h4>
+            <div className={styles.yourEarningsGrid}>
+              <div>
+                <span className={styles.yourEarningsValue}>
+                  ₱{(analyticsData.userEarnings?.totalEarnings || 0).toLocaleString()}
+                </span>
+                <span className={styles.yourEarningsLabel}>Total Earned</span>
+              </div>
+              <div>
+                <span className={styles.yourEarningsValue}>
+                  {analyticsData.userEarnings?.pickupCount || 0}
+                </span>
+                <span className={styles.yourEarningsLabel}>Paid Pickups</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Earners Leaderboard */}
+          <div className={styles.topEarnersSection}>
+            <h4>Top Earners</h4>
+            <div className={styles.leaderboard}>
+              {analyticsData.topEarners && analyticsData.topEarners.length > 0 ? (
+                analyticsData.topEarners.map((earner, index) => (
+                  <div key={index} className={styles.leaderboardItem}>
+                    <div className={styles.rank}>
+                      <Trophy className={`${styles.trophy} ${styles[earner.badge]}`} />
+                      <span>#{index + 1}</span>
+                    </div>
+                    <div className={styles.collectorInfo}>
+                      <h4 className={earner.isAnonymous ? styles.anonymousName : ''}>
+                        {earner.name}
+                      </h4>
+                      <p>₱{(earner.totalEarnings || 0).toLocaleString()} earned</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className={styles.noEarnersMessage}>
+                  <p>No users have opted in to show earnings yet.</p>
+                  <p className={styles.noEarnersHint}>
+                    You can opt in from your Profile → Privacy Settings
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* FIXED: Recycling Trends - Now displays Q1-Q4 for year view */}
@@ -732,7 +1020,7 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* FIXED: Environmental Impact Section - Now displays all 4 values */}
+        {/* Environmental Impact Section with Real-World Equivalencies */}
         <div className={styles.impactSection}>
           <h3>Environmental Impact</h3>
           <div className={styles.impactGrid}>
@@ -740,24 +1028,67 @@ const Analytics = () => {
               <Leaf className={styles.impactIcon} />
               <h4>{(impact.co2Saved || 0).toLocaleString()} kg</h4>
               <p>CO₂ Emissions Saved</p>
+              {getEquivalency('co2', impact.co2Saved) && (
+                <p className={styles.equivalencyText}>{getEquivalency('co2', impact.co2Saved)}</p>
+              )}
             </div>
             <div className={styles.impactCard}>
               <Trees className={styles.impactIcon} />
               <h4>{(impact.treesEquivalent || 0).toLocaleString()}</h4>
               <p>Trees Equivalent</p>
+              {getEquivalency('trees', impact.treesEquivalent) && (
+                <p className={styles.equivalencyText}>{getEquivalency('trees', impact.treesEquivalent)}</p>
+              )}
             </div>
             <div className={styles.impactCard}>
               <Droplets className={styles.impactIcon} />
               <h4>{(impact.waterSaved || 0).toLocaleString()} L</h4>
               <p>Water Saved</p>
+              {getEquivalency('water', impact.waterSaved) && (
+                <p className={styles.equivalencyText}>{getEquivalency('water', impact.waterSaved)}</p>
+              )}
             </div>
             <div className={styles.impactCard}>
               <Zap className={styles.impactIcon} />
               <h4>{(impact.energySaved || 0).toLocaleString()} kWh</h4>
               <p>Energy Saved</p>
+              {getEquivalency('energy', impact.energySaved) && (
+                <p className={styles.equivalencyText}>{getEquivalency('energy', impact.energySaved)}</p>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Actionable Recommendations */}
+        {generateRecommendations().length > 0 && (
+          <div className={styles.recommendationsSection}>
+            <h3>
+              <Lightbulb size={20} className={styles.recommendationsIcon} />
+              What You Can Do Next
+            </h3>
+            <div className={styles.recommendationsGrid}>
+              {generateRecommendations().map((rec, index) => (
+                <div key={index} className={styles.recommendationCard}>
+                  <div className={styles.recommendationIconWrapper}>
+                    {recommendationIcons[rec.icon]}
+                  </div>
+                  <div className={styles.recommendationContent}>
+                    <h4>{rec.title}</h4>
+                    <p>{rec.text}</p>
+                    {rec.action && (
+                      <button
+                        className={styles.recommendationAction}
+                        onClick={() => navigate(rec.action.route, rec.action.state ? { state: rec.action.state } : undefined)}
+                      >
+                        {rec.action.label}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className={styles.ctaSection}>
           <h3>Join the Movement!</h3>
@@ -825,7 +1156,7 @@ const Analytics = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
               <h1 className={styles.welcomeTitle}>Community Stats</h1>
-              <GuideLink text="Understanding these analytics" targetPage={2} icon={<Info size={16} />} />
+              <GuideLink text="Understanding these analytics" targetPage={3} icon={<Info size={16} />} />
             </div>
             <p className={styles.welcomeSubtitle}>
               This is what's happening within our community's recycling activities.

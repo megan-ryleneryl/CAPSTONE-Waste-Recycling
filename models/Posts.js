@@ -44,8 +44,7 @@ class Post {
     // User flags for post permissions
     this.isCollector = data.isCollector || false;
     this.isAdmin = data.isAdmin || false;
-    this.isOrganization = data.isOrganization || false;
-  
+    this.organizationID = data.organizationID || null;  
       
     // For Waste posts - claim tracking
     this.claimedBy = data.claimedBy || null;
@@ -130,7 +129,7 @@ class Post {
       // User flags
       isCollector: this.isCollector,
       isAdmin: this.isAdmin,
-      isOrganization: this.isOrganization
+      organizationID: this.organizationID
     };
   }
 
@@ -385,6 +384,72 @@ class Post {
       return posts;
     } catch (error) {
       throw new Error(`Failed to find posts by location: ${error.message}`);
+    }
+  }
+
+  static async find(filters = {}) {
+    const db = getFirestore();
+    try {
+      const postsRef = collection(db, 'posts');
+
+      // Separate $in filters from equality filters
+      let inField = null;
+      let inValues = [];
+      const equalityConstraints = [];
+
+      for (const [key, value] of Object.entries(filters)) {
+        if (value && typeof value === 'object' && value.$in) {
+          if (inField) {
+            throw new Error('Only one $in filter is supported per query');
+          }
+          inField = key;
+          inValues = value.$in.filter(Boolean);
+        } else {
+          equalityConstraints.push(where(key, '==', value));
+        }
+      }
+
+      let allPosts = [];
+
+      if (inField && inValues.length > 0) {
+        // Firestore 'in' supports max 30 values per query — batch automatically
+        const batchSize = 30;
+        for (let i = 0; i < inValues.length; i += batchSize) {
+          const batch = inValues.slice(i, i + batchSize);
+          const q = query(postsRef, where(inField, 'in', batch), ...equalityConstraints);
+          const snapshot = await getDocs(q);
+          snapshot.forEach((docSnap) => {
+            allPosts.push(docSnap.data());
+          });
+        }
+      } else if (inField && inValues.length === 0) {
+        return [];
+      } else {
+        const q = equalityConstraints.length > 0
+          ? query(postsRef, ...equalityConstraints)
+          : query(postsRef);
+        const snapshot = await getDocs(q);
+        snapshot.forEach((docSnap) => {
+          allPosts.push(docSnap.data());
+        });
+      }
+
+      // Instantiate proper subclass for each post
+      return allPosts.map((postData) => {
+        switch (postData.postType) {
+          case 'Waste':
+            return new (require('./WastePost'))(postData);
+          case 'Initiative':
+            return new (require('./InitiativePost'))(postData);
+          case 'Forum':
+            return new (require('./ForumPost'))(postData);
+          default:
+            return new Post(postData);
+        }
+      });
+    } catch (error) {
+      console.error('Error in Post.find:', error);
+      throw new Error(`Failed to find posts: ${error.message}`);
     }
   }
 

@@ -16,7 +16,7 @@ const ChatHeader = ({ otherUser, postData, onClose }) => {
   const getUserType = (user) => {
     if (user.isAdmin) return 'Admin';
     if (user.isCollector) return 'Collector';
-    if (user.isOrganization) return 'Organization';
+    if (user.organizationID !== null) return 'Organization';
     return 'Giver';
   };
 

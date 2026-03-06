@@ -7,13 +7,42 @@ import styles from './PostCard.module.css';
 import { db } from '../../../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../../../context/AuthContext';
+import { useCollectionRun } from '../../../context/CollectionRunContext';
 // Lucide icon imports
-import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins } from 'lucide-react';
+import { Recycle, Sprout, MessageCircle, Package, MapPin, Tag, Calendar, Heart, MessageSquare, Goal, Clock, Weight, BarChart3, Coins, Sparkles } from 'lucide-react';
 
 
-const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID, locationFilter = null }) => {
+// Maps material display names (as stored on posts) → waste category chip value
+const MATERIAL_NAME_TO_CATEGORY = {
+  // Paper
+  'White Paper (used)': 'Paper',
+  'Cartons (corrugated, brown)': 'Paper',
+  'Newspaper': 'Paper',
+  'Assorted/Mixed waste paper': 'Paper',
+  // Plastic
+  'PET Bottles': 'Plastic',
+  'Plastic (HDPE)': 'Plastic',
+  'Plastic (LDPE)': 'Plastic',
+  // Glass
+  'Glass Bottles': 'Glass',
+  'Glass Cullets (Broken glass)': 'Glass',
+  // Metal
+  'Aluminum Cans': 'Metal',
+  'Copper Wire_Class A': 'Metal',
+  'Copper Wire_Class B': 'Metal',
+  'Copper Wire_Class C': 'Metal',
+  'GI Sheet': 'Metal',
+  'Stainless Steel': 'Metal',
+  'Steel (Iron alloys)': 'Metal',
+  'Tin Can': 'Metal',
+  // Electronics
+  'Electronic Waste': 'Electronics',
+};
+
+const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpdate, currentUserID, locationFilter = null, wasteTypeFilter = [], groupByDate = false }) => {
 
   const { currentUser } = useAuth();
+  const { addToRun, removeFromRun, isInRun } = useCollectionRun();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -28,7 +57,7 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
       setPosts([]);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [postType, userID, locationFilter?.region, locationFilter?.province, locationFilter?.city, locationFilter?.barangay]); // Add location filter dependencies
+  }, [postType, userID, locationFilter?.region, locationFilter?.province, locationFilter?.city, locationFilter?.barangay, wasteTypeFilter]); // Add location + waste type filter dependencies
 
   // REMOVED: This was causing double fetching - we now calculate counts from existing posts
   // The counts are calculated once in fetchPosts() instead of re-fetching all posts
@@ -89,17 +118,38 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
 
         // Filter by post type if not 'all' and no userID filter
         if (postType && postType !== 'all' && !userID) {
-          // Map component prop values to database values
-          const typeMap = {
-            'Waste Post': 'Waste',
-            'Initiative Post': 'Initiative',
-            'Forum Post': 'Forum',
-            'Waste': 'Waste',
-            'Initiative': 'Initiative',
-            'Forum': 'Forum'
-          };
-          const mappedType = typeMap[postType] || postType;
-          filteredPosts = filteredPosts.filter(post => post.postType === mappedType);
+          if (postType === 'Claimable') {
+            // Show Active Waste and Active Initiative posts not owned by current user
+            filteredPosts = filteredPosts.filter(post =>
+              post.status === 'Active' &&
+              post.userID !== currentUser?.userID &&
+              (post.postType === 'Waste' || post.postType === 'Initiative')
+            );
+          } else {
+            // Map component prop values to database values
+            const typeMap = {
+              'Waste Post': 'Waste',
+              'Initiative Post': 'Initiative',
+              'Forum Post': 'Forum',
+              'Waste': 'Waste',
+              'Initiative': 'Initiative',
+              'Forum': 'Forum'
+            };
+            const mappedType = typeMap[postType] || postType;
+            filteredPosts = filteredPosts.filter(post => post.postType === mappedType);
+          }
+        }
+
+        // Filter by waste material category (applies only to Waste posts)
+        if (wasteTypeFilter && wasteTypeFilter.length > 0) {
+          filteredPosts = filteredPosts.filter(post => {
+            if (post.postType !== 'Waste') return true; // keep non-waste posts unaffected
+            if (!Array.isArray(post.materials) || post.materials.length === 0) return false;
+            return post.materials.some(m => {
+              const category = MATERIAL_NAME_TO_CATEGORY[m.materialName];
+              return category && wasteTypeFilter.includes(category);
+            });
+          });
         }
 
         // Limit posts based on maxPosts prop
@@ -159,6 +209,7 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
         if (onCountsUpdate && currentUserID) {
           const counts = {
             all: activePosts.length,
+            Claimable: 0,
             Waste: 0,
             Initiatives: 0,
             Forum: 0,
@@ -172,6 +223,12 @@ const PostCard = ({ postType = 'all', userID = null, maxPosts = 20, onCountsUpda
               counts.Initiatives++;
             } else if (post.postType === 'Forum') {
               counts.Forum++;
+            }
+
+            // Count claimable: Active Waste/Initiative posts not owned by current user
+            if (post.status === 'Active' && post.userID !== currentUserID &&
+                (post.postType === 'Waste' || post.postType === 'Initiative')) {
+              counts.Claimable++;
             }
 
             if (post.userID === currentUserID) {
@@ -503,9 +560,7 @@ const handleMessageOwner = async (post, event) => {
     );
   }
 
-  return (
-    <div className={styles.container}>
-      {Array.isArray(posts) && posts.map((post) => {
+  const renderPostCard = (post) => {
         const currentImageIndex = imageIndexes[post.postID] || 0;
         const postImages = post.images || [];
         
@@ -668,8 +723,8 @@ const handleMessageOwner = async (post, event) => {
             {/* Image Carousel or Placeholder */}
             {postImages.length > 0 ? (
               <div className={styles.imageContainer}>
-                <img 
-                  src={postImages[currentImageIndex]} 
+                <img
+                  src={postImages[currentImageIndex]}
                   alt={`${post.title} - Image ${currentImageIndex + 1}`}
                   className={styles.postImage}
                   onError={(e) => {
@@ -679,20 +734,35 @@ const handleMessageOwner = async (post, event) => {
                 />
                 {postImages.length > 1 && (
                   <>
-                    <button 
+                    <button
                       className={`${styles.navButton} ${styles.prevButton}`}
                       onClick={(e) => handlePrevImage(e, post.postID, postImages.length)}
                       aria-label="Previous image"
                     >
                       ←
                     </button>
-                    <button 
+                    <button
                       className={`${styles.navButton} ${styles.nextButton}`}
                       onClick={(e) => handleNextImage(e, post.postID, postImages.length)}
                       aria-label="Next image"
                     >
                       →
                     </button>
+                    <div className={styles.imageIndicators}>
+                      {postImages.map((_, idx) => (
+                        <span
+                          key={idx}
+                          className={`${styles.indicator} ${idx === currentImageIndex ? styles.active : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setImageIndexes(prev => ({
+                              ...prev,
+                              [post.postID]: idx
+                            }));
+                          }}
+                        />
+                      ))}
+                    </div>
                   </>
                 )}
               </div>
@@ -738,7 +808,7 @@ const handleMessageOwner = async (post, event) => {
                   )}
                   {post.condition && post.condition !== 'Good' && (
                     <div className={styles.detailItem}>
-                      <span className={styles.detailIcon}>✨</span>
+                      <span className={styles.detailIcon}><Sparkles size={18} /></span>
                       <span className={styles.detailText}>{post.condition}</span>
                     </div>
                   )}
@@ -852,6 +922,19 @@ const handleMessageOwner = async (post, event) => {
                 </button>
               )}
 
+              {/* Add to Run button — collectors only, on available Waste posts they don't own */}
+              {post.postType === 'Waste' && post.userID !== currentUser?.userID && post.status === 'Active' && currentUser?.isCollector && (
+                <button
+                  className={`${styles.actionButton} ${isInRun(post.postID) ? styles.inRunButton : styles.addToRunButton}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    isInRun(post.postID) ? removeFromRun(post.postID) : addToRun(post);
+                  }}
+                >
+                  {isInRun(post.postID) ? '✓ In Run' : '+ Add to Run'}
+                </button>
+              )}
+
               
               {post.postType === 'Initiative' && post.userID !== currentUser?.userID && post.status === 'Active' && (
                 <button
@@ -882,7 +965,38 @@ const handleMessageOwner = async (post, event) => {
             </div>
           </div>
         );
-      })}
+  };
+
+  const renderGroupedByDate = () => {
+    const sorted = [...posts].sort((a, b) => {
+      if (!a.pickupDate) return 1;
+      if (!b.pickupDate) return -1;
+      return new Date(b.pickupDate) - new Date(a.pickupDate);
+    });
+
+    const groups = {};
+    sorted.forEach(post => {
+      const key = post.pickupDate || '__nodate__';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(post);
+    });
+
+    return Object.keys(groups).flatMap(key => [
+      <div key={`date-header-${key}`} className={styles.dateGroupHeader}>
+        {key === '__nodate__'
+          ? 'No Date Set'
+          : new Date(key).toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+      </div>,
+      ...groups[key].map(post => renderPostCard(post))
+    ]);
+  };
+
+  return (
+    <div className={styles.container}>
+      {groupByDate
+        ? renderGroupedByDate()
+        : Array.isArray(posts) && posts.map(post => renderPostCard(post))
+      }
     </div>
   );
 };

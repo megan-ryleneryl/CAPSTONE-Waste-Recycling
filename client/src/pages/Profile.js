@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Pencil, Trash2, MapPin, Sprout, Recycle, TrendingUp, Heart, Leaf, Trophy, Users, Package, Plus, Trees, Droplets, HelpCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import styles from './Profile.module.css';
 import ModalPortal from '../components/modal/ModalPortal';
 import DeleteAccountModal from '../components/profile/DeleteAccountModal/DeleteAccountModal';
@@ -10,15 +11,65 @@ import ApplicationStatusTracker from '../components/profile/ApplicationStatusTra
 import PreferredTimesModal from '../components/profile/PreferredTimesModal';
 import PreferredLocationsModal from '../components/profile/PreferredLocationsModal';
 import UserLocationModal from '../components/profile/UserLocationModal';
+import { BadgesSection } from '../components/badges';
 import GuideLink from '../components/guide/GuideLink';
 
 // Component for Organization Application Form
 const OrganizationForm = ({ onClose, onSubmit }) => {
+  const [requestType, setRequestType] = useState('create'); // 'create' or 'join'
+  const [organizations, setOrganizations] = useState([]);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+  
   const [formData, setFormData] = useState({
-    organizationName: '',
+    requestType: 'create',
+    organizationName: '',      // For 'create' requests
+    targetOrganizationID: '',  // For 'join' requests
     reason: '',
     proofDocument: null
   });
+
+  // Fetch available organizations when component mounts
+  useEffect(() => {
+    if (requestType === 'join') {
+      fetchOrganizations();
+    }
+  }, [requestType]);
+
+  const fetchOrganizations = async () => {
+    setLoadingOrgs(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        'http://localhost:3001/api/protected/profile/organizations/list',
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      if (response.data.success) {
+        // Sort alphabetically by name
+        const sorted = response.data.organizations.sort((a, b) => 
+          a.organizationName.localeCompare(b.organizationName)
+        );
+        setOrganizations(sorted);
+      }
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      alert('Failed to load organizations. Please try again.');
+    } finally {
+      setLoadingOrgs(false);
+    }
+  };
+
+  const handleRequestTypeChange = (type) => {
+    setRequestType(type);
+    setFormData({
+      ...formData,
+      requestType: type,
+      organizationName: '',
+      targetOrganizationID: ''
+    });
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -31,7 +82,18 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Validate based on request type
+    if (requestType === 'join' && !formData.targetOrganizationID) {
+      alert('Please select an organization to join');
+      return;
+    }
+    if (requestType === 'create' && !formData.organizationName) {
+      alert('Please enter an organization name');
+      return;
+    }
+    
+    onSubmit({ ...formData, requestType });
   };
 
   const handleBackdropClick = (e) => {
@@ -46,37 +108,115 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
         <div className={styles.modalContent}>
           <div className={styles.modalHeader}>
             <button onClick={onClose} className={styles.closeButton}>×</button>
-            <h2>Apply for Org Account</h2>
+            <h2>Apply for Organization Account</h2>
           </div>
           
           <form onSubmit={handleSubmit} className={styles.form}>
+            {/* Request Type Selection */}
             <div className={styles.formGroup}>
-              <label>Organization Name</label>
-              <input
-                type="text"
-                name="organizationName"
-                value={formData.organizationName}
-                onChange={handleInputChange}
-                className={styles.input}
-                required
-              />
+              <label>Request Type</label>
+              <div className={styles.radioGroup}>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="requestType"
+                    value="create"
+                    checked={requestType === 'create'}
+                    onChange={() => handleRequestTypeChange('create')}
+                  />
+                  <span>Create New Organization</span>
+                </label>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="requestType"
+                    value="join"
+                    checked={requestType === 'join'}
+                    onChange={() => handleRequestTypeChange('join')}
+                  />
+                  <span>Join Existing Organization</span>
+                </label>
+              </div>
             </div>
 
+            {/* Conditional Fields Based on Request Type */}
+            {requestType === 'create' ? (
+              <>
+                {/* Organization Name Input - For Create */}
+                <div className={styles.formGroup}>
+                  <label>Organization Name</label>
+                  <input
+                    type="text"
+                    name="organizationName"
+                    value={formData.organizationName}
+                    onChange={handleInputChange}
+                    className={styles.input}
+                    placeholder="Enter your organization's name"
+                    required
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Organization Dropdown - For Join */}
+                <div className={styles.formGroup}>
+                  <label>Select Organization</label>
+                  {loadingOrgs ? (
+                    <p>Loading organizations...</p>
+                  ) : (
+                    <select
+                      name="targetOrganizationID"
+                      value={formData.targetOrganizationID}
+                      onChange={handleInputChange}
+                      className={styles.select}
+                      required
+                    >
+                      <option value="">-- Select an organization --</option>
+                      {organizations.map(org => (
+                        <option key={org.organizationID} value={org.organizationID}>
+                          {org.organizationName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {organizations.length === 0 && !loadingOrgs && (
+                    <p className={styles.helpText}>
+                      No organizations available. Consider creating a new one instead.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Reason - Common to both */}
             <div className={styles.formGroup}>
-              <label>Reason for applying</label>
+              <label>
+                {requestType === 'create' 
+                  ? 'Why are you creating this organization?' 
+                  : 'Why do you want to join this organization?'}
+              </label>
               <textarea
                 name="reason"
                 value={formData.reason}
                 onChange={handleInputChange}
                 className={styles.textarea}
                 rows="5"
-                placeholder="Explain why your organization wants to join..."
+                placeholder={
+                  requestType === 'create'
+                    ? "Explain your organization's mission and goals..."
+                    : "Explain your affiliation with this organization..."
+                }
                 required
               />
             </div>
 
+            {/* Proof Document - Common to both */}
             <div className={styles.formGroup}>
-              <label>Proof of Organization Membership</label>
+              <label>
+                {requestType === 'create'
+                  ? 'Proof of Organization Registration'
+                  : 'Proof of Organization Membership'}
+              </label>
               <input
                 type="file"
                 onChange={handleFileChange}
@@ -84,10 +224,15 @@ const OrganizationForm = ({ onClose, onSubmit }) => {
                 accept=".pdf,.jpg,.jpeg,.png"
                 required
               />
+              <p className={styles.helpText}>
+                {requestType === 'create'
+                  ? 'Upload registration documents, certificates, or official letters'
+                  : 'Upload ID card, certificate, or official letter from the organization'}
+              </p>
             </div>
 
             <button type="submit" className={styles.submitButton}>
-              Submit
+              Submit Application
             </button>
           </form>
         </div>
@@ -541,6 +686,8 @@ const ApplicationSelector = ({ applications, onSelect, onClose }) => {
 
 // Main Profile Component
 const Profile = ({ user: propsUser }) => {
+  const badgeCheckRan = useRef(false);
+  const { success, showPointsEarned } = useToast();
   const [user, setUser] = useState(propsUser || null);
   const [profilePictureUrl, setProfilePictureUrl] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -552,7 +699,6 @@ const Profile = ({ user: propsUser }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showApplicationSelector, setShowApplicationSelector] = useState(false);
   const [activeTab, setActiveTab] = useState('preferences');
-  const [selectedTimeRange, setSelectedTimeRange] = useState('month');
   const [analyticsData, setAnalyticsData] = useState({
     giverStats: {
       totalKgRecycled: 0,
@@ -601,7 +747,7 @@ const Profile = ({ user: propsUser }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:3001/api/analytics/dashboard?timeRange=${selectedTimeRange}`,
+        `http://localhost:3001/api/analytics/dashboard?timeRange=all`,
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -612,6 +758,36 @@ const Profile = ({ user: propsUser }) => {
       }
     } catch (error) {
       console.error('Error fetching analytics:', error);
+    }
+  };
+
+  // Check and award eligible badges
+  const checkAndAwardBadges = async ({ showToast = true } = {}) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'http://localhost:3001/api/protected/profile/check-badges',
+        {},
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success && response.data.newBadges?.length > 0) {
+        // Refresh user profile to get updated badges
+        await fetchUserProfile();
+
+        // Show notification for each new badge
+        if (showToast) {
+          response.data.newBadges.forEach((badge, index) => {
+            setTimeout(() => {
+              success(`Badge unlocked: ${badge.badgeId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`);
+            }, index * 1000);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking badges:', error);
     }
   };
 
@@ -718,14 +894,12 @@ const Profile = ({ user: propsUser }) => {
     fetchUserProfile();
     fetchUserApplications();
     fetchAnalyticsData();
-  }, [fetchUserProfile]);
-
-  // Fetch analytics when time range changes
-  useEffect(() => {
-    if (user) {
-      fetchAnalyticsData();
+    // Check and award any eligible badges on profile load (only once)
+    if (!badgeCheckRan.current) {
+      badgeCheckRan.current = true;
+      checkAndAwardBadges();
     }
-  }, [selectedTimeRange]);
+  }, [fetchUserProfile]);
 
   // Handle body scroll lock
   useEffect(() => {
@@ -911,8 +1085,16 @@ const Profile = ({ user: propsUser }) => {
       
       // Create FormData for file upload
       const uploadData = new FormData();
-      uploadData.append('organizationName', formData.organizationName);
+      uploadData.append('requestType', formData.requestType);
       uploadData.append('reason', formData.reason);
+      
+      // Add organization-specific fields based on request type
+      if (formData.requestType === 'create') {
+        uploadData.append('organizationName', formData.organizationName);
+      } else if (formData.requestType === 'join') {
+        uploadData.append('targetOrganizationID', formData.targetOrganizationID);
+      }
+      
       if (formData.proofDocument) {
         uploadData.append('proofDocument', formData.proofDocument);
       }
@@ -933,22 +1115,7 @@ const Profile = ({ user: propsUser }) => {
         setSubmittedApplication(response.data.application);
         setShowStatusTracker(true);
         setError('');
-
-        // Update user state to reflect organization status
-        setUser(prevUser => ({
-          ...prevUser,
-          isOrganization: true,
-          organizationName: formData.organizationName
-        }));
         
-        // Update localStorage
-        const updatedUser = {
-          ...user,
-          isOrganization: true,
-          organizationName: formData.organizationName
-        };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-
         alert('Organization application submitted successfully! Please wait for approval.');
         fetchUserProfile();
         fetchUserApplications();
@@ -1041,15 +1208,21 @@ const Profile = ({ user: propsUser }) => {
       if (response.data.success) {
         // If backend returns updated user, use it
         const updatedUser = response.data.user || { ...user, preferredTimes: times };
-        
+
         // Update local state with backend response
         setUser(updatedUser);
-        
+
         // Update localStorage
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
+
         // Close modal
         setActiveModal(null);
+
+        // Show success toast and points popup if this is first time setting
+        success('Preferred times updated successfully!');
+        if (response.data.pointsAwarded) {
+          showPointsEarned(1, 'Profile Completed: Preferred Times');
+        }
       }
     } catch (error) {
       console.error('Error updating preferred times:', error);
@@ -1089,11 +1262,16 @@ const Profile = ({ user: propsUser }) => {
 
         // Close modal
         setActiveModal(null);
+
+        // Show success toast and points popup if this is first time setting
+        success('Preferred locations updated successfully!');
+        if (response.data.pointsAwarded) {
+          showPointsEarned(1, 'Profile Completed: Preferred Locations');
+        }
       }
     } catch (error) {
       console.error('Error updating preferred locations:', error);
       setError('Failed to update preferred locations');
-      alert('Failed to save locations. Please try again.');
     }
   };
 
@@ -1132,6 +1310,42 @@ const Profile = ({ user: propsUser }) => {
       console.error('Error updating user location:', error);
       setError('Failed to update location');
       alert('Failed to save your location. Please try again.');
+    }
+  };
+
+  // Handle privacy settings toggle changes
+  const handlePrivacySettingChange = async (setting, value) => {
+    try {
+      const token = localStorage.getItem('token');
+      const newPrivacySettings = {
+        ...user.privacySettings,
+        [setting]: value
+      };
+
+      // If showEarnings is disabled, also disable showNameOnLeaderboard
+      if (setting === 'showEarnings' && !value) {
+        newPrivacySettings.showNameOnLeaderboard = false;
+      }
+
+      const response = await axios.put(
+        'http://localhost:3001/api/protected/profile',
+        { privacySettings: newPrivacySettings },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        const updatedUser = { ...user, privacySettings: newPrivacySettings };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Error updating privacy settings:', error);
+      alert('Failed to update privacy settings. Please try again.');
     }
   };
 
@@ -1198,7 +1412,7 @@ const Profile = ({ user: propsUser }) => {
                   </h2>
                   
                   {/* Display organization name if user is an organization */}
-                  {user?.isOrganization && user?.organizationName && (
+                  {user?.organizationID && user?.organizationName && (
                     <p className={styles.organizationName}>
                       <svg 
                         width="16" 
@@ -1267,7 +1481,7 @@ const Profile = ({ user: propsUser }) => {
                     )}
                     
                     {/* Organization Badge */}
-                    {user?.isOrganization && (
+                    {user?.organizationID !== null && (
                       <span className={`${styles.badge} ${styles.roleOrganization}`}>
                         Organization
                       </span>
@@ -1320,11 +1534,23 @@ const Profile = ({ user: propsUser }) => {
 
             {/* Stats - Quick Overview */}
             <div className={styles.stats}>
-              <div className={styles.statItem}>
-                <span>Points: {user.points || 0}</span>
+              <div className={styles.quickStatCard}>
+                <div className={styles.quickStatIcon} style={{ background: 'rgba(59, 101, 53, 0.1)', color: '#3B6535' }}>
+                  <TrendingUp size={22} />
+                </div>
+                <div className={styles.quickStatInfo}>
+                  <span className={styles.quickStatNumber}>{user.points || 0}</span>
+                  <span className={styles.quickStatLabel}>Points</span>
+                </div>
               </div>
-              <div className={styles.statItem}>
-                <strong>{user.totalDonations || '0'}</strong> kg Donations
+              <div className={styles.quickStatCard}>
+                <div className={styles.quickStatIcon} style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>
+                  <Recycle size={22} />
+                </div>
+                <div className={styles.quickStatInfo}>
+                  <span className={styles.quickStatNumber}>{analyticsData.giverStats.totalKgRecycled || 0} kg</span>
+                  <span className={styles.quickStatLabel}>Total Recycled</span>
+                </div>
               </div>
             </div>
 
@@ -1335,6 +1561,12 @@ const Profile = ({ user: propsUser }) => {
                 onClick={() => setActiveTab('preferences')}
               >
                 Preferences
+              </button>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'badges' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('badges')}
+              >
+                Badges
               </button>
               <button
                 className={`${styles.tabButton} ${activeTab === 'stats' ? styles.activeTab : ''}`}
@@ -1408,7 +1640,7 @@ const Profile = ({ user: propsUser }) => {
                   <div className={styles.preferencesSection}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                       <h3 className={styles.sectionTitle} style={{ margin: 0 }}>Pickup Preferences</h3>
-                      <GuideLink text="How to set up preferences" targetPage={3} icon={<HelpCircle size={16} />} />
+                      <GuideLink text="How to set up preferences" targetPage={4} icon={<HelpCircle size={16} />} />
                     </div>
 
                     <div className={styles.preferencesContent}>
@@ -1495,6 +1727,57 @@ const Profile = ({ user: propsUser }) => {
                     </div>
                   </div>
 
+                  {/* Privacy Settings Section */}
+                  <div className={styles.privacySection}>
+                    <div className={styles.sectionHeader}>
+                      <h3 className={styles.sectionTitle}>Privacy Settings</h3>
+                    </div>
+                    <p className={styles.sectionDescription}>
+                      Control how your information appears on community leaderboards.
+                    </p>
+
+                    <div className={styles.privacyContent}>
+                      <div className={styles.privacyItem}>
+                        <div className={styles.privacyItemInfo}>
+                          <h4>Show Earnings on Leaderboard</h4>
+                          <p className={styles.privacyDescription}>
+                            Allow your earnings to appear on the Community Top Earners leaderboard.
+                            This helps inspire others to recycle!
+                          </p>
+                        </div>
+                        <label className={styles.toggle}>
+                          <input
+                            type="checkbox"
+                            checked={user?.privacySettings?.showEarnings || false}
+                            onChange={(e) => handlePrivacySettingChange('showEarnings', e.target.checked)}
+                          />
+                          <span className={styles.toggleSlider}></span>
+                        </label>
+                      </div>
+
+                      <div className={styles.privacyItem}>
+                        <div className={styles.privacyItemInfo}>
+                          <h4>Show Name on Leaderboard</h4>
+                          <p className={styles.privacyDescription}>
+                            Display your name instead of "Anonymous User" on leaderboards.
+                            {!user?.privacySettings?.showEarnings && (
+                              <span className={styles.privacyNote}> (Enable "Show Earnings" first)</span>
+                            )}
+                          </p>
+                        </div>
+                        <label className={styles.toggle}>
+                          <input
+                            type="checkbox"
+                            checked={user?.privacySettings?.showNameOnLeaderboard || false}
+                            onChange={(e) => handlePrivacySettingChange('showNameOnLeaderboard', e.target.checked)}
+                            disabled={!user?.privacySettings?.showEarnings}
+                          />
+                          <span className={styles.toggleSlider}></span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Call to Action Cards */}
                   <div className={styles.ctaSection}>
                     {user.status === 'Pending' && (
@@ -1521,7 +1804,7 @@ const Profile = ({ user: propsUser }) => {
                       </div>
                     )}
 
-                    {!user.isOrganization && !hasPendingOrganizationApplication() && (
+                    {user.organizationID === null && !hasPendingOrganizationApplication() && (
                       <div className={styles.ctaCard}>
                         <p>Join EcoTayo as a Verified Organization and connect directly with thousands of givers. Showcase your projects and build your reputation by making Initiative Posts.</p>
                         <button
@@ -1533,7 +1816,7 @@ const Profile = ({ user: propsUser }) => {
                       </div>
                     )}
 
-                    {(!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication()) || (!user.isOrganization && !hasPendingOrganizationApplication()) ? (
+                    {(!user.isCollector && !user.isAdmin && !hasPendingCollectorApplication()) || (user.organizationID === null && !hasPendingOrganizationApplication()) ? (
                       <p className={styles.ctaNote}>
                         <strong>Note: If you're applying for verification or applications</strong>, your application requires admin approval before your account status changes. Please give us 3-5 business days to review and process your application.
                       </p>
@@ -1542,23 +1825,29 @@ const Profile = ({ user: propsUser }) => {
                 </div>
               )}
 
+              {/* Badges Tab */}
+              {activeTab === 'badges' && (
+                <BadgesSection
+                  userBadges={user?.badges || []}
+                  userStats={{
+                    points: user?.points || 0,
+                    postsCreated: analyticsData?.giverStats?.totalPostsCreated || 0,
+                    pickupsCompleted: (analyticsData?.giverStats?.successfulPickups || 0) + (analyticsData?.collectorStats?.successfulPickups || 0),
+                    kgRecycled: analyticsData?.giverStats?.totalKgRecycled || 0,
+                    initiativesSupported: analyticsData?.giverStats?.initiativesSupported || 0,
+                  }}
+                  onClaimBadge={async () => {
+                    await checkAndAwardBadges();
+                  }}
+                />
+              )}
+
               {/* Stats Tab */}
               {activeTab === 'stats' && (
                 <div className={styles.statsTab}>
                   <div className={styles.detailedStatsSection}>
                     <div className={styles.sectionHeader}>
                       <h3 className={styles.sectionTitle}>My Activity Stats</h3>
-                      <div className={styles.timeRangeSelector}>
-                        {['week', 'month', 'year', 'all'].map(range => (
-                          <button
-                            key={range}
-                            className={`${styles.timeButton} ${selectedTimeRange === range ? styles.activeTimeButton : ''}`}
-                            onClick={() => setSelectedTimeRange(range)}
-                          >
-                            {range === 'all' ? 'All' : range.charAt(0).toUpperCase() + range.slice(1)}
-                          </button>
-                        ))}
-                      </div>
                     </div>
 
                     {/* Giver Stats - Everyone has this */}
@@ -1596,7 +1885,7 @@ const Profile = ({ user: propsUser }) => {
                           </div>
                           <div className={styles.statRow}>
                             <span className={styles.statLabel}>Total Points</span>
-                            <span className={styles.statValue}>{analyticsData.giverStats.totalPoints || 0}</span>
+                            <span className={styles.statValue}>{user.points || 0}</span>
                           </div>
                         </div>
                       </div>
@@ -1655,7 +1944,7 @@ const Profile = ({ user: propsUser }) => {
                     )}
 
                     {/* Organization Stats - Only for organizations */}
-                    {user?.isOrganization && (
+                    {user?.organizationID !== null && (
                       <div className={styles.roleStatsSection}>
                         <h4 className={styles.roleStatsTitle}>
                           <Heart size={20} /> Organization Impact

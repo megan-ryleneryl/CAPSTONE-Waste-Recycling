@@ -224,7 +224,7 @@ const AllUsers = () => {
       (filters.role === 'admin' && user.isAdmin) ||
       (filters.role === 'collector' && user.isCollector) ||
       (filters.role === 'giver' && !user.isCollector) ||
-      (filters.role === 'organization' && user.isOrganization);
+      (filters.role === 'organization' && user.organizationID !== null);
     
     // Filter by status
     const statusMatch = filters.status === 'all' || 
@@ -255,7 +255,7 @@ const AllUsers = () => {
     const roles = [];
     if (user.isAdmin) roles.push({ label: 'Admin', className: styles.typeAdmin });
     if (user.isCollector) roles.push({ label: 'Collector', className: styles.typeCollector });
-    if (user.isOrganization) roles.push({ label: 'Organization', className: styles.typeOrganization });
+    if (user.organizationID !== null) roles.push({ label: 'Organization', className: styles.typeOrganization });
     
     // If no special roles, user is a Giver
     if (roles.length === 0) {
@@ -492,7 +492,7 @@ const AllUsers = () => {
                 <div className={styles.detailsContent}>
                   <p><strong>Name:</strong> {selectedUser.firstName} {selectedUser.lastName}</p>
                   <p><strong>Email:</strong> {selectedUser.email}</p>
-                  <p><strong>Role:</strong> {selectedUser.isAdmin ? 'Admin' : selectedUser.isCollector ? 'Collector' : selectedUser.isOrganization ? 'Organization' : 'Giver'}</p>
+                  <p><strong>Role:</strong> {selectedUser.isAdmin ? 'Admin' : selectedUser.isCollector ? 'Collector' : selectedUser.organizationID !== null ? 'Organization' : 'Giver'}</p>
                   <p><strong>Status:</strong> {selectedUser.status}</p>
                   <p><strong>User Since:</strong> {formatDate(selectedUser.createdAt)}</p>
                   {selectedUser.updatedAt && (

@@ -62,7 +62,7 @@ router.post('/register', async (req, res) => {
               badges: existingUser.badges,
               isCollector: existingUser.isCollector,
               isAdmin: existingUser.isAdmin,
-              isOrganization: existingUser.isOrganization,
+              organizationID: existingUser.organizationID,
               profilePicture: existingUser.profilePictureUrl,
               profilePictureUrl: existingUser.profilePictureUrl,
             }
@@ -99,7 +99,7 @@ router.post('/register', async (req, res) => {
       phone: '', // Default empty phone
       isCollector: false, // Default not collector
       isAdmin: false, // Default not admin
-      isOrganization: false, // Default not organization
+      organizationID: null, // Default not organization
       organizationName: null,
       preferredTimes: [],
       preferredLocations: [],
@@ -141,7 +141,7 @@ router.post('/register', async (req, res) => {
         badges: user.badges,
         isCollector: user.isCollector,
         isAdmin: user.isAdmin,
-        isOrganization: user.isOrganization,
+        organizationID: user.organizationID,
         profilePicture: user.profilePictureUrl,  // For backward compatibility
         profilePictureUrl: user.profilePictureUrl,
       }
@@ -202,7 +202,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         isCollector: user.isCollector,
         isAdmin: user.isAdmin,
-        isOrganization: user.isOrganization,
+        organizationID: user.organizationID,
         status: user.status,
         points: user.points,
         badges: user.badges,
@@ -327,7 +327,7 @@ router.post('/google', async (req, res) => {
       phone: '',
       isCollector: false,
       isAdmin: false,
-      isOrganization: false,
+      organizationID: null,
       organizationName: null,
       preferredTimes: [],
       preferredLocations: [],
@@ -382,7 +382,7 @@ router.post('/google', async (req, res) => {
         email: user.email,
         isCollector: user.isCollector,
         isAdmin: user.isAdmin,
-        isOrganization: user.isOrganization,
+        organizationID: user.organizationID,
         status: user.status,
         points: user.points,
         badges: user.badges,

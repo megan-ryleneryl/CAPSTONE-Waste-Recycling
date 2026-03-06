@@ -3,13 +3,14 @@ import { Info } from 'lucide-react';
 import QuickGuide from './QuickGuide';
 import styles from './GuideLink.module.css';
 
-const GuideLink = ({ text, targetPage, icon, className = '' }) => {
+const GuideLink = ({ text, targetPage, icon, className = '', style }) => {
   const [showGuide, setShowGuide] = useState(false);
 
   return (
     <>
       <button
         className={`${styles.guideLink} ${className}`}
+        style={style}
         onClick={() => setShowGuide(true)}
         type="button"
       >

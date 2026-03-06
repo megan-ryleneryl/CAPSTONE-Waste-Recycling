@@ -5,7 +5,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   gap: 2rem;
-  padding-top: 2rem;
+  /* padding-top: 2rem; */
   margin: 0 auto;
   font-family: 'Raleway', sans-serif;
 }
@@ -240,6 +240,37 @@
 
 .nextButton {
   right: 1rem;
+}
+
+/* Image Indicators */
+.imageIndicators {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+}
+
+.indicator:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.indicator.active {
+  background: white;
+  width: 24px;
+  border-radius: 4px;
 }
 
 /* Details Section */
@@ -703,4 +734,40 @@
   border-radius: 8px;
   font-size: 0.875rem;
   font-style: italic;
+}
+
+/* Add to Run button */
+.addToRunButton {
+  background: white;
+  color: #166534;
+  border: 2px solid #166534;
+}
+
+.addToRunButton:hover {
+  background: #dcfce7;
+  transform: translateY(-2px);
+}
+
+.inRunButton {
+  background: #166534;
+  color: white;
+  border: 2px solid #166534;
+}
+
+.inRunButton:hover {
+  background: #14532d;
+  transform: translateY(-2px);
+}
+
+/* Group by Date header */
+.dateGroupHeader {
+  grid-column: 1 / -1;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  border-left: 4px solid #166534;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #14532d;
+  margin-top: 8px;
 }

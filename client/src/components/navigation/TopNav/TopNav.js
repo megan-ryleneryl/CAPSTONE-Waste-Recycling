@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../context/AuthContext';
 import axios from 'axios';
+import { Package, Check, Truck, MapPin, PartyPopper, X as XIcon, Trophy, MessageCircle, ClipboardList, MessageSquare, Bell, CheckCircle, XCircle, HandHelping, ThumbsUp, HelpCircle } from 'lucide-react';
 import EcoTayoLogo from './EcoTayoLogo.svg';
 import QuickGuide from '../../guide/QuickGuide';
+import NotificationsModal from '../../notifications/NotificationsModal/NotificationsModal';
 import styles from './TopNav.module.css';
 
 const TopNav = ({ user: propUser }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [user, setUser] = useState(propUser);
   const [showGuide, setShowGuide] = useState(false);
@@ -361,29 +363,80 @@ const TopNav = ({ user: propUser }) => {
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const profilePictureUrl = getProfilePictureUrl();
 
-  // Notification Bell Icon Component
-  const BellIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
+  // Get icon and color for notification based on type and title
+  const getNotificationIcon = (notification) => {
+    const title = (notification.title || '').toLowerCase();
+    const type = (notification.type || '').toLowerCase();
+    const iconSize = 18;
 
-  // Chat/Message Icon Component
-  const ChatIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
+    // Pickup-related notifications
+    if (type === 'pickup' || title.includes('pickup')) {
+      if (title.includes('request') || title.includes('proposed') || title.includes('interested')) {
+        return { icon: <Package size={iconSize} />, color: '#f59e0b' };
+      }
+      if (title.includes('confirmed')) {
+        return { icon: <Check size={iconSize} />, color: '#10b981' };
+      }
+      if (title.includes('on the way') || title.includes('transit')) {
+        return { icon: <Truck size={iconSize} />, color: '#3b82f6' };
+      }
+      if (title.includes('arrived')) {
+        return { icon: <MapPin size={iconSize} />, color: '#8b5cf6' };
+      }
+      if (title.includes('complete')) {
+        return { icon: <PartyPopper size={iconSize} />, color: '#059669' };
+      }
+      if (title.includes('cancel') || title.includes('available again')) {
+        return { icon: <XIcon size={iconSize} />, color: '#ef4444' };
+      }
+      return { icon: <Package size={iconSize} />, color: '#3B6535' };
+    }
 
-  // Help/Info Icon Component
-  const HelpIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
+    // Support-related notifications
+    if (type === 'support_accepted' || title.includes('support accepted') || title.includes('material accepted')) {
+      return { icon: <CheckCircle size={iconSize} />, color: '#10b981' };
+    }
+    if (type === 'support_declined' || title.includes('support declined') || title.includes('material declined')) {
+      return { icon: <XCircle size={iconSize} />, color: '#ef4444' };
+    }
+    if (type === 'support_completed') {
+      return { icon: <HandHelping size={iconSize} />, color: '#059669' };
+    }
+    if (type === 'support_cancelled') {
+      return { icon: <XIcon size={iconSize} />, color: '#ef4444' };
+    }
+
+    // Post-related notifications
+    if (type === 'post_completed' || title.includes('post completed') || title.includes('initiative completed')) {
+      return { icon: <PartyPopper size={iconSize} />, color: '#059669' };
+    }
+    if (type === 'post_like' || title.includes('liked')) {
+      return { icon: <ThumbsUp size={iconSize} />, color: '#ec4899' };
+    }
+
+    // Badge notifications
+    if (type === 'badge' || title.includes('badge')) {
+      return { icon: <Trophy size={iconSize} />, color: '#f59e0b' };
+    }
+
+    // Message notifications
+    if (type === 'message' || title.includes('message')) {
+      return { icon: <MessageCircle size={iconSize} />, color: '#3b82f6' };
+    }
+
+    // Application notifications
+    if (type === 'application' || title.includes('verification') || title.includes('approved')) {
+      return { icon: <ClipboardList size={iconSize} />, color: '#10b981' };
+    }
+
+    // Comment notifications
+    if (type === 'comment' || type === 'post_comment' || title.includes('comment')) {
+      return { icon: <MessageSquare size={iconSize} />, color: '#6b7280' };
+    }
+
+    // Default
+    return { icon: <Bell size={iconSize} />, color: '#3B6535' };
+  };
 
   return (
     <nav className={styles.navbar}>
@@ -399,7 +452,7 @@ const TopNav = ({ user: propUser }) => {
               onClick={toggleNotifications}
               aria-label="Notifications"
             >
-              <BellIcon />
+              <Bell size={20} />
               {unreadCount > 0 && (
                 <span className={`${styles.badge} ${styles.animatePulse}`}>
                   {unreadCount > 9 ? '9+' : unreadCount}
@@ -412,9 +465,12 @@ const TopNav = ({ user: propUser }) => {
                 <div className={styles.dropdownHeader}>
                   <h3>Notifications</h3>
                   {unreadCount > 0 && (
-                    <button 
+                    <button
                       className={styles.markAllRead}
-                      onClick={markAllAsRead}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAllAsRead();
+                      }}
                     >
                       Mark all as read
                     </button>
@@ -426,67 +482,110 @@ const TopNav = ({ user: propUser }) => {
                       <p>No items to display</p>
                     </div>
                   ) : (
-                    notifications.slice(0, 5).map((notification) => (
-                      <div
-                        key={notification.notificationID}
-                        className={`${styles.notificationItem} ${
-                          !notification.isRead ? styles.unread : ''
-                        }`}
-                        onClick={() => {
-                          // Mark as read when clicked
-                          if (!notification.isRead) {
-                            markNotificationAsRead(notification.notificationID);
-                          }
-
-                          // Navigate based on notification type
-                          if (notification.actionURL) {
-                            // Use actionURL if provided
-                            navigate(notification.actionURL);
-                            setShowNotifications(false);
-                          } else if (notification.referenceID && notification.referenceType) {
-                            // Check if this is a pickup request notification with collector info
-                            const hasCollectorInfo = notification.metadata?.collectorID &&
-                                                    notification.metadata?.postID;
-
-                            // Navigate based on reference type
-                            if (notification.referenceType === 'post') {
-                              // If it's a pickup-related notification with collector info, open chat
-                              if (hasCollectorInfo && notification.type?.toLowerCase().includes('pickup')) {
-                                const collectorName = notification.metadata.collectorName || 'Collector';
-                                const nameParts = collectorName.split(' ');
-                                navigate('/chat', {
-                                  state: {
-                                    postID: notification.metadata.postID,
-                                    otherUser: {
-                                      userID: notification.metadata.collectorID,
-                                      firstName: nameParts[0] || 'Unknown',
-                                      lastName: nameParts.slice(1).join(' ') || 'User'
-                                    }
-                                  }
-                                });
-                              } else {
-                                // Otherwise navigate to the post
-                                navigate(`/posts/${notification.referenceID}`);
-                              }
-                            } else if (notification.referenceType === 'pickup') {
-                              navigate(`/tracking/${notification.referenceID}`);
-                            } else if (notification.referenceType === 'message') {
-                              navigate('/chat');
+                    notifications.slice(0, 5).map((notification) => {
+                      const { icon, color } = getNotificationIcon(notification);
+                      return (
+                        <div
+                          key={notification.notificationID}
+                          className={`${styles.notificationItem} ${
+                            !notification.isRead ? styles.unread : ''
+                          }`}
+                          onClick={() => {
+                            // Mark as read when clicked
+                            if (!notification.isRead) {
+                              markNotificationAsRead(notification.notificationID);
                             }
-                            setShowNotifications(false);
-                          }
-                        }}
-                      >
-                        <p>{notification.message}</p>
-                        <span className={styles.time}>
-                          {notification.createdAt 
-                            ? formatDate(notification.createdAt)
-                            : 'Just now'}
-                        </span>
-                      </div>
-                    ))
+
+                            // Navigate based on notification type
+                            if (notification.actionURL) {
+                              // If the actionURL targets /chat, open the conversation directly via state
+                              if (notification.actionURL.startsWith('/chat')) {
+                                const url = new URL(notification.actionURL, window.location.origin);
+                                const postID = url.searchParams.get('postId');
+                                const otherUserID = url.searchParams.get('userId');
+
+                                if (postID && otherUserID) {
+                                  const nameParts = (notification.metadata?.collectorName || '').split(' ');
+                                  navigate('/chat', {
+                                    state: {
+                                      postID,
+                                      otherUser: {
+                                        userID: otherUserID,
+                                        firstName: nameParts[0] || 'Unknown',
+                                        lastName: nameParts.slice(1).join(' ') || 'User',
+                                      },
+                                    }
+                                  });
+                                  setShowNotifications(false);
+                                  return;
+                                }
+                              }
+                              navigate(notification.actionURL);
+                              setShowNotifications(false);
+                            } else if (notification.referenceID && notification.referenceType) {
+                              // Check if this is a pickup request notification with collector info
+                              const hasCollectorInfo = notification.metadata?.collectorID &&
+                                                      notification.metadata?.postID;
+
+                              // Navigate based on reference type
+                              if (notification.referenceType === 'post') {
+                                // If it's a pickup-related notification with collector info, open chat
+                                if (hasCollectorInfo && notification.type?.toLowerCase().includes('pickup')) {
+                                  const collectorName = notification.metadata.collectorName || 'Collector';
+                                  const nameParts = collectorName.split(' ');
+                                  navigate('/chat', {
+                                    state: {
+                                      postID: notification.metadata.postID,
+                                      otherUser: {
+                                        userID: notification.metadata.collectorID,
+                                        firstName: nameParts[0] || 'Unknown',
+                                        lastName: nameParts.slice(1).join(' ') || 'User'
+                                      }
+                                    }
+                                  });
+                                } else {
+                                  // Otherwise navigate to the post
+                                  navigate(`/posts/${notification.referenceID}`);
+                                }
+                              } else if (notification.referenceType === 'pickup') {
+                                navigate(`/tracking/${notification.referenceID}`);
+                              } else if (notification.referenceType === 'message') {
+                                navigate('/chat');
+                              }
+                              setShowNotifications(false);
+                            }
+                          }}
+                        >
+                          <div className={styles.notificationIcon} style={{ backgroundColor: `${color}20`, color: color }}>
+                            {icon}
+                          </div>
+                          <div className={styles.notificationContent}>
+                            {notification.title && (
+                              <span className={styles.notificationTitle}>{notification.title}</span>
+                            )}
+                            <p className={styles.notificationMessage}>{notification.message}</p>
+                            <span className={styles.time}>
+                              {notification.createdAt
+                                ? formatDate(notification.createdAt)
+                                : 'Just now'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
+                {notifications.length > 5 && (
+                  <button
+                    className={styles.viewAll}
+                    onClick={() => {
+                      setShowNotifications(false);
+                      setShowNotificationsModal(true);
+                    }}
+                  >
+                    View all {notifications.length} notifications
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -497,7 +596,7 @@ const TopNav = ({ user: propUser }) => {
             onClick={() => setShowGuide(true)}
             aria-label="Help Guide"
           >
-            <HelpIcon />
+            <HelpCircle size={20} />
           </button>
 
           {/* Messages */}
@@ -506,7 +605,7 @@ const TopNav = ({ user: propUser }) => {
             onClick={() => navigate('/chat')}
             aria-label="Messages"
           >
-            <ChatIcon />
+            <MessageSquare size={20} />
           </button>
 
           {/* User Menu */}
@@ -575,7 +674,7 @@ const TopNav = ({ user: propUser }) => {
                       )}
                       
                       {/* Organization Badge */}
-                      {user?.isOrganization && (
+                      {user?.organizationID !== null && (
                         <span className={`${styles.roleBadge} ${styles.roleOrganization}`}>
                           Organization
                         </span>
@@ -604,6 +703,18 @@ const TopNav = ({ user: propUser }) => {
 
       {/* Quick Guide Modal */}
       <QuickGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
+
+      {/* Notifications Modal */}
+      {showNotificationsModal && (
+        <NotificationsModal
+          notifications={notifications}
+          onClose={() => setShowNotificationsModal(false)}
+          onMarkAsRead={markNotificationAsRead}
+          onMarkAllAsRead={markAllAsRead}
+          formatDate={formatDate}
+          getNotificationIcon={getNotificationIcon}
+        />
+      )}
     </nav>
   );
 };

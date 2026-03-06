@@ -1,14 +1,16 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import PostCard from '../components/posts/PostCard/PostCard';
+import WastePostsMap from '../components/posts/WastePostsMap/WastePostsMap';
 import LocationFilter from '../components/analytics/LocationFilter';
 import { useAuth } from '../context/AuthContext';
+import { List, Map, CalendarDays } from 'lucide-react';
+import styles from './Posts.module.css';
 
 const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
   const { currentUser } = useAuth();
   const location = useLocation();
 
-  // Location filter state
   const [locationFilter, setLocationFilter] = useState({
     region: null,
     province: null,
@@ -16,21 +18,35 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
     barangay: null
   });
 
+  const [wasteTypeFilter, setWasteTypeFilter] = useState([]);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'map'
+  const [groupByDate, setGroupByDate] = useState(false);
+
+  // Reset view mode to list when switching away from collector-relevant filters
+  const isCollectorFilter = activeFilter === 'Claimable' || activeFilter === 'Waste';
+  const prevFilterRef = useRef(activeFilter);
+  useEffect(() => {
+    if (prevFilterRef.current !== activeFilter) {
+      if (!isCollectorFilter) {
+        setViewMode('list');
+        setGroupByDate(false);
+      }
+      prevFilterRef.current = activeFilter;
+    }
+  }, [activeFilter, isCollectorFilter]);
+
   // Check if we received location state from navigation (from heatmap)
   useEffect(() => {
     if (location.state?.locationFilter) {
       setLocationFilter(location.state.locationFilter);
-      // Clear the state after using it
       window.history.replaceState({}, document.title);
     }
   }, [location]);
 
-  // Memoized callback to prevent infinite loops
   const handleLocationFilterChange = useCallback((newFilter) => {
     setLocationFilter(newFilter);
   }, []);
 
-  // Pass the location filter handler to RightSection via onDataUpdate
   useEffect(() => {
     if (onDataUpdate) {
       onDataUpdate({
@@ -39,28 +55,21 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
     }
   }, [onDataUpdate, handleLocationFilterChange]);
 
-  // Memoize the counts update handler to prevent infinite loops
   const handleCountsUpdate = useCallback((counts) => {
     if (onPostCountsUpdate) {
       onPostCountsUpdate(counts);
     }
   }, [onPostCountsUpdate]);
 
-  // Map filter IDs from SideNav to PostCard postType values
   const getPostTypeFromFilter = (filter) => {
     switch(filter) {
-      case 'Waste':
-        return 'Waste';
-      case 'Initiatives':
-        return 'Initiative';
-      case 'Forum':
-        return 'Forum';
-      case 'myPosts':
-        // For "My Posts", we still pass 'all' but with userID
-        return 'all';
+      case 'Claimable': return 'Claimable';
+      case 'Waste': return 'Waste';
+      case 'Initiatives': return 'Initiative';
+      case 'Forum': return 'Forum';
+      case 'myPosts': return 'all';
       case 'all':
-      default:
-        return 'all';
+      default: return 'all';
     }
   };
 
@@ -69,22 +78,66 @@ const Posts = ({ activeFilter = 'all', onPostCountsUpdate, onDataUpdate }) => {
 
   return (
     <div>
-      {/* Location Filter */}
+      {/* Location + Waste Type Filter */}
       <LocationFilter
         onFilterChange={handleLocationFilterChange}
         currentFilter={locationFilter}
         userLocation={currentUser?.userLocation}
+        wasteTypeFilter={wasteTypeFilter}
+        onWasteTypeFilterChange={setWasteTypeFilter}
       />
 
-      {/* Pass the appropriate postType, userID, and locationFilter to PostCard */}
-      <PostCard
-        postType={postType}
-        userID={userID}
-        maxPosts={20}
-        onCountsUpdate={handleCountsUpdate}
-        currentUserID={currentUser?.userID}
-        locationFilter={locationFilter}
-      />
+      {/* Collector view controls — only on Claimable / Waste filters */}
+      {isCollectorFilter && (
+        <div className={styles.collectorControls}>
+          {/* View mode toggle */}
+          <div className={styles.viewToggleGroup}>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.active : ''}`}
+            >
+              <List size={14} /> List View
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`${styles.viewToggleBtn} ${viewMode === 'map' ? styles.active : ''}`}
+            >
+              <Map size={14} /> Map View
+            </button>
+          </div>
+
+          {/* Group by date toggle — only in list mode */}
+          {viewMode === 'list' && (
+            <button
+              onClick={() => setGroupByDate(prev => !prev)}
+              className={`${styles.groupByDateBtn} ${groupByDate ? styles.active : ''}`}
+            >
+              <CalendarDays size={14} />
+              {groupByDate ? 'Grouped by Date' : 'Group by Date'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Map view */}
+      {viewMode === 'map' && isCollectorFilter ? (
+        <WastePostsMap
+          locationFilter={locationFilter}
+          currentUserID={currentUser?.userID}
+          postType={postType}
+        />
+      ) : (
+        <PostCard
+          postType={postType}
+          userID={userID}
+          maxPosts={20}
+          onCountsUpdate={handleCountsUpdate}
+          currentUserID={currentUser?.userID}
+          locationFilter={locationFilter}
+          wasteTypeFilter={wasteTypeFilter}
+          groupByDate={isCollectorFilter ? groupByDate : false}
+        />
+      )}
     </div>
   );
 };
