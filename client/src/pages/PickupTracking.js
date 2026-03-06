@@ -264,7 +264,7 @@ const PickupTracking = () => {
         );
 
         if (foundMaterial && material.quantity) {
-          totalPrice += parseFloat(material.quantity) * (foundMaterial.averagePricePerKg || 0);
+          totalPrice += parseFloat(material.quantity) * (foundMaterial.pricing?.displayPrice || foundMaterial.averagePricePerKg || 0);
         }
       });
 
@@ -294,7 +294,7 @@ const PickupTracking = () => {
         );
 
         if (foundMaterial) {
-          totalPrice += quantityPerMaterial * (foundMaterial.averagePricePerKg || 0);
+          totalPrice += quantityPerMaterial * (foundMaterial.pricing?.displayPrice || foundMaterial.averagePricePerKg || 0);
         }
       });
 
@@ -1102,7 +1102,7 @@ const PickupTracking = () => {
                           (m.displayName || m.type).toLowerCase() === material.materialName.toLowerCase()
                         );
                         const estimatedPrice = foundMaterial && material.quantity
-                          ? parseFloat(material.quantity) * (foundMaterial.averagePricePerKg || 0)
+                          ? parseFloat(material.quantity) * (foundMaterial.pricing?.displayPrice || foundMaterial.averagePricePerKg || 0)
                           : null;
 
                         return (

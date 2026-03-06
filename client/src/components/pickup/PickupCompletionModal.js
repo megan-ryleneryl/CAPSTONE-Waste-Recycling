@@ -61,7 +61,7 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
             materialID: materialID,
             materialName: material.materialName,
             quantity: material.quantity || '',
-            pricePerKg: proposedPrice || foundMaterial?.averagePricePerKg || ''
+            pricePerKg: proposedPrice || foundMaterial?.pricing?.displayPrice || foundMaterial?.averagePricePerKg || ''
           };
         });
         setMaterials(prefilled);
@@ -83,7 +83,7 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
             materialID: material.materialID,
             materialName: material.materialName || material.materialID,
             quantity: material.quantity || '',
-            pricePerKg: proposedPrice || foundMaterial?.averagePricePerKg || ''
+            pricePerKg: proposedPrice || foundMaterial?.pricing?.displayPrice || foundMaterial?.averagePricePerKg || ''
           };
         } else {
           // If it's a string, try to find it in availableMaterials
@@ -97,7 +97,7 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
             materialID: materialID,
             materialName: foundMaterial?.displayName || material,
             quantity: '',
-            pricePerKg: proposedPrice || foundMaterial?.averagePricePerKg || ''
+            pricePerKg: proposedPrice || foundMaterial?.pricing?.displayPrice || foundMaterial?.averagePricePerKg || ''
           };
         }
       });
@@ -127,7 +127,7 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
       const material = availableMaterials.find(m => m.materialID === value);
       if (material) {
         updated[index].materialName = material.displayName || material.type;
-        updated[index].pricePerKg = material.averagePricePerKg || '';
+        updated[index].pricePerKg = material.pricing?.displayPrice || material.averagePricePerKg || '';
       }
     }
 
@@ -307,7 +307,7 @@ const PickupCompletionModal = ({ pickup, onComplete, onCancel, loading }) => {
                           <div className={styles.priceInfo}>
                             {selectedMaterial && (
                               <span className={styles.priceLabel}>
-                                Market Avg: ₱{selectedMaterial.averagePricePerKg.toFixed(2)}/kg
+                                Market Avg: ₱{(selectedMaterial.pricing?.displayPrice || selectedMaterial.averagePricePerKg || 0).toFixed(2)}/kg
                               </span>
                             )}
                             <span className={styles.priceEstimate}>

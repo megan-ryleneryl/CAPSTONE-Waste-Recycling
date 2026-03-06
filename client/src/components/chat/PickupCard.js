@@ -33,7 +33,7 @@ const PickupCard = ({ pickup, currentUser, onUpdateStatus, onConfirmPickup, onRe
           // Build a map of materialID -> average price
           const priceMap = {};
           materialsData.forEach(material => {
-            priceMap[material.materialID] = material.averagePricePerKg || 0;
+            priceMap[material.materialID] = material.pricing?.displayPrice || material.averagePricePerKg || 0;
           });
           setAveragePrices(priceMap);
         }

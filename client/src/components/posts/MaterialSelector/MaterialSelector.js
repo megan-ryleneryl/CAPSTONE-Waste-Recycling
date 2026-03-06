@@ -121,9 +121,9 @@ const MaterialSelector = ({ selectedMaterials, onChange }) => {
 
             {selectedMaterial && item.quantity && (
               <div className={styles.priceInfo}>
-                <span className={styles.pricePerKg}>₱{selectedMaterial.averagePricePerKg}/kg</span>
+                <span className={styles.pricePerKg}>₱{(selectedMaterial.pricing?.displayPrice || selectedMaterial.averagePricePerKg || 0).toFixed(2)}/kg</span>
                 <span className={styles.priceEstimate}>
-                  Est: ₱{(parseFloat(item.quantity || 0) * selectedMaterial.averagePricePerKg).toFixed(2)}
+                  Est: ₱{(parseFloat(item.quantity || 0) * (selectedMaterial.pricing?.displayPrice || selectedMaterial.averagePricePerKg || 0)).toFixed(2)}
                 </span>
               </div>
             )}
@@ -137,7 +137,7 @@ const MaterialSelector = ({ selectedMaterials, onChange }) => {
           ₱{selectedMaterials.reduce((total, item) => {
             const material = availableMaterials.find(m => m.materialID === item.materialID);
             if (material && item.quantity) {
-              return total + (parseFloat(item.quantity) * material.averagePricePerKg);
+              return total + (parseFloat(item.quantity) * (material.pricing?.displayPrice || material.averagePricePerKg || 0));
             }
             return total;
           }, 0).toFixed(2)}
