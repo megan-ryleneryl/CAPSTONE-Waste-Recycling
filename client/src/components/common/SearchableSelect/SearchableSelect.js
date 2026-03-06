@@ -85,10 +85,12 @@ const SearchableSelect = ({
     };
   }, [isOpen, updateDropdownPosition]);
 
-  // Focus the search input when the dropdown opens
+  // Focus the search input when the dropdown opens.
+  // preventScroll stops the browser from scrolling the page to bring
+  // the portal-rendered input into view (which caused the upward shift).
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+      searchInputRef.current.focus({ preventScroll: true });
     }
   }, [isOpen]);
 
