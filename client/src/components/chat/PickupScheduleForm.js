@@ -221,7 +221,7 @@ const PickupScheduleForm = ({ post, support, giverPreferences, onSubmit, onCance
               );
               return {
                 ...material,
-                averagePrice: matchedMaterial?.averagePricePerKg || 0
+                averagePrice: matchedMaterial?.pricing?.displayPrice || matchedMaterial?.averagePricePerKg || 0
               };
             })
           );

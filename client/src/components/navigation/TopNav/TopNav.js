@@ -20,50 +20,11 @@ const TopNav = ({ user: propUser }) => {
   const [isPolling, setIsPolling] = useState(true);
   const pollingIntervalRef = useRef(null);
 
-  // Update user state when prop changes or on mount
+  // Sync user state from prop (AuthContext already keeps this fresh)
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (token && storedUser) {
-          // First set user from localStorage for immediate display
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-
-          // Then fetch fresh data from backend
-          const response = await axios.get('http://localhost:3001/api/protected/profile', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.data.success) {
-            const userData = {
-              ...response.data.user,
-              // Ensure profilePicture field exists for backward compatibility
-              profilePicture: response.data.user.profilePictureUrl || response.data.user.profilePicture
-            };
-            setUser(userData);
-            // Update localStorage with both fields
-            localStorage.setItem('user', JSON.stringify(userData));
-          }
-        } else if (propUser) {
-          setUser(propUser);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        // If token is invalid, use propUser or clear user
-        if (error.response?.status === 401) {
-          handleLogout();
-        } else if (propUser) {
-          setUser(propUser);
-        }
-      }
-    };
-
-    fetchUserData();
+    if (propUser) {
+      setUser(propUser);
+    }
   }, [propUser]);
 
   // Listen for storage changes (when user updates profile)
