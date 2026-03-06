@@ -374,12 +374,12 @@ const DisposalHubMap = ({ disposalSites = [], userLocation, onSuggestHub, onLoca
                         </div>
                       )}
 
-                      {hub.ratings && hub.ratings.count > 0 && (
+                      {/* {hub.ratings && hub.ratings.count > 0 && (
                         <div className={styles.popupInfo}>
                           <Star size={14} />
                           <span>{hub.ratings.average.toFixed(1)} ({hub.ratings.count} reviews)</span>
                         </div>
-                      )}
+                      )} */}
 
                       <div className={styles.materialsSection}>
                         <strong>Accepted Materials:</strong>
